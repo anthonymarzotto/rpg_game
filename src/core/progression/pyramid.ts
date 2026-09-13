@@ -19,11 +19,63 @@ export function getClassAtCoord(points: ArchetypePoints): ClassDefinition | null
 }
 
 /**
- * Strict lockout check: A class is locked out if its total required points
- * are lower than the unit's current level.
+ * Strict lockout check: A class is locked out if:
+ * 1. Its total required points are lower than the unit's current level (or equal if not unlocked and past level 0), OR
+ * 2. Any of its archetype requirements are lower than the unit's currently accumulated points
+ *    in that archetype (since archetype points are additive and cannot be refunded).
  */
-export function isClassLockedOut(classDef: ClassDefinition, currentLevel: number): boolean {
-  return classDef.totalPoints < currentLevel;
+export function isClassLockedOut(
+  classDef: ClassDefinition,
+  currentLevel: number,
+  currentPoints?: ArchetypePoints,
+  isUnlocked = false
+): boolean {
+  if (isUnlocked) {
+    return false;
+  }
+  // Total points check: cannot reach classes of lower tier
+  if (classDef.totalPoints < currentLevel) {
+    return true;
+  }
+  // If current archetype points are provided:
+  if (currentPoints) {
+    // Current tier classes that were not selected/unlocked are locked out
+    if (classDef.totalPoints === currentLevel && currentLevel > 0) {
+      return true;
+    }
+    // Any class requiring fewer points in an archetype than already invested is unreachable
+    if (
+      classDef.requirements.fighter < currentPoints.fighter ||
+      classDef.requirements.rogue < currentPoints.rogue ||
+      classDef.requirements.mage < currentPoints.mage
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Checks whether a class can be unlocked at the immediate next level (currentLevel + 1)
+ * from the unit's currently accumulated archetype points.
+ */
+export function isClassEligibleNextLevel(
+  classDef: ClassDefinition,
+  currentLevel: number,
+  currentPoints: ArchetypePoints,
+  isUnlocked = false
+): boolean {
+  if (isUnlocked) {
+    return false;
+  }
+  if (classDef.totalPoints !== currentLevel + 1) {
+    return false;
+  }
+  return (
+    classDef.requirements.fighter >= currentPoints.fighter &&
+    classDef.requirements.rogue >= currentPoints.rogue &&
+    classDef.requirements.mage >= currentPoints.mage
+  );
 }
 
 /**

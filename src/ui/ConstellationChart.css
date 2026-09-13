@@ -1,0 +1,440 @@
+:root {
+  --bg-deep: #080a10;
+  --bg-card: rgba(18, 22, 34, 0.85);
+  --border-card: rgba(255, 255, 255, 0.1);
+  --color-fighter: #ef4444;
+  --color-rogue: #10b981;
+  --color-mage: #8b5cf6;
+  --color-gold: #f59e0b;
+  --color-text-main: #f3f4f6;
+  --color-text-muted: #9ca3af;
+}
+
+.constellation-app {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at 50% 40%, #151a2e 0%, #080a10 80%, #030408 100%);
+  color: var(--color-text-main);
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Starfield Background Canvas */
+.viewport-container {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.chart-svg {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.chart-svg:active {
+  cursor: grabbing;
+}
+
+/* Constellation Lines */
+.constellation-path-glow {
+  stroke: rgba(245, 158, 11, 0.4);
+  stroke-width: 6;
+  stroke-linecap: round;
+  filter: blur(4px);
+  animation: pulsePath 2.5s infinite ease-in-out;
+}
+
+.constellation-path-core {
+  stroke: #fcd34d;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8));
+}
+
+@keyframes pulsePath {
+  0%, 100% { opacity: 0.5; stroke-width: 6; }
+  50% { opacity: 0.9; stroke-width: 8; }
+}
+
+/* Star Nodes */
+.star-node {
+  cursor: pointer;
+}
+
+.star-node .star-visual {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: 0 0;
+}
+
+.star-node:hover .star-visual {
+  transform: scale(1.35);
+}
+
+.star-halo {
+  animation: rotateHalo 12s infinite linear;
+}
+
+@keyframes rotateHalo {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Sidebar & HUD */
+.hud-sidebar {
+  width: 360px;
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border-left: 1px solid var(--border-card);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  gap: 1.25rem;
+  z-index: 20;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.6);
+  overflow-y: auto;
+}
+
+.hud-header h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 50%, #fbbf24 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.25rem;
+}
+
+.hud-subtitle {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Unit Status Card */
+.unit-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.unit-card-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+}
+
+.unit-level-badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--color-gold);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.unit-primary-class {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Archetype Point Bars */
+.points-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.point-bar-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+
+.bar-track {
+  width: 130px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* Simulator Actions */
+.sim-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sim-section-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.25rem;
+}
+
+.point-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.btn-point {
+  padding: 0.6rem 0.4rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  color: #fff;
+}
+
+.btn-point:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(0.8);
+}
+
+.btn-point.fighter {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+.btn-point.fighter:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+}
+
+.btn-point.rogue {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.btn-point.rogue:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-point.mage {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+.btn-point.mage:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+}
+
+/* Preset Buttons */
+.presets-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.btn-preset {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-text-main);
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.btn-preset:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-reset {
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  color: var(--color-text-muted);
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.25rem;
+}
+
+.btn-reset:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* View Mode Toggle */
+.view-toggle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 4px;
+  border-radius: 8px;
+  gap: 4px;
+}
+
+.btn-toggle {
+  padding: 0.45rem 0.5rem;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.btn-toggle:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-toggle.active {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-weight: 600;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Mosaic Layer & Tiles */
+.mosaic-layer {
+  shape-rendering: geometricPrecision;
+}
+
+.mosaic-tile {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.tile-polygon {
+  transition: fill 0.25s ease, fill-opacity 0.25s ease, stroke 0.25s ease, stroke-width 0.25s ease, filter 0.25s ease;
+}
+
+.mosaic-tile:hover .tile-polygon {
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.65));
+}
+
+.mosaic-tile.unlocked .tile-polygon {
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.6));
+}
+
+.mosaic-tile.eligible .tile-polygon {
+  animation: pulseEligible 2s infinite ease-in-out;
+}
+
+@keyframes pulseEligible {
+  0%, 100% { fill-opacity: 0.35; stroke-opacity: 0.7; }
+  50% { fill-opacity: 0.65; stroke-opacity: 1; }
+}
+
+.triangle-wireframe {
+  pointer-events: none;
+}
+
+/* Constellation Timeline */
+.constellation-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.timeline-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 3px solid var(--color-gold);
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+}
+
+/* Inspector Floating Card */
+.inspector-overlay {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  width: 280px;
+  background: rgba(14, 18, 30, 0.88);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 10;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.inspector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.inspector-tier {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-gold);
+  background: rgba(245, 158, 11, 0.15);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.inspector-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.inspector-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.status-unlocked { color: #10b981; }
+.status-eligible { color: #f59e0b; }
+.status-locked { color: #ef4444; }
+.status-unreached { color: #6b7280; }

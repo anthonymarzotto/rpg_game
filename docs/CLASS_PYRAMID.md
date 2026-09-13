@@ -27,7 +27,10 @@ The **Class Pyramid** is the core progression system for units in the game.
 ### 2.3. Pyramid Traversal & Lockout Rules
 * **Total Level Cap**: Exactly 9 levels per unit (`Fighter + Rogue + Mage <= 9`).
 * **Archetype Cap**: Maximum 5 points in any single archetype (`0 <= F, R, M <= 5`).
-* **Strict Lockout**: At level `L = F + R + M`, only classes requiring exactly `Total Points == L` can be selected. All classes requiring fewer points (`Total Points < L`) are permanently locked out.
+* **Strict Lockouts**:
+  * **Tier Lockout**: At level `L = F + R + M`, only classes requiring exactly `Total Points == L + 1` can be unlocked next. All classes requiring fewer points (`Total Points < L`) or unselected classes of the current tier (`Total Points == L`) are permanently locked out.
+  * **Archetype Incompatibility Lockout**: Because archetype points are strictly additive and cannot be refunded or decreased, any class requiring fewer points in *any* archetype than what the unit currently possesses ($F_{\text{class}} < F_{\text{unit}} \lor R_{\text{class}} < R_{\text{unit}} \lor M_{\text{class}} < M_{\text{unit}}$) is permanently locked out.
+* **Next-Level Eligibility**: A class is eligible for unlock at the immediate next level ($L + 1$) if and only if its total required points equal $L + 1$ and all its archetype requirements are greater than or equal to the unit's current points ($F_{\text{class}} \ge F_{\text{unit}} \land R_{\text{class}} \ge R_{\text{unit}} \land M_{\text{class}} \ge M_{\text{unit}}$).
 * **Coordinate Mapping**: Every class in the 100-class pyramid occupies a unique `(F, R, M)` coordinate.
 * **Off-Node Levels**: Certain intermediate coordinates (e.g. `(1, 1, 0)` at Level 2) do not possess a class node. For these levels, class acquisition is bypassed; compensatory benefits (stat surges / perks) are deferred to align with broader stat system design.
 * **Conflict Resolution**: If future mechanics or expansions cause multiple classes to be eligible simultaneously, the player is presented with a choice modal.
@@ -38,8 +41,18 @@ The **Class Pyramid** is the core progression system for units in the game.
 * **Permanent Capstone**: Level 9 marks the sealed completion of the unit's Constellation. There is no respec or prestige; builds are permanent.
 
 ### 2.5. UI & Presentation
-* **Celestial Star Chart**: Visualized as a glowing triangular/ternary lattice.
-* **Constellations**: Unlocked classes ignite as stars, interconnected by glowing celestial lines charting the unit's historical path through the pyramid.
+The progression chart offers two cohesive visualizations of the 100-class equilateral pyramid:
+* **Triangle Mosaic**:
+  * Visualizes the pyramid as 100 interlocking triangular stained-glass tiles forming a grand equilateral triangle.
+  * Alternates between upright ($\Delta$) and inverted ($\nabla$) facet tiles.
+  * **Warrior** (`#00`, 1F 0R 0M) occupies the top apex vertex.
+  * **Thief** (`#81`, 0F 1R 0M) occupies the bottom-left apex vertex.
+  * **Wizard** (`#99`, 0F 0R 1M) occupies the bottom-right apex vertex.
+  * **Bard** (`#42`, 3F 3R 3M) sits at the exact geometric centroid $(0, 0)$.
+  * Dynamic tile states: unlocked tiles glow in radiant gold, eligible next-level classes pulse with amber borders, locked-out classes dim into dark translucent obsidian, and future pathways retain subtle archetype tinting.
+* **Star Pyramid**:
+  * Renders a celestial star chart with star nodes located at the centroids of the 100 pyramid cells over a subtle triangular wireframe mesh.
+* **Constellations**: Unlocked classes are interconnected by glowing celestial laser lines charting the unit's historical path from Novice through their Capstone.
 
 ---
 
@@ -59,6 +72,23 @@ The pyramid encompasses 100 classes across 9 tiers:
 | **Tier 8** | 27 | 27 | 100% (Full coverage) |
 | **Tier 9** | 25 | 25 | 100% (Full coverage) |
 | **Total** | **100** | **139** | — |
+
+### 3.1. Geometric Tessellation Model (10-Row Equilateral Triangle)
+
+The 100 classes in the Master Catalog are mapped row-by-row into a 10-row equilateral triangle tessellation ($10^2 = 100$ small triangles):
+
+$$\sum_{r=0}^{9} (2r + 1) = 1 + 3 + 5 + 7 + 9 + 11 + 13 + 15 + 17 + 19 = 100$$
+
+* **Closed-Form Tile Mapping**:
+  * For catalog index $i \in [0..99]$:
+    * **Row**: $r = \lfloor\sqrt{i}\rfloor \in [0..9]$
+    * **Column**: $c = i - r^2 \in [0..2r]$
+    * **Orientation**: Upright ($\Delta$) when $c$ is even ($55$ total); Inverted ($\nabla$) when $c$ is odd ($45$ total).
+* **Key Landmarks**:
+  * **Top Vertex**: Row 0, Col 0 $\rightarrow$ `#00` **Warrior** `(1, 0, 0)`
+  * **Bottom-Left Vertex**: Row 9, Col 0 $\rightarrow$ `#81` **Thief** `(0, 1, 0)`
+  * **Bottom-Right Vertex**: Row 9, Col 18 $\rightarrow$ `#99` **Wizard** `(0, 0, 1)`
+  * **Pyramid Centroid**: Row 6, Col 6 $\rightarrow$ `#42` **Bard** `(3, 3, 3)` (exact geometric center $(0, 0)$).
 
 ---
 

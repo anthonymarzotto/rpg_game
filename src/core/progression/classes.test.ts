@@ -11,6 +11,7 @@ import {
   createInitialProgression,
   getClassAtCoord,
   getEligibleClassAtLevel,
+  isClassEligibleNextLevel,
   isClassLockedOut,
   MAX_ARCHETYPE_POINTS,
   MAX_LEVEL
@@ -130,6 +131,55 @@ describe('Progression and Lockout Simulation Engine', () => {
     // At Level 4, Knight (2) and Cavalier (3) are both locked out
     expect(isClassLockedOut(knight, 4)).toBe(true);
     expect(isClassLockedOut(cavalier, 4)).toBe(true);
+  });
+
+  it('correctly handles archetype-aware lockouts and next-level eligibility', () => {
+    const warrior = CLASSES_BY_ID['warrior'];     // (1,0,0) - Tier 1
+    const thief = CLASSES_BY_ID['thief'];         // (0,1,0) - Tier 1
+    const wizard = CLASSES_BY_ID['wizard'];       // (0,0,1) - Tier 1
+    const knight = CLASSES_BY_ID['knight'];       // (2,0,0) - Tier 2
+    const infiltrator = CLASSES_BY_ID['infiltrator']; // (0,2,0) - Tier 2
+    const sorcerer = CLASSES_BY_ID['sorcerer'];   // (0,0,2) - Tier 2
+    const berserker = CLASSES_BY_ID['berserker']; // (2,0,1) - Tier 3
+    const cavalier = CLASSES_BY_ID['cavalier'];   // (2,1,0) - Tier 3
+
+    // At Level 0 (0,0,0): all Tier 1 corners are eligible, none are locked out
+    const initial = createInitialProgression('unit-1');
+    expect(isClassLockedOut(warrior, 0, initial.archetypePoints)).toBe(false);
+    expect(isClassLockedOut(thief, 0, initial.archetypePoints)).toBe(false);
+    expect(isClassLockedOut(wizard, 0, initial.archetypePoints)).toBe(false);
+    expect(isClassEligibleNextLevel(warrior, 0, initial.archetypePoints)).toBe(true);
+    expect(isClassEligibleNextLevel(thief, 0, initial.archetypePoints)).toBe(true);
+    expect(isClassEligibleNextLevel(wizard, 0, initial.archetypePoints)).toBe(true);
+    expect(isClassEligibleNextLevel(sorcerer, 0, initial.archetypePoints)).toBe(false);
+
+    // Taking 1 Mage -> Level 1 with (0,0,1), Wizard unlocked
+    const lvl1 = advanceArchetypeLevel(initial, 'MAGE');
+    expect(lvl1.constellation).toEqual(['wizard']);
+
+    // Wizard is unlocked
+    expect(isClassLockedOut(wizard, 1, lvl1.archetypePoints, true)).toBe(false);
+
+    // Warrior and Thief are lower/current tier and incompatible -> locked out
+    expect(isClassLockedOut(warrior, 1, lvl1.archetypePoints, false)).toBe(true);
+    expect(isClassLockedOut(thief, 1, lvl1.archetypePoints, false)).toBe(true);
+
+    // Knight (2,0,0) and Infiltrator (0,2,0) require 0 Mage, but unit has 1 Mage -> locked out!
+    expect(isClassLockedOut(knight, 1, lvl1.archetypePoints, false)).toBe(true);
+    expect(isClassLockedOut(infiltrator, 1, lvl1.archetypePoints, false)).toBe(true);
+    expect(isClassEligibleNextLevel(knight, 1, lvl1.archetypePoints)).toBe(false);
+    expect(isClassEligibleNextLevel(infiltrator, 1, lvl1.archetypePoints)).toBe(false);
+
+    // Sorcerer (0,0,2) is open and eligible at next level!
+    expect(isClassLockedOut(sorcerer, 1, lvl1.archetypePoints, false)).toBe(false);
+    expect(isClassEligibleNextLevel(sorcerer, 1, lvl1.archetypePoints)).toBe(true);
+
+    // Berserker (2,0,1) requires 1 Mage, so it remains a viable future pathway (not locked out, but not next level)
+    expect(isClassLockedOut(berserker, 1, lvl1.archetypePoints, false)).toBe(false);
+    expect(isClassEligibleNextLevel(berserker, 1, lvl1.archetypePoints)).toBe(false);
+
+    // Cavalier (2,1,0) requires 0 Mage, but unit has 1 Mage -> locked out!
+    expect(isClassLockedOut(cavalier, 1, lvl1.archetypePoints, false)).toBe(true);
   });
 
   it('progresses from Level 0 to Level 1 and unlocks Warrior', () => {
