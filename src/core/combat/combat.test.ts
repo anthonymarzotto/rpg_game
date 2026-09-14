@@ -239,5 +239,37 @@ describe('Headless Combat Action Resolution', () => {
       expect(hero.currentAp).toBe(3);
       expect(state.units.get('enemy')!.unit.initiativeGauge).toBe(60);
     });
+
+    it('decrements active modifier durations on turn start and purges expired ones', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+
+      const state = createCombatState(arena, [hero], 'hero');
+      const heroCu = state.units.get('hero')!;
+
+      // Add a 1-turn armor buff and a 2-turn speed buff
+      heroCu.activeModifiers.push(
+        { stat: 'armor', value: 2, durationTurns: 1 },
+        { stat: 'speed', value: 4, durationTurns: 2 }
+      );
+
+      expect(heroCu.activeModifiers).toHaveLength(2);
+
+      // Hero ends turn
+      endActiveTurn(state);
+
+      // On Hero's next turn start, 1-turn armor buff decrements to 0 and is purged;
+      // 2-turn speed buff decrements to 1 and remains active!
+      expect(heroCu.activeModifiers).toHaveLength(1);
+      expect(heroCu.activeModifiers[0].stat).toBe('speed');
+      expect(heroCu.activeModifiers[0].durationTurns).toBe(1);
+
+      // Hero ends turn again
+      endActiveTurn(state);
+
+      // Now the speed buff decrements to 0 and is purged
+      expect(heroCu.activeModifiers).toHaveLength(0);
+    });
   });
 });

@@ -1,12 +1,17 @@
 import { Unit } from '../types/unit';
 import { HexCoord, hexDistance, hexSubtract, hexAdd } from '../grid/hex';
 import { Arena, KnockbackResult } from '../grid/arena';
-import { Ability } from '../types/ability';
+import { Ability, AbilityEffect } from '../types/ability';
 import {
   CombatState,
   CombatUnit,
   AttackResolution,
-  HitOutcome
+  HitOutcome,
+  getEffectiveMove,
+  getEffectiveArmor,
+  getEffectiveWard,
+  getEffectiveEvasion,
+  getEffectiveResolve
 } from './types';
 import { DiceRoller, SeededDiceRoller } from './dice';
 import {
@@ -32,7 +37,7 @@ export function createCombatState(
     combatUnits.set(unit.id, {
       unit,
       inBattleXp: { fighter: 0, rogue: 0, mage: 0 },
-      tempBuffs: { armor: 0, ward: 0, movePenalty: 0 }
+      activeModifiers: []
     });
   }
 
@@ -71,10 +76,7 @@ export function canMove(
   const currentCoord = state.arena.getUnitPosition(unitId);
   if (!currentCoord) return false;
 
-  const effectiveMove = Math.max(
-    1,
-    cu.unit.effectiveVitals.move - cu.tempBuffs.movePenalty
-  );
+  const effectiveMove = getEffectiveMove(cu);
   const reachable = state.arena.getReachableHexes(currentCoord, effectiveMove);
 
   return reachable.some((h) => h.q === destination.q && h.r === destination.r);
@@ -159,6 +161,182 @@ export function canExecuteAbility(
   return { valid: true };
 }
 
+// -----------------------------------------------------------------------------
+// Private Combat Resolution Pipeline Helpers
+// -----------------------------------------------------------------------------
+
+function getAbilityModifier(actorCu: CombatUnit, ability: Ability): number {
+  if (ability.damageProfile?.modifierAttribute === 'FORCE') {
+    return actorCu.unit.baseAttributes.force;
+  }
+  if (ability.damageProfile?.modifierAttribute === 'FINESSE') {
+    return actorCu.unit.baseAttributes.finesse;
+  }
+  if (ability.damageProfile?.modifierAttribute === 'FOCUS') {
+    return actorCu.unit.baseAttributes.focus;
+  }
+  return 0;
+}
+
+function resolveAttackRoll(
+  actorCu: CombatUnit,
+  targetCu: CombatUnit,
+  ability: Ability,
+  diceRoller: DiceRoller
+): {
+  hitOutcome: HitOutcome;
+  d20: number;
+  modifier: number;
+  totalScore: number;
+  targetDefense: number;
+} {
+  const modifier = getAbilityModifier(actorCu, ability);
+  const targetDefense =
+    ability.defenseTarget === 'EVASION'
+      ? getEffectiveEvasion(targetCu)
+      : getEffectiveResolve(targetCu);
+
+  const d20 = diceRoller.rollD20();
+  const totalScore = d20 + modifier;
+
+  const critMargin = COMBAT_RESOLUTION_CONFIG.critThresholdMargin;
+  const isCritBoosted = ability.effect?.type === 'CRIT_BOOST';
+  const naturalCritThreshold = isCritBoosted ? 19 : 20;
+
+  let hitOutcome: HitOutcome = 'MISS';
+  if (d20 >= naturalCritThreshold || totalScore >= targetDefense + critMargin) {
+    hitOutcome = 'CRITICAL_HIT';
+  } else if (d20 === 1 || totalScore < targetDefense - COMBAT_RESOLUTION_CONFIG.grazeMargin) {
+    hitOutcome = 'MISS';
+  } else if (totalScore >= targetDefense) {
+    hitOutcome = 'SOLID_HIT';
+  } else {
+    hitOutcome = 'GRAZE';
+  }
+
+  return { hitOutcome, d20, modifier, totalScore, targetDefense };
+}
+
+function resolveDamage(
+  hitOutcome: HitOutcome,
+  ability: Ability,
+  actorCu: CombatUnit,
+  targetCu: CombatUnit,
+  diceRoller: DiceRoller
+): { rawDamage: number; mitigation: number; damageDealt: number } {
+  if (hitOutcome === 'MISS' || !ability.damageProfile) {
+    return { rawDamage: 0, mitigation: 0, damageDealt: 0 };
+  }
+
+  const { count, sides } = ability.damageProfile;
+  const modifier = getAbilityModifier(actorCu, ability);
+
+  // Maximized Crit: max base dice + rolled dice + modifier
+  const rawDamage =
+    hitOutcome === 'CRITICAL_HIT'
+      ? count * sides + diceRoller.rollDice(count, sides) + modifier
+      : diceRoller.rollDice(count, sides) + modifier;
+
+  const mitigation =
+    ability.damageType === 'PHYSICAL'
+      ? getEffectiveArmor(targetCu)
+      : getEffectiveWard(targetCu);
+
+  let subtotal = rawDamage - mitigation;
+  if (hitOutcome === 'GRAZE') {
+    subtotal = Math.floor(subtotal * COMBAT_RESOLUTION_CONFIG.grazeDamageMultiplier);
+  }
+
+  const damageDealt = Math.max(COMBAT_RESOLUTION_CONFIG.minimumDamage, subtotal);
+  targetCu.unit.currentHp = Math.max(0, targetCu.unit.currentHp - damageDealt);
+
+  return { rawDamage, mitigation, damageDealt };
+}
+
+function resolveSecondaryEffects(
+  hitOutcome: HitOutcome,
+  ability: Ability,
+  actorCu: CombatUnit,
+  targetCu: CombatUnit,
+  state: CombatState
+): {
+  effectsApplied: readonly AbilityEffect[];
+  knockbackResult?: KnockbackResult;
+  wallSlamDamage?: number;
+} {
+  // Secondary effects only trigger on SOLID_HIT or CRITICAL_HIT
+  if (hitOutcome !== 'SOLID_HIT' && hitOutcome !== 'CRITICAL_HIT') {
+    return { effectsApplied: [] };
+  }
+  if (!ability.effect) {
+    return { effectsApplied: [] };
+  }
+
+  const effect = ability.effect;
+  const actorCoord = state.arena.getUnitPosition(actorCu.unit.id)!;
+  const targetCoord = state.arena.getUnitPosition(targetCu.unit.id)!;
+
+  let knockbackResult: KnockbackResult | undefined;
+  let wallSlamDamage: number | undefined;
+
+  if (effect.type === 'KNOCKBACK') {
+    knockbackResult = state.arena.calculateKnockback(
+      actorCoord,
+      targetCoord,
+      effect.magnitude
+    );
+
+    if (knockbackResult.isCollided) {
+      // Wall-Slam Damage: 1 + Attacker Force - Target Armour
+      const targetArmor = getEffectiveArmor(targetCu);
+      wallSlamDamage = Math.max(
+        1,
+        DISPLACEMENT_CONFIG.wallSlamBaseDamage + actorCu.unit.baseAttributes.force - targetArmor
+      );
+      targetCu.unit.currentHp = Math.max(0, targetCu.unit.currentHp - wallSlamDamage);
+
+      if (knockbackResult.collidingUnitId) {
+        const bystander = state.units.get(knockbackResult.collidingUnitId);
+        if (bystander && !bystander.unit.isDefeated) {
+          bystander.unit.currentHp = Math.max(
+            0,
+            bystander.unit.currentHp - DISPLACEMENT_CONFIG.unitCollisionSecondaryDamage
+          );
+          if (bystander.unit.currentHp === 0) {
+            bystander.unit.isDefeated = true;
+            state.arena.removeUnit(bystander.unit.id);
+          }
+        }
+      }
+    } else {
+      state.arena.setUnitPosition(targetCu.unit.id, knockbackResult.finalCoord);
+    }
+  } else if (effect.type === 'RETREAT_STEP') {
+    const retreatDir = hexSubtract(actorCoord, targetCoord);
+    const retreatDest = hexAdd(actorCoord, retreatDir);
+    const destTile = state.arena.getTile(retreatDest);
+    if (destTile && destTile.isWalkable && !destTile.occupiedByUnitId) {
+      state.arena.setUnitPosition(actorCu.unit.id, retreatDest);
+    }
+  } else if (effect.type === 'SLOW') {
+    targetCu.activeModifiers.push({
+      stat: 'move',
+      value: -effect.magnitude,
+      durationTurns: effect.durationTurns ?? 1
+    });
+  }
+
+  return {
+    effectsApplied: [effect],
+    knockbackResult,
+    wallSlamDamage
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Public Ability Execution
+// -----------------------------------------------------------------------------
+
 /**
  * Resolves an ability execution including to-hit roll, damage, mitigation,
  * displacement with wall-slam collision, and in-battle archetype XP award.
@@ -187,14 +365,22 @@ export function executeAbility(
     actorCu.inBattleXp.mage += COMBAT_RESOLUTION_CONFIG.xpPerAction;
   }
 
-  // Handle Self or Ally buffs without attack rolls (e.g. Minor Ward, Brace)
+  // 2. Non-damaging buffs (e.g. Minor Ward, Brace)
   if (ability.damageType === 'NONE') {
     const targetCu = target?.targetUnitId ? state.units.get(target.targetUnitId) : actorCu;
     if (targetCu && ability.effect?.type === 'WARD_BUFF') {
-      targetCu.tempBuffs.ward += ability.effect.magnitude;
+      targetCu.activeModifiers.push({
+        stat: 'ward',
+        value: ability.effect.magnitude,
+        durationTurns: ability.effect.durationTurns ?? 1
+      });
     }
     if (ability.effect?.type === 'ARMOR_BUFF') {
-      actorCu.tempBuffs.armor += ability.effect.magnitude;
+      actorCu.activeModifiers.push({
+        stat: 'armor',
+        value: ability.effect.magnitude,
+        durationTurns: ability.effect.durationTurns ?? 1
+      });
     }
 
     state.combatLog.push({
@@ -207,152 +393,51 @@ export function executeAbility(
     return undefined;
   }
 
-  // 2. Attack Roll (To Hit)
+  // 3. Attack Roll & Damage Resolution
   const targetCu = state.units.get(target!.targetUnitId!)!;
-  const actorCoord = state.arena.getUnitPosition(unitId)!;
-  const targetCoord = state.arena.getUnitPosition(target!.targetUnitId!)!;
+  const rollResult = resolveAttackRoll(actorCu, targetCu, ability, diceRoller);
+  const damageResult = resolveDamage(
+    rollResult.hitOutcome,
+    ability,
+    actorCu,
+    targetCu,
+    diceRoller
+  );
 
-  const modifier =
-    ability.damageProfile?.modifierAttribute === 'FORCE'
-      ? actorCu.unit.baseAttributes.force
-      : ability.damageProfile?.modifierAttribute === 'FINESSE'
-      ? actorCu.unit.baseAttributes.finesse
-      : actorCu.unit.baseAttributes.focus;
+  // 4. Secondary Effects (Knockback, Retreat Step, Slow)
+  const effectResult = resolveSecondaryEffects(
+    rollResult.hitOutcome,
+    ability,
+    actorCu,
+    targetCu,
+    state
+  );
 
-  const targetDefense =
-    ability.defenseTarget === 'EVASION'
-      ? targetCu.unit.effectiveVitals.evasion
-      : targetCu.unit.effectiveVitals.resolve;
-
-  const d20 = diceRoller.rollD20();
-  const totalScore = d20 + modifier;
-
-  let hitOutcome: HitOutcome = 'MISS';
-  const critMargin = COMBAT_RESOLUTION_CONFIG.critThresholdMargin;
-  const isCritBoosted = ability.effect?.type === 'CRIT_BOOST';
-  const naturalCritThreshold = isCritBoosted ? 19 : 20;
-
-  if (d20 >= naturalCritThreshold || totalScore >= targetDefense + critMargin) {
-    hitOutcome = 'CRITICAL_HIT';
-  } else if (d20 === 1 || totalScore < targetDefense - COMBAT_RESOLUTION_CONFIG.grazeMargin) {
-    hitOutcome = 'MISS';
-  } else if (totalScore >= targetDefense) {
-    hitOutcome = 'SOLID_HIT';
-  } else {
-    hitOutcome = 'GRAZE';
+  // 5. Defeat Check
+  if (targetCu.unit.currentHp <= 0) {
+    targetCu.unit.isDefeated = true;
+    state.arena.removeUnit(targetCu.unit.id);
   }
 
-  // 3. Damage Calculation & Mitigation
-  let damageDealt = 0;
-  let rawDamage = 0;
-  let mitigation = 0;
-
-  if (hitOutcome !== 'MISS' && ability.damageProfile) {
-    const { count, sides } = ability.damageProfile;
-
-    if (hitOutcome === 'CRITICAL_HIT') {
-      // Maximized Crit: max dice + roll dice + modifier
-      rawDamage = count * sides + diceRoller.rollDice(count, sides) + modifier;
-    } else {
-      rawDamage = diceRoller.rollDice(count, sides) + modifier;
-    }
-
-    mitigation =
-      ability.damageType === 'PHYSICAL'
-        ? targetCu.unit.effectiveVitals.armor + targetCu.tempBuffs.armor
-        : targetCu.unit.effectiveVitals.ward + targetCu.tempBuffs.ward;
-
-    let subtotal = rawDamage - mitigation;
-
-    if (hitOutcome === 'GRAZE') {
-      subtotal = Math.floor(subtotal * COMBAT_RESOLUTION_CONFIG.grazeDamageMultiplier);
-    }
-
-    damageDealt = Math.max(COMBAT_RESOLUTION_CONFIG.minimumDamage, subtotal);
-    targetCu.unit.currentHp = Math.max(0, targetCu.unit.currentHp - damageDealt);
-
-    if (targetCu.unit.currentHp === 0) {
-      targetCu.unit.isDefeated = true;
-      state.arena.removeUnit(targetCu.unit.id);
-    }
-  }
-
-  // 4. Secondary Effects (Knockback, Retreat Step, Slow, Buffs)
-  let knockbackResult: KnockbackResult | undefined;
-  let wallSlamDamage: number | undefined;
-
-  // Secondary effects trigger on SOLID_HIT or CRITICAL_HIT, but NOT on GRAZE or MISS
-  if (hitOutcome === 'SOLID_HIT' || hitOutcome === 'CRITICAL_HIT') {
-    if (ability.effect?.type === 'KNOCKBACK') {
-      knockbackResult = state.arena.calculateKnockback(
-        actorCoord,
-        targetCoord,
-        ability.effect.magnitude
-      );
-
-      if (knockbackResult.isCollided) {
-        // Wall-Slam Damage: 1 + Attacker Force - Target Armour
-        const targetArmor = targetCu.unit.effectiveVitals.armor + targetCu.tempBuffs.armor;
-        wallSlamDamage = Math.max(
-          1,
-          DISPLACEMENT_CONFIG.wallSlamBaseDamage + actorCu.unit.baseAttributes.force - targetArmor
-        );
-        targetCu.unit.currentHp = Math.max(0, targetCu.unit.currentHp - wallSlamDamage);
-        if (targetCu.unit.currentHp === 0) {
-          targetCu.unit.isDefeated = true;
-          state.arena.removeUnit(targetCu.unit.id);
-        }
-
-        // Secondary impact if collided into another unit
-        if (knockbackResult.collidingUnitId) {
-          const bystanderCu = state.units.get(knockbackResult.collidingUnitId);
-          if (bystanderCu && !bystanderCu.unit.isDefeated) {
-            bystanderCu.unit.currentHp = Math.max(
-              0,
-              bystanderCu.unit.currentHp - DISPLACEMENT_CONFIG.unitCollisionSecondaryDamage
-            );
-            if (bystanderCu.unit.currentHp === 0) {
-              bystanderCu.unit.isDefeated = true;
-              state.arena.removeUnit(bystanderCu.unit.id);
-            }
-          }
-        }
-      } else {
-        // Clear knockback: move target to final destination
-        state.arena.setUnitPosition(targetCu.unit.id, knockbackResult.finalCoord);
-      }
-    } else if (ability.effect?.type === 'RETREAT_STEP') {
-      // Free-step 1 hex backward away from target
-      const retreatDir = hexSubtract(actorCoord, targetCoord);
-      const retreatDest = hexAdd(actorCoord, retreatDir);
-      const destTile = state.arena.getTile(retreatDest);
-      if (destTile && destTile.isWalkable && !destTile.occupiedByUnitId) {
-        state.arena.setUnitPosition(unitId, retreatDest);
-      }
-    } else if (ability.effect?.type === 'SLOW') {
-      targetCu.tempBuffs.movePenalty += ability.effect.magnitude;
-    }
-  }
-
-  // 5. Log Entry
+  // 6. Logging
   state.combatLog.push({
     turnNumber: state.turnNumber,
     actorUnitId: unitId,
     actionId: ability.id,
-    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${d20}+${modifier} vs DC ${targetDefense} -> ${hitOutcome}] Damage: ${damageDealt} (HP: ${targetCu.unit.currentHp}/${targetCu.unit.effectiveVitals.maxHp})`
+    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${rollResult.d20}+${rollResult.modifier} vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}] Damage: ${damageResult.damageDealt} (HP: ${targetCu.unit.currentHp}/${targetCu.unit.effectiveVitals.maxHp})`
   });
 
   return {
-    hitOutcome,
-    d20Roll: d20,
-    modifier,
-    totalAttackScore: totalScore,
-    defenseTargetScore: targetDefense,
-    rawDamage,
-    mitigation,
-    damageDealt,
-    effectsApplied: ability.effect ? [ability.effect] : [],
-    knockbackResult,
-    wallSlamDamage
+    hitOutcome: rollResult.hitOutcome,
+    d20Roll: rollResult.d20,
+    modifier: rollResult.modifier,
+    totalAttackScore: rollResult.totalScore,
+    defenseTargetScore: rollResult.targetDefense,
+    rawDamage: damageResult.rawDamage,
+    mitigation: damageResult.mitigation,
+    damageDealt: damageResult.damageDealt,
+    effectsApplied: effectResult.effectsApplied,
+    knockbackResult: effectResult.knockbackResult,
+    wallSlamDamage: effectResult.wallSlamDamage
   };
 }

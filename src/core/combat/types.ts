@@ -30,13 +30,22 @@ export interface InBattleXp {
   mage: number;
 }
 
+export type ModifiableCombatStat =
+  | 'armor'
+  | 'ward'
+  | 'speed'
+  | 'move'
+  | 'evasion'
+  | 'resolve';
+
 /**
- * Temporary combat buffs active on a unit.
+ * Active stat modifier (positive for buffs, negative for penalties)
+ * tracking its remaining duration in turns.
  */
-export interface TemporaryBuffs {
-  armor: number;
-  ward: number;
-  movePenalty: number;
+export interface ActiveModifier {
+  readonly stat: ModifiableCombatStat;
+  readonly value: number;
+  durationTurns: number;
 }
 
 /**
@@ -45,7 +54,7 @@ export interface TemporaryBuffs {
 export interface CombatUnit {
   unit: Unit;
   inBattleXp: InBattleXp;
-  tempBuffs: TemporaryBuffs;
+  activeModifiers: ActiveModifier[];
 }
 
 /**
@@ -67,4 +76,45 @@ export interface CombatState {
   activeUnitId: string;
   turnNumber: number;
   readonly combatLog: CombatLogEntry[];
+}
+
+// -----------------------------------------------------------------------------
+// Effective Combat Vitals Getters
+// -----------------------------------------------------------------------------
+
+export function getEffectiveStat(cu: CombatUnit, stat: ModifiableCombatStat): number {
+  const base = cu.unit.effectiveVitals[stat];
+  const modSum = cu.activeModifiers
+    .filter((m) => m.stat === stat)
+    .reduce((sum, m) => sum + m.value, 0);
+
+  // Speed and Move have a minimum floor of 1
+  if (stat === 'move' || stat === 'speed') {
+    return Math.max(1, base + modSum);
+  }
+  return Math.max(0, base + modSum);
+}
+
+export function getEffectiveSpeed(cu: CombatUnit): number {
+  return getEffectiveStat(cu, 'speed');
+}
+
+export function getEffectiveMove(cu: CombatUnit): number {
+  return getEffectiveStat(cu, 'move');
+}
+
+export function getEffectiveArmor(cu: CombatUnit): number {
+  return getEffectiveStat(cu, 'armor');
+}
+
+export function getEffectiveWard(cu: CombatUnit): number {
+  return getEffectiveStat(cu, 'ward');
+}
+
+export function getEffectiveEvasion(cu: CombatUnit): number {
+  return getEffectiveStat(cu, 'evasion');
+}
+
+export function getEffectiveResolve(cu: CombatUnit): number {
+  return getEffectiveStat(cu, 'resolve');
 }
