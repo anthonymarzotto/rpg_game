@@ -1,7 +1,8 @@
-import { Ability } from '../core/types/ability';
+import { Ability } from '../../core/types/ability';
+import { UNIVERSAL_ACTIONS } from './universal';
 
 // -----------------------------------------------------------------------------
-// 1. Fighter Novice Abilities (Force / Melee / Control)
+// Fighter Novice Abilities (Force / Melee / Control)
 // -----------------------------------------------------------------------------
 
 export const STRIKE: Ability = {
@@ -71,7 +72,7 @@ export const NOVICE_FIGHTER_ABILITIES: readonly Ability[] = [
 ];
 
 // -----------------------------------------------------------------------------
-// 2. Rogue Novice Abilities (Finesse / Precision / Mobility)
+// Rogue Novice Abilities (Finesse / Precision / Mobility)
 // -----------------------------------------------------------------------------
 
 export const QUICK_THRUST: Ability = {
@@ -140,7 +141,7 @@ export const NOVICE_ROGUE_ABILITIES: readonly Ability[] = [
 ];
 
 // -----------------------------------------------------------------------------
-// 3. Mage Novice Abilities (Focus / Reach / Alteration)
+// Mage Novice Abilities (Focus / Reach / Alteration)
 // -----------------------------------------------------------------------------
 
 export const SPARK: Ability = {
@@ -206,38 +207,7 @@ export const NOVICE_MAGE_ABILITIES: readonly Ability[] = [
 ];
 
 // -----------------------------------------------------------------------------
-// 4. Universal Actions
-// -----------------------------------------------------------------------------
-
-export const MOVE_ACTION: Ability = {
-  id: 'move',
-  name: 'Move',
-  description: 'Traverse up to your Move distance in hexes.',
-  apCost: 1,
-  range: 0,
-  targetType: 'HEX',
-  defenseTarget: 'NONE',
-  damageType: 'NONE'
-};
-
-export const WAIT_ACTION: Ability = {
-  id: 'wait',
-  name: 'Wait',
-  description: 'Conclude your turn, recovering 20 initiative gauge points per unspent AP.',
-  apCost: 0,
-  range: 0,
-  targetType: 'SELF',
-  defenseTarget: 'NONE',
-  damageType: 'NONE'
-};
-
-export const UNIVERSAL_ACTIONS: readonly Ability[] = [
-  MOVE_ACTION,
-  WAIT_ACTION
-];
-
-// -----------------------------------------------------------------------------
-// 5. Novice Starter Kit Generator
+// Novice Starter Kit Generator
 // -----------------------------------------------------------------------------
 
 /**
