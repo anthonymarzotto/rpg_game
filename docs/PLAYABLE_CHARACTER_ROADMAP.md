@@ -104,11 +104,11 @@ Following our core architectural principle (**Decoupled Simulation & Presentatio
          │
          ├────────────────────────────────┐
          ▼                                ▼
-[Milestone 3: Hex Grid Math]            [Milestone 4: Combat Resolver] <── (WE ARE HERE)
- (COMPLETED & TESTED)                     │
+[Milestone 3: Hex Grid Math]            [Milestone 4: Combat Resolver]
+ (COMPLETED & TESTED)                    (COMPLETED & TESTED)
          │                                │
          └────────────────┬───────────────┘
                           │
                           ▼
-            [Milestone 5: Playable Testbed]
+            [Milestone 5: Playable Testbed] <── (WE ARE HERE)
 ```
