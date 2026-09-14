@@ -1,16 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import {
-  computeDerivedVitals,
-  BLANK_SLATE_ATTRIBUTES,
-  BASE_VITAL_CONFIG
-} from '../types/stats';
-import { createRecruit, calculateTurnResetGauge } from '../types/unit';
+import { BLANK_SLATE_ATTRIBUTES } from '../types/stats';
+import { RECRUIT_BASE_VITALS } from '../config/balance';
+import { computeDerivedVitals } from './vitals';
+import { createRecruit } from './unitFactory';
+import { calculateTurnResetGauge } from './initiative';
 
 describe('Unit Stats & Derived Vitals', () => {
   it('computes correct baseline vitals for a Level-0 blank slate recruit', () => {
     const vitals = computeDerivedVitals(BLANK_SLATE_ATTRIBUTES, 0);
 
-    expect(vitals.maxHp).toBe(BASE_VITAL_CONFIG.BASE_HP);
+    expect(vitals.maxHp).toBe(RECRUIT_BASE_VITALS.hp);
     expect(vitals.maxAp).toBe(3);
     expect(vitals.speed).toBe(10);
     expect(vitals.move).toBe(3);

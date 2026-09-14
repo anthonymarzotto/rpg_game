@@ -1,12 +1,5 @@
 import { UnitProgression } from './class';
-import { createInitialProgression } from '../progression/pyramid';
-import {
-  TriadAttributes,
-  DerivedCombatVitals,
-  BLANK_SLATE_ATTRIBUTES,
-  computeDerivedVitals,
-  BASE_VITAL_CONFIG
-} from './stats';
+import { TriadAttributes, DerivedCombatVitals } from './stats';
 
 /**
  * Represents a complete combat unit under the two-tier architecture:
@@ -34,34 +27,4 @@ export interface Unit {
   initiativeGauge: number;
   /** Whether the unit has fallen in combat */
   isDefeated: boolean;
-}
-
-/**
- * Creates a standard Level-0 recruit with uniform blank slate stats.
- */
-export function createRecruit(id: string, name: string): Unit {
-  const progression = createInitialProgression(id);
-  const baseAttributes = { ...BLANK_SLATE_ATTRIBUTES };
-  const effectiveVitals = computeDerivedVitals(baseAttributes, progression.currentLevel);
-
-  return {
-    id,
-    name,
-    progression,
-    baseAttributes,
-    effectiveVitals,
-    currentHp: effectiveVitals.maxHp,
-    currentAp: 0,
-    initiativeGauge: 0,
-    isDefeated: false
-  };
-}
-
-/**
- * Calculates the new initiative gauge value when a unit ends their turn,
- * applying the 20 gauge points refund per unspent AP.
- */
-export function calculateTurnResetGauge(unspentAp: number, overflow = 0): number {
-  const safeUnspent = Math.max(0, Math.min(unspentAp, BASE_VITAL_CONFIG.STANDARD_AP));
-  return Math.max(0, overflow + safeUnspent * BASE_VITAL_CONFIG.AP_RECOVERY_RATE);
 }
