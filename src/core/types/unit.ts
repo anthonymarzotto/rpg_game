@@ -1,9 +1,10 @@
 import { UnitProgression } from './class';
 import { TriadAttributes, DerivedCombatVitals } from './stats';
+import { Ability } from './ability';
 
 /**
  * Represents a complete combat unit under the two-tier architecture:
- * Tier 1: Immutable base progression and identity.
+ * Tier 1: Immutable base progression, identity, and ability kit.
  * Tier 2: Dynamic in-battle combat state.
  */
 export interface Unit {
@@ -17,6 +18,8 @@ export interface Unit {
   readonly baseAttributes: TriadAttributes;
   /** Computed combat vitals derived from attributes, level, and gear */
   readonly effectiveVitals: DerivedCombatVitals;
+  /** Equipped actions and abilities available in combat */
+  readonly abilities: readonly Ability[];
 
   // Dynamic In-Battle State
   /** Current health points */
