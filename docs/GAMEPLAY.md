@@ -153,6 +153,16 @@ Combat embraces non-deterministic D&D-style dice rolls combined with tactical gr
 * **Rear Strike**: Striking directly from behind grants Advantage and increases Critical threshold.
 * **High Ground / Elevation**: Ranged attacks from higher elevation gain range or attack roll bonuses.
 
+### 3.4. Tactical Grid Mechanics & Displacement
+* **Orientation**: Pointy-topped hexagonal tiles mapped in axial `(q, r)` and cube `(x, y, z)` spaces.
+* **Elevation**: Discrete integer heights (`0, 1, 2...`). Moving up an elevation difference $> 1$ is blocked without climbing abilities.
+* **Occupancy & Passability**: Strict single-unit occupancy. All occupied hexes (friendly or hostile) block movement pathing.
+* **Line-of-Sight (LoS)**: Both terrain obstacles (higher elevation) and intermediate units physically block Line-of-Sight for ranged abilities, allowing frontline units to screen allies.
+* **Knockback & Wall-Slam Collision**:
+  * When pushed (e.g. `Shield Bash`), the target displaces along the attacker $\rightarrow$ target vector.
+  * If the destination hex is off-map, a cliff/wall (elevation rise $\ge 2$), or occupied by another unit, displacement halts immediately.
+  * The target suffers **Wall-Slam Damage**: $\max(1, (1 + \text{Attacker Force}) - \text{Target Armour})$. If colliding with another unit, both take 1 point of collision impact.
+
 ---
 
 ## 4. Dual-Layer Presentation: Logs & Visual Dice

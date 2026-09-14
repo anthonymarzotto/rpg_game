@@ -32,3 +32,15 @@ export const ACTION_ECONOMY_CONFIG = {
   gaugeRecoveryPerUnspentAp: 20,
   gaugeTurnThreshold: 100
 } as const;
+
+/**
+ * Parameters governing grid displacement, elevation thresholds, and collision damage.
+ */
+export const DISPLACEMENT_CONFIG = {
+  /** Base damage added to Attacker Force upon colliding with an obstacle or unit */
+  wallSlamBaseDamage: 1,
+  /** Colliding unit secondary impact damage */
+  unitCollisionSecondaryDamage: 1,
+  /** Maximum elevation difference traversable without climbing skills */
+  maxJumpElevation: 1
+} as const;
