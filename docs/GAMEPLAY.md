@@ -32,17 +32,18 @@ The Triad Vector maps directly to the three vertices of the 100-class pyramid (*
 | Attribute | Archetype | Tactical Meaning | Primary Combat Influence |
 | :--- | :---: | :--- | :--- |
 | **Force** | Fighter | Raw kinetic impact & physical resilience | Base HP scaling, melee/kinetic damage bonus, innate Armour mitigation, physical knockback resistance |
-| **Finesse** | Rogue | Tactical tempo, agility, and precision | CTB tick speed (turn frequency), Movement range, Attack hit roll ($d20$) bonus, Evasion target DC, Critical threshold |
+| **Finesse** | Rogue | Tactical tempo, agility, and precision | CTB tick speed (turn frequency), Movement distance per AP, Attack hit roll ($d20$) bonus, Evasion target DC, Critical threshold |
 | **Focus** | Mage | Mental clarity, range, and magical mastery | Ability range, Area of Effect (AoE) blast radius, Resolve target DC, innate Ward mitigation, spell damage dice |
 
 ### 1.2. Derived Combat Vitals
 
 These vitals are computed from a unit's base attributes and archetype points. *(Formulas below are illustrative examples)*:
 
-#### Survivability & Mobility
+#### Survivability, Resources & Mobility
 * **Max Health (`maxHp`)**: Total damage a unit can absorb before falling. Scaled primarily by base unit HP, Force, and level progression.
+* **Action Points (`maxAp`)**: The tactical currency granted at the start of every turn. Uniform across units (standard **3 AP** per turn).
 * **Speed (`speed`)**: The rate at which a unit's action gauge fills per clock tick in the CTB system. Derived from **Finesse**.
-* **Movement (`move`)**: The radius in hexes a unit can traverse during a move action. Base value (e.g. 3 hexes) plus potential Finesse tier bonuses.
+* **Movement (`move`)**: The distance in hexes a unit can traverse for each **1 AP** spent on movement. Base value (e.g. 3 hexes) plus potential Finesse tier bonuses.
 * **Current Initiative (`initiativeGauge`)**: Real-time counter ($0–100$) tracking progress toward the unit's next turn.
 
 #### Target Defenses (The "To Hit" Targets)
@@ -58,9 +59,9 @@ These vitals are computed from a unit's base attributes and archetype points. *(
 
 ---
 
-## 2. Turn Economy: CTB (Charge Time Battle) Tick Engine
+## 2. Turn Economy: CTB Tick Engine & Action Points (AP)
 
-The game avoids rigid round-based "Player Phase vs. Enemy Phase" turns in favor of a dynamic, speed-driven **Charge Time Battle (CTB)** tick engine (similar to *Final Fantasy Tactics* and *Grandia*).
+The game avoids rigid round-based "Player Phase vs. Enemy Phase" turns in favor of a dynamic, speed-driven **Charge Time Battle (CTB)** tick engine with a flexible **Action Point (AP)** economy.
 
 ```
                [ GLOBAL COMBAT CLOCK ]
@@ -74,17 +75,33 @@ The game avoids rigid round-based "Player Phase vs. Enemy Phase" turns in favor 
              /                       \
            YES                        NO
            /                            \
-[Unit Takes Action Turn]           [Advance Next Tick]
- - Move (up to Move stat)
- - Execute Action / Spell
- - Reset gauge (gauge -= 100)
+[Unit Turn: Receives 3 AP]         [Advance Next Tick]
+ - Spend AP on Move (1 AP = up to Move hexes)
+ - Spend AP on Basic Actions (1 AP, spammable)
+ - Spend AP on Special Skills (2–3 AP, once/turn)
+ - Conclude Turn
+                         │
+                         ▼
+[Gauge Reset with Dynamic AP Refund]
+ gauge = overflow + (unspentAP * refundPerAP)
 ```
 
 ### 2.1. CTB Rules
 1. **Asynchronous Turn Ordering**: Units with high **Finesse** accumulate gauge faster and act more frequently than lumbering, low-Finesse units.
 2. **Turn Handoff**: When a unit reaches $\ge 100$ gauge, the combat clock pauses and grants control to that unit.
-3. **Gauge Reset & Overflow**: After completing their action, 100 points are subtracted from their gauge. Any overflow above 100 is preserved, ensuring speed advantages are never clipped.
-4. **Action Cost Variations *(Example)* **: Units that take only a partial turn (e.g. Move only, or Wait without acting) can receive a partial gauge refund (e.g., reset to 20 instead of 0), rewarding decisive tactical conservation.
+3. **Overflow Retention**: Any gauge accumulated beyond 100 before the turn starts is retained, ensuring speed advantages are never lost.
+
+### 2.2. The Action Point (AP) Economy
+* **Standard Pool**: Every unit receives **3 AP** upon taking their turn.
+* **Movement (1 AP)**: Spending 1 AP allows the unit to traverse up to their `move` stat in hexes. Units can spend multiple AP on movement in a single turn to sprint across the battlefield.
+* **Basic Actions (1 AP)**: Baseline strikes, cantrips, and simple maneuvers cost 1 AP and are **spammable** (can be executed multiple times in one turn if AP permits).
+* **Special / Heavy Skills (2–3 AP)**: Powerful maneuvers cost 2 or 3 AP and carry a **"Once per Turn"** limit or short cooldown to prevent repetitive spamming.
+
+### 2.3. Dynamic CTB Turn Recovery (Unspent AP)
+To reward tactical conservation and avoid wasted actions, unspent AP accelerates the arrival of the unit's next turn:
+* **All-Out Turn (Spend 3 AP)**: Gauge resets to **0** (full recovery interval).
+* **Conserved Turn (Spend 1 AP, 2 Unspent)**: Gauge resets to an elevated baseline (e.g., **40** instead of 0), allowing a rapid follow-up turn.
+* **Pure Wait (0 AP Spent)**: Gauge resets to an even higher baseline (e.g., **60**), acting almost immediately after adjacent units.
 
 ---
 
@@ -160,7 +177,7 @@ To deliver maximum satisfaction and transparency:
 The three ability mechanics explored are not mutually exclusive and can coexist across classes and progression:
 
 1. **Open Tactical Kit (Universal Baseline)**:
-   * Standard tactical loadout of abilities (Move, Attack, Defend, Class Skills) available each turn. Serves as the primary baseline for the Level-0 recruit and foundational classes.
+   * Standard tactical loadout of abilities (Move, Attack, Defend, Class Skills) available each turn, fueled by Action Points. Serves as the primary baseline for the Level-0 recruit and foundational classes.
 2. **Action Dice / Dice-Face Crafting**:
    * Can serve as a specialized mechanic for luck/gambler/martial classes (e.g. *Gambler*, *Trickster*, or customized equipment), where faces of a combat die trigger unique maneuvers.
 3. **Tactical Cards / Battle Gambits**:
