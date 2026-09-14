@@ -97,14 +97,15 @@ Following our core architectural principle (**Decoupled Simulation & Presentatio
 ## Current Step Dependency Map
 
 ```
-[Milestone 1: Core Unit Stats]  <── (WE ARE HERE)
+[Milestone 1: Core Unit Stats]          <── COMPLETED & TESTED
          │
          ▼
-[Milestone 2: Level-0 Class & Starter Kit]
+[Milestone 2: Level-0 Starter Kit]      <── COMPLETED & TESTED
          │
          ├────────────────────────────────┐
          ▼                                ▼
-[Milestone 3: Hex Grid Math]     [Milestone 4: Combat Resolver]
+[Milestone 3: Hex Grid Math]            [Milestone 4: Combat Resolver] <── (WE ARE HERE)
+ (COMPLETED & TESTED)                     │
          │                                │
          └────────────────┬───────────────┘
                           │
