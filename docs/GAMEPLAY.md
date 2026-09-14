@@ -98,10 +98,7 @@ The game avoids rigid round-based "Player Phase vs. Enemy Phase" turns in favor 
 * **Special / Heavy Skills (2–3 AP)**: Powerful maneuvers cost 2 or 3 AP and carry a **"Once per Turn"** limit or short cooldown to prevent repetitive spamming.
 
 ### 2.3. Dynamic CTB Turn Recovery (Unspent AP)
-To reward tactical conservation and avoid wasted actions, unspent AP accelerates the arrival of the unit's next turn:
-* **All-Out Turn (Spend 3 AP)**: Gauge resets to **0** (full recovery interval).
-* **Conserved Turn (Spend 1 AP, 2 Unspent)**: Gauge resets to an elevated baseline (e.g., **40** instead of 0), allowing a rapid follow-up turn.
-* **Pure Wait (0 AP Spent)**: Gauge resets to an even higher baseline (e.g., **60**), acting almost immediately after adjacent units.
+To reward tactical conservation, a unit recovers **20 initiative gauge points per unspent AP** upon concluding their turn (gauge reset baseline = `overflow + (unspentAP * 20)`), accelerating the arrival of their next turn.
 
 ---
 
