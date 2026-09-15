@@ -229,6 +229,7 @@ describe('Headless Combat Action Resolution', () => {
 
       // Goblin knocked from (1, 0) to (2, 0)
       expect(arena.getUnitPosition('goblin')).toEqual({ q: 2, r: 0 });
+      expect(state.combatLog[0].message).toContain('Knockback: Pushed to (2, 0)');
     });
 
     it('triggers wall-slam collision damage when knocked into map border', () => {
@@ -264,6 +265,26 @@ describe('Headless Combat Action Resolution', () => {
       expect(goblinCu.currentHp).toBe(goblin.effectiveVitals.maxHp - 4);
       // Goblin remained at (2, 0)
       expect(arena.getUnitPosition('goblin')).toEqual({ q: 2, r: 0 });
+      expect(state.combatLog[0].message).toContain('Knockback Collision: Slammed into Map Boundary');
+    });
+
+    it('logs bystander collision and damages both units when knocked into another unit', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const dummyA = createRecruit('dummyA', 'Dummy A');
+      const dummyB = createRecruit('dummyB', 'Dummy B');
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('dummyA', { q: 1, r: 0 });
+      arena.setUnitPosition('dummyB', { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [hero, dummyA, dummyB], 'hero');
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3] });
+
+      executeAbility(state, 'hero', SHIELD_BASH, { targetUnitId: 'dummyA' }, dice);
+
+      expect(state.combatLog[0].message).toContain('Knockback Collision: Slammed into Dummy B');
+      expect(state.combatLog[0].message).toContain('Dummy B took +1 collateral damage');
     });
   });
 

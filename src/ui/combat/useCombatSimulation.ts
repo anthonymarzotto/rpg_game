@@ -27,6 +27,7 @@ import {
   UNIVERSAL_ACTIONS,
   rollNoviceAbilityKit
 } from '../../data/abilities';
+import { DISPLACEMENT_CONFIG } from '../../core/config/balance';
 
 export type ActionMode = 'IDLE' | 'MOVE' | 'ABILITY';
 export type DiceMode = 'NORMAL' | 'FORCE_CRIT' | 'FORCE_GRAZE' | 'FORCE_MISS';
@@ -429,15 +430,36 @@ export function useCombatSimulation() {
               }
             }
 
-            // Wall slam float
-            if (resolution.details.wallSlamDamage && targetCoordBefore) {
-              setTimeout(() => {
-                addFloatingText(
-                  `SLAM! -${resolution.details.wallSlamDamage}`,
-                  'slam',
-                  targetCoordBefore
-                );
-              }, 400);
+            // Knockback & collision feedback
+            if (resolution.details.knockbackResult) {
+              const kb = resolution.details.knockbackResult;
+              if (kb.isCollided) {
+                if (resolution.details.wallSlamDamage && targetCoordBefore) {
+                  setTimeout(() => {
+                    addFloatingText(
+                      `SLAM! -${resolution.details.wallSlamDamage}`,
+                      'slam',
+                      targetCoordBefore
+                    );
+                  }, 350);
+                }
+                if (kb.collidingUnitId) {
+                  const bystanderPos = state.arena.getUnitPosition(kb.collidingUnitId);
+                  if (bystanderPos) {
+                    setTimeout(() => {
+                      addFloatingText(
+                        `COLLISION! -${DISPLACEMENT_CONFIG.unitCollisionSecondaryDamage}`,
+                        'slam',
+                        bystanderPos
+                      );
+                    }, 450);
+                  }
+                }
+              } else {
+                setTimeout(() => {
+                  addFloatingText('KNOCKBACK!', 'buff', kb.finalCoord);
+                }, 300);
+              }
             }
           } else if (resolution.type === 'BUFF') {
             addFloatingText(

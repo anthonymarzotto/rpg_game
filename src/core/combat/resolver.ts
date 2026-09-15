@@ -467,11 +467,48 @@ export function executeAbility(
     state.arena.removeUnit(targetCu.unit.id);
   }
 
+  let secondaryDetail = '';
+  if (effectResult.knockbackResult) {
+    const kb = effectResult.knockbackResult;
+    if (kb.isCollided) {
+      if (kb.collidingUnitId) {
+        const bystander = state.units.get(kb.collidingUnitId);
+        const bystanderName = bystander ? bystander.unit.name : 'another unit';
+        secondaryDetail = ` 💥 [Knockback Collision: Slammed into ${bystanderName}! Target took +${effectResult.wallSlamDamage ?? 0} collision damage. ${bystanderName} took +${DISPLACEMENT_CONFIG.unitCollisionSecondaryDamage} collateral damage (HP: ${bystander?.currentHp}/${bystander?.unit.effectiveVitals.maxHp}).]`;
+      } else {
+        const obsType =
+          kb.collisionType === 'WALL'
+            ? 'Obstacle'
+            : kb.collisionType === 'CLIFF'
+            ? 'Cliff'
+            : 'Map Boundary';
+        secondaryDetail = ` 💥 [Knockback Collision: Slammed into ${obsType}! Took +${effectResult.wallSlamDamage ?? 0} collision damage.]`;
+      }
+    } else {
+      secondaryDetail = ` 💨 [Knockback: Pushed to (${kb.finalCoord.q}, ${kb.finalCoord.r})]`;
+    }
+  } else if (ability.effect && rollResult.hitOutcome === 'GRAZE') {
+    secondaryDetail = ` (Secondary effect negated on Graze)`;
+  } else if (effectResult.effectsApplied.length > 0) {
+    for (const eff of effectResult.effectsApplied) {
+      if (eff.type === 'RETREAT_STEP') {
+        const newActorPos = state.arena.getUnitPosition(actorCu.unit.id);
+        if (newActorPos) {
+          secondaryDetail += ` 🏃 [Retreat Step to (${newActorPos.q}, ${newActorPos.r})]`;
+        }
+      } else if (eff.type === 'SLOW') {
+        secondaryDetail += ` ❄️ [Slow: -${eff.magnitude} Move for ${eff.durationTurns ?? 1} turn(s)]`;
+      } else if (eff.type === 'ARMOR_BUFF') {
+        secondaryDetail += ` 🛡️ [Armor Buff: +${eff.magnitude} Armor for ${eff.durationTurns ?? 1} turn(s)]`;
+      }
+    }
+  }
+
   state.combatLog.push({
     turnNumber: state.turnNumber,
     actorUnitId,
     actionId: ability.id,
-    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${rollResult.d20}+${rollResult.modifier} vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}] Damage: ${damageResult.damageDealt} (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})`
+    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${rollResult.d20}+${rollResult.modifier} vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}] Damage: ${damageResult.damageDealt} (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})${secondaryDetail}`
   });
 
   return {
