@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { createRadialArena } from '../grid/templates';
 import { createRecruit } from '../units/unitFactory';
-import { createCombatState, executeMove, executeAbility, canExecuteAbility } from './resolver';
+import { createCombatState, executeMove, executeAbility, canExecuteAbility, defaultEffectRegistry } from './resolver';
 import { endActiveTurn } from './turnClock';
 import { MockDiceRoller } from './dice';
-import { STRIKE, SHIELD_BASH, SPARK, BRACE, MINOR_WARD } from '../../data/abilities';
+import { STRIKE, SHIELD_BASH, SPARK, BRACE, MINOR_WARD, SKIRMISH } from '../../data/abilities';
 
 
 describe('Headless Combat Action Resolution', () => {
@@ -366,6 +366,142 @@ describe('Headless Combat Action Resolution', () => {
 
       // Now the speed buff decrements to 0 and is purged
       expect(heroCu.activeModifiers).toHaveLength(0);
+    });
+  });
+
+  describe('Extensible Effect Pipeline & Atomic Combat Events', () => {
+    it('emits typed DAMAGE and DISPLACEMENT events on Knockback with collision', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const dummyA = createRecruit('dummyA', 'Dummy A');
+      const dummyB = createRecruit('dummyB', 'Dummy B');
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('dummyA', { q: 1, r: 0 });
+      arena.setUnitPosition('dummyB', { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [hero, dummyA, dummyB], 'hero');
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3] });
+
+      const result = executeAbility(state, 'hero', SHIELD_BASH, { targetUnitId: 'dummyA' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.events).toHaveLength(4);
+
+        const [primaryDmg, collision, wallSlamDmg, collateralDmg] = result.details.events;
+        expect(primaryDmg).toEqual({
+          type: 'DAMAGE',
+          targetUnitId: 'dummyA',
+          amount: 3,
+          damageType: 'PHYSICAL',
+          reason: 'ATTACK',
+          sourceUnitId: 'hero',
+          isCrit: false
+        });
+        expect(collision).toEqual({
+          type: 'COLLISION',
+          unitId: 'dummyA',
+          collisionType: 'UNIT',
+          collidingUnitId: 'dummyB'
+        });
+        expect(wallSlamDmg).toEqual({
+          type: 'DAMAGE',
+          targetUnitId: 'dummyA',
+          amount: 1,
+          damageType: 'PHYSICAL',
+          reason: 'COLLISION',
+          sourceUnitId: 'hero'
+        });
+        expect(collateralDmg).toEqual({
+          type: 'DAMAGE',
+          targetUnitId: 'dummyB',
+          amount: 1,
+          damageType: 'PHYSICAL',
+          reason: 'COLLATERAL',
+          sourceUnitId: 'hero'
+        });
+      }
+    });
+
+    it('emits DISPLACEMENT event on retreat step (Skirmish)', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const dummy = createRecruit('dummy', 'Dummy');
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('dummy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, dummy], 'hero');
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [4] });
+
+      const result = executeAbility(state, 'hero', SKIRMISH, { targetUnitId: 'dummy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        const displacementEvent = result.details.events.find((e) => e.type === 'DISPLACEMENT');
+        expect(displacementEvent).toEqual({
+          type: 'DISPLACEMENT',
+          unitId: 'hero',
+          fromCoord: { q: 0, r: 0 },
+          toCoord: { q: -1, r: 0 },
+          kind: 'RETREAT'
+        });
+        expect(arena.getUnitPosition('hero')).toEqual({ q: -1, r: 0 });
+      }
+    });
+
+    it('allows dynamic registration of custom effect handlers without modifying resolver', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+
+      const state = createCombatState(arena, [hero], 'hero');
+
+      defaultEffectRegistry.register('CRIT_BOOST', {
+        apply: (_effect, ctx) => ({
+          events: [
+            {
+              type: 'STATUS_APPLIED',
+              targetUnitId: ctx.actorCu.unit.id,
+              modifier: { stat: 'speed', value: 5, durationTurns: 1 }
+            }
+          ],
+          logDetail: ' ⚡ [Custom Speed Surge!]'
+        })
+      });
+
+      const customAbility = {
+        ...STRIKE,
+        id: 'surge_strike',
+        name: 'Surge Strike',
+        effect: { type: 'CRIT_BOOST' as const, magnitude: 1 }
+      };
+
+      const dummy = createRecruit('dummy', 'Dummy');
+      arena.setUnitPosition('dummy', { q: 1, r: 0 });
+      state.units.set('dummy', {
+        unit: dummy,
+        currentHp: 20,
+        currentAp: 0,
+        initiativeGauge: 0,
+        isDefeated: false,
+        inBattleXp: { fighter: 0, rogue: 0, mage: 0 },
+        activeModifiers: []
+      });
+
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3] });
+      const result = executeAbility(state, 'hero', customAbility, { targetUnitId: 'dummy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(state.combatLog[0].message).toContain('⚡ [Custom Speed Surge!]');
+        expect(state.units.get('hero')!.activeModifiers).toContainEqual({
+          stat: 'speed',
+          value: 5,
+          durationTurns: 1
+        });
+      }
     });
   });
 });

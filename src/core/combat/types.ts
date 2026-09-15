@@ -1,8 +1,52 @@
 import { Unit } from '../types/unit';
 import { AbilityEffect } from '../types/ability';
+import { HexCoord } from '../grid/hex';
 import { Arena, KnockbackResult } from '../grid/arena';
 
 export type HitOutcome = 'CRITICAL_HIT' | 'SOLID_HIT' | 'GRAZE' | 'MISS';
+
+export type CombatDamageReason =
+  | 'ATTACK'
+  | 'COLLISION'
+  | 'COLLATERAL'
+  | 'STATUS_TICK'
+  | 'ENVIRONMENT';
+
+export type DisplacementKind = 'KNOCKBACK' | 'RETREAT' | 'PULL' | 'TELEPORT';
+
+export type CollisionKind = 'WALL' | 'UNIT' | 'CLIFF' | 'VOID';
+
+/**
+ * Atomic combat events produced during action resolution.
+ */
+export type CombatEvent =
+  | {
+      readonly type: 'DAMAGE';
+      readonly targetUnitId: string;
+      readonly amount: number;
+      readonly damageType: 'PHYSICAL' | 'MAGICAL' | 'TRUE';
+      readonly reason: CombatDamageReason;
+      readonly sourceUnitId?: string;
+      readonly isCrit?: boolean;
+    }
+  | {
+      readonly type: 'DISPLACEMENT';
+      readonly unitId: string;
+      readonly fromCoord: HexCoord;
+      readonly toCoord: HexCoord;
+      readonly kind: DisplacementKind;
+    }
+  | {
+      readonly type: 'COLLISION';
+      readonly unitId: string;
+      readonly collisionType: CollisionKind;
+      readonly collidingUnitId?: string;
+    }
+  | {
+      readonly type: 'STATUS_APPLIED';
+      readonly targetUnitId: string;
+      readonly modifier: ActiveModifier;
+    };
 
 /**
  * Detailed result of an attack roll and damage resolution.
@@ -20,6 +64,7 @@ export interface AttackResolution {
   readonly effectsApplied: readonly AbilityEffect[];
   readonly knockbackResult?: KnockbackResult;
   readonly wallSlamDamage?: number;
+  readonly events: readonly CombatEvent[];
 }
 
 /**
@@ -61,7 +106,12 @@ export type ValidationResult =
  */
 export type AbilityResolution =
   | { readonly type: 'ATTACK'; readonly details: AttackResolution }
-  | { readonly type: 'BUFF'; readonly targetUnitId: string; readonly modifierApplied: ActiveModifier };
+  | {
+      readonly type: 'BUFF';
+      readonly targetUnitId: string;
+      readonly modifierApplied: ActiveModifier;
+      readonly events?: readonly CombatEvent[];
+    };
 
 /**
  * Combat wrapper managing a unit's dynamic in-battle state.

@@ -1,27 +1,24 @@
 import { Unit } from '../types/unit';
-import { HexCoord, hexDistance, hexSubtract, hexAdd } from '../grid/hex';
-import { Arena, KnockbackResult } from '../grid/arena';
-import { Ability, AbilityEffect } from '../types/ability';
+import { HexCoord, hexDistance } from '../grid/hex';
+import { Arena } from '../grid/arena';
+import { Ability } from '../types/ability';
 import {
   CombatState,
   CombatUnit,
-  HitOutcome,
   ValidationResult,
   AbilityResolution,
-  ActiveModifier,
-  getEffectiveMove,
-  getEffectiveArmor,
-  getEffectiveWard,
-  getEffectiveEvasion,
-  getEffectiveResolve
+  CombatEvent,
+  getEffectiveMove
 } from './types';
 import { DiceRoller, SeededDiceRoller } from './dice';
 import {
   COMBAT_RESOLUTION_CONFIG,
-  DISPLACEMENT_CONFIG,
   ACTION_ECONOMY_CONFIG
 } from '../config/balance';
 import { advanceTurnClock } from './turnClock';
+import { resolveAttackRoll } from './attackRoll';
+import { resolveDamage } from './damageEngine';
+import { executeAbilityEffects } from './effects';
 
 const defaultDiceRoller = new SeededDiceRoller();
 
@@ -208,202 +205,34 @@ export function canExecuteAbility(
   return { valid: true };
 }
 
-
-function getAbilityModifier(actorCu: CombatUnit, ability: Ability): number {
-  const attr = ability.damageProfile?.modifierAttribute;
-  return attr ? actorCu.unit.baseAttributes[attr] : 0;
-}
-
-function resolveAttackRoll(
-  actorCu: CombatUnit,
-  targetCu: CombatUnit,
-  ability: Ability,
-  diceRoller: DiceRoller
-): {
-  hitOutcome: HitOutcome;
-  d20: number;
-  modifier: number;
-  totalScore: number;
-  targetDefense: number;
-} {
-  const modifier = getAbilityModifier(actorCu, ability);
-  const targetDefense =
-    ability.defenseTarget === 'EVASION'
-      ? getEffectiveEvasion(targetCu)
-      : getEffectiveResolve(targetCu);
-
-  const d20 = diceRoller.rollD20();
-  const totalScore = d20 + modifier;
-
-  const critMargin = COMBAT_RESOLUTION_CONFIG.critThresholdMargin;
-  const isCritBoosted = ability.effect?.type === 'CRIT_BOOST';
-  const naturalCritThreshold = isCritBoosted ? 19 : 20;
-
-  let hitOutcome: HitOutcome = 'MISS';
-  if (d20 >= naturalCritThreshold || totalScore >= targetDefense + critMargin) {
-    hitOutcome = 'CRITICAL_HIT';
-  } else if (d20 === 1 || totalScore < targetDefense - COMBAT_RESOLUTION_CONFIG.grazeMargin) {
-    hitOutcome = 'MISS';
-  } else if (totalScore >= targetDefense) {
-    hitOutcome = 'SOLID_HIT';
-  } else {
-    hitOutcome = 'GRAZE';
-  }
-
-  return { hitOutcome, d20, modifier, totalScore, targetDefense };
-}
-
-function resolveDamage(
-  hitOutcome: HitOutcome,
-  ability: Ability,
-  actorCu: CombatUnit,
-  targetCu: CombatUnit,
-  diceRoller: DiceRoller
-): {
-  rawDamage: number;
-  mitigation: number;
-  damageDealt: number;
-  damageBreakdown: string;
-} {
-  if (hitOutcome === 'MISS' || !ability.damageProfile) {
-    return {
-      rawDamage: 0,
-      mitigation: 0,
-      damageDealt: 0,
-      damageBreakdown: hitOutcome === 'MISS' ? '0 (Miss)' : '0'
-    };
-  }
-
-  const { count, sides } = ability.damageProfile;
-  const modifier = getAbilityModifier(actorCu, ability);
-  const rolledDice = diceRoller.rollDice(count, sides);
-  const isCrit = hitOutcome === 'CRITICAL_HIT';
-  const isGraze = hitOutcome === 'GRAZE';
-
-  // Maximized Crit: max base dice + rolled dice + modifier
-  const maximizedVal = count * sides;
-  const rawDamage = isCrit
-    ? maximizedVal + rolledDice + modifier
-    : rolledDice + modifier;
-
-  const mitigationType = ability.damageType === 'PHYSICAL' ? 'Armor' : 'Ward';
-  const mitigation =
-    ability.damageType === 'PHYSICAL'
-      ? getEffectiveArmor(targetCu)
-      : getEffectiveWard(targetCu);
-
-  let subtotal = rawDamage - mitigation;
-  let modifierSuffix = '';
-
-  if (isGraze) {
-    subtotal = Math.floor(subtotal * COMBAT_RESOLUTION_CONFIG.grazeDamageMultiplier);
-    modifierSuffix = ' (x0.5 Graze)';
-  }
-
-  let damageDealt = subtotal;
-  if (damageDealt < COMBAT_RESOLUTION_CONFIG.minimumDamage) {
-    damageDealt = COMBAT_RESOLUTION_CONFIG.minimumDamage;
-    modifierSuffix += ' (min 1)';
-  }
-
-  targetCu.currentHp = Math.max(0, targetCu.currentHp - damageDealt);
-
-  // e.g. 1d6(4)+0 - 2 Armor -> 2 or crit: 1d6(max 6+4)+0 - 2 Armor -> 8
-  const diceFormula = `${count}d${sides}`;
-  const rollDetails = isCrit ? `max ${maximizedVal}+${rolledDice}` : `${rolledDice}`;
-  const modSign = modifier >= 0 ? `+${modifier}` : `${modifier}`;
-  const damageBreakdown = `${diceFormula}(${rollDetails})${modSign} - ${mitigation} ${mitigationType}${modifierSuffix} -> ${damageDealt}`;
-
-  return { rawDamage, mitigation, damageDealt, damageBreakdown };
-}
-
-function resolveSecondaryEffects(
-  hitOutcome: HitOutcome,
-  ability: Ability,
-  actorCu: CombatUnit,
-  targetCu: CombatUnit,
-  state: CombatState
-): {
-  effectsApplied: readonly AbilityEffect[];
-  knockbackResult?: KnockbackResult;
-  wallSlamDamage?: number;
-} {
-  if (hitOutcome !== 'SOLID_HIT' && hitOutcome !== 'CRITICAL_HIT') {
-    return { effectsApplied: [] };
-  }
-  if (!ability.effect) {
-    return { effectsApplied: [] };
-  }
-
-  const effect = ability.effect;
-  const actorCoord = requireUnitPosition(state.arena, actorCu.unit.id);
-  const targetCoord = requireUnitPosition(state.arena, targetCu.unit.id);
-
-  let knockbackResult: KnockbackResult | undefined;
-  let wallSlamDamage: number | undefined;
-
-  if (effect.type === 'KNOCKBACK') {
-    knockbackResult = state.arena.calculateKnockback(
-      actorCoord,
-      targetCoord,
-      effect.magnitude
-    );
-
-    if (knockbackResult.isCollided) {
-      const targetArmor = getEffectiveArmor(targetCu);
-      wallSlamDamage = Math.max(
-        1,
-        DISPLACEMENT_CONFIG.wallSlamBaseDamage + actorCu.unit.baseAttributes.force - targetArmor
-      );
-      targetCu.currentHp = Math.max(0, targetCu.currentHp - wallSlamDamage);
-
-      if (knockbackResult.collidingUnitId) {
-        const bystander = state.units.get(knockbackResult.collidingUnitId);
-        if (bystander && !bystander.isDefeated) {
-          bystander.currentHp = Math.max(
-            0,
-            bystander.currentHp - DISPLACEMENT_CONFIG.unitCollisionSecondaryDamage
-          );
-          if (bystander.currentHp === 0) {
-            bystander.isDefeated = true;
-            state.arena.removeUnit(bystander.unit.id);
-          }
+/**
+ * Applies a stream of atomic combat events to the mutable battle state.
+ */
+function applyCombatEvents(state: CombatState, events: readonly CombatEvent[]): void {
+  for (const event of events) {
+    if (event.type === 'DAMAGE') {
+      const cu = state.units.get(event.targetUnitId);
+      if (cu && !cu.isDefeated) {
+        cu.currentHp = Math.max(0, cu.currentHp - event.amount);
+        if (cu.currentHp === 0) {
+          cu.isDefeated = true;
+          state.arena.removeUnit(event.targetUnitId);
         }
       }
-    } else {
-      state.arena.setUnitPosition(targetCu.unit.id, knockbackResult.finalCoord);
+    } else if (event.type === 'DISPLACEMENT') {
+      state.arena.setUnitPosition(event.unitId, event.toCoord);
+    } else if (event.type === 'STATUS_APPLIED') {
+      const cu = state.units.get(event.targetUnitId);
+      if (cu && !cu.isDefeated) {
+        cu.activeModifiers.push(event.modifier);
+      }
     }
-  } else if (effect.type === 'RETREAT_STEP') {
-    const retreatDir = hexSubtract(actorCoord, targetCoord);
-    const retreatDest = hexAdd(actorCoord, retreatDir);
-    const destTile = state.arena.getTile(retreatDest);
-    if (destTile && destTile.isWalkable && !destTile.occupiedByUnitId) {
-      state.arena.setUnitPosition(actorCu.unit.id, retreatDest);
-    }
-  } else if (effect.type === 'SLOW') {
-    targetCu.activeModifiers.push({
-      stat: 'move',
-      value: -effect.magnitude,
-      durationTurns: effect.durationTurns ?? 1
-    });
-  } else if (effect.type === 'ARMOR_BUFF') {
-    actorCu.activeModifiers.push({
-      stat: 'armor',
-      value: effect.magnitude,
-      durationTurns: effect.durationTurns ?? 1
-    });
   }
-
-  return {
-    effectsApplied: [effect],
-    knockbackResult,
-    wallSlamDamage
-  };
 }
 
 /**
  * Resolves an ability execution including to-hit roll, damage, mitigation,
- * displacement with wall-slam collision, and in-battle archetype XP award.
+ * pluggable effect dispatch, state event application, and in-battle archetype XP award.
  */
 export function executeAbility(
   state: CombatState,
@@ -429,47 +258,48 @@ export function executeAbility(
     actorCu.inBattleXp.mage += COMBAT_RESOLUTION_CONFIG.xpPerAction;
   }
 
-  // Support / Non-damaging buffs (e.g. Minor Ward, Brace)
+  // 1. Support / Buff abilities (DamageType === 'NONE')
   if (ability.damageType === 'NONE') {
     const targetId = target?.targetUnitId ?? actorUnitId;
     const targetCu = requireCombatUnit(state, targetId);
-    let appliedModifier: ActiveModifier | undefined;
 
-    if (ability.effect?.type === 'WARD_BUFF') {
-      appliedModifier = {
-        stat: 'ward',
-        value: ability.effect.magnitude,
-        durationTurns: ability.effect.durationTurns ?? 1
-      };
-      targetCu.activeModifiers.push(appliedModifier);
-    } else if (ability.effect?.type === 'ARMOR_BUFF') {
-      appliedModifier = {
-        stat: 'armor',
-        value: ability.effect.magnitude,
-        durationTurns: ability.effect.durationTurns ?? 1
-      };
-      actorCu.activeModifiers.push(appliedModifier);
-    }
+    const effectResult = executeAbilityEffects(ability, {
+      state,
+      actorCu,
+      targetCu,
+      targetCoord: target?.coord,
+      ability,
+      hitOutcome: 'SOLID_HIT',
+      diceRoller
+    });
+
+    applyCombatEvents(state, effectResult.events);
+
+    const statusEvent = effectResult.events.find(
+      (e): e is Extract<CombatEvent, { type: 'STATUS_APPLIED' }> => e.type === 'STATUS_APPLIED'
+    );
+    const appliedModifier = statusEvent?.modifier ?? {
+      stat: 'armor',
+      value: 0,
+      durationTurns: 0
+    };
 
     state.combatLog.push({
       turnNumber: state.turnNumber,
       actorUnitId,
       actionId: ability.id,
-      message: `${actorCu.unit.name} used ${ability.name}.`
+      message: `${actorCu.unit.name} used ${ability.name}.${effectResult.logDetail ?? ''}`
     });
 
     return {
       type: 'BUFF',
       targetUnitId: targetId,
-      modifierApplied: appliedModifier ?? {
-        stat: 'armor',
-        value: 0,
-        durationTurns: 0
-      }
+      modifierApplied: appliedModifier,
+      events: effectResult.events
     };
   }
 
-  // Attack Roll & Damage Resolution
+  // 2. Damaging Attack Resolution
   const targetCu = requireCombatUnit(state, target!.targetUnitId!);
   const rollResult = resolveAttackRoll(actorCu, targetCu, ability, diceRoller);
   const damageResult = resolveDamage(
@@ -480,58 +310,39 @@ export function executeAbility(
     diceRoller
   );
 
-  // Secondary Effects (Knockback, Retreat Step, Slow)
-  const effectResult = resolveSecondaryEffects(
-    rollResult.hitOutcome,
-    ability,
+  const events: CombatEvent[] = [];
+
+  // Primary Damage Event
+  if (damageResult.damageDealt > 0) {
+    events.push({
+      type: 'DAMAGE',
+      targetUnitId: targetCu.unit.id,
+      amount: damageResult.damageDealt,
+      damageType: ability.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL',
+      reason: 'ATTACK',
+      sourceUnitId: actorCu.unit.id,
+      isCrit: rollResult.hitOutcome === 'CRITICAL_HIT'
+    });
+  }
+
+  // Dispatch secondary effects via pluggable registry
+  const effectResult = executeAbilityEffects(ability, {
+    state,
     actorCu,
     targetCu,
-    state
-  );
+    targetCoord: target?.coord,
+    ability,
+    hitOutcome: rollResult.hitOutcome,
+    diceRoller
+  });
 
-  // Defeat Check
-  if (targetCu.currentHp <= 0) {
-    targetCu.isDefeated = true;
-    state.arena.removeUnit(targetCu.unit.id);
-  }
+  events.push(...effectResult.events);
 
-  let secondaryDetail = '';
-  if (effectResult.knockbackResult) {
-    const kb = effectResult.knockbackResult;
-    if (kb.isCollided) {
-      if (kb.collidingUnitId) {
-        const bystander = state.units.get(kb.collidingUnitId);
-        const bystanderName = bystander ? bystander.unit.name : 'another unit';
-        secondaryDetail = ` 💥 [Knockback Collision: Slammed into ${bystanderName}! Target took +${effectResult.wallSlamDamage ?? 0} collision damage. ${bystanderName} took +${DISPLACEMENT_CONFIG.unitCollisionSecondaryDamage} collateral damage (HP: ${bystander?.currentHp}/${bystander?.unit.effectiveVitals.maxHp}).]`;
-      } else {
-        const obsType =
-          kb.collisionType === 'WALL'
-            ? 'Obstacle'
-            : kb.collisionType === 'CLIFF'
-            ? 'Cliff'
-            : 'Map Boundary';
-        secondaryDetail = ` 💥 [Knockback Collision: Slammed into ${obsType}! Took +${effectResult.wallSlamDamage ?? 0} collision damage.]`;
-      }
-    } else {
-      secondaryDetail = ` 💨 [Knockback: Pushed to (${kb.finalCoord.q}, ${kb.finalCoord.r})]`;
-    }
-  } else if (ability.effect && rollResult.hitOutcome === 'GRAZE') {
-    secondaryDetail = ` (Secondary effect negated on Graze)`;
-  } else if (effectResult.effectsApplied.length > 0) {
-    for (const eff of effectResult.effectsApplied) {
-      if (eff.type === 'RETREAT_STEP') {
-        const newActorPos = state.arena.getUnitPosition(actorCu.unit.id);
-        if (newActorPos) {
-          secondaryDetail += ` 🏃 [Retreat Step to (${newActorPos.q}, ${newActorPos.r})]`;
-        }
-      } else if (eff.type === 'SLOW') {
-        secondaryDetail += ` ❄️ [Slow: -${eff.magnitude} Move for ${eff.durationTurns ?? 1} turn(s)]`;
-      } else if (eff.type === 'ARMOR_BUFF') {
-        secondaryDetail += ` 🛡️ [Armor Buff: +${eff.magnitude} Armor for ${eff.durationTurns ?? 1} turn(s)]`;
-      }
-    }
-  }
+  // Apply all events to state
+  applyCombatEvents(state, events);
 
+  // Combat Log
+  const secondaryDetail = effectResult.logDetail ?? '';
   state.combatLog.push({
     turnNumber: state.turnNumber,
     actorUnitId,
@@ -551,9 +362,15 @@ export function executeAbility(
       mitigation: damageResult.mitigation,
       damageDealt: damageResult.damageDealt,
       damageBreakdown: damageResult.damageBreakdown,
-      effectsApplied: effectResult.effectsApplied,
+      effectsApplied: ability.effect ? [ability.effect] : [],
       knockbackResult: effectResult.knockbackResult,
-      wallSlamDamage: effectResult.wallSlamDamage
+      wallSlamDamage: effectResult.wallSlamDamage,
+      events
     }
   };
 }
+
+// Re-export subsystems for convenient consumer access
+export { resolveAttackRoll, getAbilityModifier } from './attackRoll';
+export { resolveDamage } from './damageEngine';
+export { executeAbilityEffects, defaultEffectRegistry } from './effects';

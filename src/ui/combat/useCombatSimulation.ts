@@ -27,7 +27,6 @@ import {
   UNIVERSAL_ACTIONS,
   rollNoviceAbilityKit
 } from '../../data/abilities';
-import { DISPLACEMENT_CONFIG } from '../../core/config/balance';
 
 export type ActionMode = 'IDLE' | 'MOVE' | 'ABILITY';
 export type DiceMode = 'NORMAL' | 'FORCE_CRIT' | 'FORCE_GRAZE' | 'FORCE_MISS';
@@ -434,49 +433,54 @@ export function useCombatSimulation() {
 
           if (resolution.type === 'ATTACK') {
             const hit = resolution.details.hitOutcome;
-            const dmg = resolution.details.damageDealt;
-
-            if (targetCoordBefore) {
-              if (hit === 'CRITICAL_HIT') {
-                addFloatingText(`CRITICAL! -${dmg}`, 'crit', targetCoordBefore);
-              } else if (hit === 'SOLID_HIT') {
-                addFloatingText(`-${dmg}`, 'damage', targetCoordBefore);
-              } else if (hit === 'GRAZE') {
-                addFloatingText(`GRAZE -${dmg}`, 'graze', targetCoordBefore);
-              } else {
-                addFloatingText('MISS', 'miss', targetCoordBefore);
-              }
+            if (hit === 'MISS' && targetCoordBefore) {
+              addFloatingText('MISS', 'miss', targetCoordBefore);
             }
 
-            // Knockback & collision feedback
-            if (resolution.details.knockbackResult) {
-              const kb = resolution.details.knockbackResult;
-              if (kb.isCollided) {
-                if (resolution.details.wallSlamDamage && targetCoordBefore) {
+            // Generic event-driven feedback
+            for (const event of resolution.details.events) {
+              if (event.type === 'DAMAGE') {
+                const unitPos =
+                  event.targetUnitId === targetUnitId && targetCoordBefore
+                    ? targetCoordBefore
+                    : state.arena.getUnitPosition(event.targetUnitId);
+                if (unitPos) {
+                  const delay = event.reason === 'ATTACK' ? 0 : 350;
+                  const textType =
+                    event.reason === 'COLLISION' || event.reason === 'COLLATERAL'
+                      ? 'slam'
+                      : event.isCrit
+                      ? 'crit'
+                      : hit === 'GRAZE'
+                      ? 'graze'
+                      : 'damage';
+                  const prefix =
+                    event.reason === 'COLLISION'
+                      ? 'SLAM! '
+                      : event.reason === 'COLLATERAL'
+                      ? 'COLLISION! '
+                      : event.isCrit
+                      ? 'CRITICAL! '
+                      : hit === 'GRAZE'
+                      ? 'GRAZE '
+                      : '';
                   setTimeout(() => {
-                    addFloatingText(
-                      `SLAM! -${resolution.details.wallSlamDamage}`,
-                      'slam',
-                      targetCoordBefore
-                    );
-                  }, 350);
+                    addFloatingText(`${prefix}-${event.amount}`, textType, unitPos);
+                  }, delay);
                 }
-                if (kb.collidingUnitId) {
-                  const bystanderPos = state.arena.getUnitPosition(kb.collidingUnitId);
-                  if (bystanderPos) {
-                    setTimeout(() => {
-                      addFloatingText(
-                        `COLLISION! -${DISPLACEMENT_CONFIG.unitCollisionSecondaryDamage}`,
-                        'slam',
-                        bystanderPos
-                      );
-                    }, 450);
-                  }
-                }
-              } else {
+              } else if (event.type === 'DISPLACEMENT' && event.kind === 'KNOCKBACK') {
                 setTimeout(() => {
-                  addFloatingText('KNOCKBACK!', 'buff', kb.finalCoord);
-                }, 300);
+                  addFloatingText('KNOCKBACK!', 'buff', event.toCoord);
+                }, 250);
+              } else if (event.type === 'STATUS_APPLIED') {
+                const unitPos = state.arena.getUnitPosition(event.targetUnitId) ?? coord;
+                setTimeout(() => {
+                  addFloatingText(
+                    `+${event.modifier.value} ${event.modifier.stat.toUpperCase()}`,
+                    'buff',
+                    unitPos
+                  );
+                }, 200);
               }
             }
           } else if (resolution.type === 'BUFF') {
