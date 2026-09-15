@@ -1,0 +1,714 @@
+/* Combat Arena Testbed Stylesheet */
+
+:root {
+  --color-fighter: #ef4444;
+  --color-rogue: #10b981;
+  --color-mage: #8b5cf6;
+  --color-cyan: #06b6d4;
+  --color-gold: #f59e0b;
+}
+
+.combat-arena-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #090d16 60%, #030712 100%);
+  color: #f8fafc;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  user-select: none;
+  position: relative;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Top Testbed Header Bar                                                     */
+/* -------------------------------------------------------------------------- */
+.testbed-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1.25rem;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 20;
+}
+
+.testbed-title-block {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.testbed-title-block h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0;
+  color: #f8fafc;
+}
+
+.testbed-badge {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.dev-dice-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dev-label {
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.btn-dice-mode {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-dice-mode:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+.btn-dice-mode.active {
+  background: #f59e0b;
+  color: #000;
+  border-color: #fbbf24;
+  font-weight: 700;
+}
+
+.testbed-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-testbed {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-testbed:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.reroll-btn:hover {
+  color: #c084fc;
+}
+
+.reset-btn:hover {
+  color: #f87171;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Main Arena Layout                                                          */
+/* -------------------------------------------------------------------------- */
+.arena-main-layout {
+  display: flex;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.arena-canvas-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.arena-hex-svg {
+  width: 100%;
+  height: 100%;
+  max-width: 800px;
+  max-height: 700px;
+  filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.6));
+}
+
+.hex-tile-group polygon {
+  transition: fill 0.15s ease, stroke 0.15s ease, stroke-width 0.15s ease;
+}
+
+.hex-tile-group.reachable:hover polygon {
+  fill: rgba(6, 182, 212, 0.45);
+}
+
+.hex-tile-group.candidate:hover polygon {
+  fill: rgba(245, 158, 11, 0.45);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Floating Combat Text Animation                                             */
+/* -------------------------------------------------------------------------- */
+.floating-combat-text {
+  animation: floatUpFade 1.3s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.9));
+}
+
+@keyframes floatUpFade {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.7);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.15);
+  }
+  30% {
+    transform: translateY(-14px) scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-36px) scale(0.95);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Status Overlay & Preview HUD                                               */
+/* -------------------------------------------------------------------------- */
+.combat-status-overlay {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.unit-hud-card,
+.target-preview-card {
+  pointer-events: all;
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  width: 250px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.unit-hud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.unit-role-badge {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.unit-ctb-gauge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.unit-hud-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 0.5rem;
+}
+
+.hud-bar-container {
+  margin-bottom: 0.65rem;
+}
+
+.hud-bar-track {
+  height: 6px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.2rem;
+}
+
+.hud-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.hp-fill {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.hud-bar-label {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.hud-stats-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.25rem;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.35rem 0.2rem;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 0.6rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.stat-val {
+  font-size: 0.78rem;
+  color: #f1f5f9;
+  font-weight: 700;
+}
+
+.active-modifiers-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.4rem;
+}
+
+.mod-badge {
+  font-size: 0.68rem;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.hud-xp-tally {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 0.4rem;
+}
+
+/* Target Preview Card */
+.target-preview-card {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(30, 27, 75, 0.85);
+}
+
+.target-preview-card.blocked-los {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(69, 10, 10, 0.85);
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.preview-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.los-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.los-badge.clear {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.los-badge.blocked {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.preview-target-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.4rem;
+}
+
+.preview-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  font-size: 0.76rem;
+  color: #cbd5e1;
+}
+
+.preview-blocked-msg {
+  font-size: 0.75rem;
+  color: #fca5a5;
+  font-style: italic;
+  padding: 0.3rem 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Combat Log Panel Sidebar                                                   */
+/* -------------------------------------------------------------------------- */
+.combat-log-container {
+  width: 290px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(14px);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.combat-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.log-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.log-turn-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.combat-log-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.log-empty-hint {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-style: italic;
+  padding: 1rem 0;
+  text-align: center;
+}
+
+.log-entry {
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.4rem 0.5rem;
+  border-radius: 5px;
+  border-left: 3px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  gap: 0.4rem;
+}
+
+.entry-turn {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.entry-msg {
+  flex: 1;
+}
+
+.log-entry.entry-crit {
+  border-left-color: #fbbf24;
+  background: rgba(245, 158, 11, 0.08);
+  color: #fef08a;
+}
+
+.log-entry.entry-graze {
+  border-left-color: #94a3b8;
+  background: rgba(148, 163, 184, 0.06);
+}
+
+.log-entry.entry-miss {
+  border-left-color: #64748b;
+  color: #94a3b8;
+}
+
+.log-entry.entry-move {
+  border-left-color: #38bdf8;
+  color: #bae6fd;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Bottom Tactical Action Bar Dock                                            */
+/* -------------------------------------------------------------------------- */
+.combat-action-bar-container {
+  position: absolute;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 0.6rem 1rem;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+  z-index: 15;
+}
+
+.ap-counter-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ap-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #38bdf8;
+}
+
+.ap-dots {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.ap-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ap-dot.filled {
+  background: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.8);
+}
+
+.ap-dot.spent {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ap-text {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.action-buttons-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-action {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  color: #f1f5f9;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-action:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.btn-action:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.action-icon {
+  font-size: 1.15rem;
+}
+
+.action-text-block {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.action-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.action-cost {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.move-btn.active {
+  background: rgba(6, 182, 212, 0.3);
+  border-color: #06b6d4;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.5);
+}
+
+.fighter-action.active {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+}
+
+.rogue-action.active {
+  background: rgba(16, 185, 129, 0.3);
+  border-color: #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+}
+
+.mage-action.active {
+  background: rgba(139, 92, 246, 0.3);
+  border-color: #8b5cf6;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.5);
+}
+
+.end-turn-btn {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+  margin-left: 0.4rem;
+}
+
+.end-turn-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: #f59e0b;
+}
+
+.end-turn-btn .action-cost {
+  color: #fbbf24;
+}
+
+/* Ability Hover Tooltip */
+.ability-btn-wrapper {
+  position: relative;
+}
+
+.ability-hover-tooltip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 0.65rem 0.8rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease, visibility 0.18s ease, transform 0.18s ease;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.ability-btn-wrapper:hover .ability-hover-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-3px);
+}
+
+.tooltip-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.tooltip-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.tooltip-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+}
+
+.tooltip-desc {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  line-height: 1.35;
+  margin-bottom: 0.5rem;
+}
+
+.tooltip-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  color: #cbd5e1;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 0.4rem;
+}

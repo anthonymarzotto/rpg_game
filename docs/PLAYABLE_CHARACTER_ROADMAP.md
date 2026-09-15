@@ -82,15 +82,16 @@ Following our core architectural principle (**Decoupled Simulation & Presentatio
 
 ---
 
-### Milestone 5: Interactive Visual Testbed (In-Game)
-* **Location**: `src/render/` or `src/ui/combat/`
+### Milestone 5: Interactive Visual Testbed (In-Game)  <── COMPLETED & TESTED
+* **Location**: `src/ui/combat/`
 * **Deliverables**:
-  * **Hex Grid Rendering**: Interactive canvas/DOM rendering hex cells with hover states.
-  * **Unit Visuals**: Rendering the Level-0 recruit token and an enemy target dummy on the grid.
+  * **Hex Grid Rendering**: Pointy-topped SVG hex grid (`HexGridSvg.tsx`) rendering 37-tile radial arena with reachable movement and ability target highlights.
+  * **Unit Visuals**: Rendering recruit token and training dummies with live HP bars and action point pips.
   * **Player Action HUD**:
-    * Action bar displaying the starter abilities (`Strike`, `Flank`, `Spark`, `Move`, `Wait`).
-    * Click-to-target visual range highlights on the grid.
-  * **Live Feedback**: Floating combat text / log showing damage dealt and archetype XP gained.
+    * Action bar (`ActionBar.tsx`) with Move, Wait/End Turn (+CTB refund), and 3 equipped starter abilities with rich hover tooltips.
+    * Real-time unit inspector (`UnitStatusCard.tsx`) showing vitals, CTB gauge, defense matrix (Evasion/Resolve/Armor/Ward), active modifiers, XP tally, and target preview.
+    * Dev sandbox controls: Dice mode overrides (Random, Nat 20, Graze, Miss), starter kit re-roller, and encounter reset.
+  * **Live Feedback**: Floating combat text animations (`-X HP`, `Knockback!`, `Critical!`) and transparent scrollable combat log (`CombatLogPanel.tsx`).
 
 ---
 
@@ -110,5 +111,5 @@ Following our core architectural principle (**Decoupled Simulation & Presentatio
          └────────────────┬───────────────┘
                           │
                           ▼
-            [Milestone 5: Playable Testbed] <── (WE ARE HERE)
+            [Milestone 5: Playable Testbed] <── COMPLETED & TESTED
 ```
