@@ -1,12 +1,22 @@
+import { Archetype } from './class';
+
 /**
- * Core Triad Attributes corresponding to the 100-class pyramid vertices:
- * Force (Fighter), Finesse (Rogue), Focus (Mage).
+ * Core Triad Attributes: Force (Fighter), Finesse (Rogue), Focus (Mage).
  */
 export interface TriadAttributes {
   readonly force: number;
   readonly finesse: number;
   readonly focus: number;
 }
+
+/**
+ * Canonical bijective mapping between Class Archetypes and primary Triad Attributes.
+ */
+export const ARCHETYPE_TO_ATTRIBUTE: Record<Archetype, keyof TriadAttributes> = {
+  FIGHTER: 'force',
+  ROGUE: 'finesse',
+  MAGE: 'focus'
+} as const;
 
 /**
  * Derived combat vitals computed from Triad Attributes, level, and gear.
@@ -38,3 +48,4 @@ export const BLANK_SLATE_ATTRIBUTES: TriadAttributes = {
   finesse: 0,
   focus: 0
 };
+

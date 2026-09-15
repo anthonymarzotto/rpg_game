@@ -1,4 +1,5 @@
 import { Archetype } from './class';
+import { TriadAttributes } from './stats';
 
 export type AbilityTargetType = 'SINGLE_TARGET' | 'SELF' | 'ALLY' | 'HEX';
 export type DefenseTarget = 'EVASION' | 'RESOLVE' | 'NONE';
@@ -10,8 +11,9 @@ export type DamageType = 'PHYSICAL' | 'MAGICAL' | 'NONE';
 export interface DiceProfile {
   readonly count: number;
   readonly sides: number;
-  readonly modifierAttribute: 'FORCE' | 'FINESSE' | 'FOCUS';
+  readonly modifierAttribute: keyof TriadAttributes;
 }
+
 
 export type AbilityEffectType =
   | 'KNOCKBACK'     // Push target 1 hex

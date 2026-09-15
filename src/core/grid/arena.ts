@@ -5,10 +5,10 @@ import {
   getHexNeighbors,
   getHexLine,
   hexSubtract,
-  hexAdd,
-  getHexesInRange
+  hexAdd
 } from './hex';
 import { DISPLACEMENT_CONFIG } from '../config/balance';
+
 
 export interface HexTile {
   readonly coord: HexCoord;
@@ -287,15 +287,6 @@ export class Arena {
   }
 }
 
-/**
- * Creates a standard radial hexagonal arena centered at (0, 0).
- */
-export function createRadialArena(radius: number, defaultElevation = 0): Arena {
-  const coords = getHexesInRange({ q: 0, r: 0 }, radius);
-  const tiles: HexTile[] = coords.map((coord) => ({
-    coord,
-    elevation: defaultElevation,
-    isWalkable: true
-  }));
-  return new Arena(tiles);
-}
+// Re-export arena generation templates for convenience
+export { createRadialArena } from './templates';
+

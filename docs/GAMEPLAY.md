@@ -31,7 +31,7 @@ The Triad Vector maps directly to the three vertices of the 100-class pyramid (*
 
 | Attribute | Archetype | Tactical Meaning | Primary Combat Influence |
 | :--- | :---: | :--- | :--- |
-| **Force** | Fighter | Raw kinetic impact & physical resilience | Base HP scaling, melee/kinetic damage bonus, innate Armour mitigation, physical knockback resistance |
+| **Force** | Fighter | Raw kinetic impact & physical resilience | Base HP scaling, melee/kinetic damage bonus, innate Armor mitigation, physical knockback resistance |
 | **Finesse** | Rogue | Tactical tempo, agility, and precision | CTB tick speed (turn frequency), Movement distance per AP, Attack hit roll ($d20$) bonus, Evasion target DC, Critical threshold |
 | **Focus** | Mage | Mental clarity, range, and magical mastery | Ability range, Area of Effect (AoE) blast radius, Resolve target DC, innate Ward mitigation, spell damage dice |
 
@@ -51,11 +51,11 @@ These vitals are computed from a unit's base attributes and archetype points. *(
 * **Resolve (`resolve`)**: Target DC for arcane spells, psychic strikes, and magical debuffs. Derived from **Focus** (e.g., base $10 + \text{Focus}$). Governs mental and magical resistance against being affected.
 
 #### Damage Mitigation (The Damage Soak)
-* **Armour (`armor`)**: Flat physical damage reduction absorbing kinetic blows that connect. Derived innately from **Force** *(with equipped physical gear/shields contributing when itemization is introduced)*.
+* **Armor (`armor`)**: Flat physical damage reduction absorbing kinetic blows that connect. Derived innately from **Force** *(with equipped physical gear/shields contributing when itemization is introduced)*.
 * **Ward (`ward`)**: Flat magical/elemental damage reduction absorbing arcane damage that connects. Derived innately from **Focus** *(with equipped magical attire/talismans contributing when itemization is introduced)*.
 
 > [!TIP]
-> **Items & Equipment Note**: Items (weapons, armor, shields, accessories) will plug directly into these stats (e.g., heavy breastplates adding to Armour, robes adding to Ward, bucklers boosting Evasion). Detailed itemization rules and equipment requirements are deferred until core stats and abilities are finalized.
+> **Items & Equipment Note**: Items (weapons, armor, shields, accessories) will plug directly into these stats (e.g., heavy breastplates adding to Armor, robes adding to Ward, bucklers boosting Evasion). Detailed itemization rules and equipment requirements are deferred until core stats and abilities are finalized.
 
 ---
 
@@ -141,7 +141,7 @@ Combat embraces non-deterministic D&D-style dice rolls combined with tactical gr
 │    Add: Force (Physical) or Focus (Magical) Modifier        │
 │                                                             │
 │    Mitigation:                                              │
-│      - Physical Damage ──► Subtract Target ARMOUR           │
+│      - Physical Damage ──► Subtract Target ARMOR             │
 │      - Magical Damage  ──► Subtract Target WARD             │
 │                                                             │
 │    Net Damage = Max(1, Total Roll - Target Mitigation)      │
@@ -161,7 +161,7 @@ Combat embraces non-deterministic D&D-style dice rolls combined with tactical gr
 * **Knockback & Wall-Slam Collision**:
   * When pushed (e.g. `Shield Bash`), the target displaces along the attacker $\rightarrow$ target vector.
   * If the destination hex is off-map, a cliff/wall (elevation rise $\ge 2$), or occupied by another unit, displacement halts immediately.
-  * The target suffers **Wall-Slam Damage**: $\max(1, (1 + \text{Attacker Force}) - \text{Target Armour})$. If colliding with another unit, both take 1 point of collision impact.
+  * The target suffers **Wall-Slam Damage**: $\max(1, (1 + \text{Attacker Force}) - \text{Target Armor})$. If colliding with another unit, both take 1 point of collision impact.
 
 ---
 
@@ -172,7 +172,7 @@ To deliver maximum satisfaction and transparency:
 1. **Simulation Layer (Seeded PRNG & Transparent Combat Log)**:
    * Combat simulation uses a seeded deterministic pseudo-random number generator, ensuring headless Vitest tests and battle replays are fully reproducible.
    * Every calculation is output to a rich, inspectable combat log:  
-     `[Roll: 14 + 3 (Finesse) + 2 (Flank) = 19 vs Evasion 16 -> HIT! Damage: (1d8: 6) + 3 (Force) - 2 (Armour) = 7]`
+     `[Roll: 14 + 3 (Finesse) + 2 (Flank) = 19 vs Evasion 16 -> HIT! Damage: (1d8: 6) + 3 (Force) - 2 (Armor) = 7]`
 2. **Render & Animation Layer (Visual Dice Pop)**:
    * Dynamic tumbling 2D/3D dice roll on screen or in an action flyout during attacks, settling on numbers with crisp audio clatter.
    * Natural 20s flash gold with screen impact; Grazes and Misses have distinct visual and audio cues.

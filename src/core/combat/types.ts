@@ -49,13 +49,32 @@ export interface ActiveModifier {
 }
 
 /**
- * Combat wrapper for an active unit in the arena.
+ * Unified validation result for player actions (movement, abilities).
+ */
+export type ValidationResult =
+  | { readonly valid: true }
+  | { readonly valid: false; readonly reason: string };
+
+/**
+ * Tagged union representing the outcome of an executed ability.
+ */
+export type AbilityResolution =
+  | { readonly type: 'ATTACK'; readonly details: AttackResolution }
+  | { readonly type: 'BUFF'; readonly targetUnitId: string; readonly modifierApplied: ActiveModifier };
+
+/**
+ * Combat wrapper managing a unit's dynamic in-battle state.
  */
 export interface CombatUnit {
-  unit: Unit;
+  readonly unit: Unit;
+  currentHp: number;
+  currentAp: number;
+  initiativeGauge: number;
+  isDefeated: boolean;
   inBattleXp: InBattleXp;
   activeModifiers: ActiveModifier[];
 }
+
 
 /**
  * Structured entry in the transparent combat log.

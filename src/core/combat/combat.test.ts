@@ -1,29 +1,31 @@
 import { describe, it, expect } from 'vitest';
-import { createRadialArena } from '../grid/arena';
+import { createRadialArena } from '../grid/templates';
 import { createRecruit } from '../units/unitFactory';
 import { createCombatState, executeMove, executeAbility, canExecuteAbility } from './resolver';
 import { endActiveTurn } from './turnClock';
 import { MockDiceRoller } from './dice';
-import { STRIKE, SHIELD_BASH, SPARK } from '../../data/abilities';
+import { STRIKE, SHIELD_BASH, SPARK, BRACE, MINOR_WARD } from '../../data/abilities';
+
 
 describe('Headless Combat Action Resolution', () => {
-  it('handles movement and AP deduction', () => {
+  it('handles movement and AP deduction on CombatUnit', () => {
     const arena = createRadialArena(3);
     const hero = createRecruit('hero', 'Alden');
     arena.setUnitPosition('hero', { q: 0, r: 0 });
 
     const state = createCombatState(arena, [hero], 'hero');
+    const heroCu = state.units.get('hero')!;
     expect(state.activeUnitId).toBe('hero');
-    expect(hero.currentAp).toBe(3);
+    expect(heroCu.currentAp).toBe(3);
 
     // Move to adjacent tile (costs 1 AP)
     executeMove(state, 'hero', { q: 1, r: 0 });
-    expect(hero.currentAp).toBe(2);
+    expect(heroCu.currentAp).toBe(2);
     expect(arena.getUnitPosition('hero')).toEqual({ q: 1, r: 0 });
 
     // Move again
     executeMove(state, 'hero', { q: 2, r: 0 });
-    expect(hero.currentAp).toBe(1);
+    expect(heroCu.currentAp).toBe(1);
     expect(arena.getUnitPosition('hero')).toEqual({ q: 2, r: 0 });
   });
 
@@ -49,9 +51,14 @@ describe('Headless Combat Action Resolution', () => {
         dice
       );
 
-      expect(result?.hitOutcome).toBe('SOLID_HIT');
-      expect(result?.damageDealt).toBe(4); // 4 damage - 0 armor
-      expect(goblin.currentHp).toBe(goblin.effectiveVitals.maxHp - 4);
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.hitOutcome).toBe('SOLID_HIT');
+        expect(result.details.damageDealt).toBe(4); // 4 damage - 0 armor
+      }
+
+      const goblinCu = state.units.get('goblin')!;
+      expect(goblinCu.currentHp).toBe(goblin.effectiveVitals.maxHp - 4);
 
       // Archetype XP awarded
       const heroCu = state.units.get('hero')!;
@@ -79,9 +86,14 @@ describe('Headless Combat Action Resolution', () => {
         dice
       );
 
-      expect(result?.hitOutcome).toBe('CRITICAL_HIT');
-      expect(result?.damageDealt).toBe(11);
-      expect(goblin.currentHp).toBe(goblin.effectiveVitals.maxHp - 11);
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.hitOutcome).toBe('CRITICAL_HIT');
+        expect(result.details.damageDealt).toBe(11);
+      }
+
+      const goblinCu = state.units.get('goblin')!;
+      expect(goblinCu.currentHp).toBe(goblin.effectiveVitals.maxHp - 11);
     });
 
     it('resolves a GRAZE dealing 50% damage without secondary effects', () => {
@@ -106,8 +118,11 @@ describe('Headless Combat Action Resolution', () => {
         dice
       );
 
-      expect(result?.hitOutcome).toBe('GRAZE');
-      expect(result?.damageDealt).toBe(2);
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.hitOutcome).toBe('GRAZE');
+        expect(result.details.damageDealt).toBe(2);
+      }
       // Secondary knockback does NOT occur on Graze
       expect(arena.getUnitPosition('goblin')).toEqual({ q: 1, r: 0 });
     });
@@ -133,14 +148,68 @@ describe('Headless Combat Action Resolution', () => {
         dice
       );
 
-      expect(result?.hitOutcome).toBe('MISS');
-      expect(result?.damageDealt).toBe(0);
-      expect(goblin.currentHp).toBe(goblin.effectiveVitals.maxHp);
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.hitOutcome).toBe('MISS');
+        expect(result.details.damageDealt).toBe(0);
+      }
+
+      const goblinCu = state.units.get('goblin')!;
+      expect(goblinCu.currentHp).toBe(goblin.effectiveVitals.maxHp);
       // XP still awarded for attempting action
       const heroCu = state.units.get('hero')!;
       expect(heroCu.inBattleXp.fighter).toBe(1);
     });
   });
+
+  describe('Buff / Support Ability Resolution', () => {
+    it('executes a buff ability returning BUFF resolution and applying modifier', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+
+      const state = createCombatState(arena, [hero], 'hero');
+      const heroCu = state.units.get('hero')!;
+
+      const result = executeAbility(state, 'hero', MINOR_WARD);
+
+      expect(result.type).toBe('BUFF');
+      if (result.type === 'BUFF') {
+        expect(result.targetUnitId).toBe('hero');
+        expect(result.modifierApplied.stat).toBe('ward');
+        expect(result.modifierApplied.value).toBe(2);
+      }
+      expect(heroCu.activeModifiers).toHaveLength(1);
+      expect(heroCu.activeModifiers[0].stat).toBe('ward');
+    });
+
+    it('executes an attack with secondary ARMOR_BUFF (Brace) dealing damage and buffing self', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const goblin = createRecruit('goblin', 'Goblin');
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('goblin', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, goblin], 'hero');
+      const heroCu = state.units.get('hero')!;
+      const goblinCu = state.units.get('goblin')!;
+
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3] });
+      const result = executeAbility(state, 'hero', BRACE, { targetUnitId: 'goblin' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.hitOutcome).toBe('SOLID_HIT');
+        expect(result.details.damageDealt).toBe(3);
+      }
+      expect(goblinCu.currentHp).toBe(goblin.effectiveVitals.maxHp - 3);
+      expect(heroCu.activeModifiers).toHaveLength(1);
+      expect(heroCu.activeModifiers[0].stat).toBe('armor');
+      expect(heroCu.activeModifiers[0].value).toBe(2);
+    });
+  });
+
+
 
   describe('Knockback & Wall-Slam Damage', () => {
     it('displaces target 1 hex on clear hit', () => {
@@ -184,10 +253,15 @@ describe('Headless Combat Action Resolution', () => {
         dice
       );
 
-      expect(result?.knockbackResult?.isCollided).toBe(true);
-      expect(result?.wallSlamDamage).toBe(1);
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.knockbackResult?.isCollided).toBe(true);
+        expect(result.details.wallSlamDamage).toBe(1);
+      }
+
+      const goblinCu = state.units.get('goblin')!;
       // Total HP lost = 3 (bash) + 1 (slam) = 4
-      expect(goblin.currentHp).toBe(goblin.effectiveVitals.maxHp - 4);
+      expect(goblinCu.currentHp).toBe(goblin.effectiveVitals.maxHp - 4);
       // Goblin remained at (2, 0)
       expect(arena.getUnitPosition('goblin')).toEqual({ q: 2, r: 0 });
     });
@@ -210,7 +284,7 @@ describe('Headless Combat Action Resolution', () => {
         targetUnitId: 'enemy'
       });
       expect(validation.valid).toBe(false);
-      expect(validation.reason).toContain('Line-of-Sight');
+      expect((validation as { valid: false; reason: string }).reason).toContain('Line-of-Sight');
     });
   });
 
@@ -224,11 +298,12 @@ describe('Headless Combat Action Resolution', () => {
       arena.setUnitPosition('enemy', { q: 2, r: 0 });
 
       const state = createCombatState(arena, [hero, enemy], 'hero');
+      const heroCu = state.units.get('hero')!;
       expect(state.activeUnitId).toBe('hero');
 
       // Hero spends 1 AP on movement, leaving 2 AP unspent
       executeMove(state, 'hero', { q: 1, r: 0 });
-      expect(hero.currentAp).toBe(2);
+      expect(heroCu.currentAp).toBe(2);
 
       // End turn with 2 unspent AP -> 2 * 20 = 40 gauge recovery baseline.
       // Clock ticks 6 times: Hero reaches 100 first (40 + 60), while Enemy is only at 60!
@@ -236,8 +311,8 @@ describe('Headless Combat Action Resolution', () => {
 
       expect(nextActiveId).toBe('hero');
       expect(state.turnNumber).toBe(2);
-      expect(hero.currentAp).toBe(3);
-      expect(state.units.get('enemy')!.unit.initiativeGauge).toBe(60);
+      expect(heroCu.currentAp).toBe(3);
+      expect(state.units.get('enemy')!.initiativeGauge).toBe(60);
     });
 
     it('decrements active modifier durations on turn start and purges expired ones', () => {

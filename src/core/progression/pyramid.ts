@@ -118,14 +118,13 @@ export function advanceArchetypeLevel(
   }
 
   const currentPoints = progression.archetypePoints;
+  const key = archetype.toLowerCase() as keyof ArchetypePoints;
   const newPoints: ArchetypePoints = {
-    fighter: archetype === 'FIGHTER' ? currentPoints.fighter + 1 : currentPoints.fighter,
-    rogue: archetype === 'ROGUE' ? currentPoints.rogue + 1 : currentPoints.rogue,
-    mage: archetype === 'MAGE' ? currentPoints.mage + 1 : currentPoints.mage
+    ...currentPoints,
+    [key]: currentPoints[key] + 1
   };
 
-  const invested = archetype === 'FIGHTER' ? newPoints.fighter : archetype === 'ROGUE' ? newPoints.rogue : newPoints.mage;
-  if (invested > MAX_ARCHETYPE_POINTS) {
+  if (newPoints[key] > MAX_ARCHETYPE_POINTS) {
     throw new Error(`Cannot exceed max archetype cap of ${MAX_ARCHETYPE_POINTS} for ${archetype}.`);
   }
 

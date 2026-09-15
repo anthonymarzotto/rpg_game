@@ -1,6 +1,20 @@
 import { CombatState, CombatUnit, getEffectiveSpeed } from './types';
 import { ACTION_ECONOMY_CONFIG } from '../config/balance';
-import { calculateTurnResetGauge } from '../units/initiative';
+
+/**
+ * Calculates the new initiative gauge value when a unit ends their turn,
+ * applying the gauge recovery refund per unspent AP.
+ */
+export function calculateTurnResetGauge(unspentAp: number, overflow = 0): number {
+  const safeUnspent = Math.max(
+    0,
+    Math.min(unspentAp, ACTION_ECONOMY_CONFIG.standardApPerTurn)
+  );
+  return Math.max(
+    0,
+    overflow + safeUnspent * ACTION_ECONOMY_CONFIG.gaugeRecoveryPerUnspentAp
+  );
+}
 
 /**
  * Advances the CTB clock by repeatedly adding Effective Speed to each living unit's gauge
@@ -9,7 +23,7 @@ import { calculateTurnResetGauge } from '../units/initiative';
  */
 export function advanceTurnClock(state: CombatState): string {
   const activeUnits = Array.from(state.units.values()).filter(
-    (cu) => !cu.unit.isDefeated
+    (cu) => !cu.isDefeated
   );
 
   if (activeUnits.length === 0) {
@@ -18,13 +32,13 @@ export function advanceTurnClock(state: CombatState): string {
 
   const getReadyUnits = (): CombatUnit[] =>
     activeUnits.filter(
-      (cu) => cu.unit.initiativeGauge >= ACTION_ECONOMY_CONFIG.gaugeTurnThreshold
+      (cu) => cu.initiativeGauge >= ACTION_ECONOMY_CONFIG.gaugeTurnThreshold
     );
 
   // Tick the clock until someone hits threshold
   while (getReadyUnits().length === 0) {
     for (const cu of activeUnits) {
-      cu.unit.initiativeGauge += getEffectiveSpeed(cu);
+      cu.initiativeGauge += getEffectiveSpeed(cu);
     }
   }
 
@@ -32,8 +46,8 @@ export function advanceTurnClock(state: CombatState): string {
 
   // Tie-breaker: 1. Highest gauge, 2. Highest Speed, 3. Stable ID
   readyUnits.sort((a, b) => {
-    if (b.unit.initiativeGauge !== a.unit.initiativeGauge) {
-      return b.unit.initiativeGauge - a.unit.initiativeGauge;
+    if (b.initiativeGauge !== a.initiativeGauge) {
+      return b.initiativeGauge - a.initiativeGauge;
     }
     const speedA = getEffectiveSpeed(a);
     const speedB = getEffectiveSpeed(b);
@@ -48,7 +62,7 @@ export function advanceTurnClock(state: CombatState): string {
   state.turnNumber += 1;
 
   // Grant standard 3 AP
-  nextActive.unit.currentAp = ACTION_ECONOMY_CONFIG.standardApPerTurn;
+  nextActive.currentAp = ACTION_ECONOMY_CONFIG.standardApPerTurn;
 
   // Decrement durations on active unit's modifiers and purge expired ones
   nextActive.activeModifiers.forEach((m) => {
@@ -77,16 +91,15 @@ export function endActiveTurn(
   const unspent =
     unspentApOverride !== undefined
       ? unspentApOverride
-      : activeCombatUnit.unit.currentAp;
+      : activeCombatUnit.currentAp;
 
   const overflow = Math.max(
     0,
-    activeCombatUnit.unit.initiativeGauge - ACTION_ECONOMY_CONFIG.gaugeTurnThreshold
+    activeCombatUnit.initiativeGauge - ACTION_ECONOMY_CONFIG.gaugeTurnThreshold
   );
 
-  // Delegate to existing calculateTurnResetGauge formula from initiative.ts
-  activeCombatUnit.unit.initiativeGauge = calculateTurnResetGauge(unspent, overflow);
-  activeCombatUnit.unit.currentAp = 0;
+  activeCombatUnit.initiativeGauge = calculateTurnResetGauge(unspent, overflow);
+  activeCombatUnit.currentAp = 0;
 
   return advanceTurnClock(state);
 }

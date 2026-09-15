@@ -1,10 +1,6 @@
 import { Ability } from '../../core/types/ability';
 import { UNIVERSAL_ACTIONS } from './universal';
 
-// -----------------------------------------------------------------------------
-// Fighter Novice Abilities (Force / Melee / Control)
-// -----------------------------------------------------------------------------
-
 export const STRIKE: Ability = {
   id: 'strike',
   name: 'Strike',
@@ -18,7 +14,7 @@ export const STRIKE: Ability = {
   damageProfile: {
     count: 1,
     sides: 6,
-    modifierAttribute: 'FORCE'
+    modifierAttribute: 'force'
   }
 };
 
@@ -35,7 +31,7 @@ export const SHIELD_BASH: Ability = {
   damageProfile: {
     count: 1,
     sides: 4,
-    modifierAttribute: 'FORCE'
+    modifierAttribute: 'force'
   },
   effect: {
     type: 'KNOCKBACK',
@@ -46,7 +42,7 @@ export const SHIELD_BASH: Ability = {
 export const BRACE: Ability = {
   id: 'brace',
   name: 'Brace',
-  description: 'A defensive guard strike dealing light damage and raising Armour by +2 for 1 turn.',
+  description: 'A defensive guard strike dealing light damage and raising Armor by +2 for 1 turn.',
   archetypeTag: 'FIGHTER',
   apCost: 1,
   range: 1,
@@ -56,7 +52,7 @@ export const BRACE: Ability = {
   damageProfile: {
     count: 1,
     sides: 4,
-    modifierAttribute: 'FORCE'
+    modifierAttribute: 'force'
   },
   effect: {
     type: 'ARMOR_BUFF',
@@ -71,10 +67,6 @@ export const NOVICE_FIGHTER_ABILITIES: readonly Ability[] = [
   BRACE
 ];
 
-// -----------------------------------------------------------------------------
-// Rogue Novice Abilities (Finesse / Precision / Mobility)
-// -----------------------------------------------------------------------------
-
 export const QUICK_THRUST: Ability = {
   id: 'quick_thrust',
   name: 'Quick Thrust',
@@ -88,7 +80,7 @@ export const QUICK_THRUST: Ability = {
   damageProfile: {
     count: 1,
     sides: 4,
-    modifierAttribute: 'FINESSE'
+    modifierAttribute: 'finesse'
   },
   effect: {
     type: 'CRIT_BOOST',
@@ -109,7 +101,7 @@ export const THROW_DART: Ability = {
   damageProfile: {
     count: 1,
     sides: 4,
-    modifierAttribute: 'FINESSE'
+    modifierAttribute: 'finesse'
   }
 };
 
@@ -126,7 +118,7 @@ export const SKIRMISH: Ability = {
   damageProfile: {
     count: 1,
     sides: 4,
-    modifierAttribute: 'FINESSE'
+    modifierAttribute: 'finesse'
   },
   effect: {
     type: 'RETREAT_STEP',
@@ -139,10 +131,6 @@ export const NOVICE_ROGUE_ABILITIES: readonly Ability[] = [
   THROW_DART,
   SKIRMISH
 ];
-
-// -----------------------------------------------------------------------------
-// Mage Novice Abilities (Focus / Reach / Alteration)
-// -----------------------------------------------------------------------------
 
 export const SPARK: Ability = {
   id: 'spark',
@@ -157,7 +145,7 @@ export const SPARK: Ability = {
   damageProfile: {
     count: 1,
     sides: 6,
-    modifierAttribute: 'FOCUS'
+    modifierAttribute: 'focus'
   }
 };
 
@@ -174,7 +162,7 @@ export const FROSTBITE: Ability = {
   damageProfile: {
     count: 1,
     sides: 4,
-    modifierAttribute: 'FOCUS'
+    modifierAttribute: 'focus'
   },
   effect: {
     type: 'SLOW',
@@ -205,10 +193,6 @@ export const NOVICE_MAGE_ABILITIES: readonly Ability[] = [
   FROSTBITE,
   MINOR_WARD
 ];
-
-// -----------------------------------------------------------------------------
-// Novice Starter Kit Generator
-// -----------------------------------------------------------------------------
 
 /**
  * Selects 1 Fighter, 1 Rogue, and 1 Mage ability to build a unique Novice kit.

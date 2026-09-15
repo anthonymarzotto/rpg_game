@@ -30,10 +30,6 @@ export function createRecruit(
     progression,
     baseAttributes,
     effectiveVitals,
-    abilities,
-    currentHp: effectiveVitals.maxHp,
-    currentAp: 0,
-    initiativeGauge: 0,
-    isDefeated: false
+    abilities
   };
 }

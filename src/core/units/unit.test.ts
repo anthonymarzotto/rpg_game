@@ -3,7 +3,7 @@ import { BLANK_SLATE_ATTRIBUTES } from '../types/stats';
 import { RECRUIT_BASE_VITALS } from '../config/balance';
 import { computeDerivedVitals } from './vitals';
 import { createRecruit } from './unitFactory';
-import { calculateTurnResetGauge } from './initiative';
+import { calculateTurnResetGauge } from '../combat/turnClock';
 
 describe('Unit Stats & Derived Vitals', () => {
   it('computes correct baseline vitals for a Level-0 blank slate recruit', () => {
@@ -58,10 +58,8 @@ describe('Unit Entity Factory', () => {
     expect(recruit.progression.currentLevel).toBe(0);
     expect(recruit.progression.constellation).toHaveLength(0);
     expect(recruit.baseAttributes).toEqual({ force: 0, finesse: 0, focus: 0 });
-    expect(recruit.currentHp).toBe(recruit.effectiveVitals.maxHp);
-    expect(recruit.currentAp).toBe(0);
-    expect(recruit.initiativeGauge).toBe(0);
-    expect(recruit.isDefeated).toBe(false);
+    expect(recruit.effectiveVitals.maxHp).toBe(20);
+    expect(recruit.abilities).toHaveLength(5);
   });
 });
 

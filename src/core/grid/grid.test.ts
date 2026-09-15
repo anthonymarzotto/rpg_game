@@ -12,7 +12,9 @@ import {
   getHexesInRange,
   getHexLine
 } from './hex';
-import { Arena, createRadialArena, HexTile } from './arena';
+import { Arena, HexTile } from './arena';
+import { createRadialArena } from './templates';
+
 
 describe('Hex Grid Coordinate Mathematics (Pointy-Topped)', () => {
   it('calculates accurate distance between coordinates', () => {
