@@ -16,6 +16,7 @@ export interface AttackResolution {
   readonly rawDamage: number;
   readonly mitigation: number;
   readonly damageDealt: number;
+  readonly damageBreakdown?: string;
   readonly effectsApplied: readonly AbilityEffect[];
   readonly knockbackResult?: KnockbackResult;
   readonly wallSlamDamage?: number;

@@ -27,7 +27,7 @@ export function ActionBar({
   return (
     <div className="combat-action-bar-container">
       {/* AP Counter Indicator */}
-      <div className="ap-counter-pill">
+      <div className="ap-counter-pill" title={`Action Points: ${currentAp} / 3`}>
         <span className="ap-label">AP</span>
         <div className="ap-dots">
           {[0, 1, 2].map((i) => (
@@ -37,7 +37,6 @@ export function ActionBar({
             />
           ))}
         </div>
-        <span className="ap-text">{currentAp} / 3</span>
       </div>
 
       {/* Action Buttons Group */}

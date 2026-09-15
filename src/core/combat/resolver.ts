@@ -259,34 +259,62 @@ function resolveDamage(
   actorCu: CombatUnit,
   targetCu: CombatUnit,
   diceRoller: DiceRoller
-): { rawDamage: number; mitigation: number; damageDealt: number } {
+): {
+  rawDamage: number;
+  mitigation: number;
+  damageDealt: number;
+  damageBreakdown: string;
+} {
   if (hitOutcome === 'MISS' || !ability.damageProfile) {
-    return { rawDamage: 0, mitigation: 0, damageDealt: 0 };
+    return {
+      rawDamage: 0,
+      mitigation: 0,
+      damageDealt: 0,
+      damageBreakdown: hitOutcome === 'MISS' ? '0 (Miss)' : '0'
+    };
   }
 
   const { count, sides } = ability.damageProfile;
   const modifier = getAbilityModifier(actorCu, ability);
+  const rolledDice = diceRoller.rollDice(count, sides);
+  const isCrit = hitOutcome === 'CRITICAL_HIT';
+  const isGraze = hitOutcome === 'GRAZE';
 
   // Maximized Crit: max base dice + rolled dice + modifier
-  const rawDamage =
-    hitOutcome === 'CRITICAL_HIT'
-      ? count * sides + diceRoller.rollDice(count, sides) + modifier
-      : diceRoller.rollDice(count, sides) + modifier;
+  const maximizedVal = count * sides;
+  const rawDamage = isCrit
+    ? maximizedVal + rolledDice + modifier
+    : rolledDice + modifier;
 
+  const mitigationType = ability.damageType === 'PHYSICAL' ? 'Armor' : 'Ward';
   const mitigation =
     ability.damageType === 'PHYSICAL'
       ? getEffectiveArmor(targetCu)
       : getEffectiveWard(targetCu);
 
   let subtotal = rawDamage - mitigation;
-  if (hitOutcome === 'GRAZE') {
+  let modifierSuffix = '';
+
+  if (isGraze) {
     subtotal = Math.floor(subtotal * COMBAT_RESOLUTION_CONFIG.grazeDamageMultiplier);
+    modifierSuffix = ' (x0.5 Graze)';
   }
 
-  const damageDealt = Math.max(COMBAT_RESOLUTION_CONFIG.minimumDamage, subtotal);
+  let damageDealt = subtotal;
+  if (damageDealt < COMBAT_RESOLUTION_CONFIG.minimumDamage) {
+    damageDealt = COMBAT_RESOLUTION_CONFIG.minimumDamage;
+    modifierSuffix += ' (min 1)';
+  }
+
   targetCu.currentHp = Math.max(0, targetCu.currentHp - damageDealt);
 
-  return { rawDamage, mitigation, damageDealt };
+  // e.g. 1d6(4)+0 - 2 Armor -> 2 or crit: 1d6(max 6+4)+0 - 2 Armor -> 8
+  const diceFormula = `${count}d${sides}`;
+  const rollDetails = isCrit ? `max ${maximizedVal}+${rolledDice}` : `${rolledDice}`;
+  const modSign = modifier >= 0 ? `+${modifier}` : `${modifier}`;
+  const damageBreakdown = `${diceFormula}(${rollDetails})${modSign} - ${mitigation} ${mitigationType}${modifierSuffix} -> ${damageDealt}`;
+
+  return { rawDamage, mitigation, damageDealt, damageBreakdown };
 }
 
 function resolveSecondaryEffects(
@@ -508,7 +536,7 @@ export function executeAbility(
     turnNumber: state.turnNumber,
     actorUnitId,
     actionId: ability.id,
-    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${rollResult.d20}+${rollResult.modifier} vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}] Damage: ${damageResult.damageDealt} (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})${secondaryDetail}`
+    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${rollResult.d20}+${rollResult.modifier} vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}] [Damage: ${damageResult.damageBreakdown}] (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})${secondaryDetail}`
   });
 
   return {
@@ -522,6 +550,7 @@ export function executeAbility(
       rawDamage: damageResult.rawDamage,
       mitigation: damageResult.mitigation,
       damageDealt: damageResult.damageDealt,
+      damageBreakdown: damageResult.damageBreakdown,
       effectsApplied: effectResult.effectsApplied,
       knockbackResult: effectResult.knockbackResult,
       wallSlamDamage: effectResult.wallSlamDamage
