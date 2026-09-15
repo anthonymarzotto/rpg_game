@@ -18,6 +18,7 @@ export function CombatArena() {
     setDiceMode,
     floatingTexts,
     reachableCoords,
+    abilityRangeCoords,
     candidateTargetCoords,
     targetPreview,
     selectAction,
@@ -87,6 +88,7 @@ export function CombatArena() {
           <HexGridSvg
             state={state}
             reachableCoords={reachableCoords}
+            abilityRangeCoords={abilityRangeCoords}
             candidateTargetCoords={candidateTargetCoords}
             hoveredCoord={hoveredCoord}
             floatingTexts={floatingTexts}

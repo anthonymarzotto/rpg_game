@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { HexCoord, hexDistance } from '../../core/grid/hex';
+import { HexCoord, hexDistance, getHexesInRange } from '../../core/grid/hex';
 import { createRadialArena } from '../../core/grid/templates';
 import { Unit } from '../../core/types/unit';
 import { Ability } from '../../core/types/ability';
@@ -236,7 +236,19 @@ export function useCombatSimulation() {
     return state.arena.getReachableHexes(playerCoord, playerCu.unit.effectiveVitals.move);
   }, [actionMode, playerCoord, playerCu, state.arena]);
 
-  // Computes candidate target tiles when an ability is selected
+  // Computes effect range footprint hexes when an ability is selected
+  const abilityRangeCoords = useMemo<HexCoord[]>(() => {
+    if (actionMode !== 'ABILITY' || !selectedAbility || !playerCoord || !playerCu) {
+      return [];
+    }
+    if (selectedAbility.targetType === 'SELF') {
+      return [playerCoord];
+    }
+    const hexes = getHexesInRange(playerCoord, selectedAbility.range);
+    return hexes.filter((coord) => state.arena.getTile(coord) !== undefined);
+  }, [actionMode, selectedAbility, playerCoord, playerCu, state.arena]);
+
+  // Computes candidate target tiles with valid targets within range
   const candidateTargetCoords = useMemo<HexCoord[]>(() => {
     if (actionMode !== 'ABILITY' || !selectedAbility || !playerCoord || !playerCu) {
       return [];
@@ -251,6 +263,12 @@ export function useCombatSimulation() {
       if (cu.isDefeated) continue;
       const coord = state.arena.getUnitPosition(unitId);
       if (!coord) continue;
+
+      // Only target units within the ability's range
+      const dist = hexDistance(playerCoord, coord);
+      if (dist > selectedAbility.range) {
+        continue;
+      }
 
       if (selectedAbility.targetType === 'ALLY' && unitId === 'player') {
         results.push(coord);
@@ -543,6 +561,7 @@ export function useCombatSimulation() {
     setDiceMode,
     floatingTexts,
     reachableCoords,
+    abilityRangeCoords,
     candidateTargetCoords,
     targetPreview,
     selectAction,

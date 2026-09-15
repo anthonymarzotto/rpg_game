@@ -6,6 +6,7 @@ import { FloatingText, TargetPreview } from './useCombatSimulation';
 export interface HexGridSvgProps {
   readonly state: CombatState;
   readonly reachableCoords: readonly HexCoord[];
+  readonly abilityRangeCoords: readonly HexCoord[];
   readonly candidateTargetCoords: readonly HexCoord[];
   readonly hoveredCoord: HexCoord | null;
   readonly floatingTexts: readonly FloatingText[];
@@ -37,6 +38,7 @@ function getHexPolygonPoints(cx: number, cy: number, radius = HEX_RADIUS - 1.5):
 export function HexGridSvg({
   state,
   reachableCoords,
+  abilityRangeCoords,
   candidateTargetCoords,
   hoveredCoord,
   floatingTexts,
@@ -47,6 +49,10 @@ export function HexGridSvg({
   const reachableSet = useMemo(
     () => new Set(reachableCoords.map(toHexKey)),
     [reachableCoords]
+  );
+  const rangeSet = useMemo(
+    () => new Set(abilityRangeCoords.map(toHexKey)),
+    [abilityRangeCoords]
   );
   const candidateSet = useMemo(
     () => new Set(candidateTargetCoords.map(toHexKey)),
@@ -101,6 +107,7 @@ export function HexGridSvg({
           const tile = state.arena.getTile(coord);
           const isObstacle = tile ? !tile.isWalkable : false;
           const isReachable = reachableSet.has(key);
+          const isRange = rangeSet.has(key);
           const isCandidate = candidateSet.has(key);
           const isHovered =
             hoveredCoord && hoveredCoord.q === coord.q && hoveredCoord.r === coord.r;
@@ -128,16 +135,23 @@ export function HexGridSvg({
           } else if (isCandidate) {
             const isBlocked = targetPreview && isHovered && targetPreview.isBlockedLoS;
             if (isBlocked) {
-              fillColor = 'rgba(239, 68, 68, 0.2)';
+              fillColor = 'rgba(239, 68, 68, 0.25)';
               strokeColor = '#ef4444';
             } else {
               fillColor = isHovered
-                ? 'rgba(245, 158, 11, 0.35)'
-                : 'rgba(245, 158, 11, 0.18)';
+                ? 'rgba(245, 158, 11, 0.42)'
+                : 'rgba(245, 158, 11, 0.24)';
               strokeColor = '#f59e0b';
               filter = 'url(#tile-glow-amber)';
             }
-            strokeWidth = isHovered ? 2.5 : 1.5;
+            strokeWidth = isHovered ? 2.5 : 2;
+          } else if (isRange) {
+            // Soft ability range field highlighting tiles within the skill's reach
+            fillColor = isHovered
+              ? 'rgba(245, 158, 11, 0.14)'
+              : 'rgba(245, 158, 11, 0.06)';
+            strokeColor = 'rgba(245, 158, 11, 0.45)';
+            strokeWidth = 1.2;
           } else if (isHovered) {
             fillColor = 'rgba(255, 255, 255, 0.08)';
             strokeColor = 'rgba(255, 255, 255, 0.4)';
@@ -147,11 +161,11 @@ export function HexGridSvg({
           return (
             <g
               key={key}
-              className={`hex-tile-group ${isReachable ? 'reachable' : ''} ${isCandidate ? 'candidate' : ''}`}
+              className={`hex-tile-group ${isReachable ? 'reachable' : ''} ${isRange ? 'in-range' : ''} ${isCandidate ? 'candidate' : ''}`}
               onClick={() => onTileClick(coord)}
               onMouseEnter={() => onTileHover(coord)}
               onMouseLeave={() => onTileHover(null)}
-              style={{ cursor: isReachable || isCandidate ? 'pointer' : 'default' }}
+              style={{ cursor: isReachable || isCandidate ? 'pointer' : isRange ? 'crosshair' : 'default' }}
             >
               <polygon
                 points={polyPoints}
@@ -216,6 +230,18 @@ export function HexGridSvg({
                 strokeWidth={isPlayer ? 2.5 : 2}
                 filter="url(#tile-glow-cyan)"
               />
+
+              {/* Target Candidate Reticle (Only for valid targets within range) */}
+              {!isPlayer && candidateSet.has(toHexKey(pos)) && (
+                <circle
+                  r="21"
+                  fill="none"
+                  stroke="#f59e0b"
+                  strokeWidth="2"
+                  strokeDasharray="4 3"
+                  filter="url(#tile-glow-amber)"
+                />
+              )}
 
               {/* Unit Symbol / Badge */}
               <text
