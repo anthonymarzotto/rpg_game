@@ -10,6 +10,7 @@ export const STRIKE: Ability = {
   range: 1,
   targetType: 'SINGLE_TARGET',
   defenseTarget: 'EVASION',
+  attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
   damageProfile: {
     count: 1,
@@ -27,6 +28,7 @@ export const SHIELD_BASH: Ability = {
   range: 1,
   targetType: 'SINGLE_TARGET',
   defenseTarget: 'EVASION',
+  attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
   damageProfile: {
     count: 1,
@@ -48,6 +50,7 @@ export const BRACE: Ability = {
   range: 1,
   targetType: 'SINGLE_TARGET',
   defenseTarget: 'EVASION',
+  attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
   damageProfile: {
     count: 1,
@@ -76,11 +79,12 @@ export const QUICK_THRUST: Ability = {
   range: 1,
   targetType: 'SINGLE_TARGET',
   defenseTarget: 'EVASION',
+  attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
   damageProfile: {
     count: 1,
     sides: 4,
-    modifierAttribute: 'finesse'
+    modifierAttribute: 'force'
   },
   effect: {
     type: 'CRIT_BOOST',
@@ -97,11 +101,12 @@ export const THROW_DART: Ability = {
   range: 2,
   targetType: 'SINGLE_TARGET',
   defenseTarget: 'EVASION',
+  attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
   damageProfile: {
     count: 1,
     sides: 4,
-    modifierAttribute: 'finesse'
+    modifierAttribute: 'force'
   }
 };
 
@@ -114,11 +119,12 @@ export const SKIRMISH: Ability = {
   range: 1,
   targetType: 'SINGLE_TARGET',
   defenseTarget: 'EVASION',
+  attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
   damageProfile: {
     count: 1,
     sides: 4,
-    modifierAttribute: 'finesse'
+    modifierAttribute: 'force'
   },
   effect: {
     type: 'RETREAT_STEP',
@@ -141,6 +147,7 @@ export const SPARK: Ability = {
   range: 3,
   targetType: 'SINGLE_TARGET',
   defenseTarget: 'RESOLVE',
+  attackModifierAttribute: 'focus',
   damageType: 'MAGICAL',
   damageProfile: {
     count: 1,
@@ -158,6 +165,7 @@ export const FROSTBITE: Ability = {
   range: 2,
   targetType: 'SINGLE_TARGET',
   defenseTarget: 'RESOLVE',
+  attackModifierAttribute: 'focus',
   damageType: 'MAGICAL',
   damageProfile: {
     count: 1,

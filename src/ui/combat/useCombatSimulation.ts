@@ -330,15 +330,17 @@ export function useCombatSimulation() {
         : getEffectiveResolve(targetCu);
 
     // Approximate to-hit chance on d20
-    const attr = selectedAbility.damageProfile?.modifierAttribute;
-    const modifier = attr ? playerCu.unit.baseAttributes[attr] : 0;
-    // Score needed on d20: d20 + modifier >= targetDefense
-    const needed = Math.max(1, Math.min(20, targetDefense - modifier));
+    const attackAttr = selectedAbility.attackModifierAttribute ?? selectedAbility.damageProfile?.modifierAttribute;
+    const attackModifier = attackAttr ? playerCu.unit.baseAttributes[attackAttr] : 0;
+    // Score needed on d20: d20 + attackModifier >= targetDefense
+    const needed = Math.max(1, Math.min(20, targetDefense - attackModifier));
     const toHitChance = Math.round(((21 - needed) / 20) * 100);
 
     const diceProfile = selectedAbility.damageProfile;
+    const damageAttr = diceProfile?.modifierAttribute;
+    const damageModifier = damageAttr ? playerCu.unit.baseAttributes[damageAttr] : 0;
     const diceDesc = diceProfile
-      ? `${diceProfile.count}d${diceProfile.sides} + ${attr ?? ''}`
+      ? `${diceProfile.count}d${diceProfile.sides} + ${damageAttr ?? ''}`
       : 'Support';
 
     const mitigation =
@@ -346,9 +348,9 @@ export function useCombatSimulation() {
         ? getEffectiveArmor(targetCu)
         : getEffectiveWard(targetCu);
 
-    const minDmg = diceProfile ? Math.max(1, diceProfile.count + modifier - mitigation) : 0;
+    const minDmg = diceProfile ? Math.max(1, diceProfile.count + damageModifier - mitigation) : 0;
     const maxDmg = diceProfile
-      ? Math.max(1, diceProfile.count * diceProfile.sides + modifier - mitigation)
+      ? Math.max(1, diceProfile.count * diceProfile.sides + damageModifier - mitigation)
       : 0;
 
     return {

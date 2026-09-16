@@ -103,6 +103,9 @@ export function ActionBar({
                   <span>Range: <b>{ability.range} hex</b></span>
                   <span>Target: <b>{ability.targetType}</b></span>
                   <span>Defense: <b>{ability.defenseTarget}</b></span>
+                  {ability.attackModifierAttribute && (
+                    <span>Hit Roll: <b>+{ability.attackModifierAttribute}</b></span>
+                  )}
                   {ability.damageProfile && (
                     <span>
                       Dice: <b>{ability.damageProfile.count}d{ability.damageProfile.sides} + {ability.damageProfile.modifierAttribute}</b>

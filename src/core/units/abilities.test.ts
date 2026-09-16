@@ -41,6 +41,14 @@ describe('Ability Catalog Invariants', () => {
     }
   });
 
+  it('ensures all abilities rolling against a defense target specify an attackModifierAttribute', () => {
+    for (const ability of allNoviceAbilities) {
+      if (ability.defenseTarget !== 'NONE') {
+        expect(ability.attackModifierAttribute).toBeDefined();
+      }
+    }
+  });
+
   it('ensures all Novice pool abilities cost exactly 1 AP', () => {
     const pool = [
       ...NOVICE_FIGHTER_ABILITIES,

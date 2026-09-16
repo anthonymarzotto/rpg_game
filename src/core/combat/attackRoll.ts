@@ -20,6 +20,14 @@ export function getAbilityModifier(actorCu: CombatUnit, ability: Ability): numbe
 }
 
 /**
+ * Returns the actor attribute modifier applicable to the d20 attack roll (To-Hit).
+ */
+export function getAttackRollModifier(actorCu: CombatUnit, ability: Ability): number {
+  const attr = ability.attackModifierAttribute;
+  return attr ? actorCu.unit.baseAttributes[attr] : 0;
+}
+
+/**
  * Resolves an attack roll comparing d20 + modifier against the target defense score.
  */
 export function resolveAttackRoll(
@@ -28,7 +36,7 @@ export function resolveAttackRoll(
   ability: Ability,
   diceRoller: DiceRoller
 ): AttackRollResult {
-  const modifier = getAbilityModifier(actorCu, ability);
+  const modifier = getAttackRollModifier(actorCu, ability);
   const targetDefense =
     ability.defenseTarget === 'EVASION'
       ? getEffectiveEvasion(targetCu)

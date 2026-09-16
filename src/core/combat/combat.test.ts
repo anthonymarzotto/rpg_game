@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { createRadialArena } from '../grid/templates';
 import { createRecruit } from '../units/unitFactory';
-import { createCombatState, executeMove, executeAbility, canExecuteAbility, defaultEffectRegistry } from './resolver';
+import { createCombatState, executeMove, executeAbility, canExecuteAbility, defaultEffectRegistry, resolveAttackRoll, resolveDamage, getAttackRollModifier, getAbilityModifier } from './resolver';
 import { endActiveTurn } from './turnClock';
 import { MockDiceRoller } from './dice';
-import { STRIKE, SHIELD_BASH, SPARK, BRACE, MINOR_WARD, SKIRMISH } from '../../data/abilities';
+import { STRIKE, SHIELD_BASH, SPARK, BRACE, MINOR_WARD, SKIRMISH, QUICK_THRUST } from '../../data/abilities';
+
 
 
 describe('Headless Combat Action Resolution', () => {
@@ -580,4 +581,123 @@ describe('Headless Combat Action Resolution', () => {
       expect((wardEnemy as { valid: false; reason: string }).reason).toContain('Cannot cast an ally ability on an enemy unit');
     });
   });
+
+  describe('Decoupled Attack Roll and Damage Attributes (Scenario 2)', () => {
+    it('uses attackModifierAttribute for attack roll and damageProfile.modifierAttribute for damage', () => {
+      const arena = createRadialArena(3);
+      // Unit with 5 Finesse and 0 Force
+      const agileFighter = createRecruit('agile', 'Agile Fighter');
+      (agileFighter as any).baseAttributes = { force: 0, finesse: 5, focus: 0 };
+
+      const target = createRecruit('target', 'Target');
+      (target as any).effectiveVitals = { ...target.effectiveVitals, evasion: 12, armor: 0 };
+
+      const state = createCombatState(arena, [agileFighter, target], 'agile');
+      const actorCu = state.units.get('agile')!;
+      const targetCu = state.units.get('target')!;
+
+      // Strike has attackModifierAttribute: 'finesse', damageProfile.modifierAttribute: 'force'
+      expect(STRIKE.attackModifierAttribute).toBe('finesse');
+      expect(STRIKE.damageProfile?.modifierAttribute).toBe('force');
+
+      // Verify attack modifier uses Finesse (5)
+      expect(getAttackRollModifier(actorCu, STRIKE)).toBe(5);
+      // Verify damage modifier uses Force (0)
+      expect(getAbilityModifier(actorCu, STRIKE)).toBe(0);
+
+      // d20 = 8 + 5 (Finesse) = 13 vs Evasion 12 -> SOLID_HIT
+      const dice = new MockDiceRoller({ d20Rolls: [8], damageRolls: [4] });
+      const rollResult = resolveAttackRoll(actorCu, targetCu, STRIKE, dice);
+      expect(rollResult.hitOutcome).toBe('SOLID_HIT');
+      expect(rollResult.modifier).toBe(5);
+      expect(rollResult.totalScore).toBe(13);
+
+      // Damage: 4 (1d6) + 0 (Force) - 0 Armor = 4
+      const dmgResult = resolveDamage(rollResult.hitOutcome, STRIKE, actorCu, targetCu, dice);
+      expect(dmgResult.damageDealt).toBe(4);
+      expect(dmgResult.damageBreakdown).toContain('1d6(4)+0 - 0 Armor -> 4');
+    });
+
+    it('verifies high-Force low-Finesse units hit for high damage but receive +0 on to-hit roll', () => {
+      const arena = createRadialArena(3);
+      // Unit with 0 Finesse and 7 Force
+      const brute = createRecruit('brute', 'Brute');
+      (brute as any).baseAttributes = { force: 7, finesse: 0, focus: 0 };
+
+      const target = createRecruit('target', 'Target');
+      (target as any).effectiveVitals = { ...target.effectiveVitals, evasion: 10, armor: 2 };
+
+      const state = createCombatState(arena, [brute, target], 'brute');
+      const actorCu = state.units.get('brute')!;
+      const targetCu = state.units.get('target')!;
+
+      // Strike: attack modifier uses Finesse (0), damage modifier uses Force (7)
+      expect(getAttackRollModifier(actorCu, STRIKE)).toBe(0);
+      expect(getAbilityModifier(actorCu, STRIKE)).toBe(7);
+
+      // d20 = 10 + 0 = 10 vs Evasion 10 -> SOLID_HIT
+      const dice = new MockDiceRoller({ d20Rolls: [10], damageRolls: [3] });
+      const rollResult = resolveAttackRoll(actorCu, targetCu, STRIKE, dice);
+      expect(rollResult.hitOutcome).toBe('SOLID_HIT');
+      expect(rollResult.modifier).toBe(0);
+
+      // Damage: 3 (1d6) + 7 (Force) - 2 Armor = 8
+      const dmgResult = resolveDamage(rollResult.hitOutcome, STRIKE, actorCu, targetCu, dice);
+      expect(dmgResult.damageDealt).toBe(8);
+      expect(dmgResult.damageBreakdown).toContain('1d6(3)+7 - 2 Armor -> 8');
+    });
+
+    it('verifies Rogue Quick Thrust uses Finesse to hit and Force for physical damage', () => {
+      const arena = createRadialArena(3);
+      const rogue = createRecruit('rogue', 'Rogue');
+      (rogue as any).baseAttributes = { force: 2, finesse: 8, focus: 0 };
+
+      const target = createRecruit('target', 'Target');
+      const state = createCombatState(arena, [rogue, target], 'rogue');
+      const actorCu = state.units.get('rogue')!;
+      const targetCu = state.units.get('target')!;
+
+      expect(QUICK_THRUST.attackModifierAttribute).toBe('finesse');
+      expect(QUICK_THRUST.damageProfile?.modifierAttribute).toBe('force');
+
+      expect(getAttackRollModifier(actorCu, QUICK_THRUST)).toBe(8);
+      expect(getAbilityModifier(actorCu, QUICK_THRUST)).toBe(2);
+
+      // d20 = 11 + 8 = 19 vs Evasion 10 (targetDefense + 9, but natural 19 is crit boosted) -> CRITICAL_HIT
+      const dice = new MockDiceRoller({ d20Rolls: [19], damageRolls: [3] });
+      const rollResult = resolveAttackRoll(actorCu, targetCu, QUICK_THRUST, dice);
+      expect(rollResult.hitOutcome).toBe('CRITICAL_HIT');
+
+      // Crit: max base (4) + rolled (3) + Force (2) - 0 Armor = 9
+      const dmgResult = resolveDamage(rollResult.hitOutcome, QUICK_THRUST, actorCu, targetCu, dice);
+      expect(dmgResult.damageDealt).toBe(9);
+    });
+
+    it('verifies Mage Spark uses Focus for both attack roll and damage', () => {
+      const arena = createRadialArena(3);
+      const mage = createRecruit('mage', 'Mage');
+      (mage as any).baseAttributes = { force: 0, finesse: 0, focus: 6 };
+
+      const target = createRecruit('target', 'Target');
+      const state = createCombatState(arena, [mage, target], 'mage');
+      const actorCu = state.units.get('mage')!;
+      const targetCu = state.units.get('target')!;
+
+      expect(SPARK.attackModifierAttribute).toBe('focus');
+      expect(SPARK.damageProfile?.modifierAttribute).toBe('focus');
+
+      expect(getAttackRollModifier(actorCu, SPARK)).toBe(6);
+      expect(getAbilityModifier(actorCu, SPARK)).toBe(6);
+
+      // d20 = 10 + 6 = 16 vs Resolve 10 -> SOLID_HIT
+      const dice = new MockDiceRoller({ d20Rolls: [10], damageRolls: [4] });
+      const rollResult = resolveAttackRoll(actorCu, targetCu, SPARK, dice);
+      expect(rollResult.hitOutcome).toBe('SOLID_HIT');
+
+      // Damage: 4 + 6 - 0 Ward = 10
+      const dmgResult = resolveDamage(rollResult.hitOutcome, SPARK, actorCu, targetCu, dice);
+      expect(dmgResult.damageDealt).toBe(10);
+    });
+  });
 });
+

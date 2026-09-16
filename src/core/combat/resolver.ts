@@ -394,6 +394,6 @@ export function executeAbility(
 }
 
 // Re-export subsystems for convenient consumer access
-export { resolveAttackRoll, getAbilityModifier } from './attackRoll';
+export { resolveAttackRoll, getAbilityModifier, getAttackRollModifier } from './attackRoll';
 export { resolveDamage } from './damageEngine';
 export { executeAbilityEffects, defaultEffectRegistry } from './effects';

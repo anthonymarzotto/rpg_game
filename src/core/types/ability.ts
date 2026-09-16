@@ -43,7 +43,10 @@ export interface Ability {
   readonly range: number;
   readonly targetType: AbilityTargetType;
   readonly defenseTarget: DefenseTarget;
+  /** Triad attribute contributing to the d20 attack roll (e.g. 'finesse' for physical, 'focus' for spells) */
+  readonly attackModifierAttribute?: keyof TriadAttributes;
   readonly damageType: DamageType;
   readonly damageProfile?: DiceProfile;
   readonly effect?: AbilityEffect;
 }
+
