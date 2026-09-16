@@ -116,11 +116,17 @@ Combat embraces non-deterministic D&D-style dice rolls combined with tactical gr
 
 ### 3.2. Resolution Flow
 
+Combat actions explicitly define their attack and damage modifier attributes directly on the ability contract.
+
+* **Baseline Standard**: Physical/kinetic attacks use **Finesse** for the attack roll and **Force** for kinetic damage against Armor, while magical/arcane spells use **Focus** for both the attack roll and spell damage against Ward.
+* **Extensibility**: Each ability independently encodes `attackModifierAttribute` and `damageProfile.modifierAttribute`. While baseline novice abilities follow the standard contract, future specialized abilities (e.g. brute-force crushing blows using Force to hit, psychic strikes, or agile precision spells) can break this standard and bind to alternative attributes.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 1. THE ATTACK ROLL (To Hit)                                 │
 │    Roll: 1d20 (or 2d20 with Advantage/Disadvantage)        │
-│          + Attacker Finesse (Physical) or Focus (Magical)   │
+│          + Ability Attack Modifier Attribute                │
+│            (Standard: Finesse for Physical, Focus for Magic)│
 │          + Positional Bonuses                               │
 │                                                             │
 │    Target Defense:                                          │
@@ -138,7 +144,8 @@ Combat embraces non-deterministic D&D-style dice rolls combined with tactical gr
 ┌─────────────────────────────────────────────────────────────┐
 │ 2. THE DAMAGE ROLL                                          │
 │    Roll: Attack Dice Profile (e.g. 1d8, 2d6)                │
-│    Add: Force (Physical) or Focus (Magical) Modifier        │
+│    Add: Ability Damage Modifier Attribute                   │
+│         (Standard: Force for Physical, Focus for Magic)     │
 │                                                             │
 │    Mitigation:                                              │
 │      - Physical Damage ──► Subtract Target ARMOR             │

@@ -46,7 +46,7 @@ Following our core architectural principle (**Decoupled Simulation & Presentatio
 ---
 
 ### Milestone 2: Level-0 Class Identity & Starter Ability Kit
-* **Location**: `src/core/types/ability.ts`, `src/data/starterKit.ts`
+* **Location**: `src/core/types/ability.ts`, `src/data/abilities/`
 * **Deliverables**:
   * **Class Naming & Identity**: Formal name and lore/thematic identity for the Level-0 recruit.
   * **Ability Contract**: Type definitions for combat actions (`id`, `name`, `archetypeTag`, `range`, `targetType`, `cost`).
@@ -70,7 +70,7 @@ Following our core architectural principle (**Decoupled Simulation & Presentatio
 ---
 
 ### Milestone 4: Headless Combat Action Resolution
-* **Location**: `src/core/combat/resolver.ts`, `src/core/combat/state.ts`
+* **Location**: `src/core/combat/resolver.ts`, `src/core/combat/types.ts`
 * **Deliverables**:
   * **Action Validator**: Checks whether a selected action is legal (target within range, tile unoccupied for movement, sufficient resource).
   * **Execution Pipeline**:

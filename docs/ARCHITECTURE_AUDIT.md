@@ -72,31 +72,32 @@ While attack rolls, damage, and effects were recently modularized, `resolver.ts`
 
 ## 3. Deviations from the Files in `docs/`
 
-Comparison of active code against the specification documents in `docs/`:
+Comparison of active code against the specification documents in `docs/`, with resolution status:
 
-| Document | Documented Specification | Current Implementation | Severity |
+| Document | Documented Specification | Current Implementation | Disposition / Status |
 | :--- | :--- | :--- | :---: |
-| [`ARCHITECTURE.md`](file:///c:/Repos/rpg_game/docs/ARCHITECTURE.md#L19-L23) | **Render Layer**: Specifies **Phaser 3** for 2D canvas/WebGL rendering, sprite animations, camera panning, and WebAudio. | **Pure SVG**: Rendered entirely via React SVG components ([`HexGridSvg.tsx`](file:///c:/Repos/rpg_game/src/ui/combat/HexGridSvg.tsx), [`ConstellationSvg.tsx`](file:///c:/Repos/rpg_game/src/ui/pyramid/ConstellationSvg.tsx)). Phaser is in `package.json` but never imported or used. | **High** (Architectural direction decision needed) |
-| [`ARCHITECTURE.md`](file:///c:/Repos/rpg_game/docs/ARCHITECTURE.md#L77-L81) | **State Bridge**: Specifies **Zustand** as the centralized state store connecting simulation, Phaser, and React. | **React `useState`**: Zero Zustand stores exist; state is isolated inside local component hooks. | **Medium** (Impacting cross-component state flow) |
-| [`ARCHITECTURE.md`](file:///c:/Repos/rpg_game/docs/ARCHITECTURE.md#L89) | **Persistence**: Specifies client-side save state storage via **IndexedDB** (`idb-keyval`). | Persistence is not yet wired up; all battle and progression state resets on page refresh. | **Low** (Deferred feature) |
-| [`GAMEPLAY.md`](file:///c:/Repos/rpg_game/docs/GAMEPLAY.md#L151-L155) | **Positional Modifiers**: Specifies Flanking ($+2$ or Advantage), Rear Strikes ($+4$ / Crit Boost), and High Ground ($+1$ die face / range). | **Not Implemented**: [`attackRoll.ts`](file:///c:/Repos/rpg_game/src/core/combat/attackRoll.ts) only rolls $d20 + \text{modifier}$ vs defense; facing, adjacent allies, and elevation bonuses are not yet factored in. | **Medium** (Missing gameplay layer) |
-| [`GAMEPLAY.md`](file:///c:/Repos/rpg_game/docs/GAMEPLAY.md#L168-L179) | **Dual-Layer Presentation**: Specifies visual tumbling 2D/3D dice on screen and audio clatter for rolls. | Combat rolls are calculated instantaneously with no visual dice animations or audio SFX. | **Low** (Visual polish) |
-| [`GAMEPLAY.md`](file:///c:/Repos/rpg_game/docs/GAMEPLAY.md#L98) | **Action Economy Limits**: Specifies special/heavy skills (2–3 AP) carry a "Once per Turn" limit or short cooldown. | `Ability` has no `cooldown` or `oncePerTurn` contract; [`canExecuteAbility`](file:///c:/Repos/rpg_game/src/core/combat/resolver.ts#L141) only checks if the unit has enough AP. | **Medium** (Action economy limit) |
-| [`GAMEPLAY.md`](file:///c:/Repos/rpg_game/docs/GAMEPLAY.md#L120-L148) | **Combat Resolution Diagram**: Diagram shows implicit physical=finesse, spell=focus. | Code explicitly declares `attackModifierAttribute` on every ability contract. | **Low** (Doc sync needed) |
-| [`PLAYABLE_CHARACTER_ROADMAP.md`](file:///c:/Repos/rpg_game/docs/PLAYABLE_CHARACTER_ROADMAP.md#L49-L73) | **File Paths**: Lists Milestone 2 as `src/data/starterKit.ts` and Milestone 4 as `src/core/combat/state.ts`. | Actual paths in codebase are `src/data/abilities/novice.ts` and `src/core/combat/types.ts`. | **Low** (Doc maintenance) |
+| [`ARCHITECTURE.md`](file:///c:/Repos/rpg_game/docs/ARCHITECTURE.md#L19-L23) | **Render Layer**: Specifies **Phaser 3** for 2D canvas/WebGL rendering, sprite animations, camera panning, and WebAudio. | **Pure SVG**: Rendered via React SVG components ([`HexGridSvg.tsx`](file:///c:/Repos/rpg_game/src/ui/combat/HexGridSvg.tsx), [`ConstellationSvg.tsx`](file:///c:/Repos/rpg_game/src/ui/pyramid/ConstellationSvg.tsx)). | **Intentional (Maintained)**: Phaser remains the planned production target. Current React SVG UI is a lightweight testbed framework. |
+| [`ARCHITECTURE.md`](file:///c:/Repos/rpg_game/docs/ARCHITECTURE.md#L77-L81) | **State Bridge**: Specifies **Zustand** as the centralized state store connecting simulation, Phaser, and React. | **React `useState`**: State is currently isolated inside local component hooks. | **Deferred**: Zustand will be introduced when Phaser / the production game UI is built. Arena and Constellation isolation is currently intentional. |
+| [`ARCHITECTURE.md`](file:///c:/Repos/rpg_game/docs/ARCHITECTURE.md#L89) | **Persistence**: Specifies client-side save state storage via **IndexedDB** (`idb-keyval`). | Persistence is not yet wired up; all battle and progression state resets on page refresh. | **Deferred**: Future feature. |
+| [`GAMEPLAY.md`](file:///c:/Repos/rpg_game/docs/GAMEPLAY.md#L151-L155) | **Positional Modifiers**: Specifies Flanking ($+2$ or Advantage), Rear Strikes ($+4$ / Crit Boost), and High Ground ($+1$ die face / range). | [`attackRoll.ts`](file:///c:/Repos/rpg_game/src/core/combat/attackRoll.ts) rolls $d20 + \text{modifier}$ vs defense; facing and elevation bonuses not yet active. | **Deferred**: Future combat depth feature. |
+| [`GAMEPLAY.md`](file:///c:/Repos/rpg_game/docs/GAMEPLAY.md#L168-L179) | **Dual-Layer Presentation**: Specifies visual tumbling 2D/3D dice on screen and audio clatter for rolls. | Combat rolls are calculated instantaneously with no visual dice animations or audio SFX. | **Deferred**: Future visual/audio polish. |
+| [`GAMEPLAY.md`](file:///c:/Repos/rpg_game/docs/GAMEPLAY.md#L98) | **Action Economy Limits**: Specifies special/heavy skills (2–3 AP) carry a "Once per Turn" limit or short cooldown. | `Ability` has no cooldown/oncePerTurn fields; all abilities can be executed as long as AP permits. | **Deferred**: Will add properties when higher-tier/heavy abilities require them. |
+| [`GAMEPLAY.md`](file:///c:/Repos/rpg_game/docs/GAMEPLAY.md#L120-L148) | **Combat Resolution Diagram**: Diagram showed implicit physical=finesse, spell=focus. | Ability contracts now explicitly encode `attackModifierAttribute` and `damageProfile.modifierAttribute`. | **Resolved**: Updated `GAMEPLAY.md` Section 3.2 to document explicit attribute contract and baseline standard. |
+| [`PLAYABLE_CHARACTER_ROADMAP.md`](file:///c:/Repos/rpg_game/docs/PLAYABLE_CHARACTER_ROADMAP.md#L49-L73) | **File Paths**: Listed Milestone 2 as `src/data/starterKit.ts` and Milestone 4 as `src/core/combat/state.ts`. | Actual paths are `src/data/abilities/` and `src/core/combat/types.ts`. | **Resolved**: Corrected paths in `PLAYABLE_CHARACTER_ROADMAP.md`. |
 
 ---
 
-## 4. Suggested Alignment & Action Plan
+## 4. Action Plan & Next Steps
 
-1. **Presentation Tier Decision**:
-   * Formally decide whether to retain the lightweight **React SVG** renderer and update `ARCHITECTURE.md`, or plan the transition to **Phaser 3**.
-2. **Decompose `useCombatSimulation.ts`**:
-   * Move target preview calculations into `src/core/combat/targetPreview.ts`.
-   * Separate floating text management into `useFloatingCombatText.ts`.
-   * Move encounter generation into `src/data/encounters/`.
-3. **Bridge Combat XP to Progression**:
-   * Introduce a shared state store (or Zustand) so actions executed in the Tactical Arena award XP to the unit and allow leveling in the Constellation Chart.
-4. **Update Outdated Docs**:
-   * Sync `GAMEPLAY.md` with explicit `attackModifierAttribute`.
-   * Update file paths in `PLAYABLE_CHARACTER_ROADMAP.md`.
+1. **Documentation Alignment (Section 3)**:
+   * ✅ **Resolved**: `GAMEPLAY.md` Section 3.2 updated to document explicit `attackModifierAttribute` and standard baseline.
+   * ✅ **Resolved**: `PLAYABLE_CHARACTER_ROADMAP.md` paths updated.
+   * ✅ **Aligned**: Phaser 3, Zustand, Persistence, Positional Modifiers, Dice Animations, and Action Limits recorded as intentional testbed scaffolding or deferred future features.
+2. **Decompose Monoliths (Section 2)**:
+   * Next: Refactor `useCombatSimulation.ts` to separate target preview math, floating combat text lifecycle, and encounter setup.
+   * Next: Decompose `combat.test.ts` into focused test modules.
+3. **Decouple Tight Couplings (Section 1)**:
+   * Next: Decouple `HexGridSvg.tsx` from hardcoded radius 3 and `unitId === 'player'`.
+   * Next: Decouple `useCombatSimulation.ts` from hardcoded encounter dummies.
+   * Next: Decouple `pyramid.ts` from direct import of `CLASSES_BY_COORD`.
+
