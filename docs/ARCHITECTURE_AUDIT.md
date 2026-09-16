@@ -8,9 +8,9 @@ This document records the comprehensive architectural sweep conducted across the
 
 The following components exhibit unnecessary or rigid coupling that impedes testing, modularity, and future feature extension:
 
-| Subsystem / Coupling | Location | What Is Coupled | Recommended Decoupling |
+| Subsystem / Coupling | Location | What Is Coupled | Resolution / Status |
 | :--- | :--- | :--- | :--- |
-| **`useCombatSimulation` $\leftrightarrow$ Static Encounter** | [`src/ui/combat/useCombatSimulation.ts`](file:///c:/Repos/rpg_game/src/ui/combat/useCombatSimulation.ts#L72-L115) | The combat controller hook embeds `buildTestEncounter`, hardcoding 4 specific training dummies (`dummy-a` through `dummy-d`), player ID `'player'`, and rock obstacle at `(0, 2)`. | Extract an `EncounterDefinition` contract and factory. `useCombatSimulation` should receive any encounter state or factory instead of hardcoding its own. |
+| **`useCombatSimulation` $\leftrightarrow$ Static Encounter** | [`src/ui/combat/useCombatSimulation.ts`](file:///c:/Repos/rpg_game/src/ui/combat/useCombatSimulation.ts) | The combat controller hook hardcoded 4 specific training dummies (`dummy-a` through `dummy-d`), player ID `'player'`, and rock obstacle at `(0, 2)`. | **Resolved**: Extracted `EncounterDefinition` contract and `buildEncounterState` factory in `src/core/combat/encounter.ts`. Extracted sandbox encounter definition to `src/data/encounters/noviceSandbox.ts`. Hook now accepts an optional `encounterFactory`. |
 | **`HexGridSvg` $\leftrightarrow$ Hardcoded Grid Assumptions** | [`src/ui/combat/HexGridSvg.tsx`](file:///c:/Repos/rpg_game/src/ui/combat/HexGridSvg.tsx#L65-L74) | 1. Hardcodes `radius = 3` instead of querying the arena's actual tiles.<br>2. Hardcodes `unitId === 'player'` for token styling ([line 220](file:///c:/Repos/rpg_game/src/ui/combat/HexGridSvg.tsx#L220)) instead of checking `cu.faction === 'PLAYER'`.<br>3. Hardcodes `"PILLAR"` text on unwalkable tiles. | 1. Read tile coordinates directly from `state.arena.getTile()` or an `arena.getAllTiles()` method.<br>2. Style tokens based on `cu.faction`.<br>3. Read obstacle labels and terrain types from tile metadata. |
 | **Core Progression $\leftrightarrow$ Master Data Catalog** | [`src/core/progression/pyramid.ts`](file:///c:/Repos/rpg_game/src/core/progression/pyramid.ts#L2) | Core domain logic (`src/core/`) directly imports `CLASSES_BY_COORD` from `src/data/classes.ts`. | Core progression rules should operate on an injected class catalog or registry, keeping `src/core/` pure and agnostic to specific game data files. |
 | **Unit Factory $\leftrightarrow$ Novice Ability Kit** | [`src/core/units/unitFactory.ts`](file:///c:/Repos/rpg_game/src/core/units/unitFactory.ts#L6) | `createRecruit` directly imports `rollNoviceAbilityKit` from `src/data/abilities`. | Pass an optional starter kit generator function via options (dependency injection), keeping factory logic cleanly separated from static ability tables. |
@@ -23,22 +23,15 @@ The following components exhibit unnecessary or rigid coupling that impedes test
 
 Several files have accumulated multiple responsibilities and should be refactored into smaller, focused modules:
 
-### A. `useCombatSimulation.ts` (600 lines, 18.3 KB) — The "God Hook"
-Currently manages 8 distinct responsibilities simultaneously:
-1. **Mock Encounter Setup**: `buildTestEncounter` creates units, stats, and obstacles.
-2. **Dev Tools**: `DevDiceRoller` class with force-crit/miss logic.
-3. **Action State Machine**: `IDLE` $\leftrightarrow$ `MOVE` $\leftrightarrow$ `ABILITY` selection transitions.
-4. **Range & Targeting Footprint**: Filtering candidate targets and calculating in-range hexes.
-5. **Target Preview Projections**: Math for hit chance, mitigation, and min/max damage preview.
-6. **Turn Clock & Passive AI**: Advancing turns and skipping dummy turns.
-7. **Floating Text Lifecycle**: Spawning floating text tokens and scheduling cleanup timeouts.
-8. **Sandbox Actions**: Resetting encounter and rerolling starter abilities.
-
-* **Proposed Breakdown**:
-  * Extract `src/ui/combat/useFloatingCombatText.ts` (queue, cleanup timer, dispatch).
-  * Extract `src/core/combat/targetPreview.ts` (headless pure function calculating hit chance and damage range).
-  * Extract `src/data/encounters/testEncounter.ts` (encounter factory outside the UI hook).
-  * Keep `useCombatSimulation.ts` strictly focused on combat loop orchestration.
+### A. `useCombatSimulation.ts` — Decomposed (Reduced from 600 lines to ~280 lines)
+**Status: Resolved**
+Extracted modules:
+1. `src/core/combat/encounter.ts`: Headless `EncounterDefinition` contract and `buildEncounterState` factory.
+2. `src/data/encounters/noviceSandbox.ts`: Novice sandbox encounter definition.
+3. `src/core/combat/targetPreview.ts`: Pure headless `computeTargetPreview` domain logic.
+4. `src/ui/combat/devDice.ts`: Developer dice overrides and forced roll generator.
+5. `src/ui/combat/useFloatingCombatText.ts`: Floating combat text state management, dispatch queue, and auto-dismiss timers.
+`useCombatSimulation.ts` now strictly orchestrates turn management and user interaction flows.
 
 ### B. `combat.test.ts` (700+ lines, 28 KB) — Monolith Test Suite
 A single monolithic integration test file testing 6 different subsystems:
@@ -94,10 +87,14 @@ Comparison of active code against the specification documents in `docs/`, with r
    * ✅ **Resolved**: `PLAYABLE_CHARACTER_ROADMAP.md` paths updated.
    * ✅ **Aligned**: Phaser 3, Zustand, Persistence, Positional Modifiers, Dice Animations, and Action Limits recorded as intentional testbed scaffolding or deferred future features.
 2. **Decompose Monoliths (Section 2)**:
-   * Next: Refactor `useCombatSimulation.ts` to separate target preview math, floating combat text lifecycle, and encounter setup.
+   * ✅ **Resolved**: Refactored `useCombatSimulation.ts` to separate target preview math, floating combat text lifecycle, dev dice, and encounter setup.
    * Next: Decompose `combat.test.ts` into focused test modules.
+   * Next: Decompose `ClassInspector.tsx`.
+   * Next: Extract action/movement validators from `resolver.ts`.
 3. **Decouple Tight Couplings (Section 1)**:
+   * ✅ **Resolved**: Decoupled `useCombatSimulation.ts` from hardcoded encounter dummies via `EncounterDefinition`.
    * Next: Decouple `HexGridSvg.tsx` from hardcoded radius 3 and `unitId === 'player'`.
-   * Next: Decouple `useCombatSimulation.ts` from hardcoded encounter dummies.
    * Next: Decouple `pyramid.ts` from direct import of `CLASSES_BY_COORD`.
+   * Next: Decouple `unitFactory.ts` from static `rollNoviceAbilityKit`.
+
 
