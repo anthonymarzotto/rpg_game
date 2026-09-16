@@ -232,7 +232,7 @@ export function HexGridSvg({
               />
 
               {/* Target Candidate Reticle (Only for valid targets within range) */}
-              {!isPlayer && candidateSet.has(toHexKey(pos)) && (
+              {candidateSet.has(toHexKey(pos)) && (
                 <circle
                   r="21"
                   fill="none"

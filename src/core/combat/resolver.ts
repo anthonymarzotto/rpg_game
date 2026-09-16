@@ -57,6 +57,7 @@ export function createCombatState(
   for (const unit of units) {
     combatUnits.set(unit.id, {
       unit,
+      faction: unit.faction,
       currentHp: unit.effectiveVitals.maxHp,
       currentAp: 0,
       initiativeGauge: 0,
@@ -190,6 +191,28 @@ export function canExecuteAbility(
     const targetCoord = state.arena.getUnitPosition(targetUnitId);
     if (!targetCoord) {
       return { valid: false, reason: 'Target unit not placed on arena.' };
+    }
+
+    if (ability.targetType === 'SINGLE_TARGET') {
+      if (targetUnitId === actorUnitId) {
+        return { valid: false, reason: 'Cannot target self with this ability.' };
+      }
+      if (
+        cu.faction &&
+        targetCu.faction &&
+        cu.faction === targetCu.faction &&
+        ability.damageType !== 'NONE'
+      ) {
+        return { valid: false, reason: 'Cannot attack a friendly unit.' };
+      }
+    }
+
+    if (ability.targetType === 'ALLY') {
+      if (targetUnitId !== actorUnitId) {
+        if (cu.faction && targetCu.faction && cu.faction !== targetCu.faction) {
+          return { valid: false, reason: 'Cannot cast an ally ability on an enemy unit.' };
+        }
+      }
     }
 
     const dist = hexDistance(actorCoord, targetCoord);

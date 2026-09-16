@@ -87,13 +87,15 @@ function buildTestEncounter(abilitiesOverride?: readonly Ability[]): CombatState
 
   // 1. Player Recruit (center)
   const player = createRecruit('player', 'Alden (Novice)', {
-    abilities: starterAbilities
+    abilities: starterAbilities,
+    faction: 'PLAYER'
   });
 
   // 2. Training Dummy A (adjacent at 1, 0)
   const dummyA: Unit = {
     id: 'dummy-a',
     name: 'Training Dummy A',
+    faction: 'ENEMY',
     progression: {
       unitId: 'dummy-a',
       currentLevel: 0,
@@ -118,6 +120,7 @@ function buildTestEncounter(abilitiesOverride?: readonly Ability[]): CombatState
   const dummyB: Unit = {
     id: 'dummy-b',
     name: 'Bystander Dummy B',
+    faction: 'ENEMY',
     progression: {
       unitId: 'dummy-b',
       currentLevel: 0,
@@ -142,6 +145,7 @@ function buildTestEncounter(abilitiesOverride?: readonly Ability[]): CombatState
   const dummyC: Unit = {
     id: 'dummy-c',
     name: 'Screened Dummy C',
+    faction: 'ENEMY',
     progression: {
       unitId: 'dummy-c',
       currentLevel: 0,
@@ -166,6 +170,7 @@ function buildTestEncounter(abilitiesOverride?: readonly Ability[]): CombatState
   const dummyD: Unit = {
     id: 'dummy-d',
     name: 'Distant Target D',
+    faction: 'ENEMY',
     progression: {
       unitId: 'dummy-d',
       currentLevel: 0,
@@ -244,7 +249,11 @@ export function useCombatSimulation() {
       return [playerCoord];
     }
     const hexes = getHexesInRange(playerCoord, selectedAbility.range);
-    return hexes.filter((coord) => state.arena.getTile(coord) !== undefined);
+    const validHexes = hexes.filter((coord) => state.arena.getTile(coord) !== undefined);
+    if (selectedAbility.targetType === 'SINGLE_TARGET') {
+      return validHexes.filter((coord) => coord.q !== playerCoord.q || coord.r !== playerCoord.r);
+    }
+    return validHexes;
   }, [actionMode, selectedAbility, playerCoord, playerCu, state.arena]);
 
   // Computes candidate target tiles with valid targets within range
@@ -269,17 +278,17 @@ export function useCombatSimulation() {
         continue;
       }
 
-      if (selectedAbility.targetType === 'ALLY' && unitId === 'player') {
-        results.push(coord);
-      } else if (
-        selectedAbility.targetType === 'SINGLE_TARGET' &&
-        unitId !== 'player'
-      ) {
+      const validation = canExecuteAbility(state, 'player', selectedAbility, {
+        coord,
+        targetUnitId: unitId
+      });
+
+      if (validation.valid) {
         results.push(coord);
       }
     }
     return results;
-  }, [actionMode, selectedAbility, playerCoord, playerCu, state.units, state.arena]);
+  }, [actionMode, selectedAbility, playerCoord, playerCu, state.units, state.arena, state]);
 
   // Hover target preview calculations
   const targetPreview = useMemo<TargetPreview | null>(() => {
@@ -301,6 +310,15 @@ export function useCombatSimulation() {
 
     const dist = hexDistance(playerCoord, hoveredCoord);
     if (dist > selectedAbility.range && selectedAbility.targetType !== 'SELF') {
+      return null;
+    }
+
+    const validation = canExecuteAbility(state, 'player', selectedAbility, {
+      coord: hoveredCoord,
+      targetUnitId
+    });
+
+    if (!validation.valid && validation.reason !== 'Line-of-Sight is blocked.') {
       return null;
     }
 
@@ -505,6 +523,8 @@ export function useCombatSimulation() {
           setActionMode('IDLE');
           setSelectedAbility(null);
           setState({ ...state });
+        } else if (targetUnitId) {
+          addFloatingText(validation.reason, 'miss', coord);
         }
       }
     },

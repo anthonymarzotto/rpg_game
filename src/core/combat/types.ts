@@ -1,4 +1,4 @@
-import { Unit } from '../types/unit';
+import { Unit, Faction } from '../types/unit';
 import { AbilityEffect } from '../types/ability';
 import { HexCoord } from '../grid/hex';
 import { Arena, KnockbackResult } from '../grid/arena';
@@ -118,6 +118,7 @@ export type AbilityResolution =
  */
 export interface CombatUnit {
   readonly unit: Unit;
+  faction?: Faction;
   currentHp: number;
   currentAp: number;
   initiativeGauge: number;

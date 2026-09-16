@@ -2,6 +2,8 @@ import { UnitProgression } from './class';
 import { TriadAttributes, DerivedCombatVitals } from './stats';
 import { Ability } from './ability';
 
+export type Faction = 'PLAYER' | 'ENEMY' | 'NEUTRAL';
+
 /**
  * Complete character entity comprising progression, permanent attributes,
  * derived vitals, and equipped abilities.
@@ -11,6 +13,8 @@ export interface Unit {
   readonly id: string;
   /** Display name */
   readonly name: string;
+  /** Faction or combat allegiance (defaults to 'PLAYER' if omitted) */
+  readonly faction?: Faction;
   /** Progression record along the 100-class pyramid */
   readonly progression: UnitProgression;
   /** Permanent Triad attributes */

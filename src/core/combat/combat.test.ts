@@ -504,4 +504,80 @@ describe('Headless Combat Action Resolution', () => {
       }
     });
   });
+
+  describe('Targeting Rules & Faction Validation', () => {
+    it('prevents single-target attack abilities from targeting the actor', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+
+      const state = createCombatState(arena, [hero], 'hero');
+
+      // Spark targeting self
+      const sparkValidation = canExecuteAbility(state, 'hero', SPARK, {
+        targetUnitId: 'hero'
+      });
+      expect(sparkValidation.valid).toBe(false);
+      expect((sparkValidation as { valid: false; reason: string }).reason).toContain('Cannot target self');
+
+      // Shield bash targeting self
+      const bashValidation = canExecuteAbility(state, 'hero', SHIELD_BASH, {
+        targetUnitId: 'hero'
+      });
+      expect(bashValidation.valid).toBe(false);
+      expect((bashValidation as { valid: false; reason: string }).reason).toContain('Cannot target self');
+    });
+
+    it('prevents friendly fire when factions are specified', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden', { faction: 'PLAYER' });
+      const ally = createRecruit('ally', 'Boran', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Orc', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('ally', { q: 1, r: 0 });
+      arena.setUnitPosition('enemy', { q: 0, r: 1 });
+
+      const state = createCombatState(arena, [hero, ally, enemy], 'hero');
+
+      // Hero attacking Ally
+      const attackAlly = canExecuteAbility(state, 'hero', STRIKE, { targetUnitId: 'ally' });
+      expect(attackAlly.valid).toBe(false);
+      expect((attackAlly as { valid: false; reason: string }).reason).toContain('Cannot attack a friendly unit');
+
+      // Hero attacking Enemy
+      const attackEnemy = canExecuteAbility(state, 'hero', STRIKE, { targetUnitId: 'enemy' });
+      expect(attackEnemy.valid).toBe(true);
+    });
+
+    it('enforces ALLY targeting: allows self and allies, rejects enemies', () => {
+      const arena = createRadialArena(3);
+      const mage = createRecruit('mage', 'Elia', { faction: 'PLAYER' });
+      const ally = createRecruit('ally', 'Boran', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Orc', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('mage', { q: 0, r: 0 });
+      arena.setUnitPosition('ally', { q: 1, r: 0 });
+      arena.setUnitPosition('enemy', { q: 0, r: 1 });
+
+      const state = createCombatState(arena, [mage, ally, enemy], 'mage');
+
+      // Ward on self (explicit targetUnitId)
+      const wardSelf = canExecuteAbility(state, 'mage', MINOR_WARD, { targetUnitId: 'mage' });
+      expect(wardSelf.valid).toBe(true);
+
+      // Ward on self (default/omitted targetUnitId)
+      const wardSelfDefault = canExecuteAbility(state, 'mage', MINOR_WARD);
+      expect(wardSelfDefault.valid).toBe(true);
+
+      // Ward on Ally
+      const wardAlly = canExecuteAbility(state, 'mage', MINOR_WARD, { targetUnitId: 'ally' });
+      expect(wardAlly.valid).toBe(true);
+
+      // Ward on Enemy
+      const wardEnemy = canExecuteAbility(state, 'mage', MINOR_WARD, { targetUnitId: 'enemy' });
+      expect(wardEnemy.valid).toBe(false);
+      expect((wardEnemy as { valid: false; reason: string }).reason).toContain('Cannot cast an ally ability on an enemy unit');
+    });
+  });
 });

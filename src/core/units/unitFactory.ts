@@ -1,4 +1,4 @@
-import { Unit } from '../types/unit';
+import { Unit, Faction } from '../types/unit';
 import { BLANK_SLATE_ATTRIBUTES } from '../types/stats';
 import { Ability } from '../types/ability';
 import { createInitialProgression } from '../progression/pyramid';
@@ -8,6 +8,7 @@ import { rollNoviceAbilityKit } from '../../data/abilities';
 export interface CreateRecruitOptions {
   readonly abilities?: readonly Ability[];
   readonly rng?: () => number;
+  readonly faction?: Faction;
 }
 
 /**
@@ -27,6 +28,7 @@ export function createRecruit(
   return {
     id,
     name,
+    faction: options?.faction,
     progression,
     baseAttributes,
     effectiveVitals,
