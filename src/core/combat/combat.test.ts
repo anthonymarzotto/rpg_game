@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { createRadialArena } from '../grid/templates';
 import { createRecruit } from '../units/unitFactory';
-import { createCombatState, executeMove, executeAbility, canExecuteAbility, defaultEffectRegistry, resolveAttackRoll, resolveDamage, getAttackRollModifier, getAbilityModifier } from './resolver';
+import { createCombatState, executeMove, executeAbility } from './resolver';
+import { canExecuteAbility } from './validator';
+import { resolveAttackRoll, getAttackRollModifier, getAbilityModifier } from './attackRoll';
+import { resolveDamage } from './damageEngine';
+import { defaultEffectRegistry } from './effects';
 import { endActiveTurn } from './turnClock';
 import { MockDiceRoller } from './dice';
 import { STRIKE, SHIELD_BASH, SPARK, BRACE, MINOR_WARD, SKIRMISH, QUICK_THRUST } from '../../data/abilities';

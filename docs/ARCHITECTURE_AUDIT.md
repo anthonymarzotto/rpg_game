@@ -15,7 +15,7 @@ The following components exhibit unnecessary or rigid coupling that impedes test
 | **Core Progression $\leftrightarrow$ Master Data Catalog** | [`src/core/progression/pyramid.ts`](file:///c:/Repos/rpg_game/src/core/progression/pyramid.ts) | Core domain logic (`src/core/`) directly imported `CLASSES_BY_COORD` from `src/data/classes.ts`. | **Resolved**: Introduced pure `ClassRegistry` interface and factory in `src/core/progression/registry.ts`. Decoupled `pyramid.ts` by requiring explicit `registry: ClassRegistry` injection across all lookup and advancement functions with zero global singletons. |
 | **Unit Factory $\leftrightarrow$ Novice Ability Kit** | [`src/core/units/unitFactory.ts`](file:///c:/Repos/rpg_game/src/core/units/unitFactory.ts) | `createRecruit` directly imported `rollNoviceAbilityKit` from `src/data/abilities`. | **Resolved**: Removed data import from `unitFactory.ts`. `createRecruit` now accepts explicit `abilities` or an injected `abilityKitGenerator` function via `CreateRecruitOptions`, defaulting to `[]` if omitted. |
 | **Type Contracts $\leftrightarrow$ Runtime Stat Computations** | [`src/core/combat/types.ts`](file:///c:/Repos/rpg_game/src/core/combat/types.ts) | `types.ts` defined runtime computation functions (`getEffectiveStat`, `getEffectiveSpeed`, `getEffectiveMove`, etc.) alongside interfaces. | **Resolved**: Extracted all runtime stat getters into `src/core/combat/effectiveVitals.ts`. Updated consumers (`turnClock`, `targetPreview`, `resolver`, `damageEngine`, `attackRoll`, `knockbackHandler`) to import directly, leaving `types.ts` as a 100% pure type contract. |
-| **Arena Sandbox $\leftrightarrow$ Constellation Progression** | [`src/App.tsx`](file:///c:/Repos/rpg_game/src/App.tsx#L53-L56) | The recruit fighting in the Arena and the recruit leveling in the Constellation Chart are completely isolated, disconnected local states. | XP earned in combat currently has no path to unlock classes on the pyramid. A shared unit state model is needed to connect combat XP to constellation unlocks. |
+| **Arena Sandbox $\leftrightarrow$ Constellation Progression** | [`src/App.tsx`](file:///c:/Repos/rpg_game/src/App.tsx#L53-L56) | The recruit fighting in the Arena and the recruit leveling in the Constellation Chart are completely isolated, disconnected local states. | **Pending / Open**: Combat recruit and constellation chart remain intentionally isolated during current milestone. A shared unit state bridge is planned to connect combat XP to constellation unlocks. |
 
 ---
 
@@ -53,13 +53,12 @@ A single monolithic integration test file testing 6 different subsystems:
 Contains the class inspector modal header, 9-tier level-up simulation buttons, eligibility status, archetype requirements breakdown, full 9-step traversal history, and class perks summary.
 * **Proposed Breakdown**: Extract `LevelUpSimulator.tsx` and `ConstellationHistory.tsx`.
 
-### D. `resolver.ts` (400 lines, 12.3 KB)
-While attack rolls, damage, and effects were recently modularized, `resolver.ts` still holds:
-* `canMove` & `executeMove`
-* `canExecuteAbility` (80 lines of action validation logic)
-* `applyCombatEvents` (atomic state mutation pipeline)
-* `executeAbility` (combat coordinator)
-* **Proposed Breakdown**: Extract `canExecuteAbility` and `canMove` into `src/core/combat/validator.ts`.
+### D. `resolver.ts` — Decomposed (Reduced to ~250 lines)
+**Status: Resolved**
+Extracted modules:
+1. `src/core/combat/validator.ts`: Pure headless `canMove` and `canExecuteAbility` validation rules.
+2. `src/core/combat/validator.test.ts`: Dedicated unit test suite for legal reach, AP thresholds, faction allegiance, range, and Line of Sight.
+3. Cleaned backwards-compatibility re-export shims from `resolver.ts`, requiring consumers to import directly from authoritative source modules.
 
 ---
 
@@ -90,13 +89,14 @@ Comparison of active code against the specification documents in `docs/`, with r
    * ✅ **Resolved**: Refactored `useCombatSimulation.ts` to separate target preview math, floating combat text lifecycle, dev dice, and encounter setup.
    * Next: Decompose `combat.test.ts` into focused test modules.
    * Next: Decompose `ClassInspector.tsx`.
-   * Next: Extract action/movement validators from `resolver.ts`.
+   * ✅ **Resolved**: Extracted action/movement validators (`canMove`, `canExecuteAbility`) from `resolver.ts` to `src/core/combat/validator.ts` and eliminated backwards-compatibility re-export shims.
 3. **Decouple Tight Couplings (Section 1)**:
    * ✅ **Resolved**: Decoupled `useCombatSimulation.ts` from hardcoded encounter dummies via `EncounterDefinition`.
    * ✅ **Resolved**: Decoupled `HexGridSvg.tsx` from hardcoded radius 3, `unitId === 'player'`, and static obstacle text.
    * ✅ **Resolved**: Decoupled `pyramid.ts` from static `CLASSES_BY_COORD` via explicit `ClassRegistry` dependency injection.
    * ✅ **Resolved**: Decoupled `unitFactory.ts` from static `rollNoviceAbilityKit` via dependency injection.
    * ✅ **Resolved**: Decoupled Type Contracts $\leftrightarrow$ Runtime Stat Computations by extracting `getEffectiveStat` and getters to `src/core/combat/effectiveVitals.ts`.
+   * ⏳ **Pending**: Arena Sandbox $\leftrightarrow$ Constellation Progression (Item 18).
 
 
 

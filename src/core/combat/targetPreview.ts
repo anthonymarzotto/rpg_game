@@ -7,7 +7,7 @@ import {
   getEffectiveArmor,
   getEffectiveWard
 } from './effectiveVitals';
-import { canExecuteAbility } from './resolver';
+import { canExecuteAbility } from './validator';
 
 /**
  * Preview summary of an attack or ability projected against a target.

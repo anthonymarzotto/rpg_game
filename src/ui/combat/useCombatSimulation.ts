@@ -2,12 +2,8 @@ import { useState, useCallback, useMemo } from 'react';
 import { HexCoord, hexDistance, getHexesInRange } from '../../core/grid/hex';
 import { Ability } from '../../core/types/ability';
 import { CombatState } from '../../core/combat/types';
-import {
-  canMove,
-  executeMove,
-  canExecuteAbility,
-  executeAbility
-} from '../../core/combat/resolver';
+import { canMove, canExecuteAbility } from '../../core/combat/validator';
+import { executeMove, executeAbility } from '../../core/combat/resolver';
 import { endActiveTurn } from '../../core/combat/turnClock';
 import {
   EncounterDefinition,
