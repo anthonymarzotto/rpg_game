@@ -1,4 +1,5 @@
-import { CombatState, CombatUnit, getEffectiveSpeed } from './types';
+import { CombatState, CombatUnit } from './types';
+import { getEffectiveSpeed } from './effectiveVitals';
 import { ACTION_ECONOMY_CONFIG } from '../config/balance';
 
 /**

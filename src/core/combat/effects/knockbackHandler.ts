@@ -1,6 +1,7 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
 import { AbilityEffect } from '../../types/ability';
-import { CombatEvent, getEffectiveArmor } from '../types';
+import { CombatEvent } from '../types';
+import { getEffectiveArmor } from '../effectiveVitals';
 import { DISPLACEMENT_CONFIG } from '../../config/balance';
 
 export const knockbackHandler: EffectHandler = {

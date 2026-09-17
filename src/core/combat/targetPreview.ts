@@ -1,12 +1,12 @@
 import { Ability } from '../types/ability';
 import { HexCoord, hexDistance } from '../grid/hex';
+import { CombatState } from './types';
 import {
-  CombatState,
   getEffectiveEvasion,
   getEffectiveResolve,
   getEffectiveArmor,
   getEffectiveWard
-} from './types';
+} from './effectiveVitals';
 import { canExecuteAbility } from './resolver';
 
 /**

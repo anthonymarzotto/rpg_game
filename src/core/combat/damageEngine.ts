@@ -1,5 +1,6 @@
 import { Ability } from '../types/ability';
-import { CombatUnit, HitOutcome, getEffectiveArmor, getEffectiveWard } from './types';
+import { CombatUnit, HitOutcome } from './types';
+import { getEffectiveArmor, getEffectiveWard } from './effectiveVitals';
 import { DiceRoller } from './dice';
 import { getAbilityModifier } from './attackRoll';
 import { COMBAT_RESOLUTION_CONFIG } from '../config/balance';

@@ -7,9 +7,9 @@ import {
   CombatUnit,
   ValidationResult,
   AbilityResolution,
-  CombatEvent,
-  getEffectiveMove
+  CombatEvent
 } from './types';
+import { getEffectiveMove } from './effectiveVitals';
 import { DiceRoller, SeededDiceRoller } from './dice';
 import {
   COMBAT_RESOLUTION_CONFIG,
