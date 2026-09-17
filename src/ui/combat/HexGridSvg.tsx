@@ -300,6 +300,35 @@ export function HexGridSvg({
                 {cu.unit.name.split(' ')[0]}
               </text>
 
+              {/* Active Status Modifiers on Token */}
+              {cu.activeModifiers.length > 0 && (
+                <g transform="translate(0, -34)">
+                  <rect
+                    x={-cu.activeModifiers.length * 7}
+                    y="-5.5"
+                    width={cu.activeModifiers.length * 14}
+                    height="11"
+                    rx="5.5"
+                    fill="rgba(15, 23, 42, 0.9)"
+                    stroke={cu.activeModifiers.some((m) => m.value < 0) ? '#38bdf8' : '#fbbf24'}
+                    strokeWidth="0.8"
+                  />
+                  <text
+                    x="0"
+                    y="2.5"
+                    fontSize="7"
+                    textAnchor="middle"
+                  >
+                    {cu.activeModifiers.map((m) =>
+                      m.stat === 'move' && m.value < 0 ? '❄️' :
+                      m.stat === 'armor' ? '🛡️' :
+                      m.stat === 'ward' ? '🔮' :
+                      m.stat === 'speed' ? '⚡' : '✨'
+                    ).join('')}
+                  </text>
+                </g>
+              )}
+
               {/* Health Bar */}
               <rect
                 x="-14"

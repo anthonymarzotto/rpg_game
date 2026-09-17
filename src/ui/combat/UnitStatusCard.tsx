@@ -1,10 +1,37 @@
-import { CombatUnit } from '../../core/combat/types';
+import { ActiveModifier, CombatUnit } from '../../core/combat/types';
 import { TargetPreview } from '../../core/combat/targetPreview';
+import {
+  getEffectiveArmor,
+  getEffectiveWard,
+  getEffectiveEvasion,
+  getEffectiveResolve,
+  getEffectiveMove,
+  getEffectiveSpeed
+} from '../../core/combat/effectiveVitals';
 
 export interface UnitStatusCardProps {
   readonly playerCu: CombatUnit | undefined;
   readonly targetPreview: TargetPreview | null;
   readonly hoveredUnitCu?: CombatUnit;
+}
+
+function formatModifierBadge(mod: ActiveModifier): { text: string; isDebuff: boolean } {
+  const isDebuff = mod.value < 0;
+  let icon = '';
+
+  if (mod.stat === 'move') {
+    icon = isDebuff ? '❄️ ' : '💨 ';
+  } else if (mod.stat === 'armor') {
+    icon = '🛡️ ';
+  } else if (mod.stat === 'ward') {
+    icon = '🔮 ';
+  } else if (mod.stat === 'speed') {
+    icon = '⚡ ';
+  }
+
+  const sign = mod.value > 0 ? `+${mod.value}` : `${mod.value}`;
+  const text = `${icon}${sign} ${mod.stat.toUpperCase()} (${mod.durationTurns}t)`;
+  return { text, isDebuff };
 }
 
 export function UnitStatusCard({
@@ -40,42 +67,48 @@ export function UnitStatusCard({
           </span>
         </div>
 
-        {/* Defense & Stat Matrix */}
+        {/* Defense & Stat Matrix (Using Effective Vitals) */}
         <div className="hud-stats-row">
           <div className="stat-item" title="Physical To-Hit DC">
             <span className="stat-label">EVA</span>
-            <span className="stat-val">{vitals.evasion}</span>
+            <span className="stat-val">{getEffectiveEvasion(playerCu)}</span>
           </div>
           <div className="stat-item" title="Magical To-Hit DC">
             <span className="stat-label">RES</span>
-            <span className="stat-val">{vitals.resolve}</span>
+            <span className="stat-val">{getEffectiveResolve(playerCu)}</span>
           </div>
           <div className="stat-item" title="Flat Physical Damage Soak">
             <span className="stat-label">ARM</span>
-            <span className="stat-val">{vitals.armor}</span>
+            <span className="stat-val">{getEffectiveArmor(playerCu)}</span>
           </div>
           <div className="stat-item" title="Flat Magical Damage Soak">
             <span className="stat-label">WRD</span>
-            <span className="stat-val">{vitals.ward}</span>
+            <span className="stat-val">{getEffectiveWard(playerCu)}</span>
           </div>
           <div className="stat-item" title="Hexes per Move AP">
             <span className="stat-label">MOV</span>
-            <span className="stat-val">{vitals.move}</span>
+            <span className="stat-val">{getEffectiveMove(playerCu)}</span>
           </div>
           <div className="stat-item" title="CTB Turn Speed">
             <span className="stat-label">SPD</span>
-            <span className="stat-val">{vitals.speed}</span>
+            <span className="stat-val">{getEffectiveSpeed(playerCu)}</span>
           </div>
         </div>
 
         {/* Active Modifiers (if present) */}
         {playerCu.activeModifiers.length > 0 && (
           <div className="active-modifiers-row">
-            {playerCu.activeModifiers.map((mod, idx) => (
-              <span key={idx} className="mod-badge">
-                {mod.value > 0 ? `+${mod.value}` : mod.value} {mod.stat.toUpperCase()} ({mod.durationTurns}t)
-              </span>
-            ))}
+            {playerCu.activeModifiers.map((mod, idx) => {
+              const { text, isDebuff } = formatModifierBadge(mod);
+              return (
+                <span
+                  key={idx}
+                  className={`mod-badge ${isDebuff ? 'debuff' : 'buff'}`}
+                >
+                  {text}
+                </span>
+              );
+            })}
           </div>
         )}
 
@@ -106,6 +139,23 @@ export function UnitStatusCard({
           </div>
           <div className="preview-target-name">{targetPreview.targetName}</div>
 
+          {/* Active Modifiers on Target (if present) */}
+          {hoveredUnitCu && hoveredUnitCu.activeModifiers.length > 0 && (
+            <div className="active-modifiers-row" style={{ marginTop: '0.35rem' }}>
+              {hoveredUnitCu.activeModifiers.map((mod, idx) => {
+                const { text, isDebuff } = formatModifierBadge(mod);
+                return (
+                  <span
+                    key={idx}
+                    className={`mod-badge ${isDebuff ? 'debuff' : 'buff'}`}
+                  >
+                    {text}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
           {targetPreview.isBlockedLoS ? (
             <div className="preview-blocked-msg">{targetPreview.blockReason}</div>
           ) : (
@@ -129,20 +179,47 @@ export function UnitStatusCard({
         <div className="target-preview-card">
           <div className="preview-header">
             <span className="preview-label">Inspected Unit</span>
+            <span className="unit-ctb-gauge" style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+              Gauge: {hoveredUnitCu.initiativeGauge}/100
+            </span>
           </div>
           <div className="preview-target-name">{hoveredUnitCu.unit.name}</div>
+
+          {/* Active Modifiers on Inspected Unit */}
+          {hoveredUnitCu.activeModifiers.length > 0 && (
+            <div className="active-modifiers-row" style={{ marginTop: '0.35rem' }}>
+              {hoveredUnitCu.activeModifiers.map((mod, idx) => {
+                const { text, isDebuff } = formatModifierBadge(mod);
+                return (
+                  <span
+                    key={idx}
+                    className={`mod-badge ${isDebuff ? 'debuff' : 'buff'}`}
+                  >
+                    {text}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
           <div className="preview-details-grid">
             <div>
               HP: <b>{hoveredUnitCu.currentHp} / {hoveredUnitCu.unit.effectiveVitals.maxHp}</b>
             </div>
             <div>
-              Armor: <b>{hoveredUnitCu.unit.effectiveVitals.armor}</b>
+              MOV: <b>{getEffectiveMove(hoveredUnitCu)}</b>
             </div>
             <div>
-              Evasion: <b>{hoveredUnitCu.unit.effectiveVitals.evasion}</b>
+              EVA: <b>{getEffectiveEvasion(hoveredUnitCu)}</b>
             </div>
             <div>
-              Ward: <b>{hoveredUnitCu.unit.effectiveVitals.ward}</b>
+              RES: <b>{getEffectiveResolve(hoveredUnitCu)}</b>
+            </div>
+            <div>
+              ARM: <b>{getEffectiveArmor(hoveredUnitCu)}</b>
+            </div>
+            <div>
+              WRD: <b>{getEffectiveWard(hoveredUnitCu)}</b>
             </div>
           </div>
         </div>
