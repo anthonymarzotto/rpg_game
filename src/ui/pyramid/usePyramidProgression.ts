@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Archetype, ClassDefinition, UnitProgression } from '../../core/types/class';
-import { CLASSES_BY_ID } from '../../data/classes';
+import { CLASSES_BY_ID, CLASS_REGISTRY } from '../../data/classes';
+import { ClassRegistry } from '../../core/progression/registry';
 import {
   advanceArchetypeLevel,
   advanceMultipleLevels,
@@ -8,7 +9,10 @@ import {
 } from '../../core/progression/pyramid';
 import { POINTS_BY_ID, ProjectionMode } from './geometry';
 
-export function usePyramidProgression(initialUnitId = 'hero-1') {
+export function usePyramidProgression(
+  initialUnitId = 'hero-1',
+  registry: ClassRegistry = CLASS_REGISTRY
+) {
   const [progression, setProgression] = useState<UnitProgression>(() =>
     createInitialProgression(initialUnitId)
   );
@@ -49,7 +53,7 @@ export function usePyramidProgression(initialUnitId = 'hero-1') {
 
   const handleLevelUp = (archetype: Archetype) => {
     try {
-      setProgression((prev) => advanceArchetypeLevel(prev, archetype));
+      setProgression((prev) => advanceArchetypeLevel(prev, archetype, registry));
     } catch (err) {
       console.warn(err);
     }
@@ -57,7 +61,7 @@ export function usePyramidProgression(initialUnitId = 'hero-1') {
 
   const applyPreset = (archetypes: readonly Archetype[]) => {
     const fresh = createInitialProgression(initialUnitId);
-    const result = advanceMultipleLevels(fresh, archetypes);
+    const result = advanceMultipleLevels(fresh, archetypes, registry);
     setProgression(result);
   };
 

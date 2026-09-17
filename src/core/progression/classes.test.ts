@@ -3,8 +3,10 @@ import {
   CLASS_CATALOG,
   CLASSES_BY_COORD,
   CLASSES_BY_ID,
-  CLASSES_BY_TIER
+  CLASSES_BY_TIER,
+  CLASS_REGISTRY
 } from '../../data/classes';
+import { createClassRegistry } from './registry';
 import {
   advanceArchetypeLevel,
   advanceMultipleLevels,
@@ -154,7 +156,7 @@ describe('Progression and Lockout Simulation Engine', () => {
     expect(isClassEligibleNextLevel(sorcerer, 0, initial.archetypePoints)).toBe(false);
 
     // Taking 1 Mage -> Level 1 with (0,0,1), Wizard unlocked
-    const lvl1 = advanceArchetypeLevel(initial, 'MAGE');
+    const lvl1 = advanceArchetypeLevel(initial, 'MAGE', CLASS_REGISTRY);
     expect(lvl1.constellation).toEqual(['wizard']);
 
     // Wizard is unlocked
@@ -184,7 +186,7 @@ describe('Progression and Lockout Simulation Engine', () => {
 
   it('progresses from Level 0 to Level 1 and unlocks Warrior', () => {
     const initial = createInitialProgression('unit-1');
-    const lvl1 = advanceArchetypeLevel(initial, 'FIGHTER');
+    const lvl1 = advanceArchetypeLevel(initial, 'FIGHTER', CLASS_REGISTRY);
 
     expect(lvl1.currentLevel).toBe(1);
     expect(lvl1.archetypePoints).toEqual({ fighter: 1, rogue: 0, mage: 0 });
@@ -193,19 +195,19 @@ describe('Progression and Lockout Simulation Engine', () => {
 
   it('handles off-node level-ups gracefully without adding to constellation', () => {
     // Level 0 -> Level 1 (Fighter) -> Warrior (1,0,0)
-    const lvl1 = advanceArchetypeLevel(createInitialProgression('unit-1'), 'FIGHTER');
+    const lvl1 = advanceArchetypeLevel(createInitialProgression('unit-1'), 'FIGHTER', CLASS_REGISTRY);
     // Level 1 -> Level 2 (Rogue) -> (1,1,0) - off-node
-    const lvl2 = advanceArchetypeLevel(lvl1, 'ROGUE');
+    const lvl2 = advanceArchetypeLevel(lvl1, 'ROGUE', CLASS_REGISTRY);
 
     expect(lvl2.currentLevel).toBe(2);
     expect(lvl2.archetypePoints).toEqual({ fighter: 1, rogue: 1, mage: 0 });
     // Constellation should still only have Warrior
     expect(lvl2.constellation).toEqual(['warrior']);
-    expect(getClassAtCoord(lvl2.archetypePoints)).toBeNull();
-    expect(getEligibleClassAtLevel(lvl2.archetypePoints, 2)).toBeNull();
+    expect(getClassAtCoord(lvl2.archetypePoints, CLASS_REGISTRY)).toBeNull();
+    expect(getEligibleClassAtLevel(lvl2.archetypePoints, 2, CLASS_REGISTRY)).toBeNull();
 
     // Level 2 -> Level 3 (Fighter) -> (2,1,0) - Cavalier
-    const lvl3 = advanceArchetypeLevel(lvl2, 'FIGHTER');
+    const lvl3 = advanceArchetypeLevel(lvl2, 'FIGHTER', CLASS_REGISTRY);
     expect(lvl3.currentLevel).toBe(3);
     expect(lvl3.archetypePoints).toEqual({ fighter: 2, rogue: 1, mage: 0 });
     expect(lvl3.constellation).toEqual(['warrior', 'cavalier']);
@@ -225,7 +227,7 @@ describe('Progression and Lockout Simulation Engine', () => {
       'ROGUE'    // 9: (5,2,2) -> Warlord
     ];
 
-    const final = advanceMultipleLevels(initial, sequence);
+    const final = advanceMultipleLevels(initial, sequence, CLASS_REGISTRY);
 
     expect(final.currentLevel).toBe(9);
     expect(final.archetypePoints).toEqual({ fighter: 5, rogue: 2, mage: 2 });
@@ -242,11 +244,11 @@ describe('Progression and Lockout Simulation Engine', () => {
   it('prevents exceeding archetype point cap of 5', () => {
     let unit = createInitialProgression('unit-3');
     for (let i = 0; i < 5; i++) {
-      unit = advanceArchetypeLevel(unit, 'FIGHTER');
+      unit = advanceArchetypeLevel(unit, 'FIGHTER', CLASS_REGISTRY);
     }
     expect(unit.archetypePoints.fighter).toBe(5);
 
-    expect(() => advanceArchetypeLevel(unit, 'FIGHTER')).toThrowError(
+    expect(() => advanceArchetypeLevel(unit, 'FIGHTER', CLASS_REGISTRY)).toThrowError(
       /Cannot exceed max archetype cap/
     );
   });
@@ -257,11 +259,51 @@ describe('Progression and Lockout Simulation Engine', () => {
       'ROGUE', 'ROGUE', 'ROGUE', 'ROGUE'                    // 4 Rogue -> Total 9 (Archer)
     ];
 
-    const cappedUnit = advanceMultipleLevels(createInitialProgression('unit-4'), sequence);
+    const cappedUnit = advanceMultipleLevels(createInitialProgression('unit-4'), sequence, CLASS_REGISTRY);
     expect(cappedUnit.currentLevel).toBe(MAX_LEVEL);
 
-    expect(() => advanceArchetypeLevel(cappedUnit, 'MAGE')).toThrowError(
+    expect(() => advanceArchetypeLevel(cappedUnit, 'MAGE', CLASS_REGISTRY)).toThrowError(
       /maximum level cap/
     );
   });
 });
+
+describe('Decoupled ClassRegistry Dependency Injection', () => {
+  it('allows advancing progression using an isolated custom mini-catalog', () => {
+    const customClasses = [
+      {
+        no: '01',
+        id: 'brawler',
+        name: 'Brawler',
+        requirements: { fighter: 1, rogue: 0, mage: 0 },
+        totalPoints: 1
+      },
+      {
+        no: '02',
+        id: 'gladiator',
+        name: 'Gladiator',
+        requirements: { fighter: 2, rogue: 0, mage: 0 },
+        totalPoints: 2
+      }
+    ];
+    const customRegistry = createClassRegistry(customClasses);
+
+    expect(customRegistry.getAllClasses()).toHaveLength(2);
+    expect(customRegistry.getClassById('brawler')?.name).toBe('Brawler');
+    expect(customRegistry.getClassById('non-existent')).toBeNull();
+
+    const initial = createInitialProgression('custom-unit');
+    const lvl1 = advanceArchetypeLevel(initial, 'FIGHTER', customRegistry);
+    expect(lvl1.currentLevel).toBe(1);
+    expect(lvl1.constellation).toEqual(['brawler']);
+
+    const lvl2 = advanceArchetypeLevel(lvl1, 'FIGHTER', customRegistry);
+    expect(lvl2.currentLevel).toBe(2);
+    expect(lvl2.constellation).toEqual(['brawler', 'gladiator']);
+
+    // Off-node check with custom registry
+    expect(getClassAtCoord({ fighter: 1, rogue: 1, mage: 0 }, customRegistry)).toBeNull();
+    expect(getEligibleClassAtLevel({ fighter: 1, rogue: 1, mage: 0 }, 2, customRegistry)).toBeNull();
+  });
+});
+

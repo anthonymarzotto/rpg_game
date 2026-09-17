@@ -1,21 +1,19 @@
 import { Archetype, ArchetypePoints, ClassDefinition, UnitProgression } from '../types/class';
-import { CLASSES_BY_COORD } from '../../data/classes';
+import { ClassRegistry, toCoordKey } from './registry';
+
+export { toCoordKey, type ClassRegistry };
 
 export const MAX_LEVEL = 9;
 export const MAX_ARCHETYPE_POINTS = 5;
 
 /**
- * Returns the string coordinate key formatted as 'fighter,rogue,mage'.
+ * Retrieves the class located at the exact coordinate from the registry, or null if off-node.
  */
-export function toCoordKey(points: ArchetypePoints): string {
-  return `${points.fighter},${points.rogue},${points.mage}`;
-}
-
-/**
- * Retrieves the class located at the exact coordinate, or null if off-node.
- */
-export function getClassAtCoord(points: ArchetypePoints): ClassDefinition | null {
-  return CLASSES_BY_COORD.get(toCoordKey(points)) ?? null;
+export function getClassAtCoord(
+  points: ArchetypePoints,
+  registry: ClassRegistry
+): ClassDefinition | null {
+  return registry.getClassAtCoord(points);
 }
 
 /**
@@ -81,8 +79,12 @@ export function isClassEligibleNextLevel(
 /**
  * Returns the class qualifying at target level with the given points, or null if off-node.
  */
-export function getEligibleClassAtLevel(points: ArchetypePoints, targetLevel: number): ClassDefinition | null {
-  const cls = getClassAtCoord(points);
+export function getEligibleClassAtLevel(
+  points: ArchetypePoints,
+  targetLevel: number,
+  registry: ClassRegistry
+): ClassDefinition | null {
+  const cls = registry.getClassAtCoord(points);
   if (!cls) {
     return null;
   }
@@ -111,7 +113,8 @@ export function createInitialProgression(unitId: string): UnitProgression {
  */
 export function advanceArchetypeLevel(
   progression: UnitProgression,
-  archetype: Archetype
+  archetype: Archetype,
+  registry: ClassRegistry
 ): UnitProgression {
   if (progression.currentLevel >= MAX_LEVEL) {
     throw new Error(`Unit ${progression.unitId} has reached the maximum level cap of ${MAX_LEVEL}.`);
@@ -129,7 +132,7 @@ export function advanceArchetypeLevel(
   }
 
   const nextLevel = progression.currentLevel + 1;
-  const eligibleClass = getEligibleClassAtLevel(newPoints, nextLevel);
+  const eligibleClass = getEligibleClassAtLevel(newPoints, nextLevel, registry);
 
   const newConstellation = eligibleClass
     ? [...progression.constellation, eligibleClass.id]
@@ -148,9 +151,10 @@ export function advanceArchetypeLevel(
  */
 export function advanceMultipleLevels(
   progression: UnitProgression,
-  archetypesInOrder: readonly Archetype[]
+  archetypesInOrder: readonly Archetype[],
+  registry: ClassRegistry
 ): UnitProgression {
   return archetypesInOrder.reduce<UnitProgression>((current, archetype) => {
-    return advanceArchetypeLevel(current, archetype);
+    return advanceArchetypeLevel(current, archetype, registry);
   }, progression);
 }

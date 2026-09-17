@@ -1,4 +1,5 @@
 import { ClassDefinition } from '../core/types/class';
+import { ClassRegistry, createClassRegistry } from '../core/progression/registry';
 
 export const CLASS_CATALOG: readonly ClassDefinition[] = [
   { no: '00', id: 'warrior', name: 'Warrior', requirements: { fighter: 1, rogue: 0, mage: 0 }, totalPoints: 1 },
@@ -109,6 +110,8 @@ export const CLASSES_BY_ID: Readonly<Record<string, ClassDefinition>> = Object.f
     return acc;
   }, {})
 );
+
+export const CLASS_REGISTRY: ClassRegistry = createClassRegistry(CLASS_CATALOG);
 
 export const CLASSES_BY_COORD: ReadonlyMap<string, ClassDefinition> = new Map(
   CLASS_CATALOG.map((cls) => [`${cls.requirements.fighter},${cls.requirements.rogue},${cls.requirements.mage}`, cls])
