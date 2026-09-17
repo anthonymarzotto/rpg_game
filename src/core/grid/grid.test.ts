@@ -188,4 +188,27 @@ describe('Arena Spatial Engine', () => {
       expect(result.finalCoord).toEqual(target);
     });
   });
+
+  describe('Tile Collection & Metadata', () => {
+    it('returns all tiles in the arena via getAllTiles', () => {
+      const arena = createRadialArena(2);
+      const tiles = arena.getAllTiles();
+      // Radius 2 arena: 1 + 6 + 12 = 19 tiles
+      expect(tiles).toHaveLength(19);
+      expect(tiles.every((t) => t.coord && typeof t.isWalkable === 'boolean')).toBe(true);
+    });
+
+    it('preserves custom tile metadata such as label and terrainType', () => {
+      const arena = new Arena([
+        { coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true, terrainType: 'GRASS' },
+        { coord: { q: 0, r: 1 }, elevation: 1, isWalkable: false, label: 'PILLAR' }
+      ]);
+      const tiles = arena.getAllTiles();
+      expect(tiles).toHaveLength(2);
+      const pillar = arena.getTile({ q: 0, r: 1 });
+      expect(pillar?.label).toBe('PILLAR');
+      expect(pillar?.isWalkable).toBe(false);
+    });
+  });
 });
+

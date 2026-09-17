@@ -59,24 +59,46 @@ export function HexGridSvg({
     [candidateTargetCoords]
   );
 
-  // Collect all arena tiles
-  const allCoords = useMemo(() => {
-    const coords: HexCoord[] = [];
-    const radius = 3;
-    for (let q = -radius; q <= radius; q++) {
-      const r1 = Math.max(-radius, -q - radius);
-      const r2 = Math.min(radius, -q + radius);
-      for (let r = r1; r <= r2; r++) {
-        coords.push({ q, r });
-      }
+  // Dynamically collect all arena tiles from the spatial model
+  const allTiles = useMemo(() => {
+    return state.arena.getAllTiles();
+  }, [state.arena]);
+
+  // Compute dynamic viewBox and backdrop radius based on arena bounds
+  const { viewBox, backdropRadius } = useMemo(() => {
+    if (allTiles.length === 0) {
+      return { viewBox: '-320 -280 640 560', backdropRadius: 230 };
     }
-    return coords;
-  }, []);
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const tile of allTiles) {
+      const { x, y } = hexToPixel(tile.coord);
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    const paddingX = HEX_RADIUS + 35;
+    const paddingY = HEX_RADIUS + 45;
+    const x = Math.round(minX - paddingX);
+    const y = Math.round(minY - paddingY);
+    const width = Math.round(maxX - minX + paddingX * 2);
+    const height = Math.round(maxY - minY + paddingY * 2);
+    const maxDimension = Math.max(maxX - minX, maxY - minY);
+    const backdropRadius = Math.round(maxDimension / 2 + HEX_RADIUS * 0.7);
+
+    return {
+      viewBox: `${x} ${y} ${width} ${height}`,
+      backdropRadius
+    };
+  }, [allTiles]);
 
   return (
     <svg
       className="arena-hex-svg"
-      viewBox="-320 -280 640 560"
+      viewBox={viewBox}
       preserveAspectRatio="xMidYMid meet"
     >
       <defs>
@@ -98,14 +120,14 @@ export function HexGridSvg({
       </defs>
 
       {/* Grid Backdrop Grid Glow */}
-      <circle cx="0" cy="0" r="230" fill="rgba(30, 41, 59, 0.35)" />
+      <circle cx="0" cy="0" r={backdropRadius} fill="rgba(30, 41, 59, 0.35)" />
 
       {/* 1. Base Terrain Hexes */}
       <g className="tiles-layer">
-        {allCoords.map((coord) => {
+        {allTiles.map((tile) => {
+          const coord = tile.coord;
           const key = toHexKey(coord);
-          const tile = state.arena.getTile(coord);
-          const isObstacle = tile ? !tile.isWalkable : false;
+          const isObstacle = !tile.isWalkable;
           const isReachable = reachableSet.has(key);
           const isRange = rangeSet.has(key);
           const isCandidate = candidateSet.has(key);
@@ -175,7 +197,7 @@ export function HexGridSvg({
                 filter={filter}
               />
 
-              {/* Obstacle rock pattern */}
+              {/* Obstacle pattern with data-driven label */}
               {isObstacle && (
                 <g style={{ pointerEvents: 'none' }}>
                   <circle cx={x} cy={y} r="12" fill="rgba(100, 116, 139, 0.4)" />
@@ -183,11 +205,11 @@ export function HexGridSvg({
                     x={x}
                     y={y + 3}
                     fill="#94a3b8"
-                    fontSize="9"
+                    fontSize="8.5"
                     fontWeight="700"
                     textAnchor="middle"
                   >
-                    PILLAR
+                    {tile.label ?? 'BLOCK'}
                   </text>
                 </g>
               )}
@@ -217,16 +239,25 @@ export function HexGridSvg({
           const pos = state.arena.getUnitPosition(unitId);
           if (!pos) return null;
           const { x, y } = hexToPixel(pos);
-          const isPlayer = unitId === 'player';
+          const faction = cu.faction ?? cu.unit.faction ?? 'PLAYER';
+          const isPlayer = faction === 'PLAYER';
+          const isEnemy = faction === 'ENEMY';
           const hpPercent = (cu.currentHp / cu.unit.effectiveVitals.maxHp) * 100;
+
+          // Visual theme by faction
+          const tokenFill = isPlayer ? '#1e1b4b' : isEnemy ? '#450a0a' : '#1c1917';
+          const tokenStroke = isPlayer ? '#38bdf8' : isEnemy ? '#f87171' : '#a8a29e';
+          const nameColor = isPlayer ? '#7dd3fc' : isEnemy ? '#fca5a5' : '#e2e8f0';
+          const badgeSymbol = isPlayer ? '🛡️' : isEnemy ? '🎯' : '⚪';
+          const hpBarFill = isPlayer ? '#10b981' : hpPercent < 40 ? '#ef4444' : '#f59e0b';
 
           return (
             <g key={unitId} transform={`translate(${x}, ${y})`}>
               {/* Unit Token Circle */}
               <circle
                 r="17"
-                fill={isPlayer ? '#1e1b4b' : '#450a0a'}
-                stroke={isPlayer ? '#38bdf8' : '#f87171'}
+                fill={tokenFill}
+                stroke={tokenStroke}
                 strokeWidth={isPlayer ? 2.5 : 2}
                 filter="url(#tile-glow-cyan)"
               />
@@ -253,14 +284,14 @@ export function HexGridSvg({
                 textAnchor="middle"
                 dominantBaseline="central"
               >
-                {isPlayer ? '🛡️' : '🎯'}
+                {badgeSymbol}
               </text>
 
               {/* Unit Name Plate */}
               <text
                 x="0"
                 y="-23"
-                fill={isPlayer ? '#7dd3fc' : '#fca5a5'}
+                fill={nameColor}
                 fontSize="8.5"
                 fontWeight="700"
                 textAnchor="middle"
@@ -284,7 +315,7 @@ export function HexGridSvg({
                 y="19"
                 width={Math.max(0, (28 * hpPercent) / 100)}
                 height="4"
-                fill={isPlayer ? '#10b981' : hpPercent < 40 ? '#ef4444' : '#f59e0b'}
+                fill={hpBarFill}
                 rx="2"
               />
 

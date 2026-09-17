@@ -132,7 +132,7 @@ export function createNoviceSandboxEncounter(
     id: 'novice-sandbox',
     name: 'Novice Testbed Arena',
     arenaRadius: 3,
-    tileOverrides: [{ coord: { q: 0, r: 2 }, isWalkable: false }],
+    tileOverrides: [{ coord: { q: 0, r: 2 }, isWalkable: false, label: 'PILLAR' }],
     units: [
       { unit: player, coord: { q: 0, r: 0 } },
       { unit: dummyA, coord: { q: 1, r: 0 } },

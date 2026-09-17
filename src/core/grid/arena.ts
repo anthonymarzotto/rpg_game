@@ -14,6 +14,8 @@ export interface HexTile {
   readonly coord: HexCoord;
   readonly elevation: number;
   readonly isWalkable: boolean;
+  readonly label?: string;
+  readonly terrainType?: string;
   occupiedByUnitId?: string;
 }
 
@@ -42,6 +44,10 @@ export class Arena {
 
   public getTile(coord: HexCoord): HexTile | undefined {
     return this.tiles.get(toHexKey(coord));
+  }
+
+  public getAllTiles(): HexTile[] {
+    return Array.from(this.tiles.values());
   }
 
   public hasTile(coord: HexCoord): boolean {

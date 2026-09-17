@@ -19,6 +19,8 @@ export interface EncounterTileOverride {
   readonly coord: HexCoord;
   readonly isWalkable?: boolean;
   readonly elevation?: number;
+  readonly label?: string;
+  readonly terrainType?: string;
 }
 
 /**
@@ -47,7 +49,9 @@ export function buildEncounterState(definition: EncounterDefinition): CombatStat
         arena.setTile({
           ...existing,
           isWalkable: override.isWalkable ?? existing.isWalkable,
-          elevation: override.elevation ?? existing.elevation
+          elevation: override.elevation ?? existing.elevation,
+          label: override.label ?? existing.label,
+          terrainType: override.terrainType ?? existing.terrainType
         });
       }
     }
