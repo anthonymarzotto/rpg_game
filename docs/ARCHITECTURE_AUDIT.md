@@ -15,7 +15,7 @@ The following components exhibit unnecessary or rigid coupling that impedes test
 | **Core Progression $\leftrightarrow$ Master Data Catalog** | [`src/core/progression/pyramid.ts`](file:///c:/Repos/rpg_game/src/core/progression/pyramid.ts) | Core domain logic (`src/core/`) directly imported `CLASSES_BY_COORD` from `src/data/classes.ts`. | **Resolved**: Introduced pure `ClassRegistry` interface and factory in `src/core/progression/registry.ts`. Decoupled `pyramid.ts` by requiring explicit `registry: ClassRegistry` injection across all lookup and advancement functions with zero global singletons. |
 | **Unit Factory $\leftrightarrow$ Novice Ability Kit** | [`src/core/units/unitFactory.ts`](file:///c:/Repos/rpg_game/src/core/units/unitFactory.ts) | `createRecruit` directly imported `rollNoviceAbilityKit` from `src/data/abilities`. | **Resolved**: Removed data import from `unitFactory.ts`. `createRecruit` now accepts explicit `abilities` or an injected `abilityKitGenerator` function via `CreateRecruitOptions`, defaulting to `[]` if omitted. |
 | **Type Contracts $\leftrightarrow$ Runtime Stat Computations** | [`src/core/combat/types.ts`](file:///c:/Repos/rpg_game/src/core/combat/types.ts) | `types.ts` defined runtime computation functions (`getEffectiveStat`, `getEffectiveSpeed`, `getEffectiveMove`, etc.) alongside interfaces. | **Resolved**: Extracted all runtime stat getters into `src/core/combat/effectiveVitals.ts`. Updated consumers (`turnClock`, `targetPreview`, `resolver`, `damageEngine`, `attackRoll`, `knockbackHandler`) to import directly, leaving `types.ts` as a 100% pure type contract. |
-| **Arena Sandbox $\leftrightarrow$ Constellation Progression** | [`src/App.tsx`](file:///c:/Repos/rpg_game/src/App.tsx#L53-L56) | The recruit fighting in the Arena and the recruit leveling in the Constellation Chart are completely isolated, disconnected local states. | **Pending / Open**: Combat recruit and constellation chart remain intentionally isolated during current milestone. A shared unit state bridge is planned to connect combat XP to constellation unlocks. |
+| **Arena Sandbox $\leftrightarrow$ Constellation Progression** | [`src/App.tsx`](file:///c:/Repos/rpg_game/src/App.tsx#L53-L56) | The recruit fighting in the Arena and the recruit leveling in the Constellation Chart are completely isolated, disconnected local states. | **Resolved / Won't Do (Closed)**: Combat recruit and constellation chart remain intentionally isolated testbeds; unified progression will not be pursued. |
 
 ---
 
@@ -33,21 +33,15 @@ Extracted modules:
 5. `src/ui/combat/useFloatingCombatText.ts`: Floating combat text state management, dispatch queue, and auto-dismiss timers.
 `useCombatSimulation.ts` now strictly orchestrates turn management and user interaction flows.
 
-### B. `combat.test.ts` (700+ lines, 28 KB) — Monolith Test Suite
-A single monolithic integration test file testing 6 different subsystems:
-1. Grid movement & AP deduction.
-2. Attack resolution outcomes (Solid, Graze, Crit, Miss, Minimum damage).
-3. Secondary effects & collisions (Knockback, collision damage, bystander damage, retreat step, slow, armor/ward buffs).
-4. CTB turn clock advancement & unspent AP gauge refund.
-5. Action targeting validation (LoS, range, ally/enemy faction filters).
-6. Decoupled attack roll and damage modifier attributes.
-
-* **Proposed Breakdown**:
-  * `src/core/combat/movement.test.ts`
-  * `src/core/combat/turnClock.test.ts`
-  * `src/core/combat/actionValidation.test.ts`
-  * `src/core/combat/resolution.test.ts`
-  * `src/core/combat/displacement.test.ts`
+### B. `combat.test.ts` — Decomposed & Replaced
+**Status: Resolved**
+Decomposed the 708-line monolith test suite into 5 focused domain test suites with zero test loss:
+1. `src/core/combat/movement.test.ts`: Grid movement execution and AP cost deduction.
+2. `src/core/combat/turnClock.test.ts`: CTB turn clock advancement, unspent AP recovery, and modifier expiration lifecycle.
+3. `src/core/combat/resolution.test.ts`: Attack roll outcomes (Solid, Crit, Graze, Miss), in-battle archetype XP awards, buffs, and decoupled attribute scaling.
+4. `src/core/combat/displacement.test.ts`: Knockback, map border collisions, bystander collateral damage, retreat steps, and pluggable effect handlers.
+5. `src/core/combat/validator.test.ts`: Targeting constraints, LoS screening, self-targeting rules, and faction allegiance checks.
+`combat.test.ts` has been deleted.
 
 ### C. `ClassInspector.tsx` (340 lines, 10.7 KB)
 Contains the class inspector modal header, 9-tier level-up simulation buttons, eligibility status, archetype requirements breakdown, full 9-step traversal history, and class perks summary.
@@ -87,7 +81,7 @@ Comparison of active code against the specification documents in `docs/`, with r
    * ✅ **Aligned**: Phaser 3, Zustand, Persistence, Positional Modifiers, Dice Animations, and Action Limits recorded as intentional testbed scaffolding or deferred future features.
 2. **Decompose Monoliths (Section 2)**:
    * ✅ **Resolved**: Refactored `useCombatSimulation.ts` to separate target preview math, floating combat text lifecycle, dev dice, and encounter setup.
-   * Next: Decompose `combat.test.ts` into focused test modules.
+   * ✅ **Resolved**: Decomposed `combat.test.ts` into `movement.test.ts`, `turnClock.test.ts`, `resolution.test.ts`, `displacement.test.ts`, and `validator.test.ts`.
    * Next: Decompose `ClassInspector.tsx`.
    * ✅ **Resolved**: Extracted action/movement validators (`canMove`, `canExecuteAbility`) from `resolver.ts` to `src/core/combat/validator.ts` and eliminated backwards-compatibility re-export shims.
 3. **Decouple Tight Couplings (Section 1)**:
@@ -96,7 +90,4 @@ Comparison of active code against the specification documents in `docs/`, with r
    * ✅ **Resolved**: Decoupled `pyramid.ts` from static `CLASSES_BY_COORD` via explicit `ClassRegistry` dependency injection.
    * ✅ **Resolved**: Decoupled `unitFactory.ts` from static `rollNoviceAbilityKit` via dependency injection.
    * ✅ **Resolved**: Decoupled Type Contracts $\leftrightarrow$ Runtime Stat Computations by extracting `getEffectiveStat` and getters to `src/core/combat/effectiveVitals.ts`.
-   * ⏳ **Pending**: Arena Sandbox $\leftrightarrow$ Constellation Progression (Item 18).
-
-
-
+   * ✅ **Resolved / Closed**: Arena Sandbox $\leftrightarrow$ Constellation Progression (Item 18) — Closed as intentional testbed isolation; unified progression will not be pursued.

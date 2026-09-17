@@ -229,7 +229,7 @@ describe('Combat Validator', () => {
       }
     });
 
-    it('rejects targeting enemy when Line of Sight is blocked', () => {
+    it('rejects targeting enemy when Line of Sight is blocked by an intervening obstacle', () => {
       const arena = createRadialArena(3);
       // Place an elevation 2 wall obstacle between (0, 0) and (2, 0) at (1, 0)
       arena.setTile({ coord: { q: 1, r: 0 }, elevation: 2, isWalkable: false, label: 'WALL' });
@@ -254,5 +254,62 @@ describe('Combat Validator', () => {
         expect(result.reason).toContain('Line-of-Sight is blocked');
       }
     });
+
+    it('prevents ranged execution when an intervening unit blocks Line-of-Sight (unit screening)', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      const intervening = createRecruit('intervening', 'Intervening', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('intervening', { q: 1, r: 0 });
+      arena.setUnitPosition('enemy', { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [hero, intervening, enemy], 'hero');
+
+      const RANGED_ATTACK: Ability = {
+        ...STRIKE,
+        range: 3
+      };
+
+      const result = canExecuteAbility(state, 'hero', RANGED_ATTACK, {
+        coord: { q: 2, r: 0 },
+        targetUnitId: 'enemy'
+      });
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.reason).toContain('Line-of-Sight is blocked');
+      }
+    });
+
+    it('enforces ALLY targeting: allows self, default self, and allies, while rejecting enemies', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      const ally = createRecruit('ally', 'Ally', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('ally', { q: 1, r: 0 });
+      arena.setUnitPosition('enemy', { q: 0, r: 1 });
+
+      const state = createCombatState(arena, [hero, ally, enemy], 'hero');
+
+      // Ally ability on self explicitly
+      expect(canExecuteAbility(state, 'hero', HEAL_ALLY, { targetUnitId: 'hero' }).valid).toBe(true);
+
+      // Ally ability on self default (omitted target)
+      expect(canExecuteAbility(state, 'hero', HEAL_ALLY).valid).toBe(true);
+
+      // Ally ability on Ally
+      expect(canExecuteAbility(state, 'hero', HEAL_ALLY, { targetUnitId: 'ally' }).valid).toBe(true);
+
+      // Ally ability on Enemy -> rejected
+      const enemyTarget = canExecuteAbility(state, 'hero', HEAL_ALLY, { targetUnitId: 'enemy' });
+      expect(enemyTarget.valid).toBe(false);
+      if (!enemyTarget.valid) {
+        expect(enemyTarget.reason).toContain('Cannot cast an ally ability on an enemy unit');
+      }
+    });
   });
 });
+
