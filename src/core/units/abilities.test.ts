@@ -87,8 +87,10 @@ describe('Starter Ability Kit Generation Logic', () => {
     expect(kit[2].id).toBe('spark');
   });
 
-  it('equips newly recruited Novices with their rolled starter kit', () => {
-    const recruit = createRecruit('unit-novice', 'Bran');
+  it('equips newly recruited Novices with their rolled starter kit when abilityKitGenerator is provided', () => {
+    const recruit = createRecruit('unit-novice', 'Bran', {
+      abilityKitGenerator: rollNoviceAbilityKit
+    });
 
     expect(recruit.abilities).toHaveLength(5);
     expect(recruit.abilities.some((a) => a.archetypeTag === 'FIGHTER')).toBe(true);

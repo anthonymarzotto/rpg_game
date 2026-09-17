@@ -3,17 +3,17 @@ import { BLANK_SLATE_ATTRIBUTES } from '../types/stats';
 import { Ability } from '../types/ability';
 import { createInitialProgression } from '../progression/pyramid';
 import { computeDerivedVitals } from './vitals';
-import { rollNoviceAbilityKit } from '../../data/abilities';
 
 export interface CreateRecruitOptions {
   readonly abilities?: readonly Ability[];
+  readonly abilityKitGenerator?: (rng?: () => number) => readonly Ability[];
   readonly rng?: () => number;
   readonly faction?: Faction;
 }
 
 /**
- * Creates a standard Level-0 recruit with uniform blank slate stats
- * and a tailored 3-archetype starter ability kit.
+ * Creates a standard Level-0 recruit with uniform blank slate stats.
+ * Equipped abilities are passed directly or generated via an injected kit generator.
  */
 export function createRecruit(
   id: string,
@@ -23,7 +23,10 @@ export function createRecruit(
   const progression = createInitialProgression(id);
   const baseAttributes = { ...BLANK_SLATE_ATTRIBUTES };
   const effectiveVitals = computeDerivedVitals(baseAttributes, progression.currentLevel);
-  const abilities = options?.abilities ?? rollNoviceAbilityKit(options?.rng);
+  const abilities =
+    options?.abilities ??
+    options?.abilityKitGenerator?.(options?.rng) ??
+    [];
 
   return {
     id,
