@@ -43,9 +43,12 @@ Decomposed the 708-line monolith test suite into 5 focused domain test suites wi
 5. `src/core/combat/validator.test.ts`: Targeting constraints, LoS screening, self-targeting rules, and faction allegiance checks.
 `combat.test.ts` has been deleted.
 
-### C. `ClassInspector.tsx` (340 lines, 10.7 KB)
-Contains the class inspector modal header, 9-tier level-up simulation buttons, eligibility status, archetype requirements breakdown, full 9-step traversal history, and class perks summary.
-* **Proposed Breakdown**: Extract `LevelUpSimulator.tsx` and `ConstellationHistory.tsx`.
+### C. `ClassInspector.tsx` — Decomposed (Reduced to ~95 lines)
+**Status: Resolved**
+Extracted subcomponents:
+1. `src/ui/pyramid/LevelUpSimulator.tsx`: Archetype advancement buttons (+ Fighter, + Rogue, + Mage), 6 demo constellation presets, and novice reset.
+2. `src/ui/pyramid/ConstellationHistory.tsx`: Constellation traversal history timeline and unlocked stars count.
+`ClassInspector.tsx` now cleanly renders the hover inspection overlay and sidebar unit status card, composing `LevelUpSimulator` and `ConstellationHistory`. Removed unused geometry re-export from `ConstellationChart.tsx`.
 
 ### D. `resolver.ts` — Decomposed (Reduced to ~250 lines)
 **Status: Resolved**
@@ -82,7 +85,7 @@ Comparison of active code against the specification documents in `docs/`, with r
 2. **Decompose Monoliths (Section 2)**:
    * ✅ **Resolved**: Refactored `useCombatSimulation.ts` to separate target preview math, floating combat text lifecycle, dev dice, and encounter setup.
    * ✅ **Resolved**: Decomposed `combat.test.ts` into `movement.test.ts`, `turnClock.test.ts`, `resolution.test.ts`, `displacement.test.ts`, and `validator.test.ts`.
-   * Next: Decompose `ClassInspector.tsx`.
+   * ✅ **Resolved**: Decomposed `ClassInspector.tsx` by extracting `LevelUpSimulator.tsx` and `ConstellationHistory.tsx`.
    * ✅ **Resolved**: Extracted action/movement validators (`canMove`, `canExecuteAbility`) from `resolver.ts` to `src/core/combat/validator.ts` and eliminated backwards-compatibility re-export shims.
 3. **Decouple Tight Couplings (Section 1)**:
    * ✅ **Resolved**: Decoupled `useCombatSimulation.ts` from hardcoded encounter dummies via `EncounterDefinition`.

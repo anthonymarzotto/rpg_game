@@ -6,8 +6,6 @@ import {
 } from './pyramid/ClassInspector';
 import './ConstellationChart.css';
 
-// Re-export geometry definitions for backward compatibility
-export * from './pyramid/geometry';
 
 export function ConstellationChart() {
   const {
