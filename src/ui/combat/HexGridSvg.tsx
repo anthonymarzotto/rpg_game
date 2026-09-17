@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { HexCoord, toHexKey } from '../../core/grid/hex';
 import { CombatState } from '../../core/combat/types';
-import { FloatingText, TargetPreview } from './useCombatSimulation';
+import { TargetPreview } from '../../core/combat/targetPreview';
+import { FloatingText } from './useFloatingCombatText';
 
 export interface HexGridSvgProps {
   readonly state: CombatState;

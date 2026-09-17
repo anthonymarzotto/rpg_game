@@ -10,44 +10,32 @@ import {
 } from '../../core/combat/resolver';
 import { endActiveTurn } from '../../core/combat/turnClock';
 import {
-  SHIELD_BASH,
-  QUICK_THRUST,
-  SPARK,
-  UNIVERSAL_ACTIONS,
-  rollNoviceAbilityKit
-} from '../../data/abilities';
-import {
   EncounterDefinition,
   buildEncounterState
 } from '../../core/combat/encounter';
-import { createNoviceSandboxEncounter } from '../../data/encounters/noviceSandbox';
 import { TargetPreview, computeTargetPreview } from '../../core/combat/targetPreview';
 import { DiceMode, DevDiceRoller } from './devDice';
-import { FloatingText, useFloatingCombatText } from './useFloatingCombatText';
+import { useFloatingCombatText } from './useFloatingCombatText';
 
 export type ActionMode = 'IDLE' | 'MOVE' | 'ABILITY';
 
-// Backwards-compatible re-exports
-export type { TargetPreview, FloatingText, DiceMode };
-
 export interface UseCombatSimulationOptions {
-  readonly encounterFactory?: (abilitiesOverride?: readonly Ability[]) => EncounterDefinition;
+  readonly encounterFactory: (abilitiesOverride?: readonly Ability[]) => EncounterDefinition;
+  readonly initialKit?: readonly Ability[];
+  readonly onRerollKit?: () => readonly Ability[];
 }
 
 /**
  * Orchestrates combat interaction state, action selection, and player intent dispatch.
  */
-export function useCombatSimulation(options?: UseCombatSimulationOptions) {
-  const encounterFactory = options?.encounterFactory ?? createNoviceSandboxEncounter;
-
-  const [currentKit, setCurrentKit] = useState<readonly Ability[]>([
-    SHIELD_BASH,
-    QUICK_THRUST,
-    SPARK,
-    ...UNIVERSAL_ACTIONS
-  ]);
+export function useCombatSimulation({
+  encounterFactory,
+  initialKit,
+  onRerollKit
+}: UseCombatSimulationOptions) {
+  const [currentKit, setCurrentKit] = useState<readonly Ability[] | undefined>(initialKit);
   const [state, setState] = useState<CombatState>(() =>
-    buildEncounterState(encounterFactory())
+    buildEncounterState(encounterFactory(initialKit))
   );
   const [actionMode, setActionMode] = useState<ActionMode>('IDLE');
   const [selectedAbility, setSelectedAbility] = useState<Ability | null>(null);
@@ -264,13 +252,15 @@ export function useCombatSimulation(options?: UseCombatSimulationOptions) {
 
   // Re-roll ability kit
   const handleRerollKit = useCallback(() => {
-    const newKit = rollNoviceAbilityKit();
+    if (!onRerollKit) return;
+    const newKit = onRerollKit();
     setCurrentKit(newKit);
     const fresh = buildEncounterState(encounterFactory(newKit));
     setState(fresh);
     setActionMode('IDLE');
     setSelectedAbility(null);
-  }, [encounterFactory]);
+  }, [encounterFactory, onRerollKit]);
+
 
   return {
     state,

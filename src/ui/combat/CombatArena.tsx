@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
-import { useCombatSimulation, DiceMode } from './useCombatSimulation';
+import { useCombatSimulation } from './useCombatSimulation';
+import { DiceMode } from './devDice';
+import { createNoviceSandboxEncounter } from '../../data/encounters/noviceSandbox';
+import { rollNoviceAbilityKit } from '../../data/abilities';
 import { HexGridSvg } from './HexGridSvg';
 import { ActionBar } from './ActionBar';
 import { UnitStatusCard } from './UnitStatusCard';
@@ -26,7 +29,10 @@ export function CombatArena() {
     handleEndTurn,
     handleResetEncounter,
     handleRerollKit
-  } = useCombatSimulation();
+  } = useCombatSimulation({
+    encounterFactory: createNoviceSandboxEncounter,
+    onRerollKit: rollNoviceAbilityKit
+  });
 
   const hoveredUnitCu = useMemo(() => {
     if (!hoveredCoord) return undefined;

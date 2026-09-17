@@ -1,5 +1,5 @@
 import { CombatUnit } from '../../core/combat/types';
-import { TargetPreview } from './useCombatSimulation';
+import { TargetPreview } from '../../core/combat/targetPreview';
 
 export interface UnitStatusCardProps {
   readonly playerCu: CombatUnit | undefined;
