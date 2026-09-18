@@ -11,7 +11,7 @@ Following our core architectural principle (**Decoupled Simulation & Presentatio
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                   INTERACTIVE PRESENTATION                  │
-│  - Interactive hex arena (Phaser / React)                   │
+│  - Interactive hex arena (React + SVG + CSS)                │
 │  - Unit token at coordinate (q, r)                          │
 │  - Action HUD: [Move] [Strike] [Flank] [Spark] [Wait]       │
 │  - Damage floating numbers & Archetype XP gain feedback     │

@@ -4,34 +4,29 @@ This document defines the technical architecture, runtime environment, framework
 
 ---
 
-## 1. Core Architectural Pattern: Decoupled Simulation & Presentation
+### 1. Core Architectural Pattern: Decoupled Simulation & Presentation
 
-The system is organized into three strictly separated tiers:
+The system is organized into two strictly decoupled tiers:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     UI LAYER (React + CSS)                  │
-│  - Declarative HUD overlays, menus, modals, and tooltips    │
+│          PRESENTATION & UI LAYER (React + SVG + CSS)        │
+│  - Declarative SVG Hex Grid, dynamic unit tokens, reticles  │
+│  - Floating combat text, animations, and glowing filters    │
+│  - HUD overlays, Action Bar, Inspector Cards, Log, Modals   │
 │  - Reads state reactively; dispatches user intent           │
 └──────────────────────────────▲──────────────────────────────┘
-                               │ (Zustand State Store)
-┌──────────────────────────────▼──────────────────────────────┐
-│                  RENDER LAYER (Phaser 3)                    │
-│  - 2D Canvas/WebGL rendering, sprite animations, camera     │
-│  - Audio playback (SFX & BGM) via WebAudio                  │
-│  - Captures raw canvas pointer inputs                       │
-└──────────────────────────────▲──────────────────────────────┘
-                               │ (Events & Commands)
+                               │ (Zustand Store / Event Hooks)
 ┌──────────────────────────────▼──────────────────────────────┐
 │           SIMULATION ENGINE (Pure TypeScript / Headless)    │
 │  - 100% DOM-independent, engine-independent domain logic    │
-│  - Grid mathematics, coordinate spaces, and line-of-sight   │
+│  - Hexagonal mathematics, coordinate spaces, line-of-sight  │
 │  - Turn sequencing, state transitions, and rule resolution  │
 │  - AI decision computation                                  │
 └──────────────────────────────┬──────────────────────────────┘
                                │
-            ┌──────────────────┴──────────────────┐
-            ▼                                     ▼
+             ┌──────────────────┴──────────────────┐
+             ▼                                     ▼
 ┌─────────────────────────┐           ┌───────────────────────┐
 │     DATA & PERSISTENCE   │           │   TESTING (Vitest)    │
 │ - JSON / TS Data Schemas│           │ - Headless Simulation │
@@ -41,9 +36,9 @@ The system is organized into three strictly separated tiers:
 ```
 
 ### Architectural Rules
-1. **Zero UI/Engine Dependencies in Core**: Code inside `src/core/` must never import from Phaser, React, or browser-specific globals (`window`, `document`).
-2. **Headless Execution**: Any game rule, state transition, or algorithm must be executable and verifiable purely in a Node.js test environment.
-3. **Unidirectional State Flow**: The simulation is the source of truth. The render and UI tiers are projections of the current simulation state.
+1. **Zero UI/DOM Dependencies in Core**: Code inside `src/core/` must never import from React, SVG/DOM elements, or browser-specific globals (`window`, `document`).
+2. **Headless Execution**: Any game rule, state transition, or algorithm must be executable and verifiable purely in a Node.js / Vitest test environment without a browser or canvas mocks.
+3. **Unidirectional State Flow**: The simulation is the single source of truth. The presentation tier is a reactive projection of the current simulation state.
 
 ---
 
@@ -51,33 +46,32 @@ The system is organized into three strictly separated tiers:
 
 ### 2.1. Language & Build Tooling
 * **TypeScript**: Strict mode enabled (`noImplicitAny`, `strictNullChecks`). Ensures reliable contracts across layers and maximizes AI-assisted refactoring and code generation precision.
-* **Vite**: Modern development server providing instant Hot Module Replacement (HMR) and optimized static asset bundling for spritesheets, audio, and data files.
+* **Vite**: Modern development server providing instant Hot Module Replacement (HMR) and optimized static asset bundling.
 
 ### 2.2. Core Simulation Engine (Headless)
 * **Runtime**: Pure TypeScript executed in both browser and Node.js environments.
 * **Responsibilities**:
   * Hexagonal coordinate math (supporting axial $(q, r)$ and cube $(q, r, s)$ representations) and elevation/height offsets.
   * Spatial queries: range rings, distance formulas, line-of-sight, and pathfinding.
-  * Turn order management and state machine transitions.
-  * Deterministic rule resolution.
+  * Turn order management (CTB tick system) and state machine transitions.
+  * Deterministic rule resolution (hit rolls, damage formulas, archetype XP allocation).
   * Save/load serialization and deserialization.
 
-### 2.3. Rendering & Presentation
-* **Phaser 3**: Battle-tested 2D HTML5 game framework used strictly for rendering and presentation.
-* **Key Capabilities Leveraged**:
-  * Pixel-art preservation (`pixelArt: true`, nearest-neighbor sampling).
-  * 2D camera system (panning, zoom levels, centering on points of interest).
-  * Sprite animation playback and depth sorting.
-  * WebAudio management for sound effects and background music.
-  * Scene lifecycle management.
+### 2.3. Presentation & Rendering Layer
+* **React + SVG + CSS**: Declarative, high-contrast vector-based presentation layer built directly in the DOM.
+* **Key Capabilities & Design Rationale**:
+  * **Digital Tabletop Aesthetics**: Eliminates the need for hand-drawn spritesheets or raster art. Uses crisp vector geometry, procedural tokens, SVG filters (glows, drop-shadows), and CSS keyframe animations.
+  * **Dynamic Responsive ViewBox**: Hex grid coordinates map directly to SVG points; dynamic SVG `viewBox` handles pan, zoom, and multi-resolution scaling without raster distortion or letterbox bars.
+  * **Asset Efficiency**: Leverages free vector iconography (e.g. game-icons.net SVG symbols) for abilities, badges, and status effects.
+  * **Audio Strategy**: Audio is decoupled and deferred. When implemented, lightweight native Web Audio API utilities or minimal libraries (e.g., Howler / procedural synth chimes) will be used without adding heavyweight game engine dependencies.
 
-### 2.4. User Interface Layer
-* **React**: Component-based declarative UI layer rendered directly in the DOM on top of the Phaser canvas.
+### 2.4. User Interface & State Orchestration
+* **React**: Component-based declarative UI layer containing HUD overlays, action bars, unit status cards, combat logs, and progression charts.
 * **CSS Modules / Vanilla CSS**: Clean, isolated styling for menus, tooltips, dialogs, and overlays.
-* **State Bridge (Zustand)**:
-  * A lightweight, centralized state store that connects the headless simulation, Phaser events, and React components.
+* **State Bridge (Zustand & React Hooks)**:
+  * Lightweight centralized state store and custom hooks bridging the headless simulation and React components.
   * React components reactively subscribe to state slices.
-  * Phaser and simulation logic can read and update state imperatively without React lifecycle overhead.
+  * Simulation logic updates state without React lifecycle overhead.
 
 ### 2.5. Testing & Verification
 * **Vitest**: Native TypeScript test runner.
@@ -87,7 +81,7 @@ The system is organized into three strictly separated tiers:
 
 ### 2.6. Persistence & Storage
 * **IndexedDB** (via `idb-keyval`): Primary client-side storage for game saves, progress, and battle suspend/checkpoints. Asynchronous, high capacity, non-blocking.
-* **localStorage**: Storage for lightweight user preferences (audio volume, display toggles, keybindings).
+* **localStorage**: Storage for lightweight user preferences (display toggles, keybindings, audio settings).
 * **JSON File Export/Import**: Mechanism for players to export save states as portable files.
 
 ### 2.7. Static Game Data & Maps
@@ -99,6 +93,7 @@ The system is organized into three strictly separated tiers:
 ## 3. Platform & Input Strategy
 
 * **Primary Target**: Desktop web browsers.
-* **Input Abstraction**: Interaction logic is built on standard pointer events (`pointerdown`, `pointerup`), ensuring compatibility with both mouse and future touchscreen inputs.
-* **Virtual Resolution**: The game renders to a consistent internal virtual resolution with letterboxing managed by Phaser's scale system to prevent viewport distortions.
+* **Input Abstraction**: Interaction logic is built on standard pointer events (`pointerdown`, `pointerup`, `click`, `mouseenter`, `mouseleave`), ensuring immediate mouse support and direct future touchscreen compatibility.
+* **Responsive Scaling**: SVG container scaling with CSS flexbox/grid layout maintains sharp visuals across varying browser window sizes and aspect ratios.
 * **Mobile Extensibility**: The decoupled architecture and pointer-based input design ensure that touch controls and mobile viewports can be enabled in the future without rearchitecting core systems.
+

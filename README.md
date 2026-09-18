@@ -11,9 +11,9 @@ A browser-based turn-based tactical RPG built with a strictly decoupled simulati
 | **Language** | [TypeScript](https://www.typescriptlang.org/) | Strict typing, robust data contracts, high accuracy for automated testing and AI-assisted tooling. |
 | **Bundler & Tooling** | [Vite](https://vitejs.dev/) | Sub-second HMR, optimized production builds, native asset pipeline. |
 | **Simulation Core** | Pure TypeScript (Headless) | Pure domain logic with zero DOM or rendering engine dependencies. Can execute deterministically in Node.js. |
-| **Game Renderer** | [Phaser 3](https://phaser.io/) | 2D canvas/WebGL engine with battle-tested support for pixel art (`pixelArt: true`), camera control, and audio. |
-| **HUD & UI Layer** | [React](https://react.dev/) + CSS Modules | Declarative UI for menus, modals, dialogs, and HUD overlays without canvas UI boilerplate. |
-| **State Bridge** | [Zustand](https://github.com/pmndrs/zustand) | Lightweight bidirectional reactive store bridging the headless simulation/Phaser canvas and React UI. |
+| **Presentation & Arena** | React + SVG + CSS | Declarative vector-based digital tabletop arena, glowing hex highlights, procedural unit tokens, and smooth CSS animations without raster asset overhead. |
+| **HUD & UI Layer** | [React](https://react.dev/) + CSS Modules | Declarative UI for menus, modals, dialogs, inspector cards, and HUD overlays. |
+| **State Orchestration** | [Zustand](https://github.com/pmndrs/zustand) | Lightweight reactive store and hooks connecting headless simulation events and React UI components. |
 | **Testing Framework** | [Vitest](https://vitest.dev/) | High-speed unit and integration test runner for verifying simulation logic headlessly. |
 | **Client Persistence** | IndexedDB & `localStorage` | IndexedDB (via `idb-keyval`) for game saves and session suspend states; `localStorage` for player settings. |
 | **Map & Data Storage** | Structured JSON / TypeScript | Human- and agent-readable static definitions for game data and level layouts. |
