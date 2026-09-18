@@ -11,7 +11,6 @@ import {
   advanceArchetypeLevel,
   advanceMultipleLevels,
   createInitialProgression,
-  getClassAtCoord,
   getEligibleClassAtLevel,
   isClassEligibleNextLevel,
   isClassLockedOut,
@@ -203,7 +202,7 @@ describe('Progression and Lockout Simulation Engine', () => {
     expect(lvl2.archetypePoints).toEqual({ fighter: 1, rogue: 1, mage: 0 });
     // Constellation should still only have Warrior
     expect(lvl2.constellation).toEqual(['warrior']);
-    expect(getClassAtCoord(lvl2.archetypePoints, CLASS_REGISTRY)).toBeNull();
+    expect(CLASS_REGISTRY.getClassAtCoord(lvl2.archetypePoints)).toBeNull();
     expect(getEligibleClassAtLevel(lvl2.archetypePoints, 2, CLASS_REGISTRY)).toBeNull();
 
     // Level 2 -> Level 3 (Fighter) -> (2,1,0) - Cavalier
@@ -302,7 +301,7 @@ describe('Decoupled ClassRegistry Dependency Injection', () => {
     expect(lvl2.constellation).toEqual(['brawler', 'gladiator']);
 
     // Off-node check with custom registry
-    expect(getClassAtCoord({ fighter: 1, rogue: 1, mage: 0 }, customRegistry)).toBeNull();
+    expect(customRegistry.getClassAtCoord({ fighter: 1, rogue: 1, mage: 0 })).toBeNull();
     expect(getEligibleClassAtLevel({ fighter: 1, rogue: 1, mage: 0 }, 2, customRegistry)).toBeNull();
   });
 });

@@ -6,15 +6,7 @@ export { toCoordKey, type ClassRegistry };
 export const MAX_LEVEL = 9;
 export const MAX_ARCHETYPE_POINTS = 5;
 
-/**
- * Retrieves the class located at the exact coordinate from the registry, or null if off-node.
- */
-export function getClassAtCoord(
-  points: ArchetypePoints,
-  registry: ClassRegistry
-): ClassDefinition | null {
-  return registry.getClassAtCoord(points);
-}
+
 
 /**
  * Strict lockout check: A class is locked out if:
