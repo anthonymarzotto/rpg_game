@@ -9,12 +9,28 @@ import {
   UNIVERSAL_ACTIONS
 } from '../abilities';
 
+export interface NoviceSandboxOptions {
+  readonly abilitiesOverride?: readonly Ability[];
+  readonly playerUnitOverride?: Unit;
+}
+
 /**
  * Builds the standard Milestone 5 novice combat testbed encounter.
+ * Supports injecting an upgraded player character or custom ability kit.
  */
 export function createNoviceSandboxEncounter(
-  abilitiesOverride?: readonly Ability[]
+  options?: NoviceSandboxOptions | readonly Ability[]
 ): EncounterDefinition {
+  const isOptionsObj = options && typeof options === 'object' && !Array.isArray(options);
+  const abilitiesOverride = Array.isArray(options)
+    ? options
+    : isOptionsObj
+    ? (options as NoviceSandboxOptions).abilitiesOverride
+    : undefined;
+  const playerUnitOverride = isOptionsObj
+    ? (options as NoviceSandboxOptions).playerUnitOverride
+    : undefined;
+
   const starterAbilities = abilitiesOverride ?? [
     SHIELD_BASH,
     QUICK_THRUST,
@@ -23,7 +39,7 @@ export function createNoviceSandboxEncounter(
   ];
 
   // 1. Player Recruit (center)
-  const player = createRecruit('player', 'Alden (Novice)', {
+  const player = playerUnitOverride ?? createRecruit('player', 'Alden (Novice)', {
     abilities: starterAbilities,
     faction: 'PLAYER'
   });
@@ -140,6 +156,19 @@ export function createNoviceSandboxEncounter(
       { unit: dummyC, coord: { q: 0, r: 3 } },
       { unit: dummyD, coord: { q: -2, r: 1 } }
     ],
-    initialActiveUnitId: 'player'
+    initialActiveUnitId: 'player',
+    objectives: [
+      {
+        id: 'sandbox_xp_milestone',
+        description: 'Earn 5 XP in any archetype (Fighter, Rogue, or Mage)',
+        condition: {
+          anyOf: [
+            { kind: 'ARCHETYPE_XP_EARNED', unitId: 'player', archetype: 'FIGHTER', amount: 5 },
+            { kind: 'ARCHETYPE_XP_EARNED', unitId: 'player', archetype: 'ROGUE', amount: 5 },
+            { kind: 'ARCHETYPE_XP_EARNED', unitId: 'player', archetype: 'MAGE', amount: 5 }
+          ]
+        }
+      }
+    ]
   };
 }

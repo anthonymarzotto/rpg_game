@@ -7,6 +7,7 @@ import { HexGridSvg } from './HexGridSvg';
 import { ActionBar } from './ActionBar';
 import { UnitStatusCard } from './UnitStatusCard';
 import { CombatLogPanel } from './CombatLogPanel';
+import { BattleVictoryModal } from './BattleVictoryModal';
 import './CombatArena.css';
 
 export function CombatArena() {
@@ -24,9 +25,15 @@ export function CombatArena() {
     abilityRangeCoords,
     candidateTargetCoords,
     targetPreview,
+    reconciliationResult,
+    isVictoryModalOpen,
+    setIsVictoryModalOpen,
     selectAction,
     handleTileClick,
     handleEndTurn,
+    handleSelectArchetypeChoice,
+    handleSwapAbility,
+    handleRematch,
     handleResetEncounter,
     handleRerollKit
   } = useCombatSimulation({
@@ -118,6 +125,17 @@ export function CombatArena() {
         selectedAbility={selectedAbility}
         onSelectAction={selectAction}
         onEndTurn={handleEndTurn}
+      />
+
+      {/* Post-Battle Victory & Level Unlock Modal */}
+      <BattleVictoryModal
+        isOpen={isVictoryModalOpen}
+        reconciliationResult={reconciliationResult}
+        currentAbilities={playerCu?.unit.abilities ?? []}
+        onSelectArchetypeChoice={handleSelectArchetypeChoice}
+        onSwapAbility={handleSwapAbility}
+        onRematch={handleRematch}
+        onDismiss={() => setIsVictoryModalOpen(false)}
       />
     </div>
   );

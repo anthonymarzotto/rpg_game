@@ -1,8 +1,9 @@
 import { Unit } from '../types/unit';
 import { HexCoord } from '../grid/hex';
 import { createRadialArena } from '../grid/templates';
-import { CombatState } from './types';
+import { CombatState, EncounterObjective } from './types';
 import { createCombatState } from './resolver';
+import { evaluateEncounterOutcome } from './objectives';
 
 /**
  * Unit placement on the tactical grid.
@@ -24,7 +25,7 @@ export interface EncounterTileOverride {
 }
 
 /**
- * Declarative definition of a combat encounter map and participant roster.
+ * Declarative definition of a combat encounter map, participant roster, and objectives.
  */
 export interface EncounterDefinition {
   readonly id: string;
@@ -33,6 +34,7 @@ export interface EncounterDefinition {
   readonly tileOverrides?: readonly EncounterTileOverride[];
   readonly units: readonly PlacedUnit[];
   readonly initialActiveUnitId?: string;
+  readonly objectives?: readonly EncounterObjective[];
 }
 
 /**
@@ -63,5 +65,9 @@ export function buildEncounterState(definition: EncounterDefinition): CombatStat
     arena.setUnitPosition(placed.unit.id, placed.coord);
   }
 
-  return createCombatState(arena, units, definition.initialActiveUnitId);
+  const state = createCombatState(arena, units, definition.initialActiveUnitId);
+  (state as { objectives?: readonly EncounterObjective[] }).objectives = definition.objectives;
+  state.outcome = evaluateEncounterOutcome(definition.objectives, state, 'player');
+
+  return state;
 }

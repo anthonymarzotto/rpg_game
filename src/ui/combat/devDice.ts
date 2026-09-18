@@ -1,4 +1,4 @@
-import { DiceRoller } from '../../core/combat/dice';
+import { DiceRoller, RollAdvantage } from '../../core/combat/dice';
 
 export type DiceMode = 'NORMAL' | 'FORCE_CRIT' | 'FORCE_GRAZE' | 'FORCE_MISS';
 
@@ -8,11 +8,19 @@ export type DiceMode = 'NORMAL' | 'FORCE_CRIT' | 'FORCE_GRAZE' | 'FORCE_MISS';
 export class DevDiceRoller implements DiceRoller {
   constructor(private readonly mode: DiceMode) {}
 
-  public rollD20(): number {
+  public rollD20(advantage: RollAdvantage = 'NORMAL'): number {
     if (this.mode === 'FORCE_CRIT') return 20;
     if (this.mode === 'FORCE_MISS') return 2;
     if (this.mode === 'FORCE_GRAZE') return 7;
-    return Math.floor(Math.random() * 20) + 1;
+
+    const single = () => Math.floor(Math.random() * 20) + 1;
+    if (advantage === 'ADVANTAGE') {
+      return Math.max(single(), single());
+    }
+    if (advantage === 'DISADVANTAGE') {
+      return Math.min(single(), single());
+    }
+    return single();
   }
 
   public rollDice(count: number, sides: number): number {

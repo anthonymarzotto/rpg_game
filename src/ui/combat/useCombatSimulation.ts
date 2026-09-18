@@ -1,7 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
-import { HexCoord, hexDistance, getHexesInRange } from '../../core/grid/hex';
+import { HexCoord, getHexesInRange } from '../../core/grid/hex';
 import { Ability } from '../../core/types/ability';
-import { CombatState } from '../../core/combat/types';
+import { Unit } from '../../core/types/unit';
+import { Archetype } from '../../core/types/class';
+import { CombatState, CombatUnit, InBattleXp } from '../../core/combat/types';
 import { canMove, canExecuteAbility } from '../../core/combat/validator';
 import { executeMove, executeAbility } from '../../core/combat/resolver';
 import { endActiveTurn } from '../../core/combat/turnClock';
@@ -12,13 +14,21 @@ import {
 import { TargetPreview, computeTargetPreview } from '../../core/combat/targetPreview';
 import { DiceMode, DevDiceRoller } from './devDice';
 import { useFloatingCombatText } from './useFloatingCombatText';
+import {
+  PostBattleReconciliationResult,
+  reconcilePostBattleProgression
+} from '../../core/progression/postBattle';
+import { ClassRegistry, createClassRegistry } from '../../core/progression/registry';
+import { CLASS_CATALOG } from '../../data/classes';
+import { NoviceSandboxOptions } from '../../data/encounters/noviceSandbox';
 
 export type ActionMode = 'IDLE' | 'MOVE' | 'ABILITY';
 
 export interface UseCombatSimulationOptions {
-  readonly encounterFactory: (abilitiesOverride?: readonly Ability[]) => EncounterDefinition;
+  readonly encounterFactory: (options?: NoviceSandboxOptions | readonly Ability[]) => EncounterDefinition;
   readonly initialKit?: readonly Ability[];
   readonly onRerollKit?: () => readonly Ability[];
+  readonly classRegistry?: ClassRegistry;
 }
 
 /**
@@ -27,9 +37,18 @@ export interface UseCombatSimulationOptions {
 export function useCombatSimulation({
   encounterFactory,
   initialKit,
-  onRerollKit
+  onRerollKit,
+  classRegistry: injectedRegistry
 }: UseCombatSimulationOptions) {
+  const defaultRegistry = useMemo(() => createClassRegistry(CLASS_CATALOG), []);
+  const registry = injectedRegistry ?? defaultRegistry;
+
   const [currentKit, setCurrentKit] = useState<readonly Ability[] | undefined>(initialKit);
+  const [bankedXp, setBankedXp] = useState<InBattleXp>({ fighter: 0, rogue: 0, mage: 0 });
+  const [activePlayerUnit, setActivePlayerUnit] = useState<Unit | undefined>(undefined);
+  const [reconciliationResult, setReconciliationResult] = useState<PostBattleReconciliationResult | null>(null);
+  const [isVictoryModalOpen, setIsVictoryModalOpen] = useState(false);
+
   const [state, setState] = useState<CombatState>(() =>
     buildEncounterState(encounterFactory(initialKit))
   );
@@ -59,137 +78,129 @@ export function useCombatSimulation({
     return state.arena.getReachableHexes(playerCoord, playerCu.unit.effectiveVitals.move);
   }, [actionMode, playerCoord, playerCu, state.arena]);
 
-  // Computes effect range footprint hexes when an ability is selected
+  // Computes candidate tiles in range when an ability is selected
   const abilityRangeCoords = useMemo<HexCoord[]>(() => {
-    if (actionMode !== 'ABILITY' || !selectedAbility || !playerCoord || !playerCu) {
+    if (actionMode !== 'ABILITY' || !selectedAbility || !playerCoord) {
       return [];
     }
-    if (selectedAbility.targetType === 'SELF') {
-      return [playerCoord];
-    }
-    const hexes = getHexesInRange(playerCoord, selectedAbility.range);
-    const validHexes = hexes.filter((coord) => state.arena.getTile(coord) !== undefined);
-    if (selectedAbility.targetType === 'SINGLE_TARGET') {
-      return validHexes.filter((coord) => coord.q !== playerCoord.q || coord.r !== playerCoord.r);
-    }
-    return validHexes;
-  }, [actionMode, selectedAbility, playerCoord, playerCu, state.arena]);
+    return getHexesInRange(playerCoord, selectedAbility.range);
+  }, [actionMode, selectedAbility, playerCoord]);
 
-  // Computes candidate target tiles with valid targets within range
+  // Candidate targets within ability range that pass validation
   const candidateTargetCoords = useMemo<HexCoord[]>(() => {
-    if (actionMode !== 'ABILITY' || !selectedAbility || !playerCoord || !playerCu) {
+    if (actionMode !== 'ABILITY' || !selectedAbility || !playerCoord) {
       return [];
     }
-
-    if (selectedAbility.targetType === 'SELF') {
-      return [playerCoord];
-    }
-
-    const results: HexCoord[] = [];
-    for (const [unitId, cu] of state.units) {
-      if (cu.isDefeated) continue;
-      const coord = state.arena.getUnitPosition(unitId);
-      if (!coord) continue;
-
-      if (hexDistance(playerCoord, coord) > selectedAbility.range) {
-        continue;
-      }
-
+    return abilityRangeCoords.filter((coord) => {
+      const targetUnitId = state.arena.getUnitAt(coord);
       const validation = canExecuteAbility(state, 'player', selectedAbility, {
         coord,
-        targetUnitId: unitId
+        targetUnitId
       });
+      return validation.valid;
+    });
+  }, [actionMode, selectedAbility, playerCoord, abilityRangeCoords, state]);
 
-      if (validation.valid) {
-        results.push(coord);
-      }
-    }
-    return results;
-  }, [actionMode, selectedAbility, playerCoord, playerCu, state]);
-
-  // Target preview projected against hovered coordinate
+  // Live damage/hit preview on hovered target
   const targetPreview = useMemo<TargetPreview | null>(() => {
-    if (actionMode !== 'ABILITY' || !selectedAbility || !hoveredCoord) {
+    if (actionMode !== 'ABILITY' || !selectedAbility || !hoveredCoord || !playerCu) {
       return null;
     }
-    return computeTargetPreview(state, 'player', selectedAbility, hoveredCoord);
-  }, [actionMode, selectedAbility, hoveredCoord, state]);
+    return computeTargetPreview(
+      state,
+      'player',
+      selectedAbility,
+      hoveredCoord
+    );
+  }, [actionMode, selectedAbility, hoveredCoord, playerCu, state]);
 
-  // Turn auto-advancement past passive dummies
-  const autoAdvancePassiveDummies = useCallback((currentState: CombatState) => {
-    while (currentState.activeUnitId !== 'player') {
-      const activeDummy = currentState.units.get(currentState.activeUnitId);
-      currentState.combatLog.push({
-        turnNumber: currentState.turnNumber,
-        actorUnitId: currentState.activeUnitId,
-        actionId: 'wait',
-        message: `${activeDummy?.unit.name ?? 'Dummy'} passed turn.`
-      });
-      endActiveTurn(currentState);
-    }
-  }, []);
+  // Check and trigger post-battle reconciliation if outcome becomes VICTORY
+  const checkEncounterProgression = useCallback(
+    (nextState: CombatState) => {
+      if (nextState.outcome === 'VICTORY') {
+        const pCu = nextState.units.get('player');
+        if (pCu) {
+          const currentUnit = activePlayerUnit ?? pCu.unit;
+          const result = reconcilePostBattleProgression(
+            currentUnit,
+            pCu.inBattleXp,
+            registry,
+            { bankedXp }
+          );
+          setReconciliationResult(result);
+          setIsVictoryModalOpen(true);
+        }
+      }
+    },
+    [activePlayerUnit, registry, bankedXp]
+  );
 
-  // Action Mode Selection
+  // Switches action mode from ActionBar
   const selectAction = useCallback(
     (action: Ability | 'MOVE' | null) => {
       if (action === 'MOVE') {
         setActionMode('MOVE');
         setSelectedAbility(null);
-      } else if (action === null) {
-        setActionMode('IDLE');
-        setSelectedAbility(null);
-      } else {
+      } else if (action && typeof action === 'object') {
         setActionMode('ABILITY');
         setSelectedAbility(action);
+      } else {
+        setActionMode('IDLE');
+        setSelectedAbility(null);
       }
     },
     []
   );
 
-  // Click handler for arena tiles
+  // Automatically steps passive dummy turns
+  const autoAdvancePassiveDummies = useCallback(
+    (currentState: CombatState) => {
+      let loops = 0;
+      while (
+        currentState.activeUnitId &&
+        currentState.activeUnitId !== 'player' &&
+        loops < 10
+      ) {
+        loops++;
+        endActiveTurn(currentState, 0);
+      }
+    },
+    []
+  );
+
+  // Dispatches tactical intent on tile click
   const handleTileClick = useCallback(
     (coord: HexCoord) => {
-      if (!playerCu || playerCu.isDefeated) return;
-
-      // 1. Move Execution
       if (actionMode === 'MOVE') {
-        const canDoMove = canMove(state, 'player', coord);
-        if (canDoMove.valid) {
+        const validation = canMove(state, 'player', coord);
+        if (validation.valid) {
           executeMove(state, 'player', coord);
-          addFloatingText('Move (1 AP)', 'buff', coord);
+          addFloatingText('Move', 'buff', coord);
           setActionMode('IDLE');
           setState({ ...state });
+          checkEncounterProgression(state);
+        } else {
+          addFloatingText(validation.reason, 'miss', coord);
         }
-        return;
-      }
-
-      // 2. Ability Execution
-      if (actionMode === 'ABILITY' && selectedAbility) {
+      } else if (actionMode === 'ABILITY' && selectedAbility) {
         const targetUnitId = state.arena.getUnitAt(coord);
-        const targetOption =
-          selectedAbility.targetType === 'SELF'
-            ? undefined
-            : { coord, targetUnitId: targetUnitId ?? undefined };
-
-        const validation = canExecuteAbility(
-          state,
-          'player',
-          selectedAbility,
-          targetOption
-        );
+        const validation = canExecuteAbility(state, 'player', selectedAbility, {
+          coord,
+          targetUnitId
+        });
 
         if (validation.valid) {
-          const diceRoller = new DevDiceRoller(diceMode);
           const targetCoordBefore = targetUnitId
             ? state.arena.getUnitPosition(targetUnitId)
-            : coord;
+            : undefined;
 
+          const roller = new DevDiceRoller(diceMode);
           const resolution = executeAbility(
             state,
             'player',
             selectedAbility,
-            targetOption,
-            diceRoller
+            { coord, targetUnitId },
+            roller
           );
 
           dispatchResolutionFeedback(
@@ -205,6 +216,7 @@ export function useCombatSimulation({
           setActionMode('IDLE');
           setSelectedAbility(null);
           setState({ ...state });
+          checkEncounterProgression(state);
         } else if (targetUnitId) {
           addFloatingText(validation.reason, 'miss', coord);
         }
@@ -214,11 +226,11 @@ export function useCombatSimulation({
       actionMode,
       selectedAbility,
       state,
-      playerCu,
       playerCoord,
       diceMode,
       addFloatingText,
-      dispatchResolutionFeedback
+      dispatchResolutionFeedback,
+      checkEncounterProgression
     ]
   );
 
@@ -234,10 +246,92 @@ export function useCombatSimulation({
     setActionMode('IDLE');
     setSelectedAbility(null);
     setState({ ...state });
-  }, [playerCu, playerCoord, state, addFloatingText, autoAdvancePassiveDummies]);
+    checkEncounterProgression(state);
+  }, [playerCu, playerCoord, state, addFloatingText, autoAdvancePassiveDummies, checkEncounterProgression]);
 
-  // Reset encounter
+  // Resolves player choice when multiple archetypes qualified simultaneously
+  const handleSelectArchetypeChoice = useCallback(
+    (archetype: Archetype) => {
+      const pCu = state.units.get('player');
+      if (!pCu) return;
+      const currentUnit = activePlayerUnit ?? pCu.unit;
+      const result = reconcilePostBattleProgression(
+        currentUnit,
+        pCu.inBattleXp,
+        registry,
+        { bankedXp, selectedArchetypeChoice: archetype }
+      );
+      setReconciliationResult(result);
+    },
+    [state.units, activePlayerUnit, registry, bankedXp]
+  );
+
+  // Swaps an unlocked class ability into one of the 3 active loadout slots
+  const handleSwapAbility = useCallback(
+    (slotIndex: number, newAbility: Ability) => {
+      const pCu = state.units.get('player');
+      if (!pCu) return;
+      const currentUnit = activePlayerUnit ?? pCu.unit;
+      const currentAbilities = [...currentUnit.abilities];
+      currentAbilities[slotIndex] = newAbility;
+
+      const updatedUnit: Unit = {
+        ...currentUnit,
+        abilities: currentAbilities
+      };
+
+      const updatedCombatUnit: CombatUnit = {
+        ...pCu,
+        unit: updatedUnit
+      };
+
+      state.units.set('player', updatedCombatUnit);
+      setActivePlayerUnit(updatedUnit);
+      setState({ ...state });
+    },
+    [state, activePlayerUnit]
+  );
+
+  // Resets the arena encounter while retaining the upgraded unit
+  const handleRematch = useCallback(() => {
+    if (!reconciliationResult) return;
+    const pCu = state.units.get('player');
+    const currentUnit = activePlayerUnit ?? pCu?.unit;
+    if (!currentUnit) return;
+
+    const upgradedUnit: Unit = {
+      ...currentUnit,
+      name: reconciliationResult.unlockedClass
+        ? `Alden (${reconciliationResult.unlockedClass.name})`
+        : currentUnit.name,
+      progression: reconciliationResult.updatedProgression,
+      baseAttributes: reconciliationResult.updatedAttributes,
+      effectiveVitals: reconciliationResult.updatedVitals,
+      abilities: currentUnit.abilities
+    };
+
+    setActivePlayerUnit(upgradedUnit);
+    setBankedXp(reconciliationResult.carryoverXp);
+    setReconciliationResult(null);
+    setIsVictoryModalOpen(false);
+
+    const fresh = buildEncounterState(
+      encounterFactory({ playerUnitOverride: upgradedUnit })
+    );
+    setState(fresh);
+    setActionMode('IDLE');
+    setSelectedAbility(null);
+    setHoveredCoord(null);
+    clearFloatingTexts();
+  }, [reconciliationResult, state.units, activePlayerUnit, encounterFactory, clearFloatingTexts]);
+
+  // Full reset back to blank slate Level 0 recruit
   const handleResetEncounter = useCallback(() => {
+    setActivePlayerUnit(undefined);
+    setBankedXp({ fighter: 0, rogue: 0, mage: 0 });
+    setReconciliationResult(null);
+    setIsVictoryModalOpen(false);
+
     const fresh = buildEncounterState(encounterFactory(currentKit));
     setState(fresh);
     setActionMode('IDLE');
@@ -246,17 +340,21 @@ export function useCombatSimulation({
     clearFloatingTexts();
   }, [currentKit, encounterFactory, clearFloatingTexts]);
 
-  // Re-roll ability kit
+  // Re-roll starter ability kit
   const handleRerollKit = useCallback(() => {
     if (!onRerollKit) return;
     const newKit = onRerollKit();
     setCurrentKit(newKit);
+    setActivePlayerUnit(undefined);
+    setBankedXp({ fighter: 0, rogue: 0, mage: 0 });
+    setReconciliationResult(null);
+    setIsVictoryModalOpen(false);
+
     const fresh = buildEncounterState(encounterFactory(newKit));
     setState(fresh);
     setActionMode('IDLE');
     setSelectedAbility(null);
   }, [encounterFactory, onRerollKit]);
-
 
   return {
     state,
@@ -273,9 +371,15 @@ export function useCombatSimulation({
     abilityRangeCoords,
     candidateTargetCoords,
     targetPreview,
+    reconciliationResult,
+    isVictoryModalOpen,
+    setIsVictoryModalOpen,
     selectAction,
     handleTileClick,
     handleEndTurn,
+    handleSelectArchetypeChoice,
+    handleSwapAbility,
+    handleRematch,
     handleResetEncounter,
     handleRerollKit
   };

@@ -2,9 +2,11 @@
  * Dice rolling contracts and implementations for combat resolution.
  */
 
+export type RollAdvantage = 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL';
+
 export interface DiceRoller {
-  /** Rolls a 20-sided die (1 to 20) */
-  rollD20(): number;
+  /** Rolls a 20-sided die (1 to 20), optionally with Advantage or Disadvantage */
+  rollD20(advantage?: RollAdvantage): number;
   /** Rolls count dice with sides (e.g. 1d6, 2d4) and sums the result */
   rollDice(count: number, sides: number): number;
 }
@@ -26,8 +28,22 @@ export class SeededDiceRoller implements DiceRoller {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   }
 
-  public rollD20(): number {
+  private singleD20(): number {
     return Math.floor(this.next() * 20) + 1;
+  }
+
+  public rollD20(advantage: RollAdvantage = 'NORMAL'): number {
+    if (advantage === 'ADVANTAGE') {
+      const r1 = this.singleD20();
+      const r2 = this.singleD20();
+      return Math.max(r1, r2);
+    }
+    if (advantage === 'DISADVANTAGE') {
+      const r1 = this.singleD20();
+      const r2 = this.singleD20();
+      return Math.min(r1, r2);
+    }
+    return this.singleD20();
   }
 
   public rollDice(count: number, sides: number): number {
@@ -60,7 +76,17 @@ export class MockDiceRoller implements DiceRoller {
     this.damageQueue.push(roll);
   }
 
-  public rollD20(): number {
+  public rollD20(advantage: RollAdvantage = 'NORMAL'): number {
+    if (advantage === 'ADVANTAGE') {
+      const r1 = this.d20Queue.shift() ?? 10;
+      const r2 = this.d20Queue.shift() ?? 10;
+      return Math.max(r1, r2);
+    }
+    if (advantage === 'DISADVANTAGE') {
+      const r1 = this.d20Queue.shift() ?? 10;
+      const r2 = this.d20Queue.shift() ?? 10;
+      return Math.min(r1, r2);
+    }
     return this.d20Queue.shift() ?? 10;
   }
 

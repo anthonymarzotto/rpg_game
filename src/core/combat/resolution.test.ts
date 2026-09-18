@@ -5,7 +5,17 @@ import { createCombatState, executeAbility } from './resolver';
 import { resolveAttackRoll, getAttackRollModifier, getAbilityModifier } from './attackRoll';
 import { resolveDamage } from './damageEngine';
 import { MockDiceRoller } from './dice';
-import { STRIKE, SHIELD_BASH, SPARK, BRACE, MINOR_WARD, QUICK_THRUST } from '../../data/abilities';
+import {
+  STRIKE,
+  SHIELD_BASH,
+  SPARK,
+  BRACE,
+  MINOR_WARD,
+  QUICK_THRUST,
+  POWER_STRIKE,
+  SNEAK_ATTACK,
+  ARCANE_BLAST
+} from '../../data/abilities';
 
 describe('Attack & Ability Resolution Outcomes', () => {
   describe('Hit Tiers & Archetype XP Awards', () => {
@@ -305,4 +315,100 @@ describe('Attack & Ability Resolution Outcomes', () => {
       expect(dmgResult.damageDealt).toBe(10);
     });
   });
+
+  describe('Tier 1 Class Signature Abilities', () => {
+    it('executes Warrior Power Strike costing 2 AP and dealing concentrated 2d6 kinetic damage', () => {
+      const arena = createRadialArena(3);
+      const warrior = createRecruit('warrior', 'Warrior');
+      (warrior as any).baseAttributes = { force: 2, finesse: 2, focus: 0 };
+      const target = createRecruit('target', 'Armored Target');
+      (target as any).effectiveVitals = { ...target.effectiveVitals, armor: 3 };
+
+      arena.setUnitPosition('warrior', { q: 0, r: 0 });
+      arena.setUnitPosition('target', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [warrior, target], 'warrior');
+      const warriorCu = state.units.get('warrior')!;
+      const targetCu = state.units.get('target')!;
+
+      // 2d6 roll = 8. Force = 2. Total = 10. Armor = 3. Net damage = 7.
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [8] });
+      const result = executeAbility(state, 'warrior', POWER_STRIKE, { targetUnitId: 'target' }, dice);
+
+      expect(warriorCu.currentAp).toBe(1); // 3 AP start - 2 AP cost = 1
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.hitOutcome).toBe('SOLID_HIT');
+        expect(result.details.damageDealt).toBe(7);
+      }
+      expect(targetCu.currentHp).toBe(target.effectiveVitals.maxHp - 7);
+      expect(warriorCu.inBattleXp.fighter).toBe(1);
+    });
+
+    it('executes Wizard Arcane Blast dealing primary magic damage and collateral AoE splash', () => {
+      const arena = createRadialArena(3);
+      const wizard = createRecruit('wizard', 'Wizard');
+      const dummyA = createRecruit('dummyA', 'Dummy A');
+      const dummyB = createRecruit('dummyB', 'Dummy B (Adjacent)');
+
+      arena.setUnitPosition('wizard', { q: 0, r: 0 });
+      arena.setUnitPosition('dummyA', { q: 2, r: 0 }); // Primary target at (2, 0)
+      arena.setUnitPosition('dummyB', { q: 2, r: 1 }); // Adjacent neighbor at (2, 1)
+
+      const state = createCombatState(arena, [wizard, dummyA, dummyB], 'wizard');
+      const dummyACu = state.units.get('dummyA')!;
+      const dummyBCu = state.units.get('dummyB')!;
+
+      // Primary damage roll: 3. Splash damage roll: 2.
+      const dice = new MockDiceRoller({ d20Rolls: [14], damageRolls: [3, 2] });
+      const result = executeAbility(state, 'wizard', ARCANE_BLAST, { targetUnitId: 'dummyA' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.events).toHaveLength(2); // Primary + Collateral
+        const [event1, event2] = result.details.events;
+        expect(event1.type).toBe('DAMAGE');
+        if (event1.type === 'DAMAGE') {
+          expect(event1.targetUnitId).toBe('dummyA');
+        }
+        expect(event2.type).toBe('DAMAGE');
+        if (event2.type === 'DAMAGE') {
+          expect(event2.targetUnitId).toBe('dummyB');
+          expect(event2.reason).toBe('COLLATERAL');
+        }
+      }
+
+      expect(dummyACu.currentHp).toBe(dummyA.effectiveVitals.maxHp - 3);
+      expect(dummyBCu.currentHp).toBe(dummyB.effectiveVitals.maxHp - 2);
+    });
+
+    it('executes Thief Sneak Attack with Advantage and bonus precision dice when target is pinned', () => {
+      const arena = createRadialArena(3);
+      // Place dummy at (0, 1) right next to pillar at (0, 2)
+      arena.setTile({ coord: { q: 0, r: 2 }, isWalkable: false, elevation: 0 });
+
+      const thief = createRecruit('thief', 'Thief');
+      (thief as any).baseAttributes = { force: 1, finesse: 3, focus: 0 };
+      const pinnedTarget = createRecruit('target', 'Pinned Target');
+
+      arena.setUnitPosition('thief', { q: 0, r: 0 });
+      arena.setUnitPosition('target', { q: 0, r: 1 });
+
+      const state = createCombatState(arena, [thief, pinnedTarget], 'thief');
+
+      // Sneak Attack rolls with Advantage (rolls 2 d20s: 8 and 16 -> takes 16)
+      // Damage: 1d4 (3) + 1d6 (5) + 1 Force = 9
+      const dice = new MockDiceRoller({ d20Rolls: [8, 16], damageRolls: [3, 5] });
+      const result = executeAbility(state, 'thief', SNEAK_ATTACK, { targetUnitId: 'target' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.d20Roll).toBe(16); // Advantage picked higher roll
+        expect(result.details.hitOutcome).toBe('SOLID_HIT'); // 16 + 3 = 19 vs 10 DC (needs >= 20 for crit)
+        expect(result.details.damageDealt).toBe(9); // 3 (1d4) + 5 (1d6) + 1 (Force) - 0 (Armor)
+        expect(result.details.damageBreakdown).toContain('1d4+1d6');
+      }
+    });
+  });
 });
+

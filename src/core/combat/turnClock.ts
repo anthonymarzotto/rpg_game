@@ -1,6 +1,7 @@
 import { CombatState, CombatUnit } from './types';
 import { getEffectiveSpeed } from './effectiveVitals';
 import { ACTION_ECONOMY_CONFIG } from '../config/balance';
+import { evaluateEncounterOutcome } from './objectives';
 
 /**
  * Calculates the new initiative gauge value when a unit ends their turn,
@@ -102,5 +103,7 @@ export function endActiveTurn(
   activeCombatUnit.initiativeGauge = calculateTurnResetGauge(unspent, overflow);
   activeCombatUnit.currentAp = 0;
 
-  return advanceTurnClock(state);
+  const nextActive = advanceTurnClock(state);
+  state.outcome = evaluateEncounterOutcome(state.objectives, state, 'player');
+  return nextActive;
 }

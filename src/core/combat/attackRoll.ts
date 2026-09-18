@@ -1,8 +1,13 @@
 import { Ability } from '../types/ability';
 import { CombatUnit, HitOutcome } from './types';
 import { getEffectiveEvasion, getEffectiveResolve } from './effectiveVitals';
-import { DiceRoller } from './dice';
+import { DiceRoller, RollAdvantage } from './dice';
 import { COMBAT_RESOLUTION_CONFIG } from '../config/balance';
+
+export interface AttackRollOptions {
+  readonly advantage?: RollAdvantage;
+  readonly critThresholdOverride?: number;
+}
 
 export interface AttackRollResult {
   readonly hitOutcome: HitOutcome;
@@ -29,13 +34,15 @@ export function getAttackRollModifier(actorCu: CombatUnit, ability: Ability): nu
 }
 
 /**
- * Resolves an attack roll comparing d20 + modifier against the target defense score.
+ * Resolves an attack roll comparing d20 + modifier against the target defense score,
+ * supporting first-class Advantage/Disadvantage and custom critical thresholds.
  */
 export function resolveAttackRoll(
   actorCu: CombatUnit,
   targetCu: CombatUnit,
   ability: Ability,
-  diceRoller: DiceRoller
+  diceRoller: DiceRoller,
+  options?: AttackRollOptions
 ): AttackRollResult {
   const modifier = getAttackRollModifier(actorCu, ability);
   const targetDefense =
@@ -43,12 +50,12 @@ export function resolveAttackRoll(
       ? getEffectiveEvasion(targetCu)
       : getEffectiveResolve(targetCu);
 
-  const d20 = diceRoller.rollD20();
+  const d20 = diceRoller.rollD20(options?.advantage ?? 'NORMAL');
   const totalScore = d20 + modifier;
 
   const critMargin = COMBAT_RESOLUTION_CONFIG.critThresholdMargin;
   const isCritBoosted = ability.effect?.type === 'CRIT_BOOST';
-  const naturalCritThreshold = isCritBoosted ? 19 : 20;
+  const naturalCritThreshold = options?.critThresholdOverride ?? (isCritBoosted ? 19 : 20);
 
   let hitOutcome: HitOutcome = 'MISS';
   if (d20 >= naturalCritThreshold || totalScore >= targetDefense + critMargin) {

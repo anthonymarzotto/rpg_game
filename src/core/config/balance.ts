@@ -18,11 +18,19 @@ export const RECRUIT_BASE_VITALS = {
  * Scaling rates governing how attributes and levels enhance derived vitals.
  */
 export const STAT_SCALING_RATES = {
-  hpPerForce: 5,
-  hpPerLevel: 2,
+  hpPerForce: 0,
+  hpPerLevel: 5,
   speedPerFinesse: 2,
   moveFinesseDivisor: 3
 } as const;
+
+/**
+ * Archetype XP required to unlock each progressive class tier.
+ * Index 0 corresponds to Level 1 unlock (5 XP), index 1 to Level 2 (10 XP), etc.
+ */
+export const LEVEL_XP_THRESHOLDS: readonly number[] = [
+  5, 10, 15, 20, 25, 30, 35, 40, 45
+] as const;
 
 /**
  * Parameters governing the Action Point (AP) economy and CTB clock.

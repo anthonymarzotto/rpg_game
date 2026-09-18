@@ -29,6 +29,14 @@ export interface AbilityEffect {
   readonly durationTurns?: number;
 }
 
+export type AbilityCondition = 'FLANK_OR_REAR';
+
+export interface ConditionalBonus {
+  readonly condition: AbilityCondition;
+  readonly bonusDamage?: DiceProfile;
+  readonly grantsAdvantage?: boolean;
+}
+
 /**
  * Combat action contract.
  */
@@ -48,5 +56,9 @@ export interface Ability {
   readonly damageType: DamageType;
   readonly damageProfile?: DiceProfile;
   readonly effect?: AbilityEffect;
+  /** Blast AoE radius in hexes (undefined or 0 = single target hex, 1 = target + adjacent ring) */
+  readonly aoeRadius?: number;
+  /** Conditional bonuses applied when tactical conditions are met (e.g. Sneak Attack) */
+  readonly conditionalBonus?: ConditionalBonus;
 }
 

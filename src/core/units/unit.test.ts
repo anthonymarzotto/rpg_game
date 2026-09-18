@@ -19,11 +19,11 @@ describe('Unit Stats & Derived Vitals', () => {
     expect(vitals.ward).toBe(0);
   });
 
-  it('scales HP and Armor with Force', () => {
+  it('scales flat HP per level (+5 HP) and Armor with Force', () => {
     const vitals = computeDerivedVitals({ force: 4, finesse: 0, focus: 0 }, 1);
 
-    // 20 base + (4 force * 5) + (1 level * 2) = 42 HP
-    expect(vitals.maxHp).toBe(42);
+    // 20 base + (4 force * 0) + (1 level * 5) = 25 HP
+    expect(vitals.maxHp).toBe(25);
     expect(vitals.armor).toBe(4);
     expect(vitals.ward).toBe(0);
   });

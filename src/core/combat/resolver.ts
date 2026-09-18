@@ -1,5 +1,5 @@
 import { Unit } from '../types/unit';
-import { HexCoord } from '../grid/hex';
+import { HexCoord, getHexNeighbors, getHexesInRange, hexEquals } from '../grid/hex';
 import { Arena } from '../grid/arena';
 import { Ability } from '../types/ability';
 import {
@@ -9,7 +9,7 @@ import {
   CombatEvent
 } from './types';
 import { canMove, canExecuteAbility } from './validator';
-import { DiceRoller, SeededDiceRoller } from './dice';
+import { DiceRoller, SeededDiceRoller, RollAdvantage } from './dice';
 import {
   COMBAT_RESOLUTION_CONFIG,
   ACTION_ECONOMY_CONFIG
@@ -18,6 +18,7 @@ import { advanceTurnClock } from './turnClock';
 import { resolveAttackRoll } from './attackRoll';
 import { resolveDamage } from './damageEngine';
 import { executeAbilityEffects } from './effects';
+import { evaluateEncounterOutcome } from './objectives';
 
 const defaultDiceRoller = new SeededDiceRoller();
 
@@ -71,7 +72,8 @@ export function createCombatState(
     units: combatUnits,
     activeUnitId: '',
     turnNumber: 0,
-    combatLog: []
+    combatLog: [],
+    outcome: 'IN_PROGRESS'
   };
 
   if (initialActiveUnitId && combatUnits.has(initialActiveUnitId)) {
@@ -139,6 +141,43 @@ function applyCombatEvents(state: CombatState, events: readonly CombatEvent[]): 
 }
 
 /**
+ * Evaluates whether a target is flanked by the actor.
+ * Flanking is achieved if:
+ * 1. An ally of the actor is also adjacent to the target (allied pincer), OR
+ * 2. The target is pinned adjacent to an unwalkable obstacle / wall / pillar.
+ */
+export function isFlankOrRear(
+  state: CombatState,
+  actorUnitId: string,
+  targetUnitId: string
+): boolean {
+  const actorCu = state.units.get(actorUnitId);
+  const targetCoord = state.arena.getUnitPosition(targetUnitId);
+  const actorCoord = state.arena.getUnitPosition(actorUnitId);
+  if (!actorCu || !targetCoord || !actorCoord) return false;
+
+  const targetNeighbors = getHexNeighbors(targetCoord);
+
+  // 1. Check if any other ally of actor is adjacent to target
+  const hasAlliedFlanker = targetNeighbors.some((coord) => {
+    const occupantId = state.arena.getUnitAt(coord);
+    if (!occupantId || occupantId === actorUnitId) return false;
+    const cu = state.units.get(occupantId);
+    return cu && !cu.isDefeated && cu.currentHp > 0 && cu.faction === actorCu.faction;
+  });
+  if (hasAlliedFlanker) return true;
+
+  // 2. Check if target is pinned adjacent to an unwalkable obstacle
+  const hasObstaclePin = targetNeighbors.some((coord) => {
+    const tile = state.arena.getTile(coord);
+    return !tile || !tile.isWalkable;
+  });
+  if (hasObstaclePin) return true;
+
+  return false;
+}
+
+/**
  * Resolves an ability execution including to-hit roll, damage, mitigation,
  * pluggable effect dispatch, state event application, and in-battle archetype XP award.
  */
@@ -182,6 +221,7 @@ export function executeAbility(
     });
 
     applyCombatEvents(state, effectResult.events);
+    state.outcome = evaluateEncounterOutcome(state.objectives, state, 'player');
 
     const statusEvent = effectResult.events.find(
       (e): e is Extract<CombatEvent, { type: 'STATUS_APPLIED' }> => e.type === 'STATUS_APPLIED'
@@ -209,13 +249,32 @@ export function executeAbility(
 
   // 2. Damaging Attack Resolution
   const targetCu = requireCombatUnit(state, target!.targetUnitId!);
-  const rollResult = resolveAttackRoll(actorCu, targetCu, ability, diceRoller);
+
+  // Tactical condition evaluation (e.g. Sneak Attack)
+  let rollAdvantage: RollAdvantage = 'NORMAL';
+  let bonusDamageProfile = undefined;
+
+  if (ability.conditionalBonus?.condition === 'FLANK_OR_REAR') {
+    const isFlanked = isFlankOrRear(state, actorUnitId, targetCu.unit.id);
+    if (isFlanked) {
+      if (ability.conditionalBonus.grantsAdvantage !== false) {
+        rollAdvantage = 'ADVANTAGE';
+      }
+      bonusDamageProfile = ability.conditionalBonus.bonusDamage;
+    }
+  }
+
+  const rollResult = resolveAttackRoll(actorCu, targetCu, ability, diceRoller, {
+    advantage: rollAdvantage
+  });
+
   const damageResult = resolveDamage(
     rollResult.hitOutcome,
     ability,
     actorCu,
     targetCu,
-    diceRoller
+    diceRoller,
+    bonusDamageProfile
   );
 
   const events: CombatEvent[] = [];
@@ -233,6 +292,41 @@ export function executeAbility(
     });
   }
 
+  // Secondary AoE Splash Resolution
+  if (ability.aoeRadius && ability.aoeRadius > 0 && rollResult.hitOutcome !== 'MISS') {
+    const targetCoord = target?.coord ?? state.arena.getUnitPosition(targetCu.unit.id);
+    if (targetCoord) {
+      const aoeHexes = getHexesInRange(targetCoord, ability.aoeRadius);
+      for (const hex of aoeHexes) {
+        if (hexEquals(hex, targetCoord)) continue;
+        const secondaryUnitId = state.arena.getUnitAt(hex);
+        if (secondaryUnitId && secondaryUnitId !== actorCu.unit.id) {
+          const splashCu = state.units.get(secondaryUnitId);
+          if (splashCu && !splashCu.isDefeated && splashCu.currentHp > 0) {
+            const splashDmg = resolveDamage(
+              'SOLID_HIT',
+              ability,
+              actorCu,
+              splashCu,
+              diceRoller
+            );
+            if (splashDmg.damageDealt > 0) {
+              events.push({
+                type: 'DAMAGE',
+                targetUnitId: splashCu.unit.id,
+                amount: splashDmg.damageDealt,
+                damageType: ability.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL',
+                reason: 'COLLATERAL',
+                sourceUnitId: actorCu.unit.id,
+                isCrit: false
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
   // Dispatch secondary effects via pluggable registry
   const effectResult = executeAbilityEffects(ability, {
     state,
@@ -248,6 +342,9 @@ export function executeAbility(
 
   // Apply all events to state
   applyCombatEvents(state, events);
+
+  // Evaluate encounter outcome
+  state.outcome = evaluateEncounterOutcome(state.objectives, state, 'player');
 
   // Combat Log
   const secondaryDetail = effectResult.logDetail ?? '';

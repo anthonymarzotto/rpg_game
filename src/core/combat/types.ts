@@ -1,4 +1,5 @@
 import { Unit, Faction } from '../types/unit';
+import { Archetype } from '../types/class';
 import { AbilityEffect } from '../types/ability';
 import { HexCoord } from '../grid/hex';
 import { Arena, KnockbackResult } from '../grid/arena';
@@ -139,6 +140,37 @@ export interface CombatLogEntry {
 }
 
 /**
+ * Atomic conditions evaluated against a combat state.
+ */
+export type AtomicObjective =
+  | { readonly kind: 'UNITS_DEFEATED'; readonly unitIds: readonly string[] }
+  | { readonly kind: 'FACTION_DEFEATED'; readonly faction: Faction }
+  | { readonly kind: 'ARCHETYPE_XP_EARNED'; readonly unitId: string; readonly archetype: Archetype; readonly amount: number }
+  | { readonly kind: 'TURNS_ELAPSED'; readonly count: number };
+
+/**
+ * Composable condition tree supporting allOf and anyOf boolean logic.
+ */
+export type ObjectiveCondition =
+  | AtomicObjective
+  | { readonly allOf: readonly ObjectiveCondition[] }
+  | { readonly anyOf: readonly ObjectiveCondition[] };
+
+/**
+ * Declarative encounter victory objective.
+ */
+export interface EncounterObjective {
+  readonly id: string;
+  readonly description: string;
+  readonly condition: ObjectiveCondition;
+}
+
+/**
+ * High-level lifecycle status of a combat encounter.
+ */
+export type CombatOutcome = 'IN_PROGRESS' | 'VICTORY' | 'DEFEAT';
+
+/**
  * Complete state container for an active combat encounter.
  */
 export interface CombatState {
@@ -147,5 +179,7 @@ export interface CombatState {
   activeUnitId: string;
   turnNumber: number;
   readonly combatLog: CombatLogEntry[];
+  outcome: CombatOutcome;
+  readonly objectives?: readonly EncounterObjective[];
 }
 
