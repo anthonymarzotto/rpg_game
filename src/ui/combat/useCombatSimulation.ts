@@ -3,7 +3,7 @@ import { HexCoord, getHexesInRange } from '../../core/grid/hex';
 import { Ability } from '../../core/types/ability';
 import { Unit } from '../../core/types/unit';
 import { Archetype } from '../../core/types/class';
-import { CombatState, CombatUnit, InBattleXp } from '../../core/combat/types';
+import { CombatState, InBattleXp } from '../../core/combat/types';
 import { canMove, canExecuteAbility } from '../../core/combat/validator';
 import { executeMove, executeAbility } from '../../core/combat/resolver';
 import { endActiveTurn } from '../../core/combat/turnClock';
@@ -280,12 +280,7 @@ export function useCombatSimulation({
         abilities: currentAbilities
       };
 
-      const updatedCombatUnit: CombatUnit = {
-        ...pCu,
-        unit: updatedUnit
-      };
-
-      state.units.set('player', updatedCombatUnit);
+      Object.assign(pCu, { unit: updatedUnit });
       setActivePlayerUnit(updatedUnit);
       setState({ ...state });
     },

@@ -26,42 +26,6 @@ function setupTestCombatState() {
 }
 
 describe('objectives evaluation engine', () => {
-  it('evaluates UNITS_DEFEATED correctly', () => {
-    const state = setupTestCombatState();
-    const condition = {
-      kind: 'UNITS_DEFEATED' as const,
-      unitIds: ['dummy1', 'dummy2']
-    };
-
-    expect(evaluateCondition(condition, state)).toBe(false);
-
-    state.units.get('dummy1')!.currentHp = 0;
-    state.units.get('dummy1')!.isDefeated = true;
-    expect(evaluateCondition(condition, state)).toBe(false);
-
-    state.units.get('dummy2')!.currentHp = 0;
-    state.units.get('dummy2')!.isDefeated = true;
-    expect(evaluateCondition(condition, state)).toBe(true);
-  });
-
-  it('evaluates FACTION_DEFEATED correctly', () => {
-    const state = setupTestCombatState();
-    const condition = {
-      kind: 'FACTION_DEFEATED' as const,
-      faction: 'ENEMY' as const
-    };
-
-    expect(evaluateCondition(condition, state)).toBe(false);
-
-    state.units.get('dummy1')!.currentHp = 0;
-    state.units.get('dummy1')!.isDefeated = true;
-    expect(evaluateCondition(condition, state)).toBe(false);
-
-    state.units.get('dummy2')!.currentHp = 0;
-    state.units.get('dummy2')!.isDefeated = true;
-    expect(evaluateCondition(condition, state)).toBe(true);
-  });
-
   it('evaluates ARCHETYPE_XP_EARNED correctly', () => {
     const state = setupTestCombatState();
     const condition = {
@@ -83,32 +47,18 @@ describe('objectives evaluation engine', () => {
     expect(evaluateCondition(condition, state)).toBe(true);
   });
 
-  it('evaluates TURNS_ELAPSED correctly', () => {
-    const state = setupTestCombatState();
-    const condition = {
-      kind: 'TURNS_ELAPSED' as const,
-      count: 3
-    };
-
-    state.turnNumber = 1;
-    expect(evaluateCondition(condition, state)).toBe(false);
-
-    state.turnNumber = 3;
-    expect(evaluateCondition(condition, state)).toBe(true);
-  });
-
   it('evaluates composable allOf condition trees', () => {
     const state = setupTestCombatState();
     const condition = {
       allOf: [
-        { kind: 'UNITS_DEFEATED' as const, unitIds: ['dummy1'] },
+        { kind: 'ARCHETYPE_XP_EARNED' as const, unitId: 'player', archetype: 'FIGHTER' as const, amount: 2 },
         { kind: 'ARCHETYPE_XP_EARNED' as const, unitId: 'player', archetype: 'MAGE' as const, amount: 3 }
       ]
     };
 
     expect(evaluateCondition(condition, state)).toBe(false);
 
-    state.units.get('dummy1')!.isDefeated = true;
+    state.units.get('player')!.inBattleXp.fighter = 2;
     expect(evaluateCondition(condition, state)).toBe(false);
 
     state.units.get('player')!.inBattleXp.mage = 3;

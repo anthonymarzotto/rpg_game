@@ -17,9 +17,6 @@ export class DevDiceRoller implements DiceRoller {
     if (advantage === 'ADVANTAGE') {
       return Math.max(single(), single());
     }
-    if (advantage === 'DISADVANTAGE') {
-      return Math.min(single(), single());
-    }
     return single();
   }
 

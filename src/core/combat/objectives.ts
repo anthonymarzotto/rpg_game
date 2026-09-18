@@ -11,37 +11,14 @@ export function evaluateCondition(condition: ObjectiveCondition, state: CombatSt
     return condition.anyOf.some((c) => evaluateCondition(c, state));
   }
 
-  switch (condition.kind) {
-    case 'UNITS_DEFEATED':
-      return (
-        condition.unitIds.length > 0 &&
-        condition.unitIds.every((id) => {
-          const cu = state.units.get(id);
-          return !cu || cu.isDefeated || cu.currentHp <= 0;
-        })
-      );
-
-    case 'FACTION_DEFEATED': {
-      const factionUnits = Array.from(state.units.values()).filter(
-        (cu) => cu.faction === condition.faction
-      );
-      if (factionUnits.length === 0) return true;
-      return factionUnits.every((cu) => cu.isDefeated || cu.currentHp <= 0);
-    }
-
-    case 'ARCHETYPE_XP_EARNED': {
-      const cu = state.units.get(condition.unitId);
-      if (!cu) return false;
-      const key = condition.archetype.toLowerCase() as keyof typeof cu.inBattleXp;
-      return (cu.inBattleXp[key] ?? 0) >= condition.amount;
-    }
-
-    case 'TURNS_ELAPSED':
-      return state.turnNumber >= condition.count;
-
-    default:
-      return false;
+  if (condition.kind === 'ARCHETYPE_XP_EARNED') {
+    const cu = state.units.get(condition.unitId);
+    if (!cu) return false;
+    const key = condition.archetype.toLowerCase() as keyof typeof cu.inBattleXp;
+    return (cu.inBattleXp[key] ?? 0) >= condition.amount;
   }
+
+  return false;
 }
 
 /**

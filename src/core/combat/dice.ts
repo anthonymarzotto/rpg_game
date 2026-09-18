@@ -2,10 +2,10 @@
  * Dice rolling contracts and implementations for combat resolution.
  */
 
-export type RollAdvantage = 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL';
+export type RollAdvantage = 'ADVANTAGE' | 'NORMAL';
 
 export interface DiceRoller {
-  /** Rolls a 20-sided die (1 to 20), optionally with Advantage or Disadvantage */
+  /** Rolls a 20-sided die (1 to 20), optionally with Advantage */
   rollD20(advantage?: RollAdvantage): number;
   /** Rolls count dice with sides (e.g. 1d6, 2d4) and sums the result */
   rollDice(count: number, sides: number): number;
@@ -37,11 +37,6 @@ export class SeededDiceRoller implements DiceRoller {
       const r1 = this.singleD20();
       const r2 = this.singleD20();
       return Math.max(r1, r2);
-    }
-    if (advantage === 'DISADVANTAGE') {
-      const r1 = this.singleD20();
-      const r2 = this.singleD20();
-      return Math.min(r1, r2);
     }
     return this.singleD20();
   }
@@ -81,11 +76,6 @@ export class MockDiceRoller implements DiceRoller {
       const r1 = this.d20Queue.shift() ?? 10;
       const r2 = this.d20Queue.shift() ?? 10;
       return Math.max(r1, r2);
-    }
-    if (advantage === 'DISADVANTAGE') {
-      const r1 = this.d20Queue.shift() ?? 10;
-      const r2 = this.d20Queue.shift() ?? 10;
-      return Math.min(r1, r2);
     }
     return this.d20Queue.shift() ?? 10;
   }

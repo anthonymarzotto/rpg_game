@@ -40,19 +40,24 @@ export function reconcilePostBattleProgression(
   const totalRogue = (options?.bankedXp?.rogue ?? 0) + inBattleXp.rogue;
   const totalMage = (options?.bankedXp?.mage ?? 0) + inBattleXp.mage;
 
+  const nonLevelUpResult = (
+    requiresChoice = false,
+    qualifying: readonly Archetype[] = []
+  ): PostBattleReconciliationResult => ({
+    updatedProgression: unit.progression,
+    updatedVitals: unit.effectiveVitals,
+    updatedAttributes: unit.baseAttributes,
+    earnedXp: { ...inBattleXp },
+    carryoverXp: { fighter: totalFighter, rogue: totalRogue, mage: totalMage },
+    levelUpsGained: 0,
+    unlockedClass: null,
+    requiresChoice,
+    qualifyingArchetypes: qualifying
+  });
+
   // Max level check
   if (currentLevel >= MAX_LEVEL) {
-    return {
-      updatedProgression: unit.progression,
-      updatedVitals: unit.effectiveVitals,
-      updatedAttributes: unit.baseAttributes,
-      earnedXp: { ...inBattleXp },
-      carryoverXp: { fighter: totalFighter, rogue: totalRogue, mage: totalMage },
-      levelUpsGained: 0,
-      unlockedClass: null,
-      requiresChoice: false,
-      qualifyingArchetypes: []
-    };
+    return nonLevelUpResult();
   }
 
   // Threshold for currentLevel -> currentLevel + 1
@@ -65,32 +70,12 @@ export function reconcilePostBattleProgression(
 
   // Case 1: No archetype met the threshold
   if (qualifyingArchetypes.length === 0) {
-    return {
-      updatedProgression: unit.progression,
-      updatedVitals: unit.effectiveVitals,
-      updatedAttributes: unit.baseAttributes,
-      earnedXp: { ...inBattleXp },
-      carryoverXp: { fighter: totalFighter, rogue: totalRogue, mage: totalMage },
-      levelUpsGained: 0,
-      unlockedClass: null,
-      requiresChoice: false,
-      qualifyingArchetypes: []
-    };
+    return nonLevelUpResult();
   }
 
   // Case 2: Multiple archetypes qualify and no player choice is provided
   if (qualifyingArchetypes.length > 1 && !options?.selectedArchetypeChoice) {
-    return {
-      updatedProgression: unit.progression,
-      updatedVitals: unit.effectiveVitals,
-      updatedAttributes: unit.baseAttributes,
-      earnedXp: { ...inBattleXp },
-      carryoverXp: { fighter: totalFighter, rogue: totalRogue, mage: totalMage },
-      levelUpsGained: 0,
-      unlockedClass: null,
-      requiresChoice: true,
-      qualifyingArchetypes
-    };
+    return nonLevelUpResult(true, qualifyingArchetypes);
   }
 
   // Case 3: Exactly one archetype qualified, or player provided their choice

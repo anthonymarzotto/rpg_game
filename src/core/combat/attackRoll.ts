@@ -6,7 +6,6 @@ import { COMBAT_RESOLUTION_CONFIG } from '../config/balance';
 
 export interface AttackRollOptions {
   readonly advantage?: RollAdvantage;
-  readonly critThresholdOverride?: number;
 }
 
 export interface AttackRollResult {
@@ -55,7 +54,7 @@ export function resolveAttackRoll(
 
   const critMargin = COMBAT_RESOLUTION_CONFIG.critThresholdMargin;
   const isCritBoosted = ability.effect?.type === 'CRIT_BOOST';
-  const naturalCritThreshold = options?.critThresholdOverride ?? (isCritBoosted ? 19 : 20);
+  const naturalCritThreshold = isCritBoosted ? 19 : 20;
 
   let hitOutcome: HitOutcome = 'MISS';
   if (d20 >= naturalCritThreshold || totalScore >= targetDefense + critMargin) {
