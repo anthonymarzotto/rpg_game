@@ -18,7 +18,16 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ PHASE 1: TACTICAL COMBAT ENEMY AI & MULTI-UNIT BATTLES      │
+│ PHASE 1: ACTIVE CLASS, SKILL LOADOUTS & CROSS-CLASS SLOTS   │
+│  - Active class model (core 3 abilities + 1 passive)        │
+│  - Cross-class wildcard slots (borrowed from constellation) │
+│  - "1 Signature + 2 Domain Pool" class package architecture │
+│  - Reference kits for Novice, Warrior, Thief, and Wizard    │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│ PHASE 2: TACTICAL COMBAT ENEMY AI & MULTI-UNIT BATTLES      │
 │  - Headless AI decision engine (scoring, threat, movement)  │
 │  - CTB multi-unit turn sequencing (retiring passive dummies)│
 │  - Multi-unit party squads (allied targeting, party HUD)    │
@@ -26,7 +35,7 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ PHASE 2: PERSISTENCE & CAMPAIGN FLOW                        │
+│ PHASE 3: PERSISTENCE & CAMPAIGN FLOW                        │
 │  - IndexedDB storage engine (roster, saves, checkpoints)    │
 │  - Campaign & encounter progression (multi-battle flow)     │
 │  - Between-battle camp / barracks hub                       │
@@ -34,7 +43,7 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ PHASE 3: CLASS & ABILITY EXPANSION (ON-DEMAND MECHANICS)    │
+│ PHASE 4: CLASS & ABILITY EXPANSION (ON-DEMAND MECHANICS)    │
 │  - Tier 2+ class ability kits & signature passives          │
 │  - Status effects pipeline (introduced as abilities demand) │
 │  - Elevation & verticality (introduced as abilities demand) │
@@ -44,11 +53,59 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 
 ---
 
-## Phase 1: Tactical Combat Enemy AI & Multi-Unit Battles
+## Phase 1: Active Class, Skill Loadouts & Cross-Class Architecture
+
+**Primary Goal**: Rearchitect unit ability loadouts around an **Active Class** system, where each class provides a complete package (3 active skills + 1 passive), supplemented by customizable **cross-class wildcard slots** drawn from the unit's unlocked constellation history.
+
+### 1.1. Unit Loadout & Active Class Domain Model (`src/core/types/`)
+* **Active Class Designation**:
+  * Units select one active class from their unlocked constellation nodes (or Novice if level 0).
+  * The active class sets the unit's primary title, in-combat theme, and automatically loads its **Core Kit** (3 class-specific active abilities + 1 innate passive).
+* **Cross-Class Wildcard Slots**:
+  * Extra customizable slots enabling hybrid build customization:
+    * **Active Wildcard Slots** (e.g. 1–2 slots): Equip active abilities unlocked from any past class along the unit's constellation path.
+    * **Passive Wildcard Slot** (e.g. 1 slot): Equip a passive trait unlocked from any past class in the unit's constellation.
+  * Universal actions (`Move`, `Wait / End Turn`) remain baseline options available to all units.
+* **Pure Headless Domain Contracts**:
+  * Refactor `Unit` and progression types to cleanly represent active class state, equipped wildcard abilities, and active passives.
+
+### 1.2. Class Package Architecture ("1 Signature + 2 Domain Pool")
+* **Class Definition Expansion**:
+  * Every class definition specifies:
+    * **1 Unique Signature Ability**: Bespoke, thematic mechanic exclusive to the class.
+    * **2 Archetype/Domain Pool Abilities**: Reusable or tiered abilities pulled from thematic archetype pools (Force/Fighter, Finesse/Rogue, Focus/Mage, and hybrid vector blends).
+    * **1 Class Passive Trait**: Persistent combat modifier or conditional trigger.
+* **Tier 0 & Tier 1 Reference Implementations**:
+  * Fully flesh out and test complete 3-active + 1-passive packages for foundational classes:
+    * **Novice** `(0, 0, 0)`: Baseline recruit toolkit.
+    * **Warrior** `(1, 0, 0)`: Melee force, armor resilience, kinetic displacement.
+    * **Thief** `(0, 1, 0)`: High mobility, precision strikes, flanking lethality.
+    * **Wizard** `(0, 0, 1)`: Ranged arcana, spell warding, area disruption.
+
+### 1.3. Passive Trait Evaluation Pipeline (`src/core/combat/`)
+* **Headless Passive System**:
+  * Establish an extensible trait pipeline evaluating passive effects during combat:
+    * **Stat Modifiers**: Flat or percentage bonuses (e.g., +Armor, +Evasion, +Move).
+    * **Triggered Hooks**: On attack, on hit/crit/graze, on kill, on receiving damage, or on turn start/end.
+    * **Positional Conditions**: Bonuses when flanking, isolated, or at high HP / low HP.
+* **Testing & Verification**:
+  * Vitest suite verifying correct stacking of Active Class innate passive + equipped Wildcard passive without DOM or UI dependencies.
+
+### 1.4. Presentation & Loadout Management Integration (`src/ui/`)
+* **Action Bar Adaptation**:
+  * Render the expanded active combat deck (Core Class abilities + equipped Wildcards) alongside universal Move/Wait actions with clear visual grouping.
+* **Unit Inspector & Tooltips**:
+  * Display active passives on unit cards and combat preview inspectors.
+* **Post-Battle & Loadout UI**:
+  * Update post-battle flow and victory modal to support selecting an Active Class and configuring Wildcard ability/passive slots upon unlocking new classes.
+
+---
+
+## Phase 2: Tactical Combat Enemy AI & Multi-Unit Battles
 
 **Primary Goal**: Transform the arena from a target-dummy sandbox into a genuine tactical skirmish engine with intelligent hostile behavior and multi-unit squad dynamics.
 
-### 1.1. Headless AI Decision Engine (`src/core/ai/`)
+### 2.1. Headless AI Decision Engine (`src/core/ai/`)
 * **Core Responsibilities**: Pure domain logic that takes the current `CombatState` and active enemy `unitId`, and returns a sequence of executable actions for that unit's turn.
 * **Evaluation & Scoring Heuristics**:
   * **Target Prioritization**: Evaluates candidate targets based on distance, defensive vulnerabilities (low Evasion vs. kinetic attacks, low Resolve vs. magic), remaining HP (finishing off low-health units), and threat archetype.
@@ -60,14 +117,14 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
     * Calculates the value of conserving unspent AP to gain the +20 CTB gauge refund for faster subsequent turns.
 * **Testing & Verification**: Headless Vitest simulations verifying deterministic AI behavior across varying board configurations and archetype match-ups without rendering components.
 
-### 1.2. Asynchronous CTB Multi-Unit Sequencing
+### 2.2. Asynchronous CTB Multi-Unit Sequencing
 * **Eliminate Passive Dummy Stepping**:
   * Retire `autoAdvancePassiveDummies` in favor of full asynchronous CTB turn scheduling where hostile units accumulate gauge and claim active turns naturally.
 * **Turn Notification & Execution Dispatch**:
   * UI state engine coordinates enemy turn pacing (e.g., brief action pauses so players can follow enemy movements, strikes, and floating combat text).
   * Dev toggles for AI step speed (instant for testing, paced for gameplay).
 
-### 1.3. Multi-Unit Party & Squad Combat
+### 2.3. Multi-Unit Party & Squad Combat
 * **Party Roster in Combat**:
   * Support for 2–3 player-controlled units fighting alongside each other against enemy squads.
   * Turn handoff seamlessly shifts player control to whichever allied unit reaches 100 CTB gauge.
@@ -79,41 +136,41 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 
 ---
 
-## Phase 2: Client Persistence & Campaign Flow
+## Phase 3: Client Persistence & Campaign Flow
 
 **Primary Goal**: Enable persistent progression, roster management, and multi-encounter campaigns across browser sessions.
 
-### 2.1. IndexedDB Storage Architecture (`idb-keyval`)
+### 3.1. IndexedDB Storage Architecture (`idb-keyval`)
 * **Serialization Contracts**:
-  * **Party & Unit State**: Base attributes, accumulated archetype points, completed constellation path, unlocked classes, and currently equipped ability loadouts.
+  * **Party & Unit State**: Base attributes, accumulated archetype points, completed constellation path, unlocked classes, designated active class, and equipped wildcard abilities/passives.
   * **Session Checkpoint / Suspend State**: Exact mid-battle serialization allowing players to refresh or leave the browser and resume in-progress combat.
   * **Settings & Preferences** (`localStorage`): Combat text speed, dice display preferences, and UI options.
   * **Portable Save Export/Import**: JSON export and import mechanism for backup and portability.
 * **Testing**: Headless unit tests verifying round-trip serialization and schema migrations.
 
-### 2.2. Campaign & Multi-Encounter Progression Flow
+### 3.2. Campaign & Multi-Encounter Progression Flow
 * **Encounter Progression Graph**:
   * Structure encounters into sequential battles, gauntlets, or branching node maps with scaling difficulty and objective types.
 * **Post-Battle Camp / Barracks Hub**:
   * Transition from the battle victory modal into a dedicated camp screen between encounters.
-  * Inspect party members, review constellations, allocate earned archetype points, and swap equipped abilities from the unlocked class pool.
+  * Inspect party members, review constellations, allocate earned archetype points, set active classes, and customize equipped ability/passive wildcard slots from the unlocked pool.
   * Prepare and select party loadouts for the next deployment.
 
 ---
 
-## Phase 3: Class & Ability Content Expansion (With On-Demand Systems)
+## Phase 4: Class & Ability Content Expansion (With On-Demand Systems)
 
 **Primary Goal**: Deepen tactical variety by authoring Tier 2+ classes and introducing combat mechanics organically as specific abilities demand them.
 
-### 3.1. Tier 2+ Class Kits & Archetype Trees
-* Author bespoke active ability loadouts and passive mastery traits for Tier 2 classes:
+### 4.1. Tier 2+ Class Kits & Archetype Trees
+* Author bespoke active ability loadouts and passive mastery traits for Tier 2 classes using the 1 Signature + 2 Domain Pool model:
   * **Knight** `(2, 0, 0)`: Defensive bulwark, guard/intercept mechanics, heavy kinetic displacement.
   * **Infiltrator** `(0, 2, 0)`: High mobility, stealth/evasion, lethal flank strikes.
   * **Sorcerer** `(0, 0, 2)`: Multi-target spell fields, elemental focus, resolve debuffs.
   * **Cavalier** `(2, 1, 0)`, **Berserker** `(2, 0, 1)`, **Witch** `(0, 1, 2)`, etc.
 * Progress toward mid-tier hybrid classes (e.g. **Bard** `(3, 3, 3)` at the pyramid centroid).
 
-### 3.2. Status Effects & Modifiers (Introduced on Demand)
+### 4.2. Status Effects & Modifiers (Introduced on Demand)
 * *Architectural Principle*: Implement status conditions only when newly authored abilities require them.
 * **Pipeline Integration**:
   * Status effect registry with defined durations, trigger hooks (turn start, on hit, on move, turn end), and stacking rules.
@@ -123,14 +180,14 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
     * *Fortify / Ward Barrier*: Temporary flat mitigation bonuses.
     * *Root / Cripple*: Movement restriction.
 
-### 3.3. Dynamic Elevation & Verticality (Introduced on Demand)
+### 4.3. Dynamic Elevation & Verticality (Introduced on Demand)
 * *Architectural Principle*: Implement height rules when abilities interact with verticality.
 * **Potential Capabilities**:
   * Discrete integer elevation levels (`0, 1, 2...`) on hex tiles.
   * High-ground advantage (hit bonuses or range increases for ranged attacks).
   * Cliff climbing abilities and knockback off ledges with fall impact damage.
 
-### 3.4. Off-Node Level Progression
+### 4.4. Off-Node Level Progression
 * Implement compensatory stat surges or perk selection for intermediate levels (e.g. `(1, 1, 0)` at Level 2) that do not possess a unique class node in the 100-class lattice.
 
 ---
