@@ -50,7 +50,7 @@ describe('Unit Stats & Derived Vitals', () => {
 });
 
 describe('Unit Entity Factory', () => {
-  it('creates a fresh Level-0 recruit with expected initial state and default empty abilities', () => {
+  it('creates a fresh Level-0 recruit with expected initial state, Novice loadout, and 3 starter abilities', () => {
     const recruit = createRecruit('unit-1', 'Alden');
 
     expect(recruit.id).toBe('unit-1');
@@ -59,32 +59,19 @@ describe('Unit Entity Factory', () => {
     expect(recruit.progression.constellation).toHaveLength(0);
     expect(recruit.baseAttributes).toEqual({ force: 0, finesse: 0, focus: 0 });
     expect(recruit.effectiveVitals.maxHp).toBe(20);
-    expect(recruit.abilities).toEqual([]);
+    expect(recruit.loadout.activeClassId).toBe('novice');
+    expect(recruit.loadout.wildcardAbilityIds).toHaveLength(0);
+    expect(recruit.loadout.wildcardPassiveIds).toHaveLength(0);
+    expect(recruit.starterAbilityIds).toHaveLength(3);
   });
 
-  it('supports injecting abilities or an ability kit generator', () => {
-    const mockKit = [
-      {
-        id: 'slash',
-        name: 'Slash',
-        description: 'Basic strike',
-        apCost: 1,
-        range: 1,
-        targetType: 'SINGLE_TARGET' as const,
-        defenseTarget: 'EVASION' as const,
-        damageType: 'PHYSICAL' as const
-      }
-    ];
+  it('supports injecting custom starter ability IDs and custom loadout', () => {
+    const customStarterIds = ['shield_bash', 'quick_thrust', 'spark'];
 
-    const withDirectAbilities = createRecruit('unit-2', 'Boran', {
-      abilities: mockKit
+    const recruit = createRecruit('unit-2', 'Boran', {
+      starterAbilityIds: customStarterIds
     });
-    expect(withDirectAbilities.abilities).toEqual(mockKit);
-
-    const withGenerator = createRecruit('unit-3', 'Celia', {
-      abilityKitGenerator: () => mockKit
-    });
-    expect(withGenerator.abilities).toEqual(mockKit);
+    expect(recruit.starterAbilityIds).toEqual(customStarterIds);
   });
 });
 

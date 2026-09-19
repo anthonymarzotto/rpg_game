@@ -19,8 +19,16 @@ import { resolveAttackRoll } from './attackRoll';
 import { resolveDamage } from './damageEngine';
 import { executeAbilityEffects } from './effects';
 import { evaluateEncounterOutcome } from './objectives';
+import { resolveUnitLoadout, LoadoutLookupProviders } from '../units/loadout';
+import { getClassPackage, getAbilityById, getPassiveById } from '../../data/packages';
 
 const defaultDiceRoller = new SeededDiceRoller();
+
+const defaultLoadoutProviders: LoadoutLookupProviders = {
+  getPackage: getClassPackage,
+  getAbility: getAbilityById,
+  getPassive: getPassiveById
+};
 
 /**
  * Retrieves a CombatUnit by ID or throws a descriptive error.
@@ -50,11 +58,16 @@ export function requireUnitPosition(arena: Arena, unitId: string): HexCoord {
 export function createCombatState(
   arena: Arena,
   units: readonly Unit[],
-  initialActiveUnitId?: string
+  initialActiveUnitId?: string,
+  loadoutProviders: LoadoutLookupProviders = defaultLoadoutProviders
 ): CombatState {
   const combatUnits = new Map<string, CombatUnit>();
 
   for (const unit of units) {
+    const resolved = unit.loadout
+      ? resolveUnitLoadout(unit, loadoutProviders)
+      : undefined;
+
     combatUnits.set(unit.id, {
       unit,
       faction: unit.faction,
@@ -63,7 +76,9 @@ export function createCombatState(
       initiativeGauge: 0,
       isDefeated: false,
       inBattleXp: { fighter: 0, rogue: 0, mage: 0 },
-      activeModifiers: []
+      activeModifiers: [],
+      abilities: resolved?.combatAbilities ?? [],
+      passives: resolved?.activePassives ?? []
     });
   }
 

@@ -11,6 +11,7 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 * **Core Simulation Engine** (`src/core/`): Axial hex math, pathfinding, raycast Line-of-Sight, knockback displacement, collision damage, CTB clock with unspent AP refund, and Triad Vector resolution ($d20$, Graze, Crit, Armor/Ward soak). *(Complete & Tested)*
 * **Class Pyramid & Progression** (`src/core/progression/`, `src/data/classes.ts`): Full 100-class catalog, strict lockout validation, additive archetype point advancement, post-battle reconciliation, and constellation recording. *(Complete & Tested)*
 * **Visual Combat Arena & Core Loop** (`src/ui/combat/`): Interactive SVG arena, dynamic action bar, floating combat text, transparent combat log, dev dice sandbox, post-battle victory modal with class unlocks, ability swapping, and arena rematch with persistent progression. *(Complete & Tested)*
+* **Unit Loadout & Active Class Architecture** (`src/core/types/`, `src/core/units/`): `PassiveTrait`, `ClassPackage`, `UnitLoadout`, non-redundant `Unit` model with `starterAbilityIds`, in-combat `CombatUnit` hydration, and loadout resolution/validation. *(Complete & Tested)*
 
 ---
 
@@ -19,10 +20,10 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 1: ACTIVE CLASS, SKILL LOADOUTS & CROSS-CLASS SLOTS   │
-│  - Active class model (core 3 abilities + 1 passive)        │
-│  - Cross-class wildcard slots (borrowed from constellation) │
-│  - "1 Signature + 2 Domain Pool" class package architecture │
-│  - Reference kits for Novice, Warrior, Thief, and Wizard    │
+│  - [x] 1.1 Active class & loadout domain model (COMPLETED)  │
+│  - [ ] 1.2 "1 Signature + 2 Domain Pool" package catalog   │
+│  - [ ] 1.3 Passive trait evaluation pipeline               │
+│  - [ ] 1.4 Presentation & loadout management integration   │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
@@ -57,17 +58,19 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 
 **Primary Goal**: Rearchitect unit ability loadouts around an **Active Class** system, where each class provides a complete package (3 active skills + 1 passive), supplemented by customizable **cross-class wildcard slots** drawn from the unit's unlocked constellation history.
 
-### 1.1. Unit Loadout & Active Class Domain Model (`src/core/types/`)
+### 1.1. Unit Loadout & Active Class Domain Model (`src/core/types/`, `src/core/units/`) <── COMPLETED & TESTED
 * **Active Class Designation**:
   * Units select one active class from their unlocked constellation nodes (or Novice if level 0).
   * The active class sets the unit's primary title, in-combat theme, and automatically loads its **Core Kit** (3 class-specific active abilities + 1 innate passive).
 * **Cross-Class Wildcard Slots**:
   * Extra customizable slots enabling hybrid build customization:
-    * **Active Wildcard Slots** (e.g. 1–2 slots): Equip active abilities unlocked from any past class along the unit's constellation path.
-    * **Passive Wildcard Slot** (e.g. 1 slot): Equip a passive trait unlocked from any past class in the unit's constellation.
-  * Universal actions (`Move`, `Wait / End Turn`) remain baseline options available to all units.
-* **Pure Headless Domain Contracts**:
-  * Refactor `Unit` and progression types to cleanly represent active class state, equipped wildcard abilities, and active passives.
+    * **Active Wildcard Slots** (2 slots): Equip active abilities unlocked from any past class along the unit's constellation path or Novice starter kit.
+    * **Passive Wildcard Slot** (1 slot): Equip a passive trait unlocked from any past class in the unit's constellation.
+    * Universal actions (`Move`, `Wait / End Turn`) remain baseline options available to all units and are separated from class abilities.
+* **Pure Headless Domain Contracts & Resolution**:
+  * `Unit` holds `loadout: UnitLoadout` and `starterAbilityIds: readonly string[]` with zero redundant arrays.
+  * `CombatUnit` holds in-combat hydrated `abilities` and `passives`.
+  * `resolveUnitLoadout()` and `validateUnitLoadout()` implemented with 100% test coverage.
 
 ### 1.2. Class Package Architecture ("1 Signature + 2 Domain Pool")
 * **Class Definition Expansion**:

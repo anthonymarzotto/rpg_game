@@ -5,14 +5,19 @@ import { createRecruit } from '../../core/units/unitFactory';
 import {
   SHIELD_BASH,
   QUICK_THRUST,
-  SPARK,
-  UNIVERSAL_ACTIONS
-} from '../abilities';
+  SPARK
+} from '../packages/novice';
 
 export interface NoviceSandboxOptions {
   readonly abilitiesOverride?: readonly Ability[];
   readonly playerUnitOverride?: Unit;
 }
+
+const DUMMY_LOADOUT = {
+  activeClassId: 'novice',
+  wildcardAbilityIds: [],
+  wildcardPassiveIds: []
+};
 
 /**
  * Builds the standard Milestone 5 novice combat testbed encounter.
@@ -34,13 +39,12 @@ export function createNoviceSandboxEncounter(
   const starterAbilities = abilitiesOverride ?? [
     SHIELD_BASH,
     QUICK_THRUST,
-    SPARK,
-    ...UNIVERSAL_ACTIONS
+    SPARK
   ];
 
   // 1. Player Recruit (center)
   const player = playerUnitOverride ?? createRecruit('player', 'Alden (Novice)', {
-    abilities: starterAbilities,
+    starterAbilityIds: starterAbilities.map((a) => a.id),
     faction: 'PLAYER'
   });
 
@@ -66,7 +70,8 @@ export function createNoviceSandboxEncounter(
       armor: 2,
       ward: 0
     },
-    abilities: []
+    loadout: DUMMY_LOADOUT,
+    starterAbilityIds: []
   };
 
   // 3. Bystander Dummy B (at 2, 0 behind dummy A)
@@ -91,7 +96,8 @@ export function createNoviceSandboxEncounter(
       armor: 1,
       ward: 0
     },
-    abilities: []
+    loadout: DUMMY_LOADOUT,
+    starterAbilityIds: []
   };
 
   // 4. Screened Dummy C (at 0, 3 behind rock obstacle at 0, 2)
@@ -116,7 +122,8 @@ export function createNoviceSandboxEncounter(
       armor: 0,
       ward: 2
     },
-    abilities: []
+    loadout: DUMMY_LOADOUT,
+    starterAbilityIds: []
   };
 
   // 5. Distant Target D (at -2, 1 for unblocked ranged testing)
@@ -141,7 +148,8 @@ export function createNoviceSandboxEncounter(
       armor: 0,
       ward: 1
     },
-    abilities: []
+    loadout: DUMMY_LOADOUT,
+    starterAbilityIds: []
   };
 
   return {

@@ -4,7 +4,8 @@ import {
   NOVICE_ROGUE_ABILITIES,
   NOVICE_MAGE_ABILITIES,
   UNIVERSAL_ACTIONS,
-  rollNoviceAbilityKit
+  rollNoviceStarterKit,
+  CLASS_PACKAGES
 } from '../../data/abilities';
 import { createRecruit } from './unitFactory';
 
@@ -68,33 +69,42 @@ describe('Ability Catalog Invariants', () => {
 });
 
 describe('Starter Ability Kit Generation Logic', () => {
-  it('rolls exactly 1 Fighter, 1 Rogue, 1 Mage, and 2 Universal actions', () => {
-    const kit = rollNoviceAbilityKit();
+  it('rolls exactly 1 Fighter, 1 Rogue, and 1 Mage combat ability', () => {
+    const kit = rollNoviceStarterKit();
 
-    expect(kit).toHaveLength(5);
-    expect(kit.filter((a) => a.archetypeTag === 'FIGHTER')).toHaveLength(1);
-    expect(kit.filter((a) => a.archetypeTag === 'ROGUE')).toHaveLength(1);
-    expect(kit.filter((a) => a.archetypeTag === 'MAGE')).toHaveLength(1);
-    expect(kit.filter((a) => !a.archetypeTag)).toHaveLength(2);
+    expect(kit).toHaveLength(3);
+    expect(kit[0].archetypeTag).toBe('FIGHTER');
+    expect(kit[1].archetypeTag).toBe('ROGUE');
+    expect(kit[2].archetypeTag).toBe('MAGE');
   });
 
   it('supports deterministic generation using a mock RNG', () => {
     const mockRng = () => 0.0;
-    const kit = rollNoviceAbilityKit(mockRng);
+    const kit = rollNoviceStarterKit(mockRng);
 
     expect(kit[0].id).toBe('strike');
     expect(kit[1].id).toBe('quick_thrust');
     expect(kit[2].id).toBe('spark');
   });
 
-  it('equips newly recruited Novices with their rolled starter kit when abilityKitGenerator is provided', () => {
-    const recruit = createRecruit('unit-novice', 'Bran', {
-      abilityKitGenerator: rollNoviceAbilityKit
-    });
+  it('assigns rolled starter ability IDs to newly recruited Novices', () => {
+    const mockRng = () => 0.0;
+    const recruit = createRecruit('unit-novice', 'Bran', { rng: mockRng });
 
-    expect(recruit.abilities).toHaveLength(5);
-    expect(recruit.abilities.some((a) => a.archetypeTag === 'FIGHTER')).toBe(true);
-    expect(recruit.abilities.some((a) => a.archetypeTag === 'ROGUE')).toBe(true);
-    expect(recruit.abilities.some((a) => a.archetypeTag === 'MAGE')).toBe(true);
+    expect(recruit.starterAbilityIds).toEqual(['strike', 'quick_thrust', 'spark']);
+    expect(recruit.loadout.activeClassId).toBe('novice');
+  });
+});
+
+describe('Class Package Invariants', () => {
+  it('ensures all authored packages define signature, 2 domain abilities, and a passive', () => {
+    for (const [classId, pkg] of Object.entries(CLASS_PACKAGES)) {
+      expect(pkg.classId).toBe(classId);
+      expect(pkg.className.length).toBeGreaterThan(0);
+      expect(pkg.signatureAbility.id.length).toBeGreaterThan(0);
+      expect(pkg.domainAbilities).toHaveLength(2);
+      expect(pkg.passive.id.length).toBeGreaterThan(0);
+      expect(pkg.passive.hook).toBe('ALWAYS');
+    }
   });
 });

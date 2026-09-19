@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { PostBattleReconciliationResult } from '../../core/progression/postBattle';
 import { Archetype } from '../../core/types/class';
 import { Ability } from '../../core/types/ability';
-import { getClassAbilities } from '../../data/abilities';
+import { getClassPackage } from '../../data/packages';
 import './BattleVictoryModal.css';
 
 export interface BattleVictoryModalProps {
@@ -38,16 +38,16 @@ export function BattleVictoryModal({
     updatedAttributes
   } = reconciliationResult;
 
-  // Retrieve bespoke abilities defined for the unlocked class
-  const newClassAbilities = useMemo(() => {
-    return unlockedClass ? getClassAbilities(unlockedClass.id) : [];
+  // Retrieve bespoke package defined for the unlocked class
+  const newClassPackage = useMemo(() => {
+    return unlockedClass ? getClassPackage(unlockedClass.id) : undefined;
   }, [unlockedClass]);
 
-  const signatureAbility = newClassAbilities[0] as Ability | undefined;
+  const signatureAbility = newClassPackage?.signatureAbility;
 
-  // Filter combat action slots (exclude Move / Wait universal actions)
+  // Active combat ability slots
   const activeClassSlots = useMemo(() => {
-    return currentAbilities.filter((a) => a.id !== 'move' && a.id !== 'wait').slice(0, 3);
+    return currentAbilities.slice(0, 3);
   }, [currentAbilities]);
 
   return (

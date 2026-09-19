@@ -1,19 +1,21 @@
 import { Unit, Faction } from '../types/unit';
 import { BLANK_SLATE_ATTRIBUTES } from '../types/stats';
-import { Ability } from '../types/ability';
+import { UnitLoadout } from '../types/loadout';
 import { createInitialProgression } from '../progression/pyramid';
 import { computeDerivedVitals } from './vitals';
+import { NOVICE_CLASS_ID } from './loadout';
+import { rollNoviceStarterKit } from '../../data/packages/novice';
 
 export interface CreateRecruitOptions {
-  readonly abilities?: readonly Ability[];
-  readonly abilityKitGenerator?: (rng?: () => number) => readonly Ability[];
+  readonly starterAbilityIds?: readonly string[];
   readonly rng?: () => number;
   readonly faction?: Faction;
+  readonly loadout?: UnitLoadout;
 }
 
 /**
  * Creates a standard Level-0 recruit with uniform blank slate stats.
- * Equipped abilities are passed directly or generated via an injected kit generator.
+ * Assigns 3 rolled starter abilities (1 Fighter, 1 Rogue, 1 Mage) and initializes default Novice loadout.
  */
 export function createRecruit(
   id: string,
@@ -23,10 +25,16 @@ export function createRecruit(
   const progression = createInitialProgression(id);
   const baseAttributes = { ...BLANK_SLATE_ATTRIBUTES };
   const effectiveVitals = computeDerivedVitals(baseAttributes, progression.currentLevel);
-  const abilities =
-    options?.abilities ??
-    options?.abilityKitGenerator?.(options?.rng) ??
-    [];
+
+  const starterAbilityIds =
+    options?.starterAbilityIds ??
+    rollNoviceStarterKit(options?.rng).map((a) => a.id);
+
+  const loadout: UnitLoadout = options?.loadout ?? {
+    activeClassId: NOVICE_CLASS_ID,
+    wildcardAbilityIds: [],
+    wildcardPassiveIds: []
+  };
 
   return {
     id,
@@ -35,6 +43,7 @@ export function createRecruit(
     progression,
     baseAttributes,
     effectiveVitals,
-    abilities
+    loadout,
+    starterAbilityIds
   };
 }

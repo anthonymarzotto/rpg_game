@@ -272,15 +272,20 @@ export function useCombatSimulation({
       const pCu = state.units.get('player');
       if (!pCu) return;
       const currentUnit = activePlayerUnit ?? pCu.unit;
-      const currentAbilities = [...currentUnit.abilities];
-      currentAbilities[slotIndex] = newAbility;
+      const wildcardAbilityIds = [...currentUnit.loadout.wildcardAbilityIds];
+      wildcardAbilityIds[slotIndex] = newAbility.id;
 
       const updatedUnit: Unit = {
         ...currentUnit,
-        abilities: currentAbilities
+        loadout: {
+          ...currentUnit.loadout,
+          wildcardAbilityIds
+        }
       };
 
-      Object.assign(pCu, { unit: updatedUnit });
+      const currentAbilities = [...pCu.abilities];
+      currentAbilities[slotIndex] = newAbility;
+      Object.assign(pCu, { unit: updatedUnit, abilities: currentAbilities });
       setActivePlayerUnit(updatedUnit);
       setState({ ...state });
     },
@@ -294,6 +299,10 @@ export function useCombatSimulation({
     const currentUnit = activePlayerUnit ?? pCu?.unit;
     if (!currentUnit) return;
 
+    const newActiveClassId = reconciliationResult.unlockedClass
+      ? reconciliationResult.unlockedClass.id
+      : currentUnit.loadout.activeClassId;
+
     const upgradedUnit: Unit = {
       ...currentUnit,
       name: reconciliationResult.unlockedClass
@@ -302,7 +311,10 @@ export function useCombatSimulation({
       progression: reconciliationResult.updatedProgression,
       baseAttributes: reconciliationResult.updatedAttributes,
       effectiveVitals: reconciliationResult.updatedVitals,
-      abilities: currentUnit.abilities
+      loadout: {
+        ...currentUnit.loadout,
+        activeClassId: newActiveClassId
+      }
     };
 
     setActivePlayerUnit(upgradedUnit);

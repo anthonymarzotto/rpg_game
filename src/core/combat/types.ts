@@ -1,6 +1,7 @@
 import { Unit, Faction } from '../types/unit';
 import { Archetype } from '../types/class';
-import { AbilityEffect } from '../types/ability';
+import { AbilityEffect, Ability } from '../types/ability';
+import { PassiveTrait } from '../types/passive';
 import { HexCoord } from '../grid/hex';
 import { Arena, KnockbackResult } from '../grid/arena';
 
@@ -126,6 +127,10 @@ export interface CombatUnit {
   isDefeated: boolean;
   inBattleXp: InBattleXp;
   activeModifiers: ActiveModifier[];
+  /** Active combat abilities (Core + Wildcards) resolved from unit loadout */
+  readonly abilities: readonly Ability[];
+  /** Active passives (Innate + Wildcards) resolved from unit loadout */
+  readonly passives: readonly PassiveTrait[];
 }
 
 

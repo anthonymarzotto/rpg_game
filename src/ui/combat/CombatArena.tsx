@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useCombatSimulation } from './useCombatSimulation';
 import { DiceMode } from './devDice';
 import { createNoviceSandboxEncounter } from '../../data/encounters/noviceSandbox';
-import { rollNoviceAbilityKit } from '../../data/abilities';
+import { rollNoviceStarterKit } from '../../data/packages';
 import { HexGridSvg } from './HexGridSvg';
 import { ActionBar } from './ActionBar';
 import { UnitStatusCard } from './UnitStatusCard';
@@ -38,7 +38,7 @@ export function CombatArena() {
     handleRerollKit
   } = useCombatSimulation({
     encounterFactory: createNoviceSandboxEncounter,
-    onRerollKit: rollNoviceAbilityKit
+    onRerollKit: rollNoviceStarterKit
   });
 
   const hoveredUnitCu = useMemo(() => {
@@ -131,7 +131,7 @@ export function CombatArena() {
       <BattleVictoryModal
         isOpen={isVictoryModalOpen}
         reconciliationResult={reconciliationResult}
-        currentAbilities={playerCu?.unit.abilities ?? []}
+        currentAbilities={playerCu?.abilities ?? []}
         onSelectArchetypeChoice={handleSelectArchetypeChoice}
         onSwapAbility={handleSwapAbility}
         onRematch={handleRematch}

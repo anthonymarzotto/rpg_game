@@ -202,7 +202,9 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
         initiativeGauge: 0,
         isDefeated: false,
         inBattleXp: { fighter: 0, rogue: 0, mage: 0 },
-        activeModifiers: []
+        activeModifiers: [],
+        abilities: [],
+        passives: []
       });
 
       const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3] });

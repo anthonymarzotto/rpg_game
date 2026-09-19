@@ -20,9 +20,7 @@ export function ActionBar({
   if (!playerCu) return null;
 
   const currentAp = playerCu.currentAp;
-  const abilities = playerCu.unit.abilities.filter(
-    (a) => a.id !== 'move' && a.id !== 'wait'
-  );
+  const abilities = playerCu.abilities;
 
   return (
     <div className="combat-action-bar-container">

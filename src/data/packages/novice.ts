@@ -1,5 +1,9 @@
 import { Ability } from '../../core/types/ability';
-import { UNIVERSAL_ACTIONS } from './universal';
+import { PassiveTrait } from '../../core/types/passive';
+
+export const NOVICE_PACKAGE_ID = 'novice';
+
+// --- Fighter Starter Pool ---
 
 export const STRIKE: Ability = {
   id: 'strike',
@@ -70,6 +74,8 @@ export const NOVICE_FIGHTER_ABILITIES: readonly Ability[] = [
   BRACE
 ];
 
+// --- Rogue Starter Pool ---
+
 export const QUICK_THRUST: Ability = {
   id: 'quick_thrust',
   name: 'Quick Thrust',
@@ -138,6 +144,8 @@ export const NOVICE_ROGUE_ABILITIES: readonly Ability[] = [
   SKIRMISH
 ];
 
+// --- Mage Starter Pool ---
+
 export const SPARK: Ability = {
   id: 'spark',
   name: 'Spark',
@@ -202,16 +210,32 @@ export const NOVICE_MAGE_ABILITIES: readonly Ability[] = [
   MINOR_WARD
 ];
 
+export const ALL_NOVICE_ABILITIES: readonly Ability[] = [
+  ...NOVICE_FIGHTER_ABILITIES,
+  ...NOVICE_ROGUE_ABILITIES,
+  ...NOVICE_MAGE_ABILITIES
+];
+
 /**
- * Selects 1 Fighter, 1 Rogue, and 1 Mage ability to build a unique Novice kit.
+ * Temporary placeholder for Novice passive trait.
+ */
+export const NOVICE_PLACEHOLDER_PASSIVE: PassiveTrait = {
+  id: 'novice_passive_placeholder',
+  name: 'TODO: Novice Passive',
+  description: 'Temporary placeholder for Novice passive trait.',
+  hook: 'ALWAYS'
+};
+
+/**
+ * Selects 1 Fighter, 1 Rogue, and 1 Mage ability from the 9-ability starter pool.
  * Accepts an optional deterministic PRNG function for seeded generation/testing.
  */
-export function rollNoviceAbilityKit(rng: () => number = Math.random): readonly Ability[] {
+export function rollNoviceStarterKit(rng: () => number = Math.random): readonly [Ability, Ability, Ability] {
   const pick = <T>(arr: readonly T[]): T => arr[Math.floor(rng() * arr.length)];
 
   const fighter = pick(NOVICE_FIGHTER_ABILITIES);
   const rogue = pick(NOVICE_ROGUE_ABILITIES);
   const mage = pick(NOVICE_MAGE_ABILITIES);
 
-  return [fighter, rogue, mage, ...UNIVERSAL_ACTIONS];
+  return [fighter, rogue, mage];
 }
