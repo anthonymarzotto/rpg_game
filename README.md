@@ -22,5 +22,11 @@ A browser-based turn-based tactical RPG built with a strictly decoupled simulati
 
 ## 📚 Documentation
 
-For the full architectural model and subsystem responsibilities, see:
-* [Architecture & Tech Stack Blueprint](docs/ARCHITECTURE.md)
+### Architecture & Specifications
+* [Architecture & Tech Stack Blueprint](docs/architecture/ARCHITECTURE.md)
+* [Gameplay & Combat Specification](docs/architecture/GAMEPLAY.md)
+* [Class Pyramid & Constellation Progression](docs/architecture/CLASS_PYRAMID.md)
+
+### Development Plans
+* [Development Plan & Roadmap](docs/plans/DEVELOPMENT_PLAN.md)
+
