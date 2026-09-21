@@ -94,13 +94,39 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 * **Testing & Verification**:
   * Dedicated test suite (`src/core/combat/passives.test.ts`) verifying cross-class wildcard passive stacking (Warrior + Momentum, Thief + Unyielding, Wizard + Quickstep) and turn clock integration with 100% pass rate.
 
-### 1.4. Presentation & Loadout Management Integration (`src/ui/`)
+### 1.4. Presentation & Loadout Management Integration (`src/ui/`) <── COMPLETED & TESTED
 * **Action Bar Adaptation**:
-  * Render the expanded active combat deck (Core Class abilities + equipped Wildcards) alongside universal Move/Wait actions with clear visual grouping.
+  * Rendered the expanded active combat deck with clear visual grouping:
+    * Core Class abilities (Signature + 2 Domain, or 3 Starter abilities) styled with archetype themes.
+    * Wildcard abilities visually separated by a deck divider with a distinct "Wildcard" ribbon.
+    * Real-time Passives Tray adjacent to the AP counter displaying active passives and advantage readiness (e.g. Momentum glowing when $\ge 2$ hexes moved).
 * **Unit Inspector & Tooltips**:
-  * Display active passives on unit cards and combat preview inspectors.
+  * Dynamic role titles (`Level X <Class Name>`) replacing hardcoded labels.
+  * Active Passives chip row on player and inspected unit status cards with full hover tooltips.
+  * Target Preview displays `✦ Advantage (Momentum)` when a passive condition is met.
 * **Post-Battle & Loadout UI**:
-  * Update post-battle flow and victory modal to support selecting an Active Class and configuring Wildcard ability/passive slots upon unlocking new classes.
+  * Integrated Loadout Customizer in `BattleVictoryModal`:
+    * Active Class selector pills (Novice + unlocked constellation classes).
+    * Core Class Deck preview (3 locked abilities + innate passive).
+    * Strict slot selectors for 2 Wildcard abilities and 1 Wildcard passive, structurally guaranteed valid by filtering out core/innate and duplicate abilities.
+    * Rematch button instantly carries over configured loadout to restart the encounter with the updated class and wildcards.
+
+### 1.5. Directional Facing & Combat Arcs (`src/core/grid/`, `src/core/combat/`, `src/ui/combat/`) <── COMPLETED & TESTED
+* **Pure Directional Hex Model**:
+  * Pointy-topped hex directions (`0..5`: East, Northeast, Northwest, West, Southwest, Southeast) with exact SVG rotation mappings.
+  * Headless `getDirectionBetween(from, to)` computes directional vectors from Cartesian coordinates using `atan2`.
+  * `CombatArc = 'FRONT' | 'FLANK' | 'REAR'` cleanly categorizes target relative angles:
+    * Front: 180° forward arc (relative indices 0, 1, 5)
+    * Flank: lateral side hexes (relative indices 2, 4)
+    * Rear: 180° blind spot (relative index 3)
+* **Tactical Flanking & Sneak Attack Resolution**:
+  * `isFlankOrRear` strictly checks if the attacker is in the target's Flank or Rear arc, OR if an ally of the attacker is engaged (Allied Pincer).
+  * Synthetic obstacle/wall pin was completely retired.
+  * Sneak Attack calculates Advantage and +1d6 precision damage upon striking from flank/rear.
+* **Visual Presentation & Dynamic Facing**:
+  * Units update facing dynamically upon moving (`executeMove`) or executing abilities towards targets (`executeAbility`).
+  * `HexGridSvg` renders directional chevrons on tokens rotated to the unit's facing.
+  * Target Preview HUD displays `✦ Flank (+1d6)` or `✦ Rear (+1d6)` advantage indicator.
 
 ---
 

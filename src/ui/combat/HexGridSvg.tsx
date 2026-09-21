@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { HexCoord, toHexKey } from '../../core/grid/hex';
+import { HexCoord, toHexKey, getFacingAngleDegrees } from '../../core/grid/hex';
 import { CombatState } from '../../core/combat/types';
 import { TargetPreview } from '../../core/combat/targetPreview';
 import { FloatingText } from './useFloatingCombatText';
@@ -262,6 +262,16 @@ export function HexGridSvg({
                 strokeWidth={isPlayer ? 2.5 : 2}
                 filter="url(#tile-glow-cyan)"
               />
+
+              {/* Directional Facing Chevron */}
+              <g transform={`rotate(${getFacingAngleDegrees(cu.facing)})`}>
+                <polygon
+                  points="16,-4.5 23.5,0 16,4.5"
+                  fill={tokenStroke}
+                  stroke="#0f172a"
+                  strokeWidth="0.8"
+                />
+              </g>
 
               {/* Target Candidate Reticle (Only for valid targets within range) */}
               {candidateSet.has(toHexKey(pos)) && (

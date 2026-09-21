@@ -1,5 +1,14 @@
 import { Unit } from '../types/unit';
-import { HexCoord, getHexNeighbors, getHexesInRange, hexEquals, hexDistance } from '../grid/hex';
+import {
+  HexCoord,
+  HEX_DIRECTIONS,
+  getHexNeighbors,
+  getHexesInRange,
+  hexEquals,
+  hexDistance,
+  getDirectionBetween,
+  getCombatArc
+} from '../grid/hex';
 import { Arena } from '../grid/arena';
 import { Ability } from '../types/ability';
 import {
@@ -79,7 +88,8 @@ export function createCombatState(
       inBattleXp: { fighter: 0, rogue: 0, mage: 0 },
       activeModifiers: [],
       abilities: resolved?.combatAbilities ?? [],
-      passives: resolved?.activePassives ?? []
+      passives: resolved?.activePassives ?? [],
+      facing: unit.faction === 'PLAYER' ? HEX_DIRECTIONS.EAST : HEX_DIRECTIONS.WEST
     });
   }
 
@@ -122,6 +132,9 @@ export function executeMove(
   const prevPos = state.arena.getUnitPosition(actorUnitId);
   const dist = prevPos ? hexDistance(prevPos, destination) : 1;
   cu.hexesMovedThisTurn = (cu.hexesMovedThisTurn ?? 0) + dist;
+  if (prevPos) {
+    cu.facing = getDirectionBetween(prevPos, destination);
+  }
 
   cu.currentAp -= 1;
   state.arena.setUnitPosition(actorUnitId, destination);
@@ -163,8 +176,8 @@ function applyCombatEvents(state: CombatState, events: readonly CombatEvent[]): 
 /**
  * Evaluates whether a target is flanked by the actor.
  * Flanking is achieved if:
- * 1. An ally of the actor is also adjacent to the target (allied pincer), OR
- * 2. The target is pinned adjacent to an unwalkable obstacle / wall / pillar.
+ * 1. The attacker is in the target's FLANK or REAR combat arc, OR
+ * 2. An ally of the actor is also adjacent to the target (Allied Pincer).
  */
 export function isFlankOrRear(
   state: CombatState,
@@ -172,13 +185,19 @@ export function isFlankOrRear(
   targetUnitId: string
 ): boolean {
   const actorCu = state.units.get(actorUnitId);
+  const targetCu = state.units.get(targetUnitId);
   const targetCoord = state.arena.getUnitPosition(targetUnitId);
   const actorCoord = state.arena.getUnitPosition(actorUnitId);
-  if (!actorCu || !targetCoord || !actorCoord) return false;
+  if (!actorCu || !targetCu || !targetCoord || !actorCoord) return false;
 
+  // 1. Check if attacker is in target's Flank or Rear combat arc
+  const arc = getCombatArc(targetCu.facing, targetCoord, actorCoord);
+  if (arc === 'FLANK' || arc === 'REAR') {
+    return true;
+  }
+
+  // 2. Check if any other ally of actor is adjacent to target (Allied Pincer)
   const targetNeighbors = getHexNeighbors(targetCoord);
-
-  // 1. Check if any other ally of actor is adjacent to target
   const hasAlliedFlanker = targetNeighbors.some((coord) => {
     const occupantId = state.arena.getUnitAt(coord);
     if (!occupantId || occupantId === actorUnitId) return false;
@@ -186,13 +205,6 @@ export function isFlankOrRear(
     return cu && !cu.isDefeated && cu.currentHp > 0 && cu.faction === actorCu.faction;
   });
   if (hasAlliedFlanker) return true;
-
-  // 2. Check if target is pinned adjacent to an unwalkable obstacle
-  const hasObstaclePin = targetNeighbors.some((coord) => {
-    const tile = state.arena.getTile(coord);
-    return !tile || !tile.isWalkable;
-  });
-  if (hasObstaclePin) return true;
 
   return false;
 }
@@ -215,6 +227,13 @@ export function executeAbility(
 
   const actorCu = requireCombatUnit(state, actorUnitId);
   actorCu.currentAp -= ability.apCost;
+
+  // Turn actor to face target
+  const actorCoord = state.arena.getUnitPosition(actorUnitId);
+  const targetCoord = target?.coord ?? (target?.targetUnitId ? state.arena.getUnitPosition(target.targetUnitId) : undefined);
+  if (actorCoord && targetCoord) {
+    actorCu.facing = getDirectionBetween(actorCoord, targetCoord);
+  }
 
   // Award In-Battle Archetype XP on execution
   if (ability.archetypeTag === 'FIGHTER') {

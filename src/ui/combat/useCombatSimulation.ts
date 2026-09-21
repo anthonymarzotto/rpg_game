@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { HexCoord, getHexesInRange } from '../../core/grid/hex';
 import { Ability } from '../../core/types/ability';
 import { Unit } from '../../core/types/unit';
+import { UnitLoadout } from '../../core/types/loadout';
 import { Archetype } from '../../core/types/class';
 import { CombatState, InBattleXp } from '../../core/combat/types';
 import { canMove, canExecuteAbility } from '../../core/combat/validator';
@@ -266,71 +267,57 @@ export function useCombatSimulation({
     [state.units, activePlayerUnit, registry, bankedXp]
   );
 
-  // Swaps an unlocked class ability into one of the 3 active loadout slots
-  const handleSwapAbility = useCallback(
-    (slotIndex: number, newAbility: Ability) => {
+  // Resets the arena encounter while retaining the upgraded unit and applying any configured loadout
+  const handleRematch = useCallback(
+    (configuredLoadout?: UnitLoadout) => {
+      if (!reconciliationResult) return;
       const pCu = state.units.get('player');
-      if (!pCu) return;
-      const currentUnit = activePlayerUnit ?? pCu.unit;
-      const wildcardAbilityIds = [...currentUnit.loadout.wildcardAbilityIds];
-      wildcardAbilityIds[slotIndex] = newAbility.id;
+      const currentUnit = activePlayerUnit ?? pCu?.unit;
+      if (!currentUnit) return;
 
-      const updatedUnit: Unit = {
-        ...currentUnit,
-        loadout: {
-          ...currentUnit.loadout,
-          wildcardAbilityIds
-        }
+      const newActiveClassId =
+        configuredLoadout?.activeClassId ??
+        (reconciliationResult.unlockedClass
+          ? reconciliationResult.unlockedClass.id
+          : currentUnit.loadout.activeClassId);
+
+      const upgradedLoadout: UnitLoadout = {
+        activeClassId: newActiveClassId,
+        wildcardAbilityIds:
+          configuredLoadout?.wildcardAbilityIds ??
+          currentUnit.loadout.wildcardAbilityIds,
+        wildcardPassiveIds:
+          configuredLoadout?.wildcardPassiveIds ??
+          currentUnit.loadout.wildcardPassiveIds
       };
 
-      const currentAbilities = [...pCu.abilities];
-      currentAbilities[slotIndex] = newAbility;
-      Object.assign(pCu, { unit: updatedUnit, abilities: currentAbilities });
-      setActivePlayerUnit(updatedUnit);
-      setState({ ...state });
+      const upgradedUnit: Unit = {
+        ...currentUnit,
+        name: reconciliationResult.unlockedClass
+          ? `Alden (${reconciliationResult.unlockedClass.name})`
+          : currentUnit.name,
+        progression: reconciliationResult.updatedProgression,
+        baseAttributes: reconciliationResult.updatedAttributes,
+        effectiveVitals: reconciliationResult.updatedVitals,
+        loadout: upgradedLoadout
+      };
+
+      setActivePlayerUnit(upgradedUnit);
+      setBankedXp(reconciliationResult.carryoverXp);
+      setReconciliationResult(null);
+      setIsVictoryModalOpen(false);
+
+      const fresh = buildEncounterState(
+        encounterFactory({ playerUnitOverride: upgradedUnit })
+      );
+      setState(fresh);
+      setActionMode('IDLE');
+      setSelectedAbility(null);
+      setHoveredCoord(null);
+      clearFloatingTexts();
     },
-    [state, activePlayerUnit]
+    [reconciliationResult, state.units, activePlayerUnit, encounterFactory, clearFloatingTexts]
   );
-
-  // Resets the arena encounter while retaining the upgraded unit
-  const handleRematch = useCallback(() => {
-    if (!reconciliationResult) return;
-    const pCu = state.units.get('player');
-    const currentUnit = activePlayerUnit ?? pCu?.unit;
-    if (!currentUnit) return;
-
-    const newActiveClassId = reconciliationResult.unlockedClass
-      ? reconciliationResult.unlockedClass.id
-      : currentUnit.loadout.activeClassId;
-
-    const upgradedUnit: Unit = {
-      ...currentUnit,
-      name: reconciliationResult.unlockedClass
-        ? `Alden (${reconciliationResult.unlockedClass.name})`
-        : currentUnit.name,
-      progression: reconciliationResult.updatedProgression,
-      baseAttributes: reconciliationResult.updatedAttributes,
-      effectiveVitals: reconciliationResult.updatedVitals,
-      loadout: {
-        ...currentUnit.loadout,
-        activeClassId: newActiveClassId
-      }
-    };
-
-    setActivePlayerUnit(upgradedUnit);
-    setBankedXp(reconciliationResult.carryoverXp);
-    setReconciliationResult(null);
-    setIsVictoryModalOpen(false);
-
-    const fresh = buildEncounterState(
-      encounterFactory({ playerUnitOverride: upgradedUnit })
-    );
-    setState(fresh);
-    setActionMode('IDLE');
-    setSelectedAbility(null);
-    setHoveredCoord(null);
-    clearFloatingTexts();
-  }, [reconciliationResult, state.units, activePlayerUnit, encounterFactory, clearFloatingTexts]);
 
   // Full reset back to blank slate Level 0 recruit
   const handleResetEncounter = useCallback(() => {
@@ -385,7 +372,6 @@ export function useCombatSimulation({
     handleTileClick,
     handleEndTurn,
     handleSelectArchetypeChoice,
-    handleSwapAbility,
     handleRematch,
     handleResetEncounter,
     handleRerollKit

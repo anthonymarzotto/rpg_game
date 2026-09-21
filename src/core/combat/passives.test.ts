@@ -32,7 +32,8 @@ function createTestCombatUnit(passives: CombatUnit['passives'] = []): CombatUnit
     inBattleXp: { fighter: 0, rogue: 0, mage: 0 },
     activeModifiers: [],
     abilities: [],
-    passives
+    passives,
+    facing: 0
   };
 }
 

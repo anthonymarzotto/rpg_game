@@ -34,6 +34,13 @@ function formatModifierBadge(mod: ActiveModifier): { text: string; isDebuff: boo
   return { text, isDebuff };
 }
 
+function formatRoleTitle(cu: CombatUnit): string {
+  const level = cu.unit.progression?.currentLevel ?? 0;
+  const classId = cu.unit.loadout?.activeClassId ?? 'novice';
+  const className = classId.charAt(0).toUpperCase() + classId.slice(1);
+  return `Level ${level} ${className}`;
+}
+
 export function UnitStatusCard({
   playerCu,
   targetPreview,
@@ -43,13 +50,16 @@ export function UnitStatusCard({
 
   const vitals = playerCu.unit.effectiveVitals;
   const hpPercent = (playerCu.currentHp / vitals.maxHp) * 100;
+  const isMomentumAdvantage =
+    (playerCu.hexesMovedThisTurn ?? 0) >= 2 &&
+    (playerCu.passives ?? []).some((p) => p.id === 'momentum');
 
   return (
     <div className="combat-status-overlay">
       {/* 1. Player Status Card */}
       <div className="unit-hud-card player-hud-card">
         <div className="unit-hud-header">
-          <span className="unit-role-badge">Level 0 Recruit</span>
+          <span className="unit-role-badge">{formatRoleTitle(playerCu)}</span>
           <span className="unit-ctb-gauge">Gauge: {playerCu.initiativeGauge}/100</span>
         </div>
         <div className="unit-hud-name">{playerCu.unit.name}</div>
@@ -95,6 +105,30 @@ export function UnitStatusCard({
           </div>
         </div>
 
+        {/* Active Passives Row */}
+        {playerCu.passives && playerCu.passives.length > 0 && (
+          <div className="hud-passives-row">
+            <span className="passives-row-label">PASSIVES:</span>
+            {playerCu.passives.map((p) => {
+              const isReady = p.id === 'momentum' && (playerCu.hexesMovedThisTurn ?? 0) >= 2;
+              return (
+                <span
+                  key={p.id}
+                  className={`passive-chip-badge ${isReady ? 'ready-glow' : ''}`}
+                  title={p.description}
+                >
+                  {p.name}
+                  {p.id === 'momentum' && (
+                    <span className="passive-chip-count">
+                      ({Math.min(playerCu.hexesMovedThisTurn ?? 0, 2)}/2)
+                    </span>
+                  )}
+                </span>
+              );
+            })}
+          </div>
+        )}
+
         {/* Active Modifiers (if present) */}
         {playerCu.activeModifiers.length > 0 && (
           <div className="active-modifiers-row">
@@ -134,7 +168,17 @@ export function UnitStatusCard({
             {targetPreview.isBlockedLoS ? (
               <span className="los-badge blocked">✖ Screened</span>
             ) : (
-              <span className="los-badge clear">✔ Clear LoS</span>
+              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                {targetPreview.isFlankAdvantage && (
+                  <span className="advantage-indicator-badge">
+                    ✦ {targetPreview.combatArc === 'REAR' ? 'Rear' : 'Flank'} (+1d6)
+                  </span>
+                )}
+                {isMomentumAdvantage && (
+                  <span className="advantage-indicator-badge">✦ Advantage (Momentum)</span>
+                )}
+                <span className="los-badge clear">✔ Clear LoS</span>
+              </div>
             )}
           </div>
           <div className="preview-target-name">{targetPreview.targetName}</div>
@@ -183,7 +227,28 @@ export function UnitStatusCard({
               Gauge: {hoveredUnitCu.initiativeGauge}/100
             </span>
           </div>
-          <div className="preview-target-name">{hoveredUnitCu.unit.name}</div>
+          <div className="preview-target-name">
+            {hoveredUnitCu.unit.name}{' '}
+            <span className="unit-role-badge" style={{ fontSize: '0.65rem', marginLeft: '0.3rem' }}>
+              {formatRoleTitle(hoveredUnitCu)}
+            </span>
+          </div>
+
+          {/* Active Passives on Inspected Unit */}
+          {hoveredUnitCu.passives && hoveredUnitCu.passives.length > 0 && (
+            <div className="hud-passives-row" style={{ marginTop: '0.35rem' }}>
+              <span className="passives-row-label">PASSIVES:</span>
+              {hoveredUnitCu.passives.map((p) => (
+                <span
+                  key={p.id}
+                  className="passive-chip-badge"
+                  title={p.description}
+                >
+                  {p.name}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Active Modifiers on Inspected Unit */}
           {hoveredUnitCu.activeModifiers.length > 0 && (

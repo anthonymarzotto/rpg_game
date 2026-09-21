@@ -32,7 +32,6 @@ export function CombatArena() {
     handleTileClick,
     handleEndTurn,
     handleSelectArchetypeChoice,
-    handleSwapAbility,
     handleRematch,
     handleResetEncounter,
     handleRerollKit
@@ -131,9 +130,8 @@ export function CombatArena() {
       <BattleVictoryModal
         isOpen={isVictoryModalOpen}
         reconciliationResult={reconciliationResult}
-        currentAbilities={playerCu?.abilities ?? []}
+        playerUnit={playerCu?.unit}
         onSelectArchetypeChoice={handleSelectArchetypeChoice}
-        onSwapAbility={handleSwapAbility}
         onRematch={handleRematch}
         onDismiss={() => setIsVictoryModalOpen(false)}
       />

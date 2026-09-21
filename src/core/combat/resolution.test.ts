@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createRadialArena } from '../grid/templates';
+import { HEX_DIRECTIONS } from '../grid/hex';
 import { createRecruit } from '../units/unitFactory';
 import { createCombatState, executeAbility } from './resolver';
 import { resolveAttackRoll, getAttackRollModifier, getAbilityModifier } from './attackRoll';
@@ -382,19 +383,20 @@ describe('Attack & Ability Resolution Outcomes', () => {
       expect(dummyBCu.currentHp).toBe(dummyB.effectiveVitals.maxHp - 2);
     });
 
-    it('executes Thief Sneak Attack with Advantage and bonus precision dice when target is pinned', () => {
+    it('executes Thief Sneak Attack with Advantage and bonus precision dice when target is flanked or struck from rear', () => {
       const arena = createRadialArena(3);
-      // Place dummy at (0, 1) right next to pillar at (0, 2)
-      arena.setTile({ coord: { q: 0, r: 2 }, isWalkable: false, elevation: 0 });
 
-      const thief = createRecruit('thief', 'Thief');
+      const thief = createRecruit('thief', 'Thief', { faction: 'PLAYER' });
       (thief as any).baseAttributes = { force: 1, finesse: 3, focus: 0 };
-      const pinnedTarget = createRecruit('target', 'Pinned Target');
+      const flankedTarget = createRecruit('target', 'Flanked Target', { faction: 'ENEMY' });
 
       arena.setUnitPosition('thief', { q: 0, r: 0 });
       arena.setUnitPosition('target', { q: 0, r: 1 });
 
-      const state = createCombatState(arena, [thief, pinnedTarget], 'thief');
+      const state = createCombatState(arena, [thief, flankedTarget], 'thief');
+      // Target is facing SOUTHEAST (away from thief who is NORTHWEST at (0, 0))
+      const targetCu = state.units.get('target')!;
+      targetCu.facing = HEX_DIRECTIONS.SOUTHEAST;
 
       // Sneak Attack rolls with Advantage (rolls 2 d20s: 8 and 16 -> takes 16)
       // Damage: 1d4 (3) + 1d6 (5) + 1 Force = 9

@@ -725,3 +725,189 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-top: 0.4rem;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Passives Tray & Status Chips                                               */
+/* -------------------------------------------------------------------------- */
+.passives-tray {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+}
+
+.passive-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.72rem;
+  color: #e2e8f0;
+  cursor: default;
+  transition: all 0.2s ease;
+}
+
+.passive-chip.ready.glow {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
+  animation: pulse-ready 1.8s infinite ease-in-out;
+}
+
+@keyframes pulse-ready {
+  0%, 100% { box-shadow: 0 0 8px rgba(245, 158, 11, 0.35); }
+  50% { box-shadow: 0 0 16px rgba(245, 158, 11, 0.75); }
+}
+
+.passive-icon {
+  font-size: 0.85rem;
+}
+
+.passive-name {
+  font-weight: 600;
+}
+
+.passive-counter {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94a3b8;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+}
+
+.passive-counter.counter-ready {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.25);
+}
+
+.passive-chip:hover .passive-hover-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-3px);
+}
+
+.passive-hover-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 190px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  z-index: 35;
+}
+
+.tooltip-tag.ready-tag {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.2);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Wildcard Abilities & Deck Dividers                                         */
+/* -------------------------------------------------------------------------- */
+.action-deck-divider {
+  width: 2px;
+  height: 28px;
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.25), transparent);
+  margin: 0 0.15rem;
+}
+
+.wildcard-ability-btn {
+  border-style: dashed !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  position: relative;
+}
+
+.wildcard-ability-btn:hover:not(:disabled) {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
+}
+
+.wildcard-ribbon {
+  position: absolute;
+  top: -6px;
+  right: 6px;
+  font-size: 0.55rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #fbbf24;
+  background: #78350f;
+  border: 1px solid #b45309;
+  border-radius: 3px;
+  padding: 0.05rem 0.3rem;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* HUD Passives Row & Advantage Indicators                                    */
+/* -------------------------------------------------------------------------- */
+.hud-passives-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.passives-row-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.05em;
+}
+
+.passive-chip-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.passive-chip-badge.ready-glow {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.3);
+}
+
+.passive-chip-count {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.advantage-indicator-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 4px;
+  padding: 0.15rem 0.45rem;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+}

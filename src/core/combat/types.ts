@@ -2,7 +2,7 @@ import { Unit, Faction } from '../types/unit';
 import { Archetype } from '../types/class';
 import { AbilityEffect, Ability } from '../types/ability';
 import { PassiveTrait } from '../types/passive';
-import { HexCoord } from '../grid/hex';
+import { HexCoord, HexDirection } from '../grid/hex';
 import { Arena, KnockbackResult } from '../grid/arena';
 
 export type HitOutcome = 'CRITICAL_HIT' | 'SOLID_HIT' | 'GRAZE' | 'MISS';
@@ -131,6 +131,8 @@ export interface CombatUnit {
   readonly abilities: readonly Ability[];
   /** Active passives (Innate + Wildcards) resolved from unit loadout */
   readonly passives: readonly PassiveTrait[];
+  /** Current directional facing on the hex grid (0 to 5) */
+  facing: HexDirection;
   /** Distance in hexes moved during the current turn (used by Momentum) */
   hexesMovedThisTurn?: number;
 }

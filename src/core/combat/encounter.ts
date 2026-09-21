@@ -1,5 +1,5 @@
 import { Unit } from '../types/unit';
-import { HexCoord } from '../grid/hex';
+import { HexCoord, HexDirection } from '../grid/hex';
 import { createRadialArena } from '../grid/templates';
 import { CombatState, EncounterObjective } from './types';
 import { createCombatState } from './resolver';
@@ -11,6 +11,7 @@ import { evaluateEncounterOutcome } from './objectives';
 export interface PlacedUnit {
   readonly unit: Unit;
   readonly coord: HexCoord;
+  readonly facing?: HexDirection;
 }
 
 /**
@@ -66,6 +67,15 @@ export function buildEncounterState(definition: EncounterDefinition): CombatStat
   }
 
   const state = createCombatState(arena, units, definition.initialActiveUnitId);
+  for (const placed of definition.units) {
+    if (placed.facing !== undefined) {
+      const cu = state.units.get(placed.unit.id);
+      if (cu) {
+        cu.facing = placed.facing;
+      }
+    }
+  }
+
   (state as { objectives?: readonly EncounterObjective[] }).objectives = definition.objectives;
   state.outcome = evaluateEncounterOutcome(definition.objectives, state, 'player');
 
