@@ -12,6 +12,7 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 * **Class Pyramid & Progression** (`src/core/progression/`, `src/data/classes.ts`): Full 100-class catalog, strict lockout validation, additive archetype point advancement, post-battle reconciliation, and constellation recording. *(Complete & Tested)*
 * **Visual Combat Arena & Core Loop** (`src/ui/combat/`): Interactive SVG arena, dynamic action bar, floating combat text, transparent combat log, dev dice sandbox, post-battle victory modal with class unlocks, ability swapping, and arena rematch with persistent progression. *(Complete & Tested)*
 * **Unit Loadout & Active Class Architecture** (`src/core/types/`, `src/core/units/`): `PassiveTrait`, `ClassPackage`, `UnitLoadout`, non-redundant `Unit` model with `starterAbilityIds`, in-combat `CombatUnit` hydration, and loadout resolution/validation. *(Complete & Tested)*
+* **Directional Facing & Combat Arcs** (`src/core/grid/`, `src/core/combat/`, `src/ui/combat/`): True directional facing (`HexDirection` 0..5), combat arc classification (`FRONT`, `FLANK`, `REAR`), dynamic facing updates, flank/rear advantage resolution, and directional token chevrons. *(Complete & Tested)*
 
 ---
 
@@ -19,36 +20,37 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ PHASE 1: ACTIVE CLASS, SKILL LOADOUTS & CROSS-CLASS SLOTS   │
+│ PHASE 1: ACTIVE CLASS, SKILL LOADOUTS & TACTICAL FACING     │
 │  - [x] 1.1 Active class & loadout domain model (COMPLETED)  │
-│  - [x] 1.2 "1 Signature + 2 Domain Pool" package catalog (COMPLETED) │
-│  - [ ] 1.3 Passive trait evaluation pipeline               │
-│  - [ ] 1.4 Presentation & loadout management integration   │
+│  - [x] 1.2 "1 Signature + 2 Domain Pool" packages (COMPLETED)│
+│  - [x] 1.3 Passive trait evaluation pipeline (COMPLETED)    │
+│  - [x] 1.4 Presentation & loadout integration (COMPLETED)   │
+│  - [x] 1.5 Directional facing & combat arcs (COMPLETED)     │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 2: TACTICAL COMBAT ENEMY AI & MULTI-UNIT BATTLES      │
-│  - Headless AI decision engine (scoring, threat, movement)  │
-│  - CTB multi-unit turn sequencing (retiring passive dummies)│
-│  - Multi-unit party squads (allied targeting, party HUD)    │
+│  - [ ] 2.1 Headless AI decision engine (scoring, threat)    │
+│  - [ ] 2.2 CTB multi-unit turn sequencing                   │
+│  - [ ] 2.3 Multi-unit party squads & allied targeting       │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 3: PERSISTENCE & CAMPAIGN FLOW                        │
-│  - IndexedDB storage engine (roster, saves, checkpoints)    │
-│  - Campaign & encounter progression (multi-battle flow)     │
-│  - Between-battle camp / barracks hub                       │
+│  - [ ] 3.1 IndexedDB storage engine (roster, checkpoints)   │
+│  - [ ] 3.2 Campaign & encounter progression (multi-battle)  │
+│  - [ ] 3.3 Between-battle camp / barracks hub               │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 4: CLASS & ABILITY EXPANSION (ON-DEMAND MECHANICS)    │
-│  - Tier 2+ class ability kits & signature passives          │
-│  - Status effects pipeline (introduced as abilities demand) │
-│  - Elevation & verticality (introduced as abilities demand) │
-│  - Off-node level compensatory perks / stat surges          │
+│  - [ ] 4.1 Tier 2+ class ability kits & signature passives  │
+│  - [ ] 4.2 Status effects pipeline (as abilities demand)    │
+│  - [ ] 4.3 Elevation & verticality (as abilities demand)    │
+│  - [ ] 4.4 Off-node level compensatory perks / stat surges  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
