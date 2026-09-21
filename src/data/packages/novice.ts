@@ -217,13 +217,21 @@ export const ALL_NOVICE_ABILITIES: readonly Ability[] = [
 ];
 
 /**
- * Temporary placeholder for Novice passive trait.
+ * Innate Novice passive trait: Momentum.
+ * Moving 2 or more hexes immediately before an attack grants Advantage on that attack.
  */
-export const NOVICE_PLACEHOLDER_PASSIVE: PassiveTrait = {
-  id: 'novice_passive_placeholder',
-  name: 'TODO: Novice Passive',
-  description: 'Temporary placeholder for Novice passive trait.',
-  hook: 'ALWAYS'
+export const MOMENTUM: PassiveTrait = {
+  id: 'momentum',
+  name: 'Momentum',
+  description: 'Moving 2 or more hexes immediately before an attack grants Advantage on that attack.',
+  hook: 'ALWAYS',
+  rollModifier: {
+    condition: { type: 'MOVED_MIN_DISTANCE', minHexes: 2 },
+    effect: {
+      grantsAdvantage: true,
+      consumeOnTrigger: true
+    }
+  }
 };
 
 /**

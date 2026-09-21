@@ -131,6 +131,8 @@ export interface CombatUnit {
   readonly abilities: readonly Ability[];
   /** Active passives (Innate + Wildcards) resolved from unit loadout */
   readonly passives: readonly PassiveTrait[];
+  /** Distance in hexes moved during the current turn (used by Momentum) */
+  hexesMovedThisTurn?: number;
 }
 
 

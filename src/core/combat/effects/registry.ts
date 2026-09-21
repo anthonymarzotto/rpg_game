@@ -3,6 +3,8 @@ import { Ability, AbilityEffect } from '../../types/ability';
 import { knockbackHandler } from './knockbackHandler';
 import { retreatHandler } from './retreatHandler';
 import { modifierHandler } from './modifierHandler';
+import { teleportHandler } from './teleportHandler';
+import { cleaveHandler } from './cleaveHandler';
 
 class EffectRegistry {
   private handlers = new Map<AbilityEffect['type'], EffectHandler<any>>();
@@ -13,6 +15,8 @@ class EffectRegistry {
     this.register('SLOW', modifierHandler);
     this.register('ARMOR_BUFF', modifierHandler);
     this.register('WARD_BUFF', modifierHandler);
+    this.register('TELEPORT', teleportHandler);
+    this.register('CLEAVE', cleaveHandler);
   }
 
   public register<T extends AbilityEffect>(

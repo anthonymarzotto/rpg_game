@@ -9,12 +9,18 @@ export function getEffectiveStat(cu: CombatUnit, stat: ModifiableCombatStat): nu
   const modSum = cu.activeModifiers
     .filter((m) => m.stat === stat)
     .reduce((sum, m) => sum + m.value, 0);
+  const passiveSum = (cu.passives ?? []).reduce(
+    (sum, p) => sum + (p.statModifiers?.[stat] ?? 0),
+    0
+  );
+
+  const total = base + modSum + passiveSum;
 
   // Speed and Move have a minimum floor of 1
   if (stat === 'move' || stat === 'speed') {
-    return Math.max(1, base + modSum);
+    return Math.max(1, total);
   }
-  return Math.max(0, base + modSum);
+  return Math.max(0, total);
 }
 
 export function getEffectiveSpeed(cu: CombatUnit): number {

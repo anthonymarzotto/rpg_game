@@ -1,6 +1,7 @@
 import { Ability } from '../../core/types/ability';
 import { PassiveTrait } from '../../core/types/passive';
 import { ClassPackage } from '../../core/types/classPackage';
+import { SKIRMISH } from './novice';
 
 export const SNEAK_ATTACK: Ability = {
   id: 'sneak_attack',
@@ -29,53 +30,36 @@ export const SNEAK_ATTACK: Ability = {
   }
 };
 
-export const THIEF_DOMAIN_1_TODO: Ability = {
-  id: 'thief_domain_1_todo',
-  name: 'TODO: Thief Domain 1',
-  description: 'Temporary placeholder for Thief domain ability 1.',
+export const SHADOW_STEP: Ability = {
+  id: 'shadow_step',
+  name: 'Shadow Step',
+  description: 'Phase through the shadows to any unoccupied walkable hex within 2 hexes, bypassing intermediate units and obstacles.',
   archetypeTag: 'ROGUE',
   apCost: 1,
-  range: 1,
-  targetType: 'SINGLE_TARGET',
-  defenseTarget: 'EVASION',
-  attackModifierAttribute: 'finesse',
-  damageType: 'PHYSICAL',
-  damageProfile: {
-    count: 1,
-    sides: 4,
-    modifierAttribute: 'force'
+  range: 2,
+  targetType: 'HEX',
+  defenseTarget: 'NONE',
+  damageType: 'NONE',
+  effect: {
+    type: 'TELEPORT',
+    magnitude: 2
   }
 };
 
-export const THIEF_DOMAIN_2_TODO: Ability = {
-  id: 'thief_domain_2_todo',
-  name: 'TODO: Thief Domain 2',
-  description: 'Temporary placeholder for Thief domain ability 2.',
-  archetypeTag: 'ROGUE',
-  apCost: 1,
-  range: 1,
-  targetType: 'SINGLE_TARGET',
-  defenseTarget: 'EVASION',
-  attackModifierAttribute: 'finesse',
-  damageType: 'PHYSICAL',
-  damageProfile: {
-    count: 1,
-    sides: 4,
-    modifierAttribute: 'force'
+export const QUICKSTEP: PassiveTrait = {
+  id: 'quickstep',
+  name: 'Quickstep',
+  description: 'Incredible agility grants +2 Speed, drastically reducing the ticks required to generate actions in the CTB turn clock.',
+  hook: 'ALWAYS',
+  statModifiers: {
+    speed: 2
   }
-};
-
-export const THIEF_PASSIVE_TODO: PassiveTrait = {
-  id: 'thief_passive_todo',
-  name: 'TODO: Thief Passive',
-  description: 'Temporary placeholder for Thief passive trait.',
-  hook: 'ALWAYS'
 };
 
 export const THIEF_PACKAGE: ClassPackage = {
   classId: 'thief',
   className: 'Thief',
   signatureAbility: SNEAK_ATTACK,
-  domainAbilities: [THIEF_DOMAIN_1_TODO, THIEF_DOMAIN_2_TODO],
-  passive: THIEF_PASSIVE_TODO
+  domainAbilities: [SHADOW_STEP, SKIRMISH],
+  passive: QUICKSTEP
 };

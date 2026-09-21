@@ -7,7 +7,7 @@
  * Baseline vitals for a standard recruit.
  */
 export const RECRUIT_BASE_VITALS = {
-  hp: 20,
+  hp: 12,
   speed: 10,
   move: 3,
   evasion: 10,

@@ -3,7 +3,7 @@ import { Ability } from '../../core/types/ability';
 import { PassiveTrait } from '../../core/types/passive';
 import {
   ALL_NOVICE_ABILITIES,
-  NOVICE_PLACEHOLDER_PASSIVE
+  MOMENTUM
 } from './novice';
 import { WARRIOR_PACKAGE } from './warrior';
 import { THIEF_PACKAGE } from './thief';
@@ -49,7 +49,7 @@ export function getAbilityById(id: string): Ability | undefined {
  * Global catalog of all authored passives for fast lookup by ID.
  */
 const PASSIVES_BY_ID = new Map<string, PassiveTrait>();
-PASSIVES_BY_ID.set(NOVICE_PLACEHOLDER_PASSIVE.id, NOVICE_PLACEHOLDER_PASSIVE);
+PASSIVES_BY_ID.set(MOMENTUM.id, MOMENTUM);
 for (const pkg of Object.values(CLASS_PACKAGES)) {
   PASSIVES_BY_ID.set(pkg.passive.id, pkg.passive);
 }

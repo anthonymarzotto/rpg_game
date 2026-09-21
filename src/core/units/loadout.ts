@@ -7,7 +7,7 @@ import { UnitLoadout, ResolvedUnitLoadout } from '../types/loadout';
 export const MAX_WILDCARD_ABILITIES = 2;
 export const MAX_WILDCARD_PASSIVES = 1;
 export const NOVICE_CLASS_ID = 'novice';
-export const NOVICE_PASSIVE_ID = 'novice_passive_placeholder';
+export const NOVICE_PASSIVE_ID = 'momentum';
 
 export interface LoadoutLookupProviders {
   readonly getPackage: (classId: string) => ClassPackage | undefined;

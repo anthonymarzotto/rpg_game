@@ -1,5 +1,5 @@
 import { Unit } from '../types/unit';
-import { HexCoord, getHexNeighbors, getHexesInRange, hexEquals } from '../grid/hex';
+import { HexCoord, getHexNeighbors, getHexesInRange, hexEquals, hexDistance } from '../grid/hex';
 import { Arena } from '../grid/arena';
 import { Ability } from '../types/ability';
 import {
@@ -118,6 +118,10 @@ export function executeMove(
   }
 
   const cu = requireCombatUnit(state, actorUnitId);
+  const prevPos = state.arena.getUnitPosition(actorUnitId);
+  const dist = prevPos ? hexDistance(prevPos, destination) : 1;
+  cu.hexesMovedThisTurn = (cu.hexesMovedThisTurn ?? 0) + dist;
+
   cu.currentAp -= 1;
   state.arena.setUnitPosition(actorUnitId, destination);
 
@@ -276,6 +280,28 @@ export function executeAbility(
         rollAdvantage = 'ADVANTAGE';
       }
       bonusDamageProfile = ability.conditionalBonus.bonusDamage;
+    }
+  }
+
+  // Evaluate passive roll modifiers (e.g. Momentum)
+  for (const passive of actorCu.passives ?? []) {
+    const rm = passive.rollModifier;
+    if (!rm) continue;
+
+    let conditionMet = false;
+    if (rm.condition.type === 'MOVED_MIN_DISTANCE') {
+      conditionMet = (actorCu.hexesMovedThisTurn ?? 0) >= rm.condition.minHexes;
+    }
+
+    if (conditionMet) {
+      if (rm.effect.grantsAdvantage) {
+        rollAdvantage = 'ADVANTAGE';
+      }
+      if (rm.effect.consumeOnTrigger) {
+        if (rm.condition.type === 'MOVED_MIN_DISTANCE') {
+          actorCu.hexesMovedThisTurn = 0;
+        }
+      }
     }
   }
 

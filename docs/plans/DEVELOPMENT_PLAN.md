@@ -21,7 +21,7 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 1: ACTIVE CLASS, SKILL LOADOUTS & CROSS-CLASS SLOTS   │
 │  - [x] 1.1 Active class & loadout domain model (COMPLETED)  │
-│  - [ ] 1.2 "1 Signature + 2 Domain Pool" package catalog   │
+│  - [x] 1.2 "1 Signature + 2 Domain Pool" package catalog (COMPLETED) │
 │  - [ ] 1.3 Passive trait evaluation pipeline               │
 │  - [ ] 1.4 Presentation & loadout management integration   │
 └──────────────────────────────┬──────────────────────────────┘
@@ -72,7 +72,7 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
   * `CombatUnit` holds in-combat hydrated `abilities` and `passives`.
   * `resolveUnitLoadout()` and `validateUnitLoadout()` implemented with 100% test coverage.
 
-### 1.2. Class Package Architecture ("1 Signature + 2 Domain Pool")
+### 1.2. Class Package Architecture ("1 Signature + 2 Domain Pool") <── COMPLETED & TESTED
 * **Class Definition Expansion**:
   * Every class definition specifies:
     * **1 Unique Signature Ability**: Bespoke, thematic mechanic exclusive to the class.

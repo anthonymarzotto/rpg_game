@@ -66,6 +66,27 @@ export function canExecuteAbility(
     return { valid: true };
   }
 
+  if (ability.targetType === 'HEX') {
+    if (!target?.coord) {
+      return { valid: false, reason: 'Missing destination coordinate for hex-targeted ability.' };
+    }
+    const dist = hexDistance(actorCoord, target.coord);
+    if (dist > ability.range) {
+      return { valid: false, reason: `Target out of range (distance ${dist} > range ${ability.range}).` };
+    }
+    const destTile = state.arena.getTile(target.coord);
+    if (!destTile) {
+      return { valid: false, reason: `Destination (${target.coord.q}, ${target.coord.r}) does not exist in arena.` };
+    }
+    if (!destTile.isWalkable) {
+      return { valid: false, reason: `Destination (${target.coord.q}, ${target.coord.r}) is not walkable.` };
+    }
+    if (destTile.occupiedByUnitId) {
+      return { valid: false, reason: `Destination (${target.coord.q}, ${target.coord.r}) is already occupied.` };
+    }
+    return { valid: true };
+  }
+
   const targetUnitId =
     ability.targetType === 'ALLY' && !target?.targetUnitId
       ? actorUnitId

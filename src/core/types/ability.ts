@@ -21,7 +21,9 @@ export type AbilityEffectType =
   | 'ARMOR_BUFF'    // Grants temporary armor boost
   | 'WARD_BUFF'     // Grants temporary ward boost
   | 'SLOW'          // Reduces target movement range
-  | 'CRIT_BOOST';   // Lowers critical hit threshold (e.g., crits on 19-20)
+  | 'CRIT_BOOST'    // Lowers critical hit threshold (e.g., crits on 19-20)
+  | 'TELEPORT'      // Shadow Step phase teleport to target hex
+  | 'CLEAVE';       // Sweeps to adjacent frontal enemy
 
 export interface AbilityEffect {
   readonly type: AbilityEffectType;

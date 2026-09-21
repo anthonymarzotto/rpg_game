@@ -65,6 +65,7 @@ export function advanceTurnClock(state: CombatState): string {
 
   // Grant standard 3 AP
   nextActive.currentAp = ACTION_ECONOMY_CONFIG.standardApPerTurn;
+  nextActive.hexesMovedThisTurn = 0;
 
   // Decrement durations on active unit's modifiers and purge expired ones
   nextActive.activeModifiers.forEach((m) => {

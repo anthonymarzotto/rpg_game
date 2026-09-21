@@ -22,8 +22,8 @@ describe('Unit Stats & Derived Vitals', () => {
   it('scales flat HP per level (+5 HP) and Armor with Force', () => {
     const vitals = computeDerivedVitals({ force: 4, finesse: 0, focus: 0 }, 1);
 
-    // 20 base + (4 force * 0) + (1 level * 5) = 25 HP
-    expect(vitals.maxHp).toBe(25);
+    // 12 base + (4 force * 0) + (1 level * 5) = 17 HP
+    expect(vitals.maxHp).toBe(17);
     expect(vitals.armor).toBe(4);
     expect(vitals.ward).toBe(0);
   });
@@ -58,7 +58,7 @@ describe('Unit Entity Factory', () => {
     expect(recruit.progression.currentLevel).toBe(0);
     expect(recruit.progression.constellation).toHaveLength(0);
     expect(recruit.baseAttributes).toEqual({ force: 0, finesse: 0, focus: 0 });
-    expect(recruit.effectiveVitals.maxHp).toBe(20);
+    expect(recruit.effectiveVitals.maxHp).toBe(12);
     expect(recruit.loadout.activeClassId).toBe('novice');
     expect(recruit.loadout.wildcardAbilityIds).toHaveLength(0);
     expect(recruit.loadout.wildcardPassiveIds).toHaveLength(0);

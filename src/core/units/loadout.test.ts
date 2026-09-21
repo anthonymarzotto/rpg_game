@@ -68,10 +68,10 @@ describe('Unit Loadout & Active Class Resolution', () => {
     expect(resolved.coreAbilities).toHaveLength(3);
     expect(resolved.coreAbilities[0].id).toBe(POWER_STRIKE.id);
     expect(resolved.coreAbilities[0].name).toBe('Power Strike');
-    expect(resolved.coreAbilities[1].name).toBe('TODO: Warrior Domain 1');
-    expect(resolved.coreAbilities[2].name).toBe('TODO: Warrior Domain 2');
-    expect(resolved.innatePassive.id).toBe('warrior_passive_todo');
-    expect(resolved.innatePassive.name).toBe('TODO: Warrior Passive');
+    expect(resolved.coreAbilities[1].name).toBe('Cleave');
+    expect(resolved.coreAbilities[2].name).toBe('Brace');
+    expect(resolved.innatePassive.id).toBe('unyielding');
+    expect(resolved.innatePassive.name).toBe('Unyielding');
   });
 
   it('resolves Thief active class package with Sneak Attack signature', () => {
@@ -93,7 +93,7 @@ describe('Unit Loadout & Active Class Resolution', () => {
     const resolved = resolveUnitLoadout(thiefUnit, providers);
 
     expect(resolved.coreAbilities[0].id).toBe(SNEAK_ATTACK.id);
-    expect(resolved.innatePassive.id).toBe('thief_passive_todo');
+    expect(resolved.innatePassive.id).toBe('quickstep');
   });
 
   it('resolves Wizard active class package with Arcane Blast signature', () => {
@@ -115,7 +115,7 @@ describe('Unit Loadout & Active Class Resolution', () => {
     const resolved = resolveUnitLoadout(wizardUnit, providers);
 
     expect(resolved.coreAbilities[0].id).toBe(ARCANE_BLAST.id);
-    expect(resolved.innatePassive.id).toBe('wizard_passive_todo');
+    expect(resolved.innatePassive.id).toBe('arcane_aegis');
   });
 
   it('resolves equipped cross-class wildcard abilities alongside active class core kit', () => {
@@ -132,7 +132,7 @@ describe('Unit Loadout & Active Class Resolution', () => {
       loadout: {
         activeClassId: 'warrior',
         wildcardAbilityIds: ['sneak_attack', 'spark'],
-        wildcardPassiveIds: ['thief_passive_todo']
+        wildcardPassiveIds: ['quickstep']
       }
     };
 
@@ -142,9 +142,9 @@ describe('Unit Loadout & Active Class Resolution', () => {
     expect(resolved.wildcardAbilities).toHaveLength(2);
     expect(resolved.wildcardAbilities.map((a) => a.id)).toEqual(['sneak_attack', 'spark']);
     expect(resolved.combatAbilities).toHaveLength(5);
-    expect(resolved.innatePassive.id).toBe('warrior_passive_todo');
+    expect(resolved.innatePassive.id).toBe('unyielding');
     expect(resolved.wildcardPassives).toHaveLength(1);
-    expect(resolved.wildcardPassives[0].id).toBe('thief_passive_todo');
+    expect(resolved.wildcardPassives[0].id).toBe('quickstep');
     expect(resolved.activePassives).toHaveLength(2);
   });
 });
@@ -217,7 +217,7 @@ describe('Unit Loadout Validation Rules', () => {
       {
         activeClassId: 'warrior',
         wildcardAbilityIds: [],
-        wildcardPassiveIds: ['novice_passive_placeholder', 'warrior_passive_todo']
+        wildcardPassiveIds: ['momentum', 'unyielding']
       },
       providers
     );

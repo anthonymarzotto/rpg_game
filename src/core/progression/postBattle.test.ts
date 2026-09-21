@@ -26,7 +26,7 @@ describe('Post-Battle Progression Reconciliation', () => {
     expect(result.requiresChoice).toBe(false);
     expect(result.carryoverXp).toEqual({ fighter: 3, rogue: 2, mage: 0 });
     expect(result.updatedProgression.currentLevel).toBe(0);
-    expect(result.updatedVitals.maxHp).toBe(20);
+    expect(result.updatedVitals.maxHp).toBe(12);
   });
 
   it('auto-advances single qualifying archetype, deducts threshold, and calculates carryover', () => {
@@ -47,8 +47,8 @@ describe('Post-Battle Progression Reconciliation', () => {
     expect(result.updatedProgression.archetypePoints).toEqual({ fighter: 1, rogue: 0, mage: 0 });
     expect(result.updatedProgression.constellation).toEqual(['warrior']);
     expect(result.updatedAttributes.force).toBe(1);
-    // Flat HP: 20 base + (1 level * 5) = 25 HP
-    expect(result.updatedVitals.maxHp).toBe(25);
+    // Flat HP: 12 base + (1 level * 5) = 17 HP
+    expect(result.updatedVitals.maxHp).toBe(17);
     expect(result.updatedVitals.armor).toBe(1);
   });
 
