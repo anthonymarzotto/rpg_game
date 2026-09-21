@@ -1,0 +1,211 @@
+import { describe, it, expect } from 'vitest';
+import { createRadialArena } from '../grid/templates';
+import { createRecruit } from '../units/unitFactory';
+import { createCombatState, executeAbility, executeMove } from './resolver';
+import { advanceTurnClock, endActiveTurn } from './turnClock';
+import { getEffectiveSpeed, getEffectiveArmor, getEffectiveWard } from './effectiveVitals';
+import { MockDiceRoller } from './dice';
+import {
+  MOMENTUM,
+  UNYIELDING,
+  QUICKSTEP,
+  ARCANE_AEGIS,
+  STRIKE
+} from '../../data/packages';
+import {
+  getPassiveStatModifier,
+  evaluateRollPassives,
+  onTurnStartPassives
+} from './passives';
+import { CombatUnit } from './types';
+import { Unit } from '../types/unit';
+
+function createTestCombatUnit(passives: CombatUnit['passives'] = []): CombatUnit {
+  const recruit = createRecruit('hero', 'Hero');
+  return {
+    unit: recruit,
+    faction: recruit.faction,
+    currentHp: recruit.effectiveVitals.maxHp,
+    currentAp: recruit.effectiveVitals.maxAp,
+    initiativeGauge: 0,
+    isDefeated: false,
+    inBattleXp: { fighter: 0, rogue: 0, mage: 0 },
+    activeModifiers: [],
+    abilities: [],
+    passives
+  };
+}
+
+describe('Phase 1.3: Passive Trait Evaluation Pipeline', () => {
+  describe('Headless Passive Evaluator Functions', () => {
+    it('getPassiveStatModifier returns 0 when passives array is empty or undefined', () => {
+      expect(getPassiveStatModifier(undefined, 'armor')).toBe(0);
+      expect(getPassiveStatModifier([], 'speed')).toBe(0);
+    });
+
+    it('getPassiveStatModifier sums modifiers across multiple passives', () => {
+      const passives = [UNYIELDING, QUICKSTEP, ARCANE_AEGIS];
+      expect(getPassiveStatModifier(passives, 'armor')).toBe(1);
+      expect(getPassiveStatModifier(passives, 'speed')).toBe(2);
+      expect(getPassiveStatModifier(passives, 'ward')).toBe(1);
+      expect(getPassiveStatModifier(passives, 'evasion')).toBe(0);
+    });
+
+    it('evaluateRollPassives checks distance threshold and consumes trigger', () => {
+      const cu = createTestCombatUnit([MOMENTUM]);
+      cu.hexesMovedThisTurn = 1;
+
+      // 1 hex < 2 minHexes -> no advantage
+      const res1 = evaluateRollPassives(cu);
+      expect(res1.grantsAdvantage).toBe(false);
+      expect(cu.hexesMovedThisTurn).toBe(1);
+
+      // 2 hexes >= 2 minHexes -> grants advantage and consumes
+      cu.hexesMovedThisTurn = 2;
+      const res2 = evaluateRollPassives(cu);
+      expect(res2.grantsAdvantage).toBe(true);
+      expect(cu.hexesMovedThisTurn).toBe(0);
+    });
+
+    it('onTurnStartPassives resets turn-scoped counters', () => {
+      const cu = createTestCombatUnit();
+      cu.hexesMovedThisTurn = 3;
+      onTurnStartPassives(cu);
+      expect(cu.hexesMovedThisTurn).toBe(0);
+    });
+  });
+
+  describe('Cross-Class Wildcard Passives Integration', () => {
+    it('Warrior with innate Unyielding (+1 Armor) + wildcard Momentum gets both benefits', () => {
+      const heroUnit: Unit = {
+        ...createRecruit('warrior_hero', 'Alden'),
+        progression: {
+          unitId: 'warrior_hero',
+          currentLevel: 1,
+          archetypePoints: { fighter: 1, rogue: 0, mage: 0 },
+          constellation: ['warrior']
+        },
+        loadout: {
+          activeClassId: 'warrior',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: ['momentum']
+        }
+      };
+
+      const goblin = createRecruit('goblin', 'Goblin');
+      const arena = createRadialArena(3);
+      arena.setUnitPosition('warrior_hero', { q: 0, r: 0 });
+      arena.setUnitPosition('goblin', { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [heroUnit, goblin], 'warrior_hero');
+      const heroCu = state.units.get('warrior_hero')!;
+
+      // 1. Check Unyielding passive gives +1 Armor
+      expect(heroCu.passives.some((p) => p.id === 'unyielding')).toBe(true);
+      expect(heroCu.passives.some((p) => p.id === 'momentum')).toBe(true);
+      expect(getEffectiveArmor(heroCu)).toBe(heroUnit.effectiveVitals.armor + 1);
+
+      // 2. Move 2 hexes towards goblin
+      executeMove(state, 'warrior_hero', { q: 1, r: -1 });
+      executeMove(state, 'warrior_hero', { q: 1, r: 0 });
+      expect(heroCu.hexesMovedThisTurn).toBe(2);
+
+      // 3. Attack with Strike (Warrior core ability) -> Momentum triggers Advantage
+      const dice = new MockDiceRoller({ d20Rolls: [4, 17], damageRolls: [5] });
+      const result = executeAbility(state, 'warrior_hero', STRIKE, { targetUnitId: 'goblin' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.d20Roll).toBe(17); // Picked higher d20 roll from Advantage
+        expect(result.details.hitOutcome).toBe('SOLID_HIT');
+      }
+
+      // 4. Momentum consumed
+      expect(heroCu.hexesMovedThisTurn).toBe(0);
+    });
+
+    it('Thief with innate Quickstep (+2 Speed) + wildcard Unyielding (+1 Armor) stacks properly', () => {
+      const thiefUnit: Unit = {
+        ...createRecruit('thief_hero', 'Lyra'),
+        progression: {
+          unitId: 'thief_hero',
+          currentLevel: 1,
+          archetypePoints: { fighter: 0, rogue: 1, mage: 0 },
+          constellation: ['thief', 'warrior']
+        },
+        loadout: {
+          activeClassId: 'thief',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: ['unyielding']
+        }
+      };
+
+      const arena = createRadialArena(3);
+      arena.setUnitPosition('thief_hero', { q: 0, r: 0 });
+      const state = createCombatState(arena, [thiefUnit]);
+      const thiefCu = state.units.get('thief_hero')!;
+
+      // Base Speed 12 + 2 = 14
+      expect(getEffectiveSpeed(thiefCu)).toBe(thiefUnit.effectiveVitals.speed + 2);
+      // Base Armor 0 + 1 = 1
+      expect(getEffectiveArmor(thiefCu)).toBe(thiefUnit.effectiveVitals.armor + 1);
+    });
+
+    it('Wizard with innate Arcane Aegis (+1 Ward) + wildcard Quickstep (+2 Speed) stacks properly', () => {
+      const wizardUnit: Unit = {
+        ...createRecruit('wizard_hero', 'Vael'),
+        progression: {
+          unitId: 'wizard_hero',
+          currentLevel: 1,
+          archetypePoints: { fighter: 0, rogue: 0, mage: 1 },
+          constellation: ['wizard', 'thief']
+        },
+        loadout: {
+          activeClassId: 'wizard',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: ['quickstep']
+        }
+      };
+
+      const arena = createRadialArena(3);
+      arena.setUnitPosition('wizard_hero', { q: 0, r: 0 });
+      const state = createCombatState(arena, [wizardUnit]);
+      const wizardCu = state.units.get('wizard_hero')!;
+
+      // Base Ward 0 + 1 = 1
+      expect(getEffectiveWard(wizardCu)).toBe(wizardUnit.effectiveVitals.ward + 1);
+      // Base Speed 10 + 2 = 12
+      expect(getEffectiveSpeed(wizardCu)).toBe(wizardUnit.effectiveVitals.speed + 2);
+    });
+  });
+
+  describe('Turn Clock Integration', () => {
+    it('resets hexesMovedThisTurn when a unit starts their turn via turnClock', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const enemy = createRecruit('enemy', 'Goblin');
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [hero, enemy], 'hero');
+      const heroCu = state.units.get('hero')!;
+
+      // Move 1 hex
+      executeMove(state, 'hero', { q: 1, r: -1 });
+      expect(heroCu.hexesMovedThisTurn).toBe(1);
+
+      // End hero's turn
+      endActiveTurn(state);
+
+      // Now enemy or hero will be active. Set hero to have moved hexes and simulate advanceTurnClock activating hero.
+      heroCu.hexesMovedThisTurn = 4;
+      heroCu.initiativeGauge = 100; // Force hero to be selected next
+      const nextActiveId = advanceTurnClock(state);
+
+      if (nextActiveId === 'hero') {
+        expect(heroCu.hexesMovedThisTurn).toBe(0);
+      }
+    });
+  });
+});

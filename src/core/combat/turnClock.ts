@@ -2,6 +2,7 @@ import { CombatState, CombatUnit } from './types';
 import { getEffectiveSpeed } from './effectiveVitals';
 import { ACTION_ECONOMY_CONFIG } from '../config/balance';
 import { evaluateEncounterOutcome } from './objectives';
+import { onTurnStartPassives } from './passives';
 
 /**
  * Calculates the new initiative gauge value when a unit ends their turn,
@@ -65,7 +66,7 @@ export function advanceTurnClock(state: CombatState): string {
 
   // Grant standard 3 AP
   nextActive.currentAp = ACTION_ECONOMY_CONFIG.standardApPerTurn;
-  nextActive.hexesMovedThisTurn = 0;
+  onTurnStartPassives(nextActive);
 
   // Decrement durations on active unit's modifiers and purge expired ones
   nextActive.activeModifiers.forEach((m) => {

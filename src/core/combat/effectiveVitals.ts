@@ -1,4 +1,5 @@
 import { CombatUnit, ModifiableCombatStat } from './types';
+import { getPassiveStatModifier } from './passives';
 
 /**
  * Computes a combat unit's dynamic effective stat value after applying active modifiers,
@@ -9,10 +10,7 @@ export function getEffectiveStat(cu: CombatUnit, stat: ModifiableCombatStat): nu
   const modSum = cu.activeModifiers
     .filter((m) => m.stat === stat)
     .reduce((sum, m) => sum + m.value, 0);
-  const passiveSum = (cu.passives ?? []).reduce(
-    (sum, p) => sum + (p.statModifiers?.[stat] ?? 0),
-    0
-  );
+  const passiveSum = getPassiveStatModifier(cu.passives, stat);
 
   const total = base + modSum + passiveSum;
 

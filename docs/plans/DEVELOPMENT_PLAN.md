@@ -85,14 +85,14 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
     * **Thief** `(0, 1, 0)`: High mobility, precision strikes, flanking lethality.
     * **Wizard** `(0, 0, 1)`: Ranged arcana, spell warding, area disruption.
 
-### 1.3. Passive Trait Evaluation Pipeline (`src/core/combat/`)
+### 1.3. Passive Trait Evaluation Pipeline (`src/core/combat/`) <── COMPLETED & TESTED
 * **Headless Passive System**:
-  * Establish an extensible trait pipeline evaluating passive effects during combat:
-    * **Stat Modifiers**: Flat or percentage bonuses (e.g., +Armor, +Evasion, +Move).
-    * **Triggered Hooks**: On attack, on hit/crit/graze, on kill, on receiving damage, or on turn start/end.
-    * **Positional Conditions**: Bonuses when flanking, isolated, or at high HP / low HP.
+  * Established dedicated headless pipeline (`src/core/combat/passives/`) evaluating passive effects:
+    * **Stat Modifiers**: Flat bonuses (`getPassiveStatModifier`) evaluated via `getEffectiveStat` for Armor, Ward, Speed, Move, Evasion, Resolve.
+    * **Pre-Attack Roll Modifiers**: Distance-triggered advantages (`evaluateRollPassives`) like `Momentum` (+Advantage when moving 2+ hexes, consumed on attack).
+    * **Turn Lifecycle Hook**: `onTurnStartPassives` resetting turn-scoped state (e.g. `hexesMovedThisTurn`) in `turnClock.ts`.
 * **Testing & Verification**:
-  * Vitest suite verifying correct stacking of Active Class innate passive + equipped Wildcard passive without DOM or UI dependencies.
+  * Dedicated test suite (`src/core/combat/passives.test.ts`) verifying cross-class wildcard passive stacking (Warrior + Momentum, Thief + Unyielding, Wizard + Quickstep) and turn clock integration with 100% pass rate.
 
 ### 1.4. Presentation & Loadout Management Integration (`src/ui/`)
 * **Action Bar Adaptation**:

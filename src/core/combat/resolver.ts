@@ -18,6 +18,7 @@ import { advanceTurnClock } from './turnClock';
 import { resolveAttackRoll } from './attackRoll';
 import { resolveDamage } from './damageEngine';
 import { executeAbilityEffects } from './effects';
+import { evaluateRollPassives } from './passives';
 import { evaluateEncounterOutcome } from './objectives';
 import { resolveUnitLoadout, LoadoutLookupProviders } from '../units/loadout';
 import { getClassPackage, getAbilityById, getPassiveById } from '../../data/packages';
@@ -284,25 +285,9 @@ export function executeAbility(
   }
 
   // Evaluate passive roll modifiers (e.g. Momentum)
-  for (const passive of actorCu.passives ?? []) {
-    const rm = passive.rollModifier;
-    if (!rm) continue;
-
-    let conditionMet = false;
-    if (rm.condition.type === 'MOVED_MIN_DISTANCE') {
-      conditionMet = (actorCu.hexesMovedThisTurn ?? 0) >= rm.condition.minHexes;
-    }
-
-    if (conditionMet) {
-      if (rm.effect.grantsAdvantage) {
-        rollAdvantage = 'ADVANTAGE';
-      }
-      if (rm.effect.consumeOnTrigger) {
-        if (rm.condition.type === 'MOVED_MIN_DISTANCE') {
-          actorCu.hexesMovedThisTurn = 0;
-        }
-      }
-    }
+  const passiveRoll = evaluateRollPassives(actorCu);
+  if (passiveRoll.grantsAdvantage) {
+    rollAdvantage = 'ADVANTAGE';
   }
 
   const rollResult = resolveAttackRoll(actorCu, targetCu, ability, diceRoller, {

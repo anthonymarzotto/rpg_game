@@ -40,12 +40,10 @@ export function resolveUnitLoadout(
       .filter((a): a is Ability => a !== undefined);
 
     const novicePassive = getPassive(NOVICE_PASSIVE_ID);
-    innatePassive = novicePassive ?? {
-      id: NOVICE_PASSIVE_ID,
-      name: 'TODO: Novice Passive',
-      description: 'Temporary placeholder for Novice passive trait.',
-      hook: 'ALWAYS'
-    };
+    if (!novicePassive) {
+      throw new Error(`Cannot resolve loadout: Novice passive '${NOVICE_PASSIVE_ID}' not found.`);
+    }
+    innatePassive = novicePassive;
   } else {
     const pkg = getPackage(loadout.activeClassId);
     if (!pkg) {
