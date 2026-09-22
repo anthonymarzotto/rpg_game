@@ -334,11 +334,11 @@ export function HexGridSvg({
                     {/* Upright Standee Cutout Image with Horizontal Facing Flip */}
                     <image
                       href={tokenAssetSrc}
-                      x="-36"
-                      y="-68"
-                      width="72"
-                      height="72"
-                      preserveAspectRatio="xMidYMid meet"
+                      x="-30"
+                      y="-58"
+                      width="60"
+                      height="60"
+                      preserveAspectRatio="xMidYMax meet"
                       filter="url(#standee-drop-shadow)"
                       transform={`scale(${isFacingWest ? -1 : 1}, 1)`}
                     />
@@ -346,7 +346,7 @@ export function HexGridSvg({
                     {/* Unit Name Plate (above head) */}
                     <text
                       x="0"
-                      y="-72"
+                      y="-62"
                       fill={nameColor}
                       fontSize="8.5"
                       fontWeight="700"
@@ -358,7 +358,7 @@ export function HexGridSvg({
 
                     {/* Active Status Modifiers on Standee */}
                     {cu.activeModifiers.length > 0 && (
-                      <g transform="translate(0, -84)">
+                      <g transform="translate(0, -74)">
                         <rect
                           x={-cu.activeModifiers.length * 7}
                           y="-5.5"
