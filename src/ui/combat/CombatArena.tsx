@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useCombatSimulation } from './useCombatSimulation';
 import { DiceMode } from './devDice';
 import { createNoviceSandboxEncounter } from '../../data/encounters/noviceSandbox';
@@ -8,9 +8,12 @@ import { ActionBar } from './ActionBar';
 import { UnitStatusCard } from './UnitStatusCard';
 import { CombatLogPanel } from './CombatLogPanel';
 import { BattleVictoryModal } from './BattleVictoryModal';
+import { TokenAesthetic } from './tokenAssets';
 import './CombatArena.css';
 
 export function CombatArena() {
+  const [tokenAesthetic, setTokenAesthetic] = useState<TokenAesthetic>('stained-glass');
+
   const {
     state,
     playerCu,
@@ -55,24 +58,47 @@ export function CombatArena() {
           <span className="testbed-badge">Milestone 5 • Level-0 Sandbox</span>
         </div>
 
-        {/* Dev Dice Roll Overrides */}
-        <div className="dev-dice-controls">
-          <span className="dev-label">🎲 Dice Mode:</span>
-          {(['NORMAL', 'FORCE_CRIT', 'FORCE_GRAZE', 'FORCE_MISS'] as DiceMode[]).map((mode) => (
-            <button
-              key={mode}
-              className={`btn-dice-mode ${diceMode === mode ? 'active' : ''}`}
-              onClick={() => setDiceMode(mode)}
-            >
-              {mode === 'NORMAL'
-                ? 'Random'
-                : mode === 'FORCE_CRIT'
-                ? 'Nat 20'
-                : mode === 'FORCE_GRAZE'
-                ? 'Graze'
-                : 'Miss'}
-            </button>
-          ))}
+        {/* Dev Controls: Dice & Token Style */}
+        <div className="testbed-center-controls">
+          {/* Token Aesthetic Selector */}
+          <div className="dev-aesthetic-controls">
+            <span className="dev-label">🎨 Style:</span>
+            {(
+              [
+                { id: 'stained-glass', label: 'Stained Glass' },
+                { id: 'enamel', label: 'Enamel' },
+                { id: 'classic', label: 'Classic' }
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.id}
+                className={`btn-aesthetic ${tokenAesthetic === opt.id ? 'active' : ''}`}
+                onClick={() => setTokenAesthetic(opt.id)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Dev Dice Roll Overrides */}
+          <div className="dev-dice-controls">
+            <span className="dev-label">🎲 Dice:</span>
+            {(['NORMAL', 'FORCE_CRIT', 'FORCE_GRAZE', 'FORCE_MISS'] as DiceMode[]).map((mode) => (
+              <button
+                key={mode}
+                className={`btn-dice-mode ${diceMode === mode ? 'active' : ''}`}
+                onClick={() => setDiceMode(mode)}
+              >
+                {mode === 'NORMAL'
+                  ? 'Random'
+                  : mode === 'FORCE_CRIT'
+                  ? 'Nat 20'
+                  : mode === 'FORCE_GRAZE'
+                  ? 'Graze'
+                  : 'Miss'}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Global Controls */}
@@ -105,6 +131,7 @@ export function CombatArena() {
             hoveredCoord={hoveredCoord}
             floatingTexts={floatingTexts}
             targetPreview={targetPreview}
+            tokenAesthetic={tokenAesthetic}
             onTileClick={handleTileClick}
             onTileHover={setHoveredCoord}
           />

@@ -1,4 +1,4 @@
-import { Unit, Faction } from '../types/unit';
+import { Unit, Faction, UnitGender, UnitRace } from '../types/unit';
 import { BLANK_SLATE_ATTRIBUTES } from '../types/stats';
 import { UnitLoadout } from '../types/loadout';
 import { createInitialProgression } from '../progression/pyramid';
@@ -11,6 +11,8 @@ export interface CreateRecruitOptions {
   readonly rng?: () => number;
   readonly faction?: Faction;
   readonly loadout?: UnitLoadout;
+  readonly gender?: UnitGender;
+  readonly race?: UnitRace;
 }
 
 /**
@@ -39,6 +41,8 @@ export function createRecruit(
   return {
     id,
     name,
+    gender: options?.gender ?? 'male',
+    race: options?.race ?? 'human',
     faction: options?.faction,
     progression,
     baseAttributes,

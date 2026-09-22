@@ -3,6 +3,8 @@ import { TriadAttributes, DerivedCombatVitals } from './stats';
 import { UnitLoadout } from './loadout';
 
 export type Faction = 'PLAYER' | 'ENEMY' | 'NEUTRAL';
+export type UnitGender = 'male' | 'female';
+export type UnitRace = 'human';
 
 /**
  * Complete character entity comprising progression, permanent attributes,
@@ -13,6 +15,10 @@ export interface Unit {
   readonly id: string;
   /** Display name */
   readonly name: string;
+  /** Biological/aesthetic presentation gender */
+  readonly gender: UnitGender;
+  /** Character race */
+  readonly race: UnitRace;
   /** Faction or combat allegiance (defaults to 'PLAYER' if omitted) */
   readonly faction?: Faction;
   /** Progression record along the 100-class pyramid */

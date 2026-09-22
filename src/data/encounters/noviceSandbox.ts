@@ -52,6 +52,8 @@ export function createNoviceSandboxEncounter(
   const dummyA: Unit = {
     id: 'dummy-a',
     name: 'Training Dummy A',
+    gender: 'female',
+    race: 'human',
     faction: 'ENEMY',
     progression: {
       unitId: 'dummy-a',
@@ -78,6 +80,8 @@ export function createNoviceSandboxEncounter(
   const dummyB: Unit = {
     id: 'dummy-b',
     name: 'Bystander Dummy B',
+    gender: 'female',
+    race: 'human',
     faction: 'ENEMY',
     progression: {
       unitId: 'dummy-b',
@@ -104,6 +108,8 @@ export function createNoviceSandboxEncounter(
   const dummyC: Unit = {
     id: 'dummy-c',
     name: 'Screened Dummy C',
+    gender: 'female',
+    race: 'human',
     faction: 'ENEMY',
     progression: {
       unitId: 'dummy-c',
@@ -130,6 +136,8 @@ export function createNoviceSandboxEncounter(
   const dummyD: Unit = {
     id: 'dummy-d',
     name: 'Distant Target D',
+    gender: 'female',
+    race: 'human',
     faction: 'ENEMY',
     progression: {
       unitId: 'dummy-d',

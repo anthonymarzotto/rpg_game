@@ -3,6 +3,7 @@ import { HexCoord, toHexKey, getFacingAngleDegrees } from '../../core/grid/hex';
 import { CombatState } from '../../core/combat/types';
 import { TargetPreview } from '../../core/combat/targetPreview';
 import { FloatingText } from './useFloatingCombatText';
+import { TokenAesthetic, resolveTokenAssetPath } from './tokenAssets';
 
 export interface HexGridSvgProps {
   readonly state: CombatState;
@@ -12,6 +13,7 @@ export interface HexGridSvgProps {
   readonly hoveredCoord: HexCoord | null;
   readonly floatingTexts: readonly FloatingText[];
   readonly targetPreview: TargetPreview | null;
+  readonly tokenAesthetic?: TokenAesthetic;
   readonly onTileClick: (coord: HexCoord) => void;
   readonly onTileHover: (coord: HexCoord | null) => void;
 }
@@ -44,6 +46,7 @@ export function HexGridSvg({
   hoveredCoord,
   floatingTexts,
   targetPreview,
+  tokenAesthetic = 'stained-glass',
   onTileClick,
   onTileHover
 }: HexGridSvgProps) {
@@ -117,6 +120,14 @@ export function HexGridSvg({
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
+        </filter>
+        {/* Standee Cutout Drop Shadow */}
+        <filter id="standee-drop-shadow" x="-40%" y="-40%" width="180%" height="180%">
+          <feDropShadow dx="0" dy="3.5" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.8" />
+        </filter>
+        {/* Pedestal Ground Blur Shadow */}
+        <filter id="pedestal-ground-shadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" />
         </filter>
       </defs>
 
@@ -235,147 +246,307 @@ export function HexGridSvg({
 
       {/* 2. Unit Tokens Layer */}
       <g className="units-layer" style={{ pointerEvents: 'none' }}>
-        {Array.from(state.units.entries()).map(([unitId, cu]) => {
-          if (cu.isDefeated) return null;
-          const pos = state.arena.getUnitPosition(unitId);
-          if (!pos) return null;
-          const { x, y } = hexToPixel(pos);
-          const faction = cu.faction ?? cu.unit.faction ?? 'PLAYER';
-          const isPlayer = faction === 'PLAYER';
-          const isEnemy = faction === 'ENEMY';
-          const hpPercent = (cu.currentHp / cu.unit.effectiveVitals.maxHp) * 100;
+        {Array.from(state.units.entries())
+          .filter(([_, cu]) => !cu.isDefeated)
+          .map(([unitId, cu]) => {
+            const pos = state.arena.getUnitPosition(unitId);
+            const pixel = pos ? hexToPixel(pos) : { x: 0, y: 0 };
+            return { unitId, cu, pos, pixel };
+          })
+          .filter((item): item is typeof item & { pos: HexCoord } => item.pos != null)
+          .sort((a, b) => a.pixel.y - b.pixel.y)
+          .map(({ unitId, cu, pos, pixel: { x, y } }) => {
+            const faction = cu.faction ?? cu.unit.faction ?? 'PLAYER';
+            const isPlayer = faction === 'PLAYER';
+            const isEnemy = faction === 'ENEMY';
+            const hpPercent = (cu.currentHp / cu.unit.effectiveVitals.maxHp) * 100;
 
-          // Visual theme by faction
-          const tokenFill = isPlayer ? '#1e1b4b' : isEnemy ? '#450a0a' : '#1c1917';
-          const tokenStroke = isPlayer ? '#38bdf8' : isEnemy ? '#f87171' : '#a8a29e';
-          const nameColor = isPlayer ? '#7dd3fc' : isEnemy ? '#fca5a5' : '#e2e8f0';
-          const badgeSymbol = isPlayer ? '🛡️' : isEnemy ? '🎯' : '⚪';
-          const hpBarFill = isPlayer ? '#10b981' : hpPercent < 40 ? '#ef4444' : '#f59e0b';
+            // Visual theme by faction
+            const tokenFill = isPlayer ? '#1e1b4b' : isEnemy ? '#450a0a' : '#1c1917';
+            const tokenStroke = isPlayer ? '#38bdf8' : isEnemy ? '#f87171' : '#a8a29e';
+            const nameColor = isPlayer ? '#7dd3fc' : isEnemy ? '#fca5a5' : '#e2e8f0';
+            const badgeSymbol = isPlayer ? '🛡️' : isEnemy ? '🎯' : '⚪';
+            const hpBarFill = isPlayer ? '#10b981' : hpPercent < 40 ? '#ef4444' : '#f59e0b';
 
-          return (
-            <g key={unitId} transform={`translate(${x}, ${y})`}>
-              {/* Unit Token Circle */}
-              <circle
-                r="17"
-                fill={tokenFill}
-                stroke={tokenStroke}
-                strokeWidth={isPlayer ? 2.5 : 2}
-                filter="url(#tile-glow-cyan)"
-              />
+            const tokenAssetSrc = resolveTokenAssetPath(cu.unit, tokenAesthetic);
+            const isFacingWest = cu.facing === 2 || cu.facing === 3 || cu.facing === 4;
+            const isCandidate = candidateSet.has(toHexKey(pos));
 
-              {/* Directional Facing Chevron */}
-              <g transform={`rotate(${getFacingAngleDegrees(cu.facing)})`}>
-                <polygon
-                  points="16,-4.5 23.5,0 16,4.5"
-                  fill={tokenStroke}
-                  stroke="#0f172a"
-                  strokeWidth="0.8"
-                />
-              </g>
-
-              {/* Target Candidate Reticle (Only for valid targets within range) */}
-              {candidateSet.has(toHexKey(pos)) && (
-                <circle
-                  r="21"
-                  fill="none"
-                  stroke="#f59e0b"
-                  strokeWidth="2"
-                  strokeDasharray="4 3"
-                  filter="url(#tile-glow-amber)"
-                />
-              )}
-
-              {/* Unit Symbol / Badge */}
-              <text
-                x="0"
-                y="-1"
-                fill="#ffffff"
-                fontSize="12"
-                fontWeight="800"
-                textAnchor="middle"
-                dominantBaseline="central"
-              >
-                {badgeSymbol}
-              </text>
-
-              {/* Unit Name Plate */}
-              <text
-                x="0"
-                y="-23"
-                fill={nameColor}
-                fontSize="8.5"
-                fontWeight="700"
-                textAnchor="middle"
-              >
-                {cu.unit.name.split(' ')[0]}
-              </text>
-
-              {/* Active Status Modifiers on Token */}
-              {cu.activeModifiers.length > 0 && (
-                <g transform="translate(0, -34)">
-                  <rect
-                    x={-cu.activeModifiers.length * 7}
-                    y="-5.5"
-                    width={cu.activeModifiers.length * 14}
-                    height="11"
-                    rx="5.5"
-                    fill="rgba(15, 23, 42, 0.9)"
-                    stroke={cu.activeModifiers.some((m) => m.value < 0) ? '#38bdf8' : '#fbbf24'}
-                    strokeWidth="0.8"
-                  />
-                  <text
-                    x="0"
-                    y="2.5"
-                    fontSize="7"
-                    textAnchor="middle"
-                  >
-                    {cu.activeModifiers.map((m) =>
-                      m.stat === 'move' && m.value < 0 ? '❄️' :
-                      m.stat === 'armor' ? '🛡️' :
-                      m.stat === 'ward' ? '🔮' :
-                      m.stat === 'speed' ? '⚡' : '✨'
-                    ).join('')}
-                  </text>
-                </g>
-              )}
-
-              {/* Health Bar */}
-              <rect
-                x="-14"
-                y="19"
-                width="28"
-                height="4"
-                fill="#0f172a"
-                rx="2"
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth="0.5"
-              />
-              <rect
-                x="-14"
-                y="19"
-                width={Math.max(0, (28 * hpPercent) / 100)}
-                height="4"
-                fill={hpBarFill}
-                rx="2"
-              />
-
-              {/* Player AP pips */}
-              {isPlayer && (
-                <g transform="translate(0, 27)">
-                  {[0, 1, 2].map((pip) => (
-                    <circle
-                      key={pip}
-                      cx={(pip - 1) * 7}
-                      cy="0"
-                      r="2"
-                      fill={pip < cu.currentAp ? '#38bdf8' : 'rgba(255,255,255,0.2)'}
+            return (
+              <g key={unitId} transform={`translate(${x}, ${y})`}>
+                {tokenAssetSrc ? (
+                  /* Standee Presentation */
+                  <>
+                    {/* Base Ground Blur Shadow */}
+                    <ellipse
+                      cx="0"
+                      cy="4"
+                      rx="20"
+                      ry="7"
+                      fill="rgba(0, 0, 0, 0.45)"
+                      filter="url(#pedestal-ground-shadow)"
                     />
-                  ))}
-                </g>
-              )}
-            </g>
-          );
-        })}
+
+                    {/* 3D Pedestal Base Rim / Bevel */}
+                    <path
+                      d="M -18 2 C -18 8, 18 8, 18 2 L 18 5 C 18 11, -18 11, -18 5 Z"
+                      fill={isPlayer ? '#0f172a' : isEnemy ? '#270707' : '#1c1917'}
+                      stroke={tokenStroke}
+                      strokeWidth="1"
+                    />
+
+                    {/* 3D Pedestal Base Top Surface */}
+                    <ellipse
+                      cx="0"
+                      cy="2"
+                      rx="18"
+                      ry="6.5"
+                      fill={tokenFill}
+                      stroke={tokenStroke}
+                      strokeWidth={isPlayer ? 2 : 1.5}
+                    />
+
+                    {/* Directional Facing Chevron on Pedestal */}
+                    <g transform={`translate(0, 2) rotate(${getFacingAngleDegrees(cu.facing)})`}>
+                      <polygon
+                        points="13,-3.5 19,0 13,3.5"
+                        fill={tokenStroke}
+                        stroke="#0f172a"
+                        strokeWidth="0.8"
+                      />
+                    </g>
+
+                    {/* Target Candidate Reticle (Elliptical base ring) */}
+                    {isCandidate && (
+                      <ellipse
+                        cx="0"
+                        cy="2"
+                        rx="23"
+                        ry="8.5"
+                        fill="none"
+                        stroke="#f59e0b"
+                        strokeWidth="2"
+                        strokeDasharray="4 3"
+                        filter="url(#tile-glow-amber)"
+                      />
+                    )}
+
+                    {/* Upright Standee Cutout Image with Horizontal Facing Flip */}
+                    <image
+                      href={tokenAssetSrc}
+                      x="-36"
+                      y="-68"
+                      width="72"
+                      height="72"
+                      preserveAspectRatio="xMidYMid meet"
+                      filter="url(#standee-drop-shadow)"
+                      transform={`scale(${isFacingWest ? -1 : 1}, 1)`}
+                    />
+
+                    {/* Unit Name Plate (above head) */}
+                    <text
+                      x="0"
+                      y="-72"
+                      fill={nameColor}
+                      fontSize="8.5"
+                      fontWeight="700"
+                      textAnchor="middle"
+                      style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}
+                    >
+                      {cu.unit.name.split(' ')[0]}
+                    </text>
+
+                    {/* Active Status Modifiers on Standee */}
+                    {cu.activeModifiers.length > 0 && (
+                      <g transform="translate(0, -84)">
+                        <rect
+                          x={-cu.activeModifiers.length * 7}
+                          y="-5.5"
+                          width={cu.activeModifiers.length * 14}
+                          height="11"
+                          rx="5.5"
+                          fill="rgba(15, 23, 42, 0.9)"
+                          stroke={cu.activeModifiers.some((m) => m.value < 0) ? '#38bdf8' : '#fbbf24'}
+                          strokeWidth="0.8"
+                        />
+                        <text
+                          x="0"
+                          y="2.5"
+                          fontSize="7"
+                          textAnchor="middle"
+                        >
+                          {cu.activeModifiers.map((m) =>
+                            m.stat === 'move' && m.value < 0 ? '❄️' :
+                            m.stat === 'armor' ? '🛡️' :
+                            m.stat === 'ward' ? '🔮' :
+                            m.stat === 'speed' ? '⚡' : '✨'
+                          ).join('')}
+                        </text>
+                      </g>
+                    )}
+
+                    {/* Health Bar (below base) */}
+                    <rect
+                      x="-14"
+                      y="14"
+                      width="28"
+                      height="4"
+                      fill="#0f172a"
+                      rx="2"
+                      stroke="rgba(255,255,255,0.2)"
+                      strokeWidth="0.5"
+                    />
+                    <rect
+                      x="-14"
+                      y="14"
+                      width={Math.max(0, (28 * hpPercent) / 100)}
+                      height="4"
+                      fill={hpBarFill}
+                      rx="2"
+                    />
+
+                    {/* Player AP pips */}
+                    {isPlayer && (
+                      <g transform="translate(0, 22)">
+                        {[0, 1, 2].map((pip) => (
+                          <circle
+                            key={pip}
+                            cx={(pip - 1) * 7}
+                            cy="0"
+                            r="2"
+                            fill={pip < cu.currentAp ? '#38bdf8' : 'rgba(255,255,255,0.2)'}
+                          />
+                        ))}
+                      </g>
+                    )}
+                  </>
+                ) : (
+                  /* Classic Vector Token Fallback */
+                  <>
+                    {/* Unit Token Circle */}
+                    <circle
+                      r="17"
+                      fill={tokenFill}
+                      stroke={tokenStroke}
+                      strokeWidth={isPlayer ? 2.5 : 2}
+                      filter="url(#tile-glow-cyan)"
+                    />
+
+                    {/* Directional Facing Chevron */}
+                    <g transform={`rotate(${getFacingAngleDegrees(cu.facing)})`}>
+                      <polygon
+                        points="16,-4.5 23.5,0 16,4.5"
+                        fill={tokenStroke}
+                        stroke="#0f172a"
+                        strokeWidth="0.8"
+                      />
+                    </g>
+
+                    {/* Target Candidate Reticle (Only for valid targets within range) */}
+                    {isCandidate && (
+                      <circle
+                        r="21"
+                        fill="none"
+                        stroke="#f59e0b"
+                        strokeWidth="2"
+                        strokeDasharray="4 3"
+                        filter="url(#tile-glow-amber)"
+                      />
+                    )}
+
+                    {/* Unit Symbol / Badge */}
+                    <text
+                      x="0"
+                      y="-1"
+                      fill="#ffffff"
+                      fontSize="12"
+                      fontWeight="800"
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                    >
+                      {badgeSymbol}
+                    </text>
+
+                    {/* Unit Name Plate */}
+                    <text
+                      x="0"
+                      y="-23"
+                      fill={nameColor}
+                      fontSize="8.5"
+                      fontWeight="700"
+                      textAnchor="middle"
+                    >
+                      {cu.unit.name.split(' ')[0]}
+                    </text>
+
+                    {/* Active Status Modifiers on Token */}
+                    {cu.activeModifiers.length > 0 && (
+                      <g transform="translate(0, -34)">
+                        <rect
+                          x={-cu.activeModifiers.length * 7}
+                          y="-5.5"
+                          width={cu.activeModifiers.length * 14}
+                          height="11"
+                          rx="5.5"
+                          fill="rgba(15, 23, 42, 0.9)"
+                          stroke={cu.activeModifiers.some((m) => m.value < 0) ? '#38bdf8' : '#fbbf24'}
+                          strokeWidth="0.8"
+                        />
+                        <text
+                          x="0"
+                          y="2.5"
+                          fontSize="7"
+                          textAnchor="middle"
+                        >
+                          {cu.activeModifiers.map((m) =>
+                            m.stat === 'move' && m.value < 0 ? '❄️' :
+                            m.stat === 'armor' ? '🛡️' :
+                            m.stat === 'ward' ? '🔮' :
+                            m.stat === 'speed' ? '⚡' : '✨'
+                          ).join('')}
+                        </text>
+                      </g>
+                    )}
+
+                    {/* Health Bar */}
+                    <rect
+                      x="-14"
+                      y="19"
+                      width="28"
+                      height="4"
+                      fill="#0f172a"
+                      rx="2"
+                      stroke="rgba(255,255,255,0.2)"
+                      strokeWidth="0.5"
+                    />
+                    <rect
+                      x="-14"
+                      y="19"
+                      width={Math.max(0, (28 * hpPercent) / 100)}
+                      height="4"
+                      fill={hpBarFill}
+                      rx="2"
+                    />
+
+                    {/* Player AP pips */}
+                    {isPlayer && (
+                      <g transform="translate(0, 27)">
+                        {[0, 1, 2].map((pip) => (
+                          <circle
+                            key={pip}
+                            cx={(pip - 1) * 7}
+                            cy="0"
+                            r="2"
+                            fill={pip < cu.currentAp ? '#38bdf8' : 'rgba(255,255,255,0.2)'}
+                          />
+                        ))}
+                      </g>
+                    )}
+                  </>
+                )}
+              </g>
+            );
+          })}
       </g>
 
       {/* 3. Floating Combat Feedback Numbers */}
