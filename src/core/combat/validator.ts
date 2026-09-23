@@ -120,10 +120,13 @@ export function canExecuteAbility(
     }
 
     if (ability.targetType === 'ALLY') {
-      if (targetUnitId !== actorUnitId) {
-        if (cu.faction && targetCu.faction && cu.faction !== targetCu.faction) {
-          return { valid: false, reason: 'Cannot cast an ally ability on an enemy unit.' };
-        }
+      if (
+        targetUnitId !== actorUnitId &&
+        cu.faction &&
+        targetCu.faction &&
+        cu.faction !== targetCu.faction
+      ) {
+        return { valid: false, reason: 'Cannot cast an ally ability on an enemy unit.' };
       }
     }
 

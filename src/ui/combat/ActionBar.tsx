@@ -3,7 +3,7 @@ import { CombatUnit } from '../../core/combat/types';
 import { ActionMode } from './useCombatSimulation';
 
 export interface ActionBarProps {
-  readonly playerCu: CombatUnit | undefined;
+  readonly activeCu: CombatUnit | undefined;
   readonly actionMode: ActionMode;
   readonly selectedAbility: Ability | null;
   readonly onSelectAction: (action: Ability | 'MOVE' | null) => void;
@@ -11,17 +11,17 @@ export interface ActionBarProps {
 }
 
 export function ActionBar({
-  playerCu,
+  activeCu,
   actionMode,
   selectedAbility,
   onSelectAction,
   onEndTurn
 }: ActionBarProps) {
-  if (!playerCu) return null;
+  if (!activeCu) return null;
 
-  const currentAp = playerCu.currentAp;
-  const abilities = playerCu.abilities;
-  const wildcardIds = new Set(playerCu.unit.loadout?.wildcardAbilityIds ?? []);
+  const currentAp = activeCu.currentAp;
+  const abilities = activeCu.abilities;
+  const wildcardIds = new Set(activeCu.unit.loadout?.wildcardAbilityIds ?? []);
 
   const coreAbilities = abilities.filter((a) => !wildcardIds.has(a.id));
   const wildcardAbilities = abilities.filter((a) => wildcardIds.has(a.id));
@@ -108,11 +108,11 @@ export function ActionBar({
       </div>
 
       {/* Active Passives Tray */}
-      {playerCu.passives && playerCu.passives.length > 0 && (
+      {activeCu.passives && activeCu.passives.length > 0 && (
         <div className="passives-tray">
-          {playerCu.passives.map((passive) => {
+          {activeCu.passives.map((passive) => {
             const isMomentum = passive.id === 'momentum';
-            const isMomentumReady = isMomentum && (playerCu.hexesMovedThisTurn ?? 0) >= 2;
+            const isMomentumReady = isMomentum && (activeCu.hexesMovedThisTurn ?? 0) >= 2;
             const icon =
               passive.id === 'momentum'
                 ? '⚡'
@@ -133,7 +133,7 @@ export function ActionBar({
                 <span className="passive-name">{passive.name}</span>
                 {isMomentum && (
                   <span className={`passive-counter ${isMomentumReady ? 'counter-ready' : ''}`}>
-                    {Math.min(playerCu.hexesMovedThisTurn ?? 0, 2)}/2
+                    {Math.min(activeCu.hexesMovedThisTurn ?? 0, 2)}/2
                   </span>
                 )}
 

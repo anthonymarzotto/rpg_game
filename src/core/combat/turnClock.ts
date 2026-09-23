@@ -1,8 +1,29 @@
-import { CombatState, CombatUnit } from './types';
+import { CombatState } from './types';
 import { getEffectiveSpeed } from './effectiveVitals';
 import { ACTION_ECONOMY_CONFIG } from '../config/balance';
 import { evaluateEncounterOutcome } from './objectives';
 import { onTurnStartPassives } from './passives';
+import { Faction } from '../types/unit';
+
+/**
+ * Minimal interface required to participate in CTB clock ticking.
+ */
+export interface ClockParticipant {
+  readonly id: string;
+  gauge: number;
+  readonly speed: number;
+}
+
+/**
+ * Projected entry in the CTB initiative timeline queue.
+ */
+export interface TurnOrderEntry {
+  readonly unitId: string;
+  readonly name: string;
+  readonly faction: Faction;
+  readonly projectedGauge: number;
+  readonly isCurrentActive: boolean;
+}
 
 /**
  * Calculates the new initiative gauge value when a unit ends their turn,
@@ -20,9 +41,50 @@ export function calculateTurnResetGauge(unspentAp: number, overflow = 0): number
 }
 
 /**
- * Advances the CTB clock by repeatedly adding Effective Speed to each living unit's gauge
- * until at least one unit crosses the 100 threshold.
- * Resolves ties by highest gauge, then highest speed, then unit ID.
+ * Pure engine function: Ticks participant gauges by their speed until at least one
+ * crosses the threshold (default 100), then resolves ties by:
+ * 1. Highest Gauge
+ * 2. Highest Speed
+ * 3. Stable Unit ID
+ */
+export function stepClockUntilReady<T extends ClockParticipant>(
+  participants: T[],
+  threshold = ACTION_ECONOMY_CONFIG.gaugeTurnThreshold
+): { winner: T; ticks: number } {
+  if (participants.length === 0) {
+    throw new Error('No living participants in clock stepping.');
+  }
+
+  const getReady = (): T[] =>
+    participants.filter((p) => p.gauge >= threshold);
+
+  let ticks = 0;
+  while (getReady().length === 0) {
+    ticks++;
+    for (const p of participants) {
+      p.gauge += p.speed;
+    }
+  }
+
+  const ready = getReady();
+
+  // Authoritative 3-tier tie-breaker:
+  ready.sort((a, b) => {
+    if (b.gauge !== a.gauge) {
+      return b.gauge - a.gauge;
+    }
+    if (b.speed !== a.speed) {
+      return b.speed - a.speed;
+    }
+    return a.id.localeCompare(b.id);
+  });
+
+  return { winner: ready[0], ticks };
+}
+
+/**
+ * Advances the CTB clock using stepClockUntilReady, applies 3 AP, fires turn-start passives,
+ * and decrements/purges active modifiers on the newly active unit.
  */
 export function advanceTurnClock(state: CombatState): string {
   const activeUnits = Array.from(state.units.values()).filter(
@@ -33,34 +95,21 @@ export function advanceTurnClock(state: CombatState): string {
     throw new Error('No living units remaining in combat encounter.');
   }
 
-  const getReadyUnits = (): CombatUnit[] =>
-    activeUnits.filter(
-      (cu) => cu.initiativeGauge >= ACTION_ECONOMY_CONFIG.gaugeTurnThreshold
-    );
+  const participants = activeUnits.map((cu) => ({
+    id: cu.unit.id,
+    gauge: cu.initiativeGauge,
+    speed: getEffectiveSpeed(cu),
+    cu
+  }));
 
-  // Tick the clock until someone hits threshold
-  while (getReadyUnits().length === 0) {
-    for (const cu of activeUnits) {
-      cu.initiativeGauge += getEffectiveSpeed(cu);
-    }
+  const { winner } = stepClockUntilReady(participants);
+
+  // Sync simulated gauges back to real combat units
+  for (const p of participants) {
+    p.cu.initiativeGauge = p.gauge;
   }
 
-  const readyUnits = getReadyUnits();
-
-  // Tie-breaker: 1. Highest gauge, 2. Highest Speed, 3. Stable ID
-  readyUnits.sort((a, b) => {
-    if (b.initiativeGauge !== a.initiativeGauge) {
-      return b.initiativeGauge - a.initiativeGauge;
-    }
-    const speedA = getEffectiveSpeed(a);
-    const speedB = getEffectiveSpeed(b);
-    if (speedB !== speedA) {
-      return speedB - speedA;
-    }
-    return a.unit.id.localeCompare(b.unit.id);
-  });
-
-  const nextActive = readyUnits[0];
+  const nextActive = winner.cu;
   state.activeUnitId = nextActive.unit.id;
   state.turnNumber += 1;
 
@@ -77,6 +126,78 @@ export function advanceTurnClock(state: CombatState): string {
   );
 
   return nextActive.unit.id;
+}
+
+/**
+ * Non-mutating lookahead projection for the UI initiative queue ribbon.
+ * Returns the upcoming sequence of turns along the CTB timeline.
+ */
+export function predictTurnOrder(
+  state: CombatState,
+  count = 8
+): readonly TurnOrderEntry[] {
+  const livingUnits = Array.from(state.units.values()).filter(
+    (cu) => !cu.isDefeated
+  );
+  if (livingUnits.length === 0 || count <= 0) {
+    return [];
+  }
+
+  const entries: TurnOrderEntry[] = [];
+  const currentActive = state.units.get(state.activeUnitId);
+
+  // Slot 0: If an active living unit exists, they occupy the currently acting slot
+  if (currentActive && !currentActive.isDefeated) {
+    entries.push({
+      unitId: currentActive.unit.id,
+      name: currentActive.unit.name,
+      faction: currentActive.faction ?? currentActive.unit.faction ?? 'PLAYER',
+      projectedGauge: currentActive.initiativeGauge,
+      isCurrentActive: true
+    });
+  }
+
+  // Clone lightweight participants for simulation
+  const simParticipants = livingUnits.map((cu) => {
+    let initialGauge = cu.initiativeGauge;
+    // For currently active unit, project their gauge resetting after their turn
+    if (cu.unit.id === state.activeUnitId) {
+      const overflow = Math.max(
+        0,
+        initialGauge - ACTION_ECONOMY_CONFIG.gaugeTurnThreshold
+      );
+      initialGauge = calculateTurnResetGauge(0, overflow);
+    }
+    return {
+      id: cu.unit.id,
+      name: cu.unit.name,
+      faction: cu.faction ?? cu.unit.faction ?? 'PLAYER',
+      gauge: initialGauge,
+      speed: getEffectiveSpeed(cu)
+    };
+  });
+
+  // Project future turns
+  const targetCount = count;
+  while (entries.length < targetCount) {
+    const { winner } = stepClockUntilReady(simParticipants);
+
+    entries.push({
+      unitId: winner.id,
+      name: winner.name,
+      faction: winner.faction,
+      projectedGauge: winner.gauge,
+      isCurrentActive: false
+    });
+
+    const overflow = Math.max(
+      0,
+      winner.gauge - ACTION_ECONOMY_CONFIG.gaugeTurnThreshold
+    );
+    winner.gauge = calculateTurnResetGauge(0, overflow);
+  }
+
+  return entries;
 }
 
 /**
@@ -106,6 +227,6 @@ export function endActiveTurn(
   activeCombatUnit.currentAp = 0;
 
   const nextActive = advanceTurnClock(state);
-  state.outcome = evaluateEncounterOutcome(state.objectives, state, 'player');
+  state.outcome = evaluateEncounterOutcome(state.objectives, state);
   return nextActive;
 }

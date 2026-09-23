@@ -16,6 +16,12 @@ export interface BattleVictoryModalProps {
   readonly isOpen: boolean;
   readonly reconciliationResult: PostBattleReconciliationResult | null;
   readonly playerUnit: Unit | undefined;
+  readonly squadMembers?: readonly {
+    readonly unit: Unit;
+    readonly result: PostBattleReconciliationResult;
+  }[];
+  readonly activeSquadUnitId?: string;
+  readonly onSelectSquadUnit?: (unitId: string) => void;
   readonly onSelectArchetypeChoice: (archetype: Archetype) => void;
   readonly onRematch: (configuredLoadout?: UnitLoadout) => void;
   readonly onDismiss: () => void;
@@ -25,16 +31,27 @@ export function BattleVictoryModal({
   isOpen,
   reconciliationResult,
   playerUnit,
+  squadMembers,
+  activeSquadUnitId,
+  onSelectSquadUnit,
   onSelectArchetypeChoice,
   onRematch,
   onDismiss
 }: BattleVictoryModalProps) {
+  const currentSquadMember = useMemo(() => {
+    if (!squadMembers || squadMembers.length === 0) return undefined;
+    return squadMembers.find((s) => s.unit.id === activeSquadUnitId) ?? squadMembers[0];
+  }, [squadMembers, activeSquadUnitId]);
+
+  const activeUnit = currentSquadMember?.unit ?? playerUnit;
+  const activeResult = currentSquadMember?.result ?? reconciliationResult;
+
   const [selectedClassId, setSelectedClassId] = useState<string>('novice');
   const [wildcardAbility1, setWildcardAbility1] = useState<string>('');
   const [wildcardAbility2, setWildcardAbility2] = useState<string>('');
   const [wildcardPassive, setWildcardPassive] = useState<string>('');
 
-  const constellation = reconciliationResult?.updatedProgression.constellation;
+  const constellation = activeResult?.updatedProgression.constellation;
 
   // Unlocked classes available for Active Class selection
   const unlockedClasses = useMemo(() => {
@@ -45,7 +62,7 @@ export function BattleVictoryModal({
   // Resolve core abilities and innate passive for selected class
   const { coreAbilities, innatePassive } = useMemo(() => {
     if (selectedClassId === 'novice') {
-      const starterAbilities = (playerUnit?.starterAbilityIds ?? [])
+      const starterAbilities = (activeUnit?.starterAbilityIds ?? [])
         .map((id) => getAbilityById(id))
         .filter((a): a is Ability => a !== undefined);
       return { coreAbilities: starterAbilities, innatePassive: MOMENTUM };
@@ -58,7 +75,7 @@ export function BattleVictoryModal({
       coreAbilities: [pkg.signatureAbility, ...pkg.domainAbilities],
       innatePassive: pkg.passive
     };
-  }, [selectedClassId, playerUnit]);
+  }, [selectedClassId, activeUnit]);
 
   // Core ability ID set
   const coreAbilityIdSet = useMemo(
@@ -66,18 +83,18 @@ export function BattleVictoryModal({
     [coreAbilities]
   );
 
-  // Synchronize initial loadout when modal opens or unlocked class changes
+  // Synchronize initial loadout when modal opens or activeUnit/unlocked class changes
   useEffect(() => {
-    if (reconciliationResult?.unlockedClass) {
-      setSelectedClassId(reconciliationResult.unlockedClass.id);
-    } else if (playerUnit?.loadout?.activeClassId) {
-      setSelectedClassId(playerUnit.loadout.activeClassId);
+    if (activeResult?.unlockedClass) {
+      setSelectedClassId(activeResult.unlockedClass.id);
+    } else if (activeUnit?.loadout?.activeClassId) {
+      setSelectedClassId(activeUnit.loadout.activeClassId);
     }
-    const currentWildcards = playerUnit?.loadout?.wildcardAbilityIds ?? [];
+    const currentWildcards = activeUnit?.loadout?.wildcardAbilityIds ?? [];
     setWildcardAbility1(currentWildcards[0] ?? '');
     setWildcardAbility2(currentWildcards[1] ?? '');
-    setWildcardPassive(playerUnit?.loadout?.wildcardPassiveIds?.[0] ?? '');
-  }, [reconciliationResult, playerUnit]);
+    setWildcardPassive(activeUnit?.loadout?.wildcardPassiveIds?.[0] ?? '');
+  }, [activeResult, activeUnit]);
 
   // Clean up selected wildcards if they conflict with newly selected active class core abilities/passives
   useEffect(() => {
@@ -91,7 +108,7 @@ export function BattleVictoryModal({
     const abilities: Ability[] = [];
     const seen = new Set<string>();
 
-    for (const id of playerUnit?.starterAbilityIds ?? []) {
+    for (const id of activeUnit?.starterAbilityIds ?? []) {
       const a = getAbilityById(id);
       if (a && !seen.has(a.id)) {
         seen.add(a.id);
@@ -116,17 +133,17 @@ export function BattleVictoryModal({
     }
 
     return abilities;
-  }, [playerUnit, constellation]);
+  }, [constellation, activeUnit]);
 
   // Eligible wildcard abilities: unlocked minus active class core abilities
   const eligibleWildcardAbilities = useMemo(() => {
     return allUnlockedAbilities.filter((a) => !coreAbilityIdSet.has(a.id));
   }, [allUnlockedAbilities, coreAbilityIdSet]);
 
-  // All unlocked passives across Novice and unlocked constellation classes
+  // All unlocked passives
   const allUnlockedPassives = useMemo(() => {
     const passives: PassiveTrait[] = [MOMENTUM];
-    const seen = new Set<string>(['momentum']);
+    const seen = new Set<string>([MOMENTUM.id]);
 
     for (const cid of constellation ?? []) {
       const pkg = getClassPackage(cid);
@@ -143,7 +160,7 @@ export function BattleVictoryModal({
     return allUnlockedPassives.filter((p) => p.id !== innatePassive?.id);
   }, [allUnlockedPassives, innatePassive]);
 
-  if (!isOpen || !reconciliationResult) {
+  if (!isOpen || !activeResult) {
     return null;
   }
 
@@ -155,7 +172,7 @@ export function BattleVictoryModal({
     qualifyingArchetypes,
     updatedVitals,
     updatedAttributes
-  } = reconciliationResult;
+  } = activeResult;
 
   const handleConfirmRematch = () => {
     const wildcardAbilityIds = [wildcardAbility1, wildcardAbility2].filter(Boolean);
@@ -183,9 +200,32 @@ export function BattleVictoryModal({
           <p>You have satisfied the combat trial milestone.</p>
         </div>
 
+        {/* Squad Member Selection Tabs */}
+        {squadMembers && squadMembers.length > 1 && (
+          <div className="victory-squad-tabs">
+            {squadMembers.map((member) => {
+              const isSelected = member.unit.id === activeUnit?.id;
+              const totalXp =
+                member.result.earnedXp.fighter +
+                member.result.earnedXp.rogue +
+                member.result.earnedXp.mage;
+              return (
+                <button
+                  key={member.unit.id}
+                  className={`victory-squad-tab-btn ${isSelected ? 'active' : ''}`}
+                  onClick={() => onSelectSquadUnit?.(member.unit.id)}
+                >
+                  <span className="tab-unit-name">{member.unit.name.split(' ')[0]}</span>
+                  <span className="tab-unit-xp">+{totalXp} XP</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Archetype XP Breakdown */}
         <div>
-          <div className="victory-section-title">Archetype XP Earned</div>
+          <div className="victory-section-title">Archetype XP Earned ({activeUnit?.name})</div>
           <div className="xp-breakdown-row">
             <div className="xp-stat-box fighter">
               <div className="xp-stat-label">⚔️ Fighter</div>

@@ -152,10 +152,8 @@ export interface CombatLogEntry {
  * Atomic conditions evaluated against a combat state.
  */
 export type AtomicObjective =
-  | { readonly kind: 'UNITS_DEFEATED'; readonly unitIds: readonly string[] }
   | { readonly kind: 'FACTION_DEFEATED'; readonly faction: Faction }
-  | { readonly kind: 'ARCHETYPE_XP_EARNED'; readonly unitId: string; readonly archetype: Archetype; readonly amount: number }
-  | { readonly kind: 'TURNS_ELAPSED'; readonly count: number };
+  | { readonly kind: 'ARCHETYPE_XP_EARNED'; readonly unitId: string; readonly archetype: Archetype; readonly amount: number };
 
 /**
  * Composable condition tree supporting allOf and anyOf boolean logic.

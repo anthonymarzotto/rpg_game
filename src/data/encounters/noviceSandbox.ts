@@ -1,15 +1,8 @@
-import { Ability } from '../../core/types/ability';
 import { Unit } from '../../core/types/unit';
 import { EncounterDefinition } from '../../core/combat/encounter';
-import { createRecruit } from '../../core/units/unitFactory';
-import {
-  SHIELD_BASH,
-  QUICK_THRUST,
-  SPARK
-} from '../packages/novice';
+import { computeDerivedVitals } from '../../core/units/vitals';
 
 export interface NoviceSandboxOptions {
-  readonly abilitiesOverride?: readonly Ability[];
   readonly playerUnitOverride?: Unit;
 }
 
@@ -20,35 +13,89 @@ const DUMMY_LOADOUT = {
 };
 
 /**
- * Builds the standard Milestone 5 novice combat testbed encounter.
- * Supports injecting an upgraded player character or custom ability kit.
+ * Builds the standard squad combat encounter with a Level 1 trio:
+ * - Alden (Warrior): Frontline fighter with Power Strike & Cleave, plus novice wildcards
+ * - Lyra (Thief): High-mobility flanker with Sneak Attack & Shadow Step, plus novice wildcards
+ * - Vael (Wizard): Arcane blaster with Arcane Blast, Spark & Minor Ward, plus novice wildcards
  */
 export function createNoviceSandboxEncounter(
-  options?: NoviceSandboxOptions | readonly Ability[]
+  options?: NoviceSandboxOptions
 ): EncounterDefinition {
-  const isOptionsObj = options && typeof options === 'object' && !Array.isArray(options);
-  const abilitiesOverride = Array.isArray(options)
-    ? options
-    : isOptionsObj
-    ? (options as NoviceSandboxOptions).abilitiesOverride
-    : undefined;
-  const playerUnitOverride = isOptionsObj
-    ? (options as NoviceSandboxOptions).playerUnitOverride
-    : undefined;
+  const playerUnitOverride = options?.playerUnitOverride;
 
-  const starterAbilities = abilitiesOverride ?? [
-    SHIELD_BASH,
-    QUICK_THRUST,
-    SPARK
-  ];
+  // 1. Alden (Warrior - Frontline)
+  const aldenAttrs = { force: 1, finesse: 0, focus: 0 };
+  const alden: Unit = playerUnitOverride ?? {
+    id: 'player-warrior',
+    name: 'Alden (Warrior)',
+    gender: 'male',
+    race: 'human',
+    faction: 'PLAYER',
+    progression: {
+      unitId: 'player-warrior',
+      currentLevel: 1,
+      archetypePoints: { fighter: 1, rogue: 0, mage: 0 },
+      constellation: ['warrior']
+    },
+    baseAttributes: aldenAttrs,
+    effectiveVitals: computeDerivedVitals(aldenAttrs, 1),
+    loadout: {
+      activeClassId: 'warrior',
+      wildcardAbilityIds: ['quick_thrust', 'spark'],
+      wildcardPassiveIds: ['momentum']
+    },
+    starterAbilityIds: ['strike', 'quick_thrust', 'spark']
+  };
 
-  // 1. Player Recruit (center)
-  const player = playerUnitOverride ?? createRecruit('player', 'Alden (Novice)', {
-    starterAbilityIds: starterAbilities.map((a) => a.id),
-    faction: 'PLAYER'
-  });
+  // 2. Lyra (Thief - Flanker)
+  const lyraAttrs = { force: 0, finesse: 1, focus: 0 };
+  const lyra: Unit = {
+    id: 'player-thief',
+    name: 'Lyra (Thief)',
+    gender: 'female',
+    race: 'human',
+    faction: 'PLAYER',
+    progression: {
+      unitId: 'player-thief',
+      currentLevel: 1,
+      archetypePoints: { fighter: 0, rogue: 1, mage: 0 },
+      constellation: ['thief']
+    },
+    baseAttributes: lyraAttrs,
+    effectiveVitals: computeDerivedVitals(lyraAttrs, 1),
+    loadout: {
+      activeClassId: 'thief',
+      wildcardAbilityIds: ['strike', 'spark'],
+      wildcardPassiveIds: ['momentum']
+    },
+    starterAbilityIds: ['strike', 'throw_dart', 'spark']
+  };
 
-  // 2. Training Dummy A (adjacent at 1, 0)
+  // 3. Vael (Wizard - Arcane Support / Blaster)
+  const vaelAttrs = { force: 0, finesse: 0, focus: 1 };
+  const vael: Unit = {
+    id: 'player-wizard',
+    name: 'Vael (Wizard)',
+    gender: 'male',
+    race: 'human',
+    faction: 'PLAYER',
+    progression: {
+      unitId: 'player-wizard',
+      currentLevel: 1,
+      archetypePoints: { fighter: 0, rogue: 0, mage: 1 },
+      constellation: ['wizard']
+    },
+    baseAttributes: vaelAttrs,
+    effectiveVitals: computeDerivedVitals(vaelAttrs, 1),
+    loadout: {
+      activeClassId: 'wizard',
+      wildcardAbilityIds: ['minor_ward', 'strike'],
+      wildcardPassiveIds: ['momentum']
+    },
+    starterAbilityIds: ['strike', 'quick_thrust', 'minor_ward']
+  };
+
+  // 4. Training Dummy A (adjacent at 1, 0)
   const dummyA: Unit = {
     id: 'dummy-a',
     name: 'Training Dummy A',
@@ -76,7 +123,7 @@ export function createNoviceSandboxEncounter(
     starterAbilityIds: []
   };
 
-  // 3. Bystander Dummy B (at 2, 0 behind dummy A)
+  // 5. Bystander Dummy B (at 2, 0 behind dummy A)
   const dummyB: Unit = {
     id: 'dummy-b',
     name: 'Bystander Dummy B',
@@ -104,7 +151,7 @@ export function createNoviceSandboxEncounter(
     starterAbilityIds: []
   };
 
-  // 4. Screened Dummy C (at 0, 3 behind rock obstacle at 0, 2)
+  // 6. Screened Dummy C (at 0, 3 behind rock obstacle at 0, 2)
   const dummyC: Unit = {
     id: 'dummy-c',
     name: 'Screened Dummy C',
@@ -132,7 +179,7 @@ export function createNoviceSandboxEncounter(
     starterAbilityIds: []
   };
 
-  // 5. Distant Target D (at -2, 1 for unblocked ranged testing)
+  // 7. Distant Target D (at -2, 1 for unblocked ranged testing)
   const dummyD: Unit = {
     id: 'dummy-d',
     name: 'Distant Target D',
@@ -162,28 +209,23 @@ export function createNoviceSandboxEncounter(
 
   return {
     id: 'novice-sandbox',
-    name: 'Novice Testbed Arena',
+    name: 'Tactical Squad Arena',
     arenaRadius: 3,
     tileOverrides: [{ coord: { q: 0, r: 2 }, isWalkable: false, label: 'PILLAR' }],
     units: [
-      { unit: player, coord: { q: 0, r: 0 } },
+      { unit: alden, coord: { q: 0, r: 0 } },
+      { unit: lyra, coord: { q: -1, r: 0 } },
+      { unit: vael, coord: { q: -1, r: 1 } },
       { unit: dummyA, coord: { q: 1, r: 0 } },
       { unit: dummyB, coord: { q: 2, r: 0 } },
       { unit: dummyC, coord: { q: 0, r: 3 } },
       { unit: dummyD, coord: { q: -2, r: 1 } }
     ],
-    initialActiveUnitId: 'player',
     objectives: [
       {
-        id: 'sandbox_xp_milestone',
-        description: 'Earn 5 XP in any archetype (Fighter, Rogue, or Mage)',
-        condition: {
-          anyOf: [
-            { kind: 'ARCHETYPE_XP_EARNED', unitId: 'player', archetype: 'FIGHTER', amount: 5 },
-            { kind: 'ARCHETYPE_XP_EARNED', unitId: 'player', archetype: 'ROGUE', amount: 5 },
-            { kind: 'ARCHETYPE_XP_EARNED', unitId: 'player', archetype: 'MAGE', amount: 5 }
-          ]
-        }
+        id: 'rout_enemies',
+        description: 'Defeat all hostile training dummies',
+        condition: { kind: 'FACTION_DEFEATED', faction: 'ENEMY' }
       }
     ]
   };

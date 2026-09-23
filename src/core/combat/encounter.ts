@@ -3,7 +3,6 @@ import { HexCoord, HexDirection } from '../grid/hex';
 import { createRadialArena } from '../grid/templates';
 import { CombatState, EncounterObjective } from './types';
 import { createCombatState } from './resolver';
-import { evaluateEncounterOutcome } from './objectives';
 
 /**
  * Unit placement on the tactical grid.
@@ -66,7 +65,13 @@ export function buildEncounterState(definition: EncounterDefinition): CombatStat
     arena.setUnitPosition(placed.unit.id, placed.coord);
   }
 
-  const state = createCombatState(arena, units, definition.initialActiveUnitId);
+  const state = createCombatState(
+    arena,
+    units,
+    definition.initialActiveUnitId,
+    undefined,
+    definition.objectives
+  );
   for (const placed of definition.units) {
     if (placed.facing !== undefined) {
       const cu = state.units.get(placed.unit.id);
@@ -75,9 +80,6 @@ export function buildEncounterState(definition: EncounterDefinition): CombatStat
       }
     }
   }
-
-  (state as { objectives?: readonly EncounterObjective[] }).objectives = definition.objectives;
-  state.outcome = evaluateEncounterOutcome(definition.objectives, state, 'player');
 
   return state;
 }

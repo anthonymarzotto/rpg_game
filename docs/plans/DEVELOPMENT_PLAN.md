@@ -155,15 +155,21 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
   * UI state engine coordinates enemy turn pacing (e.g., brief action pauses so players can follow enemy movements, strikes, and floating combat text).
   * Dev toggles for AI step speed (instant for testing, paced for gameplay).
 
-### 2.3. Multi-Unit Party & Squad Combat
+### 2.3. Multi-Unit Party & Squad Combat (`src/core/combat/`, `src/ui/combat/`, `src/data/encounters/`) <── COMPLETED & TESTED
 * **Party Roster in Combat**:
-  * Support for 2–3 player-controlled units fighting alongside each other against enemy squads.
-  * Turn handoff seamlessly shifts player control to whichever allied unit reaches 100 CTB gauge.
-* **Targeting Expansion**:
-  * Friendly targeting support for buffs, heals, shields, and positioning maneuvers.
-* **Squad Arena UI Enhancements**:
-  * Active unit indicator and dynamic reticles distinguishing player allies from enemies.
-  * Initiative queue tracker showing upcoming turn order along the CTB timeline.
+  * Deployed an authentic 3-member Level 1 squad: Alden (Warrior), Lyra (Thief), and Vael (Wizard) with full 5-ability combat decks (3 Core + 2 Novice Wildcards) and 2 passives (Innate + Momentum).
+  * Smooth turn handoff shifting player command to whichever allied hero reaches 100 CTB gauge.
+  * Extracted shared `stepClockUntilReady` engine function to eliminate code duplication between runtime clock advancement and turn lookahead.
+* **CTB Initiative Queue Ribbon**:
+  * Implemented pure, non-mutating `predictTurnOrder(state, 8)` projecting upcoming turns along the timeline.
+  * Rendered `InitiativeRibbon` below header displaying faction-coded chips (cyan for party, crimson for enemies), animated golden halo on active turn, and natural speed lapping.
+* **Targeting & Visual Distinction**:
+  * Full friendly targeting support (`targetType: 'ALLY'`) allowing abilities like *Minor Ward* to buff teammates.
+  * Emerald reticles for ally buffs vs amber/red reticles for hostile attacks.
+  * Radiant golden halo and dynamic AP pips under active player unit.
+* **Squad Defeat & Multi-Unit Victory Flow**:
+  * Evaluated squad wipe defeat condition (defeat only when all player units are defeated) and declarative `FACTION_DEFEATED` encounter objective.
+  * Added squad member tabs in `BattleVictoryModal` for individual XP review, archetype choices, and loadout customization.
 
 ---
 

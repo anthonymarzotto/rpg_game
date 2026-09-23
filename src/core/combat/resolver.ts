@@ -15,7 +15,8 @@ import {
   CombatState,
   CombatUnit,
   AbilityResolution,
-  CombatEvent
+  CombatEvent,
+  EncounterObjective
 } from './types';
 import { canMove, canExecuteAbility } from './validator';
 import { DiceRoller, SeededDiceRoller, RollAdvantage } from './dice';
@@ -27,7 +28,7 @@ import { advanceTurnClock } from './turnClock';
 import { resolveAttackRoll } from './attackRoll';
 import { resolveDamage } from './damageEngine';
 import { executeAbilityEffects } from './effects';
-import { evaluateRollPassives } from './passives';
+import { evaluateRollPassives, onTurnStartPassives } from './passives';
 import { evaluateEncounterOutcome } from './objectives';
 import { resolveUnitLoadout, LoadoutLookupProviders } from '../units/loadout';
 import { getClassPackage, getAbilityById, getPassiveById } from '../../data/packages';
@@ -69,7 +70,8 @@ export function createCombatState(
   arena: Arena,
   units: readonly Unit[],
   initialActiveUnitId?: string,
-  loadoutProviders: LoadoutLookupProviders = defaultLoadoutProviders
+  loadoutProviders: LoadoutLookupProviders = defaultLoadoutProviders,
+  objectives?: readonly EncounterObjective[]
 ): CombatState {
   const combatUnits = new Map<string, CombatUnit>();
 
@@ -99,17 +101,22 @@ export function createCombatState(
     activeUnitId: '',
     turnNumber: 0,
     combatLog: [],
-    outcome: 'IN_PROGRESS'
+    outcome: 'IN_PROGRESS',
+    objectives
   };
 
   if (initialActiveUnitId && combatUnits.has(initialActiveUnitId)) {
     state.activeUnitId = initialActiveUnitId;
     state.turnNumber = 1;
     const activeCu = combatUnits.get(initialActiveUnitId)!;
+    activeCu.initiativeGauge = ACTION_ECONOMY_CONFIG.gaugeTurnThreshold;
     activeCu.currentAp = ACTION_ECONOMY_CONFIG.standardApPerTurn;
+    onTurnStartPassives(activeCu);
   } else {
     advanceTurnClock(state);
   }
+
+  state.outcome = evaluateEncounterOutcome(objectives, state);
 
   return state;
 }
@@ -260,7 +267,7 @@ export function executeAbility(
     });
 
     applyCombatEvents(state, effectResult.events);
-    state.outcome = evaluateEncounterOutcome(state.objectives, state, 'player');
+    state.outcome = evaluateEncounterOutcome(state.objectives, state);
 
     const statusEvent = effectResult.events.find(
       (e): e is Extract<CombatEvent, { type: 'STATUS_APPLIED' }> => e.type === 'STATUS_APPLIED'
@@ -389,7 +396,7 @@ export function executeAbility(
   applyCombatEvents(state, events);
 
   // Evaluate encounter outcome
-  state.outcome = evaluateEncounterOutcome(state.objectives, state, 'player');
+  state.outcome = evaluateEncounterOutcome(state.objectives, state);
 
   // Combat Log
   const secondaryDetail = effectResult.logDetail ?? '';

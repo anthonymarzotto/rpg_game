@@ -256,21 +256,36 @@ export function HexGridSvg({
           .filter((item): item is typeof item & { pos: HexCoord } => item.pos != null)
           .sort((a, b) => a.pixel.y - b.pixel.y)
           .map(({ unitId, cu, pos, pixel: { x, y } }) => {
-            const faction = cu.faction ?? cu.unit.faction ?? 'PLAYER';
+            const faction = cu.faction;
             const isPlayer = faction === 'PLAYER';
             const isEnemy = faction === 'ENEMY';
+            const isActiveActor = state.activeUnitId === unitId;
             const hpPercent = (cu.currentHp / cu.unit.effectiveVitals.maxHp) * 100;
 
-            // Visual theme by faction
-            const tokenFill = isPlayer ? '#1e1b4b' : isEnemy ? '#450a0a' : '#1c1917';
-            const tokenStroke = isPlayer ? '#38bdf8' : isEnemy ? '#f87171' : '#a8a29e';
-            const nameColor = isPlayer ? '#7dd3fc' : isEnemy ? '#fca5a5' : '#e2e8f0';
+            // Visual theme by faction & active status
+            const tokenFill = isPlayer ? '#0f2937' : isEnemy ? '#450a0a' : '#1c1917';
+            const tokenStroke = isActiveActor
+              ? '#fbbf24'
+              : isPlayer
+              ? '#38bdf8'
+              : isEnemy
+              ? '#f87171'
+              : '#a8a29e';
+            const nameColor = isActiveActor
+              ? '#fef08a'
+              : isPlayer
+              ? '#7dd3fc'
+              : isEnemy
+              ? '#fca5a5'
+              : '#e2e8f0';
             const badgeSymbol = isPlayer ? '🛡️' : isEnemy ? '🎯' : '⚪';
             const hpBarFill = isPlayer ? '#10b981' : hpPercent < 40 ? '#ef4444' : '#f59e0b';
 
             const tokenAssetSrc = resolveTokenAssetPath(cu.unit, tokenAesthetic);
             const isFacingWest = cu.facing === 2 || cu.facing === 3 || cu.facing === 4;
             const isCandidate = candidateSet.has(toHexKey(pos));
+            const candidateReticleStroke = isPlayer ? '#10b981' : '#f59e0b';
+            const candidateGlowFilter = isPlayer ? 'url(#tile-glow-cyan)' : 'url(#tile-glow-amber)';
 
             return (
               <g key={unitId} transform={`translate(${x}, ${y})`}>
@@ -287,12 +302,26 @@ export function HexGridSvg({
                       filter="url(#pedestal-ground-shadow)"
                     />
 
+                    {/* Active Unit Golden Halo */}
+                    {isActiveActor && (
+                      <ellipse
+                        cx="0"
+                        cy="2"
+                        rx="22"
+                        ry="8.5"
+                        fill="none"
+                        stroke="#fbbf24"
+                        strokeWidth="2.5"
+                        filter="url(#tile-glow-amber)"
+                      />
+                    )}
+
                     {/* 3D Pedestal Base Rim / Bevel */}
                     <path
                       d="M -18 2 C -18 8, 18 8, 18 2 L 18 5 C 18 11, -18 11, -18 5 Z"
                       fill={isPlayer ? '#0f172a' : isEnemy ? '#270707' : '#1c1917'}
                       stroke={tokenStroke}
-                      strokeWidth="1"
+                      strokeWidth={isActiveActor ? 1.5 : 1}
                     />
 
                     {/* 3D Pedestal Base Top Surface */}
@@ -303,7 +332,7 @@ export function HexGridSvg({
                       ry="6.5"
                       fill={tokenFill}
                       stroke={tokenStroke}
-                      strokeWidth={isPlayer ? 2 : 1.5}
+                      strokeWidth={isActiveActor ? 2.5 : isPlayer ? 2 : 1.5}
                     />
 
                     {/* Directional Facing Chevron on Pedestal */}
@@ -316,7 +345,7 @@ export function HexGridSvg({
                       />
                     </g>
 
-                    {/* Target Candidate Reticle (Elliptical base ring) */}
+                    {/* Target Candidate Reticle (Elliptical base ring: Emerald for allies, Amber for enemies) */}
                     {isCandidate && (
                       <ellipse
                         cx="0"
@@ -324,10 +353,10 @@ export function HexGridSvg({
                         rx="23"
                         ry="8.5"
                         fill="none"
-                        stroke="#f59e0b"
+                        stroke={candidateReticleStroke}
                         strokeWidth="2"
                         strokeDasharray="4 3"
-                        filter="url(#tile-glow-amber)"
+                        filter={candidateGlowFilter}
                       />
                     )}
 
@@ -405,8 +434,8 @@ export function HexGridSvg({
                       rx="2"
                     />
 
-                    {/* Player AP pips */}
-                    {isPlayer && (
+                    {/* Active Player AP pips */}
+                    {isActiveActor && isPlayer && (
                       <g transform="translate(0, 22)">
                         {[0, 1, 2].map((pip) => (
                           <circle
@@ -423,13 +452,24 @@ export function HexGridSvg({
                 ) : (
                   /* Classic Vector Token Fallback */
                   <>
+                    {/* Active Unit Halo in Vector Fallback */}
+                    {isActiveActor && (
+                      <circle
+                        r="21"
+                        fill="none"
+                        stroke="#fbbf24"
+                        strokeWidth="2.5"
+                        filter="url(#tile-glow-amber)"
+                      />
+                    )}
+
                     {/* Unit Token Circle */}
                     <circle
                       r="17"
                       fill={tokenFill}
                       stroke={tokenStroke}
-                      strokeWidth={isPlayer ? 2.5 : 2}
-                      filter="url(#tile-glow-cyan)"
+                      strokeWidth={isActiveActor ? 3 : isPlayer ? 2.5 : 2}
+                      filter={isPlayer ? 'url(#tile-glow-cyan)' : undefined}
                     />
 
                     {/* Directional Facing Chevron */}
@@ -445,12 +485,12 @@ export function HexGridSvg({
                     {/* Target Candidate Reticle (Only for valid targets within range) */}
                     {isCandidate && (
                       <circle
-                        r="21"
+                        r="22"
                         fill="none"
-                        stroke="#f59e0b"
+                        stroke={candidateReticleStroke}
                         strokeWidth="2"
                         strokeDasharray="4 3"
-                        filter="url(#tile-glow-amber)"
+                        filter={candidateGlowFilter}
                       />
                     )}
 

@@ -8,6 +8,7 @@ import { ActionBar } from './ActionBar';
 import { UnitStatusCard } from './UnitStatusCard';
 import { CombatLogPanel } from './CombatLogPanel';
 import { BattleVictoryModal } from './BattleVictoryModal';
+import { InitiativeRibbon } from './InitiativeRibbon';
 import { TokenAesthetic } from './tokenAssets';
 import './CombatArena.css';
 
@@ -16,7 +17,7 @@ export function CombatArena() {
 
   const {
     state,
-    playerCu,
+    activeCu,
     actionMode,
     selectedAbility,
     hoveredCoord,
@@ -29,6 +30,9 @@ export function CombatArena() {
     candidateTargetCoords,
     targetPreview,
     reconciliationResult,
+    squadReconciliations,
+    activeSquadUnitId,
+    handleSelectSquadUnit,
     isVictoryModalOpen,
     setIsVictoryModalOpen,
     selectAction,
@@ -55,7 +59,7 @@ export function CombatArena() {
       <div className="testbed-top-bar">
         <div className="testbed-title-block">
           <h2>⚔️ Tactical Arena Testbed</h2>
-          <span className="testbed-badge">Milestone 5 • Level-0 Sandbox</span>
+          <span className="testbed-badge">Phase 2 • Squad Tactics (3v4)</span>
         </div>
 
         {/* Dev Controls: Dice & Token Style */}
@@ -112,11 +116,16 @@ export function CombatArena() {
         </div>
       </div>
 
+      {/* CTB Timeline Initiative Ribbon */}
+      <div style={{ marginTop: '6px', marginBottom: '4px' }}>
+        <InitiativeRibbon state={state} tokenAesthetic={tokenAesthetic} />
+      </div>
+
       {/* Main Arena Content Layout */}
       <div className="arena-main-layout">
         {/* Status Overlay HUD */}
         <UnitStatusCard
-          playerCu={playerCu}
+          activeCu={activeCu}
           targetPreview={targetPreview}
           hoveredUnitCu={hoveredUnitCu}
         />
@@ -146,7 +155,7 @@ export function CombatArena() {
 
       {/* Floating Tactical Action Bar */}
       <ActionBar
-        playerCu={playerCu}
+        activeCu={activeCu}
         actionMode={actionMode}
         selectedAbility={selectedAbility}
         onSelectAction={selectAction}
@@ -157,7 +166,10 @@ export function CombatArena() {
       <BattleVictoryModal
         isOpen={isVictoryModalOpen}
         reconciliationResult={reconciliationResult}
-        playerUnit={playerCu?.unit}
+        playerUnit={activeCu?.unit}
+        squadMembers={squadReconciliations}
+        activeSquadUnitId={activeSquadUnitId}
+        onSelectSquadUnit={handleSelectSquadUnit}
         onSelectArchetypeChoice={handleSelectArchetypeChoice}
         onRematch={handleRematch}
         onDismiss={() => setIsVictoryModalOpen(false)}

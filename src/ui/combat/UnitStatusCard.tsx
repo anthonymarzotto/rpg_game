@@ -10,7 +10,7 @@ import {
 } from '../../core/combat/effectiveVitals';
 
 export interface UnitStatusCardProps {
-  readonly playerCu: CombatUnit | undefined;
+  readonly activeCu: CombatUnit | undefined;
   readonly targetPreview: TargetPreview | null;
   readonly hoveredUnitCu?: CombatUnit;
 }
@@ -42,27 +42,27 @@ function formatRoleTitle(cu: CombatUnit): string {
 }
 
 export function UnitStatusCard({
-  playerCu,
+  activeCu,
   targetPreview,
   hoveredUnitCu
 }: UnitStatusCardProps) {
-  if (!playerCu) return null;
+  if (!activeCu) return null;
 
-  const vitals = playerCu.unit.effectiveVitals;
-  const hpPercent = (playerCu.currentHp / vitals.maxHp) * 100;
+  const vitals = activeCu.unit.effectiveVitals;
+  const hpPercent = (activeCu.currentHp / vitals.maxHp) * 100;
   const isMomentumAdvantage =
-    (playerCu.hexesMovedThisTurn ?? 0) >= 2 &&
-    (playerCu.passives ?? []).some((p) => p.id === 'momentum');
+    (activeCu.hexesMovedThisTurn ?? 0) >= 2 &&
+    (activeCu.passives ?? []).some((p) => p.id === 'momentum');
 
   return (
     <div className="combat-status-overlay">
-      {/* 1. Player Status Card */}
+      {/* 1. Active Unit Status Card */}
       <div className="unit-hud-card player-hud-card">
         <div className="unit-hud-header">
-          <span className="unit-role-badge">{formatRoleTitle(playerCu)}</span>
-          <span className="unit-ctb-gauge">Gauge: {playerCu.initiativeGauge}/100</span>
+          <span className="unit-role-badge">{formatRoleTitle(activeCu)}</span>
+          <span className="unit-ctb-gauge">Gauge: {activeCu.initiativeGauge}/100</span>
         </div>
-        <div className="unit-hud-name">{playerCu.unit.name}</div>
+        <div className="unit-hud-name">{activeCu.unit.name}</div>
 
         {/* HP Bar */}
         <div className="hud-bar-container">
@@ -73,7 +73,7 @@ export function UnitStatusCard({
             />
           </div>
           <span className="hud-bar-label">
-            HP: {playerCu.currentHp} / {vitals.maxHp}
+            HP: {activeCu.currentHp} / {vitals.maxHp}
           </span>
         </div>
 
@@ -81,36 +81,36 @@ export function UnitStatusCard({
         <div className="hud-stats-row">
           <div className="stat-item" title="Physical To-Hit DC">
             <span className="stat-label">EVA</span>
-            <span className="stat-val">{getEffectiveEvasion(playerCu)}</span>
+            <span className="stat-val">{getEffectiveEvasion(activeCu)}</span>
           </div>
           <div className="stat-item" title="Magical To-Hit DC">
             <span className="stat-label">RES</span>
-            <span className="stat-val">{getEffectiveResolve(playerCu)}</span>
+            <span className="stat-val">{getEffectiveResolve(activeCu)}</span>
           </div>
           <div className="stat-item" title="Flat Physical Damage Soak">
             <span className="stat-label">ARM</span>
-            <span className="stat-val">{getEffectiveArmor(playerCu)}</span>
+            <span className="stat-val">{getEffectiveArmor(activeCu)}</span>
           </div>
           <div className="stat-item" title="Flat Magical Damage Soak">
             <span className="stat-label">WRD</span>
-            <span className="stat-val">{getEffectiveWard(playerCu)}</span>
+            <span className="stat-val">{getEffectiveWard(activeCu)}</span>
           </div>
           <div className="stat-item" title="Hexes per Move AP">
             <span className="stat-label">MOV</span>
-            <span className="stat-val">{getEffectiveMove(playerCu)}</span>
+            <span className="stat-val">{getEffectiveMove(activeCu)}</span>
           </div>
           <div className="stat-item" title="CTB Turn Speed">
             <span className="stat-label">SPD</span>
-            <span className="stat-val">{getEffectiveSpeed(playerCu)}</span>
+            <span className="stat-val">{getEffectiveSpeed(activeCu)}</span>
           </div>
         </div>
 
         {/* Active Passives Row */}
-        {playerCu.passives && playerCu.passives.length > 0 && (
+        {activeCu.passives && activeCu.passives.length > 0 && (
           <div className="hud-passives-row">
             <span className="passives-row-label">PASSIVES:</span>
-            {playerCu.passives.map((p) => {
-              const isReady = p.id === 'momentum' && (playerCu.hexesMovedThisTurn ?? 0) >= 2;
+            {activeCu.passives.map((p) => {
+              const isReady = p.id === 'momentum' && (activeCu.hexesMovedThisTurn ?? 0) >= 2;
               return (
                 <span
                   key={p.id}
@@ -120,7 +120,7 @@ export function UnitStatusCard({
                   {p.name}
                   {p.id === 'momentum' && (
                     <span className="passive-chip-count">
-                      ({Math.min(playerCu.hexesMovedThisTurn ?? 0, 2)}/2)
+                      ({Math.min(activeCu.hexesMovedThisTurn ?? 0, 2)}/2)
                     </span>
                   )}
                 </span>
@@ -130,9 +130,9 @@ export function UnitStatusCard({
         )}
 
         {/* Active Modifiers (if present) */}
-        {playerCu.activeModifiers.length > 0 && (
+        {activeCu.activeModifiers.length > 0 && (
           <div className="active-modifiers-row">
-            {playerCu.activeModifiers.map((mod, idx) => {
+            {activeCu.activeModifiers.map((mod, idx) => {
               const { text, isDebuff } = formatModifierBadge(mod);
               return (
                 <span
@@ -149,13 +149,13 @@ export function UnitStatusCard({
         {/* In-Battle Archetype XP Accumulator */}
         <div className="hud-xp-tally">
           <span style={{ color: 'var(--color-fighter, #ef4444)' }}>
-            F: {playerCu.inBattleXp.fighter} XP
+            F: {activeCu.inBattleXp.fighter} XP
           </span>
           <span style={{ color: 'var(--color-rogue, #10b981)' }}>
-            R: {playerCu.inBattleXp.rogue} XP
+            R: {activeCu.inBattleXp.rogue} XP
           </span>
           <span style={{ color: 'var(--color-mage, #8b5cf6)' }}>
-            M: {playerCu.inBattleXp.mage} XP
+            M: {activeCu.inBattleXp.mage} XP
           </span>
         </div>
       </div>
@@ -219,7 +219,7 @@ export function UnitStatusCard({
       )}
 
       {/* 3. Hovered Unit Details (when not targeting) */}
-      {!targetPreview && hoveredUnitCu && hoveredUnitCu.unit.id !== 'player' && (
+      {!targetPreview && hoveredUnitCu && hoveredUnitCu.unit.id !== activeCu.unit.id && (
         <div className="target-preview-card">
           <div className="preview-header">
             <span className="preview-label">Inspected Unit</span>

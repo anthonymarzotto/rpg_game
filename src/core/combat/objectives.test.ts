@@ -99,13 +99,13 @@ describe('objectives evaluation engine', () => {
 
     it('returns IN_PROGRESS when objectives are unmet', () => {
       const state = setupTestCombatState();
-      expect(evaluateEncounterOutcome(objectives, state, 'player')).toBe('IN_PROGRESS');
+      expect(evaluateEncounterOutcome(objectives, state)).toBe('IN_PROGRESS');
     });
 
     it('returns VICTORY when all objectives are fulfilled', () => {
       const state = setupTestCombatState();
       state.units.get('player')!.inBattleXp.fighter = 5;
-      expect(evaluateEncounterOutcome(objectives, state, 'player')).toBe('VICTORY');
+      expect(evaluateEncounterOutcome(objectives, state)).toBe('VICTORY');
     });
 
     it('prioritizes DEFEAT if the player recruit falls', () => {
@@ -115,7 +115,7 @@ describe('objectives evaluation engine', () => {
       state.units.get('player')!.currentHp = 0;
       state.units.get('player')!.isDefeated = true;
 
-      expect(evaluateEncounterOutcome(objectives, state, 'player')).toBe('DEFEAT');
+      expect(evaluateEncounterOutcome(objectives, state)).toBe('DEFEAT');
     });
   });
 });

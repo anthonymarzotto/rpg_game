@@ -18,6 +18,14 @@ export function evaluateCondition(condition: ObjectiveCondition, state: CombatSt
     return (cu.inBattleXp[key] ?? 0) >= condition.amount;
   }
 
+  if (condition.kind === 'FACTION_DEFEATED') {
+    const factionUnits = Array.from(state.units.values()).filter(
+      (cu) => (cu.faction ?? cu.unit.faction) === condition.faction
+    );
+    if (factionUnits.length === 0) return false;
+    return factionUnits.every((cu) => cu.isDefeated || cu.currentHp <= 0);
+  }
+
   return false;
 }
 
@@ -25,18 +33,25 @@ export function evaluateCondition(condition: ObjectiveCondition, state: CombatSt
  * Evaluates all encounter objectives against the combat state.
  * 
  * Evaluation Order:
- * 1. Immediate Defeat: If the player character falls (HP <= 0 or isDefeated), returns 'DEFEAT'.
+ * 1. Squad Wipe Defeat: If all player-faction units fall (HP <= 0 or isDefeated), returns 'DEFEAT'.
  * 2. Victory: If all encounter objectives evaluate to true, returns 'VICTORY'.
  * 3. In Progress: If not defeated and objectives remain unfulfilled, returns 'IN_PROGRESS'.
  */
 export function evaluateEncounterOutcome(
   objectives: readonly EncounterObjective[] | undefined,
-  state: CombatState,
-  playerUnitId = 'player'
+  state: CombatState
 ): CombatOutcome {
-  const playerCu = state.units.get(playerUnitId);
-  if (playerCu && (playerCu.isDefeated || playerCu.currentHp <= 0)) {
-    return 'DEFEAT';
+  const playerFactionUnits = Array.from(state.units.values()).filter(
+    (cu) => (cu.faction ?? cu.unit.faction) === 'PLAYER'
+  );
+
+  if (playerFactionUnits.length > 0) {
+    const allPlayerUnitsDefeated = playerFactionUnits.every(
+      (cu) => cu.isDefeated || cu.currentHp <= 0
+    );
+    if (allPlayerUnitsDefeated) {
+      return 'DEFEAT';
+    }
   }
 
   if (!objectives || objectives.length === 0) {
