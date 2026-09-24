@@ -100,6 +100,12 @@ The game avoids rigid round-based "Player Phase vs. Enemy Phase" turns in favor 
 ### 2.3. Dynamic CTB Turn Recovery (Unspent AP)
 To reward tactical conservation, a unit recovers **20 initiative gauge points per unspent AP** upon concluding their turn (gauge reset baseline = `overflow + (unspentAP * 20)`), accelerating the arrival of their next turn.
 
+### 2.4. Autonomous Tactical Enemy AI
+Hostile combatants operate on an autonomous tactical decision model evaluated against the dynamic battlefield state:
+* **Behavioral Archetypes**: Enemies embody tactical profiles—**Brawlers** advance to close melee distance; **Skirmishers** prioritize high-mobility flanking routes into rear arcs; **Snipers & Casters** maintain standoff engagement ranges while preserving line-of-sight; **Buffers** reinforce injured or frontline allies.
+* **Threat & Target Prioritization**: Evaluates target lethality (finishing blows on low-health heroes), defensive weaknesses (targeting low Evasion with kinetic attacks and low Resolve with magic), and focus firing.
+* **Action Economy & CTB Conservation**: Evaluates composite move-and-act options against their 3 AP turn budget, choosing to bank unspent AP for the +20 CTB gauge refund when further actions yield low utility.
+
 ---
 
 ## 3. Combat Resolution: Dice Rolling & Tactical RNG
@@ -155,10 +161,16 @@ Combat actions explicitly define their attack and damage modifier attributes dir
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 3.3. Positional Modifiers *(Illustrative Examples — Values Subject to Playtesting)*
-* **Flanking**: Striking a target with an adjacent ally grants Advantage or a flat bonus on the attack roll.
-* **Rear Strike**: Striking directly from behind grants Advantage and increases Critical threshold.
-* **High Ground / Elevation**: Ranged attacks from higher elevation gain range or attack roll bonuses.
+### 3.3. Directional Facing & Combat Arcs
+Tactical positioning centers on true unit orientation on the hex grid. Every unit faces one of the six adjacent hex directions, dynamically rotating upon moving or attacking. The surrounding space divides into three distinct combat arcs:
+* **Front Arc (180°)**: Direct forward and front-diagonal hexes. Normal engagement arc.
+* **Flank Arc**: Lateral side hexes. Striking from a flank exposes defensive vulnerabilities.
+* **Rear Arc**: Direct 180° blind spot behind the unit. Highly vulnerable to precision strikes.
+
+**Tactical Advantage**:
+* Striking an opponent from their **Flank** or **Rear** arc grants **Advantage** on the attack roll (rolling $2d20$ and taking the higher result) and triggers precision bonuses (such as Rogue sneak attacks).
+* **Allied Pincers**: If an ally of the attacker is engaged adjacent to the target, the target is considered flanked regardless of individual facing.
+* **Elevation & High Ground**: Ranged attacks from higher elevation gain range or attack roll bonuses.
 
 ### 3.4. Tactical Grid Mechanics & Displacement
 * **Orientation**: Pointy-topped hexagonal tiles mapped in axial `(q, r)` and cube `(x, y, z)` spaces.
@@ -186,13 +198,17 @@ To deliver maximum satisfaction and transparency:
 
 ---
 
-## 5. Ability Delivery & Action Models
+## 5. Ability Delivery & Loadout Architecture
 
-The three ability mechanics explored are not mutually exclusive and can coexist across classes and progression:
+A unit's combat loadout balances core class identity with cross-class customization:
 
-1. **Open Tactical Kit (Universal Baseline)**:
-   * Standard tactical loadout of abilities (Move, Attack, Defend, Class Skills) available each turn, fueled by Action Points. Serves as the primary baseline for the Level-0 recruit and foundational classes.
-2. **Action Dice / Dice-Face Crafting**:
-   * Can serve as a specialized mechanic for luck/gambler/martial classes (e.g. *Gambler*, *Trickster*, or customized equipment), where faces of a combat die trigger unique maneuvers.
-3. **Tactical Cards / Battle Gambits**:
-   * Can serve as a party-wide commander deck or tactical trick cards (e.g. *Bard*, *Strategist*, *Warlord*) drawn across battle rounds to augment standard turns.
+1. **Active Class Core Kit**:
+   * Each unit designates one active class unlocked from their constellation.
+   * The active class defines the unit's baseline combat deck: **1 Unique Signature Ability** + **2 Domain Pool Abilities** + **1 Innate Passive Trait**.
+2. **Cross-Class Wildcard Slots**:
+   * Units equip additional wildcard abilities and passives unlocked from any past class along their constellation path:
+     * **Active Wildcards** (2 slots): Expand active tactical options with abilities from past classes or recruit starters.
+     * **Passive Wildcard** (1 slot): Equips a secondary passive trait to create synergistic hybrid builds.
+3. **Alternative Delivery Mechanics (Specialized / Future)**:
+   * **Action Dice / Dice-Face Crafting**: Specialized mechanic for luck/gambler classes where custom combat die faces trigger maneuvers.
+   * **Tactical Cards / Battle Gambits**: Commander trick cards (e.g. *Bard*, *Strategist*, *Warlord*) drawn across battle rounds to augment standard turns.
