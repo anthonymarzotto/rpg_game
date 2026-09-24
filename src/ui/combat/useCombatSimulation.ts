@@ -8,6 +8,7 @@ import { CombatState, InBattleXp } from '../../core/combat/types';
 import { canMove, canExecuteAbility } from '../../core/combat/validator';
 import { executeMove, executeAbility } from '../../core/combat/resolver';
 import { endActiveTurn } from '../../core/combat/turnClock';
+import { executeAiTurn } from '../../core/ai';
 import {
   EncounterDefinition,
   buildEncounterState
@@ -156,11 +157,11 @@ export function useCombatSimulation({
     [registry, bankedXp]
   );
 
-  // Automatically steps non-player turns until a player unit is active or combat concludes
-  // This will be replaced/extended by the Headless AI runner in Phase 2.1
+  // Automatically executes hostile turns using the headless AI decision engine
   const advanceNonPlayerTurns = useCallback(
     (currentState: CombatState) => {
       let loops = 0;
+      const roller = new DevDiceRoller(diceMode);
       while (
         currentState.activeUnitId &&
         currentState.units.get(currentState.activeUnitId)?.faction !== 'PLAYER' &&
@@ -168,10 +169,10 @@ export function useCombatSimulation({
         loops < 20
       ) {
         loops++;
-        endActiveTurn(currentState, 0);
+        executeAiTurn(currentState, currentState.activeUnitId, { diceRoller: roller });
       }
     },
-    []
+    [diceMode]
   );
 
   // Dispatches tactical intent on tile click

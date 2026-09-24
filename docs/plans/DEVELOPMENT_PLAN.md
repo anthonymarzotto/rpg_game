@@ -13,6 +13,8 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 * **Visual Combat Arena & Core Loop** (`src/ui/combat/`): Interactive SVG arena, dynamic action bar, floating combat text, transparent combat log, dev dice sandbox, post-battle victory modal with class unlocks, ability swapping, and arena rematch with persistent progression. *(Complete & Tested)*
 * **Unit Loadout & Active Class Architecture** (`src/core/types/`, `src/core/units/`): `PassiveTrait`, `ClassPackage`, `UnitLoadout`, non-redundant `Unit` model with `starterAbilityIds`, in-combat `CombatUnit` hydration, and loadout resolution/validation. *(Complete & Tested)*
 * **Directional Facing & Combat Arcs** (`src/core/grid/`, `src/core/combat/`, `src/ui/combat/`): True directional facing (`HexDirection` 0..5), combat arc classification (`FRONT`, `FLANK`, `REAR`), dynamic facing updates, flank/rear advantage resolution, and directional token chevrons. *(Complete & Tested)*
+* **Multi-Unit Squad Combat & CTB Timeline** (`src/core/combat/`, `src/ui/combat/`): 3-hero squad party, asynchronous CTB turn order lookahead ribbon, friendly targeting, and squad wipe defeat conditions. *(Complete & Tested)*
+* **Tactical Enemy AI Decision Engine** (`src/core/ai/`): Pure domain logic, composite move-and-act evaluation, dynamic archetype heuristics (Brawler, Skirmisher, Sniper, Support), finishing blow priority, defensive vulnerability targeting, flanking navigation, and CTB AP conservation. *(Complete & Tested)*
 
 ---
 
@@ -31,9 +33,9 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 2: TACTICAL COMBAT ENEMY AI & MULTI-UNIT BATTLES      │
-│  - [ ] 2.1 Headless AI decision engine (scoring, threat)    │
-│  - [ ] 2.2 CTB multi-unit turn sequencing                   │
-│  - [ ] 2.3 Multi-unit party squads & allied targeting       │
+│  - [x] 2.1 Headless AI decision engine (COMPLETED)          │
+│  - [ ] 2.2 CTB multi-unit turn sequencing & pacing          │
+│  - [x] 2.3 Multi-unit party squads & allied targeting (COMPLETED)│
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
@@ -136,17 +138,17 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 
 **Primary Goal**: Transform the arena from a target-dummy sandbox into a genuine tactical skirmish engine with intelligent hostile behavior and multi-unit squad dynamics.
 
-### 2.1. Headless AI Decision Engine (`src/core/ai/`)
-* **Core Responsibilities**: Pure domain logic that takes the current `CombatState` and active enemy `unitId`, and returns a sequence of executable actions for that unit's turn.
+### 2.1. Headless AI Decision Engine (`src/core/ai/`) <── COMPLETED & TESTED
+* **Core Responsibilities**: Pure domain logic that takes current `CombatState` and active enemy `unitId`, and returns a sequence of executable actions for that unit's turn (`decideNextAction` / `executeAiTurn`).
 * **Evaluation & Scoring Heuristics**:
-  * **Target Prioritization**: Evaluates candidate targets based on distance, defensive vulnerabilities (low Evasion vs. kinetic attacks, low Resolve vs. magic), remaining HP (finishing off low-health units), and threat archetype.
+  * **Target Prioritization**: Evaluates candidate targets factoring finishing blows (lethal damage threshold bonus), defensive vulnerabilities (Evasion vs Kinetic, Resolve vs Magic), and injured target focus fire.
   * **Tactical Positioning**:
-    * Melee units navigate toward optimal engagement tiles, seeking flanking angles while avoiding hazard tiles and bottlenecks.
-    * Ranged and caster units maintain standoff distance, preserving clear Line-of-Sight while seeking partial cover behind obstacles or frontline allies.
+    * Melee units navigate toward optimal engagement tiles, seeking flanking and rear combat arc angles for Sneak Attack advantage.
+    * Ranged and caster units maintain standoff distance (preferred range 2–3) while preserving clear Line-of-Sight.
   * **AP Allocation & Execution**:
-    * Evaluates ability kits against the 3 AP budget (e.g. Move [1 AP] + Strike [1 AP] + Strike [1 AP], or Special Skill [2 AP] + Move [1 AP]).
-    * Calculates the value of conserving unspent AP to gain the +20 CTB gauge refund for faster subsequent turns.
-* **Testing & Verification**: Headless Vitest simulations verifying deterministic AI behavior across varying board configurations and archetype match-ups without rendering components.
+    * Evaluates composite move-and-act options against 3 AP budget.
+    * Conserves unspent AP to bank the +20 CTB gauge refund when actions fall below baseline utility threshold.
+* **Testing & Verification**: 7 headless Vitest simulations verifying deterministic AI behavior, vulnerability targeting, flanking, standoff range, AP conservation, seeded dice tie-breaking, and multi-action turn execution without rendering components.
 
 ### 2.2. Asynchronous CTB Multi-Unit Sequencing
 * **Eliminate Passive Dummy Stepping**:

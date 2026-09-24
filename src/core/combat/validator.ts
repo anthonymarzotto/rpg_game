@@ -37,6 +37,13 @@ export function canMove(
   return { valid: true };
 }
 
+export interface AbilityTargetOptions {
+  readonly coord?: HexCoord;
+  readonly targetUnitId?: string;
+  readonly originCoord?: HexCoord;
+  readonly ignoreApCheck?: boolean;
+}
+
 /**
  * Evaluates whether an ability can be cast against a target.
  */
@@ -44,7 +51,7 @@ export function canExecuteAbility(
   state: CombatState,
   actorUnitId: string,
   ability: Ability,
-  target?: { coord?: HexCoord; targetUnitId?: string }
+  target?: AbilityTargetOptions
 ): ValidationResult {
   if (state.activeUnitId !== actorUnitId) {
     return { valid: false, reason: 'Unit is not currently active.' };
@@ -53,11 +60,11 @@ export function canExecuteAbility(
   if (!cu || cu.isDefeated) {
     return { valid: false, reason: 'Unit is defeated or does not exist.' };
   }
-  if (cu.currentAp < ability.apCost) {
+  if (!target?.ignoreApCheck && cu.currentAp < ability.apCost) {
     return { valid: false, reason: `Insufficient AP (requires ${ability.apCost}, has ${cu.currentAp}).` };
   }
 
-  const actorCoord = state.arena.getUnitPosition(actorUnitId);
+  const actorCoord = target?.originCoord ?? state.arena.getUnitPosition(actorUnitId);
   if (!actorCoord) {
     return { valid: false, reason: 'Actor not placed on arena.' };
   }

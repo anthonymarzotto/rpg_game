@@ -1,0 +1,36 @@
+{
+  "group_id": "d277f0be-80f0-43f8-b7e5-9c0661be2367",
+  "states": [
+    {
+      "character": {
+        "id": "b147020f-aea2-4466-ae03-f35fcfef9565",
+        "name": "Idle",
+        "prompt": "A young male novice standing in a ready combat stance, wearing a simple linen tunic and leather vest, holding a basic iron shortsword and a small wooden buckler shield, brown hair, cheerful and innocent expression, low top-down perspective.",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-09-24T02:00:26.834274+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-09-24T02:05:26.117674"
+}
