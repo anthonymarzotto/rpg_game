@@ -2,11 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { Unit } from '../types/unit';
 import { createRadialArena } from '../grid/templates';
 import { createCombatState } from '../combat/resolver';
-import { HEX_DIRECTIONS } from '../grid/hex';
-import { decideNextAction, executeAiTurn } from './decisionEngine';
+import { HEX_DIRECTIONS, getDirectionBetween } from '../grid/hex';
+import { decideNextAction, executeAiTurn, executeAiAction } from './decisionEngine';
 import { SeededDiceRoller } from '../combat/dice';
-import { SNEAK_ATTACK } from '../../data/packages/thief';
-import { SPARK } from '../../data/packages/wizard';
+import { STRIKE } from '../../data/packages/novice';
 
 function createMockUnit(
   id: string,
@@ -17,6 +16,7 @@ function createMockUnit(
     abilities?: string[];
     passives?: string[];
     activeClassId?: string;
+    starterAbilityIds?: string[];
   }
 ): Unit {
   return {
@@ -48,7 +48,7 @@ function createMockUnit(
       wildcardAbilityIds: overrides?.abilities ?? [],
       wildcardPassiveIds: overrides?.passives ?? []
     },
-    starterAbilityIds: ['strike']
+    starterAbilityIds: overrides?.starterAbilityIds ?? overrides?.abilities ?? ['strike']
   };
 }
 
@@ -265,5 +265,194 @@ describe('Headless AI Decision Engine', () => {
     expect(enemyCu.currentAp).toBe(0);
     // Turn handed off to faster targetHero
     expect(state.activeUnitId).toBe(targetHero.id);
+  });
+
+  it('strictly rejects Minor Ward when active ward modifier is present', () => {
+    const arena = createRadialArena(3);
+    const wizardEnemy = createMockUnit('wizard-enemy', 'Hostile Wizard', 'ENEMY', {
+      activeClassId: 'wizard',
+      abilities: ['spark', 'minor_ward'],
+      starterAbilityIds: ['spark', 'minor_ward']
+    });
+    const playerHero = createMockUnit('player-hero', 'Player Hero', 'PLAYER');
+
+    arena.setUnitPosition(wizardEnemy.id, { q: 0, r: 0 });
+    arena.setUnitPosition(playerHero.id, { q: 1, r: 0 });
+
+    const state = createCombatState(arena, [wizardEnemy, playerHero], wizardEnemy.id);
+    const wizardCu = state.units.get(wizardEnemy.id)!;
+    // Add active ward modifier
+    wizardCu.activeModifiers.push({ stat: 'ward', value: 2, durationTurns: 1 });
+
+    const nextAction = decideNextAction(state, wizardEnemy.id);
+
+    // Must NOT decide Minor Ward
+    if (nextAction.type === 'ABILITY') {
+      expect(nextAction.ability.id).not.toBe('minor_ward');
+    }
+  });
+
+  it('does not repeatedly cast Minor Ward when threatened from behind, turning and attacking with Spark', () => {
+    const arena = createRadialArena(3);
+    const wizardEnemy = createMockUnit('wizard-enemy', 'Hostile Wizard', 'ENEMY', {
+      activeClassId: 'wizard',
+      abilities: ['spark', 'minor_ward'],
+      starterAbilityIds: ['spark', 'minor_ward'],
+      maxHp: 20,
+      resolve: 10,
+      ward: 1
+    });
+
+    const playerHero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+      maxHp: 60,
+      resolve: 8,
+      evasion: 10
+    });
+
+    // Wizard at (0, 0)
+    arena.setUnitPosition(wizardEnemy.id, { q: 0, r: 0 });
+    // Player is directly behind the Wizard (at -1, 0, while wizard starts facing EAST)
+    arena.setUnitPosition(playerHero.id, { q: -1, r: 0 });
+
+    const state = createCombatState(arena, [wizardEnemy, playerHero], wizardEnemy.id);
+    const wizardCu = state.units.get(wizardEnemy.id)!;
+    wizardCu.facing = HEX_DIRECTIONS.EAST; // explicitly facing East, player is at West (rear arc)
+
+    // Execute the full AI turn with 3 AP
+    const roller = new SeededDiceRoller(42);
+    const actions = executeAiTurn(state, wizardEnemy.id, { diceRoller: roller });
+
+    // Wizard must not cast minor_ward more than once
+    const wardActions = actions.filter(
+      (a) => a.type === 'ABILITY' && a.ability.id === 'minor_ward'
+    );
+    expect(wardActions.length).toBeLessThanOrEqual(1);
+
+    // Wizard should use remaining AP to attack with Spark (or reposition and attack)
+    const offensiveActions = actions.filter(
+      (a) => a.type === 'ABILITY' && a.ability.id === 'spark'
+    );
+    expect(offensiveActions.length).toBeGreaterThanOrEqual(1);
+
+    // After attacking player, wizard's facing must point directly toward the target
+    const finalWizardPos = state.arena.getUnitPosition(wizardEnemy.id)!;
+    const heroPos = state.arena.getUnitPosition(playerHero.id)!;
+    expect(wizardCu.facing).toBe(getDirectionBetween(finalWizardPos, heroPos));
+  });
+
+  it('turns to face and attack threatening rear target with Spark when stationary', () => {
+    const arena = createRadialArena(3);
+    const stationaryWizard = createMockUnit('stationary-wizard', 'Stationary Wizard', 'ENEMY', {
+      activeClassId: 'wizard',
+      abilities: ['spark', 'minor_ward'],
+      starterAbilityIds: ['spark', 'minor_ward'],
+      move: 0,
+      maxHp: 20,
+      resolve: 10,
+      ward: 1
+    });
+
+    const playerHero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+      maxHp: 30,
+      resolve: 8,
+      evasion: 10
+    });
+
+    // Wizard at (0, 0) facing EAST
+    arena.setUnitPosition(stationaryWizard.id, { q: 0, r: 0 });
+    // Player directly behind wizard at (-1, 0)
+    arena.setUnitPosition(playerHero.id, { q: -1, r: 0 });
+
+    const state = createCombatState(arena, [stationaryWizard, playerHero], stationaryWizard.id);
+    const wizardCu = state.units.get(stationaryWizard.id)!;
+    wizardCu.facing = HEX_DIRECTIONS.EAST;
+
+    // First action: casts minor_ward once (or attacks directly)
+    // Then attacks with Spark against the hero at (-1, 0)
+    const roller = new SeededDiceRoller(42);
+    const actions = executeAiTurn(state, stationaryWizard.id, { diceRoller: roller });
+
+    const sparkActions = actions.filter(
+      (a) => a.type === 'ABILITY' && a.ability.id === 'spark'
+    );
+    expect(sparkActions.length).toBeGreaterThanOrEqual(1);
+
+    // Wizard was stationary at (0, 0) and hero was at (-1, 0)
+    // Wizard must now be facing WEST (3)
+    expect(wizardCu.facing).toBe(HEX_DIRECTIONS.WEST);
+  });
+
+  describe('executeAiAction', () => {
+    it('executes MOVE action and returns destination details', () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockUnit('enemy', 'Goblin', 'ENEMY');
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      const state = createCombatState(arena, [enemy], enemy.id);
+
+      const result = executeAiAction(state, enemy.id, {
+        type: 'MOVE',
+        destination: { q: 1, r: 0 },
+        score: 10,
+        reason: 'advance'
+      });
+
+      expect(result.type).toBe('MOVE');
+      if (result.type === 'MOVE') {
+        expect(result.destination).toEqual({ q: 1, r: 0 });
+      }
+      expect(state.arena.getUnitPosition(enemy.id)).toEqual({ q: 1, r: 0 });
+      expect(state.units.get(enemy.id)!.currentAp).toBe(2);
+    });
+
+    it('executes ABILITY action and returns full AbilityResolution', () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockUnit('enemy', 'Goblin', 'ENEMY');
+      const hero = createMockUnit('hero', 'Hero', 'PLAYER', { maxHp: 30 });
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+      const state = createCombatState(arena, [enemy, hero], enemy.id);
+
+      const roller = new SeededDiceRoller(999);
+      const result = executeAiAction(
+        state,
+        enemy.id,
+        {
+          type: 'ABILITY',
+          ability: STRIKE,
+          target: { coord: { q: 1, r: 0 }, targetUnitId: hero.id },
+          score: 15,
+          reason: 'strike'
+        },
+        roller
+      );
+
+      expect(result.type).toBe('ABILITY');
+      if (result.type === 'ABILITY') {
+        expect(result.ability.id).toBe('strike');
+        expect(result.resolution).toBeDefined();
+        expect(result.resolution.type).toBe('ATTACK');
+      }
+      expect(state.units.get(enemy.id)!.currentAp).toBe(2);
+    });
+
+    it('handles CONSERVE_AP without modifying grid state', () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockUnit('enemy', 'Goblin', 'ENEMY');
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      const state = createCombatState(arena, [enemy], enemy.id);
+
+      const result = executeAiAction(state, enemy.id, {
+        type: 'CONSERVE_AP',
+        unspentAp: 3,
+        score: 5,
+        reason: 'bank CTB'
+      });
+
+      expect(result.type).toBe('CONSERVE_AP');
+      if (result.type === 'CONSERVE_AP') {
+        expect(result.unspentAp).toBe(3);
+      }
+      expect(state.units.get(enemy.id)!.currentAp).toBe(3);
+    });
   });
 });

@@ -1,0 +1,142 @@
+.defeat-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 5, 8, 0.88);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeInDefeatModal 0.28s ease-out;
+}
+
+@keyframes fadeInDefeatModal {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.defeat-modal-card {
+  width: 90%;
+  max-width: 520px;
+  background: linear-gradient(180deg, #180d11 0%, #0d0709 100%);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  box-shadow: 0 0 40px rgba(239, 68, 68, 0.2), 0 25px 30px -5px rgba(0, 0, 0, 0.7);
+  border-radius: 12px;
+  padding: 1.75rem;
+  color: #f3f4f6;
+  font-family: system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.defeat-header {
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.85rem;
+}
+
+.defeat-title-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 800;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  margin-bottom: 0.5rem;
+}
+
+.defeat-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fee2e2;
+  letter-spacing: -0.01em;
+}
+
+.defeat-subtitle {
+  margin: 0.35rem 0 0 0;
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.defeat-squad-grid {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.defeat-squad-member {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  text-align: center;
+}
+
+.defeat-member-avatar {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: grayscale(80%) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+  opacity: 0.65;
+}
+
+.defeat-member-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #e5e7eb;
+}
+
+.defeat-member-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #ef4444;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.defeat-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.btn-defeat-retry {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+}
+
+.btn-defeat-retry:hover {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.45);
+}
+
+.btn-defeat-retry:active {
+  transform: translateY(0);
+}

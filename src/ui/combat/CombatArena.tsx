@@ -2,14 +2,16 @@ import { useMemo, useState } from 'react';
 import { useCombatSimulation } from './useCombatSimulation';
 import { DiceMode } from './devDice';
 import { createNoviceSandboxEncounter } from '../../data/encounters/noviceSandbox';
-import { rollNoviceStarterKit } from '../../data/packages';
 import { HexGridSvg } from './HexGridSvg';
 import { ActionBar } from './ActionBar';
+import { EnemyTurnBanner } from './EnemyTurnBanner';
 import { UnitStatusCard } from './UnitStatusCard';
 import { CombatLogPanel } from './CombatLogPanel';
 import { BattleVictoryModal } from './BattleVictoryModal';
+import { BattleDefeatModal } from './BattleDefeatModal';
 import { InitiativeRibbon } from './InitiativeRibbon';
 import { TokenAesthetic } from './tokenAssets';
+import { AISpeedMode } from './asyncTurnSequencer';
 import './CombatArena.css';
 
 export function CombatArena() {
@@ -18,6 +20,10 @@ export function CombatArena() {
   const {
     state,
     activeCu,
+    phase,
+    aiSpeed,
+    setAiSpeed,
+    hostileActionStatus,
     actionMode,
     selectedAbility,
     hoveredCoord,
@@ -35,16 +41,15 @@ export function CombatArena() {
     handleSelectSquadUnit,
     isVictoryModalOpen,
     setIsVictoryModalOpen,
+    isDefeatModalOpen,
     selectAction,
     handleTileClick,
     handleEndTurn,
     handleSelectArchetypeChoice,
     handleRematch,
-    handleResetEncounter,
-    handleRerollKit
+    handleResetEncounter
   } = useCombatSimulation({
-    encounterFactory: createNoviceSandboxEncounter,
-    onRerollKit: rollNoviceStarterKit
+    encounterFactory: createNoviceSandboxEncounter
   });
 
   const hoveredUnitCu = useMemo(() => {
@@ -52,6 +57,16 @@ export function CombatArena() {
     const unitId = state.arena.getUnitAt(hoveredCoord);
     return unitId ? state.units.get(unitId) : undefined;
   }, [hoveredCoord, state.arena, state.units]);
+
+  // Squad members for defeat modal display
+  const playerSquadUnits = useMemo(() => {
+    if (squadReconciliations.length > 0) {
+      return squadReconciliations;
+    }
+    return Array.from(state.units.values())
+      .filter((cu) => cu.faction === 'PLAYER')
+      .map((cu) => ({ unit: cu.unit }));
+  }, [squadReconciliations, state.units]);
 
   return (
     <div className="combat-arena-container">
@@ -62,7 +77,7 @@ export function CombatArena() {
           <span className="testbed-badge">Phase 2 • Squad Tactics (3v4)</span>
         </div>
 
-        {/* Dev Controls: Dice & Token Style */}
+        {/* Dev Controls: Dice, Speed & Token Style */}
         <div className="testbed-center-controls">
           {/* Token Aesthetic Selector */}
           <div className="dev-aesthetic-controls">
@@ -80,6 +95,26 @@ export function CombatArena() {
                 onClick={() => setTokenAesthetic(opt.id)}
               >
                 {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* AI Speed Controls */}
+          <div className="dev-speed-controls">
+            <span className="dev-label">⚡ Speed:</span>
+            {(
+              [
+                { mode: 'NORMAL', label: '1x' },
+                { mode: 'FAST', label: '2x' },
+                { mode: 'INSTANT', label: 'Instant' }
+              ] as const
+            ).map(({ mode, label }) => (
+              <button
+                key={mode}
+                className={`btn-speed ${aiSpeed === mode ? 'active' : ''}`}
+                onClick={() => setAiSpeed(mode as AISpeedMode)}
+              >
+                {label}
               </button>
             ))}
           </div>
@@ -107,9 +142,6 @@ export function CombatArena() {
 
         {/* Global Controls */}
         <div className="testbed-actions">
-          <button className="btn-testbed reroll-btn" onClick={handleRerollKit} title="Rolls a new 3-ability starter kit">
-            🎲 Re-roll Kit
-          </button>
           <button className="btn-testbed reset-btn" onClick={handleResetEncounter} title="Restores all units and HP to start">
             ↺ Reset Arena
           </button>
@@ -153,14 +185,22 @@ export function CombatArena() {
         />
       </div>
 
-      {/* Floating Tactical Action Bar */}
-      <ActionBar
-        activeCu={activeCu}
-        actionMode={actionMode}
-        selectedAbility={selectedAbility}
-        onSelectAction={selectAction}
-        onEndTurn={handleEndTurn}
-      />
+      {/* Floating Tactical Action Bar or Hostile Turn Banner */}
+      {phase === 'HOSTILE_TURN' ? (
+        <EnemyTurnBanner
+          activeCu={activeCu}
+          actionDescription={hostileActionStatus}
+          tokenAesthetic={tokenAesthetic}
+        />
+      ) : (
+        <ActionBar
+          activeCu={activeCu}
+          actionMode={actionMode}
+          selectedAbility={selectedAbility}
+          onSelectAction={selectAction}
+          onEndTurn={handleEndTurn}
+        />
+      )}
 
       {/* Post-Battle Victory & Level Unlock Modal */}
       <BattleVictoryModal
@@ -173,6 +213,14 @@ export function CombatArena() {
         onSelectArchetypeChoice={handleSelectArchetypeChoice}
         onRematch={handleRematch}
         onDismiss={() => setIsVictoryModalOpen(false)}
+      />
+
+      {/* Post-Battle Defeat Modal */}
+      <BattleDefeatModal
+        isOpen={isDefeatModalOpen}
+        squadMembers={playerSquadUnits}
+        tokenAesthetic={tokenAesthetic}
+        onRetry={handleResetEncounter}
       />
     </div>
   );

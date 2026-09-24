@@ -238,7 +238,7 @@ export function executeAbility(
   // Turn actor to face target
   const actorCoord = state.arena.getUnitPosition(actorUnitId);
   const targetCoord = target?.coord ?? (target?.targetUnitId ? state.arena.getUnitPosition(target.targetUnitId) : undefined);
-  if (actorCoord && targetCoord) {
+  if (actorCoord && targetCoord && !hexEquals(actorCoord, targetCoord)) {
     actorCu.facing = getDirectionBetween(actorCoord, targetCoord);
   }
 
@@ -394,6 +394,27 @@ export function executeAbility(
 
   // Apply all events to state
   applyCombatEvents(state, events);
+
+  // When a unit is hit with an attack, their facing direction updates to face the attack
+  if (rollResult.hitOutcome !== 'MISS' && !targetCu.isDefeated) {
+    const finalTargetPos = state.arena.getUnitPosition(targetCu.unit.id);
+    if (finalTargetPos && actorCoord && !hexEquals(finalTargetPos, actorCoord)) {
+      targetCu.facing = getDirectionBetween(finalTargetPos, actorCoord);
+    }
+  }
+
+  // Also turn any living secondary splash damage targets to face the attack origin
+  for (const event of events) {
+    if (event.type === 'DAMAGE' && event.targetUnitId !== targetCu.unit.id) {
+      const secondaryCu = state.units.get(event.targetUnitId);
+      if (secondaryCu && !secondaryCu.isDefeated) {
+        const secPos = state.arena.getUnitPosition(secondaryCu.unit.id);
+        if (secPos && actorCoord && !hexEquals(secPos, actorCoord)) {
+          secondaryCu.facing = getDirectionBetween(secPos, actorCoord);
+        }
+      }
+    }
+  }
 
   // Evaluate encounter outcome
   state.outcome = evaluateEncounterOutcome(state.objectives, state);

@@ -1,6 +1,7 @@
-import { CombatUnit } from '../combat/types';
-import { HexCoord, hexDistance, CombatArc } from '../grid/hex';
+import { CombatUnit, CombatState } from '../combat/types';
+import { CombatArc, HexCoord, hexDistance } from '../grid/hex';
 import { AbilityMetrics } from '../combat/targetPreview';
+import { Ability } from '../types/ability';
 import { AIProfile, AIArchetypeWeights } from './types';
 
 export const DEFAULT_ARCHETYPE_WEIGHTS: Record<AIProfile, AIArchetypeWeights> = {
@@ -137,7 +138,7 @@ export function scoreFlankOpportunity(
   isFlankAdvantage: boolean,
   flankWeight: number
 ): { score: number; reason?: string } {
-  if (combatArc === 'REAR' || (isFlankAdvantage && combatArc === 'REAR')) {
+  if (combatArc === 'REAR') {
     return {
       score: flankWeight * 2,
       reason: 'Rear combat arc advantage'
@@ -154,6 +155,7 @@ export function scoreFlankOpportunity(
 
 /**
  * Scores distance relative to preferred standoff engagement distance.
+ * Grants a bonus at ideal standoff distance, with balanced deviation penalty.
  */
 export function scoreStandoffDistance(
   distance: number,
@@ -161,9 +163,11 @@ export function scoreStandoffDistance(
   standoffWeight: number
 ): number {
   if (standoffWeight <= 0) return 0;
+  if (distance === preferredRange) {
+    return standoffWeight;
+  }
   const deviation = Math.abs(distance - preferredRange);
-  // Negative penalty for distance deviation
-  return -deviation * standoffWeight;
+  return -deviation * (standoffWeight * 0.25);
 }
 
 /**
@@ -177,4 +181,80 @@ export function scoreFocusFire(
   if (maxHp <= 0) return 0;
   const injuredRatio = (maxHp - targetCu.currentHp) / maxHp;
   return Math.round(injuredRatio * 10 * focusFireWeight * 10) / 10;
+}
+
+/**
+ * Evaluates tactical utility for casting a support or defensive buff on self or an ally.
+ * Strictly returns 0 if the target already has the active buff modifier.
+ */
+export function scoreBuffAbility(
+  actorCu: CombatUnit,
+  targetCu: CombatUnit,
+  ability: Ability,
+  _actorCoord: HexCoord,
+  targetCoord: HexCoord,
+  hostileUnits: readonly CombatUnit[],
+  state: CombatState,
+  profile: AIProfile
+): { score: number; reason?: string } {
+  // 1. Guard against re-applying active modifier
+  const targetStat =
+    ability.effect?.type === 'WARD_BUFF'
+      ? 'ward'
+      : ability.effect?.type === 'ARMOR_BUFF'
+      ? 'armor'
+      : ability.effect?.type === 'SLOW'
+      ? 'move'
+      : undefined;
+
+  if (targetStat && targetCu.activeModifiers.some((m) => m.stat === targetStat)) {
+    return { score: 0 };
+  }
+
+  const isSelf = actorCu.unit.id === targetCu.unit.id;
+  const maxHp = targetCu.unit.effectiveVitals.maxHp;
+  const missingHp = Math.max(0, maxHp - targetCu.currentHp);
+  const healthDeficitRatio = maxHp > 0 ? missingHp / maxHp : 0;
+
+  // Find distance to closest living hostile unit
+  let minHostileDist = Infinity;
+  for (const h of hostileUnits) {
+    const hPos = state.arena.getUnitPosition(h.unit.id);
+    if (hPos) {
+      const d = hexDistance(targetCoord, hPos);
+      if (d < minHostileDist) minHostileDist = d;
+    }
+  }
+
+  // Baseline utility for support/defense
+  let score = 2.5;
+  const reasons: string[] = [];
+
+  // Threat urgency: is the target in danger?
+  if (minHostileDist <= 1) {
+    score += 4.5;
+    reasons.push(isSelf ? 'Threatened by adjacent enemy' : 'Frontline ally engaged in melee');
+  } else if (minHostileDist <= 2) {
+    score += 2.0;
+    reasons.push('Hostile units in immediate vicinity');
+  }
+
+  // Injury severity
+  if (healthDeficitRatio > 0.5) {
+    score += 4.0;
+    reasons.push('Target heavily injured');
+  } else if (healthDeficitRatio > 0) {
+    score += healthDeficitRatio * 3.0;
+  }
+
+  // Archetype preference: dedicated SUPPORT units prioritize allied buffs
+  if (profile === 'SUPPORT' && !isSelf) {
+    score += 2.5;
+    reasons.push('Support focus on teammate');
+  }
+
+  return {
+    score: Math.round(score * 10) / 10,
+    reason: reasons.length > 0 ? reasons.join('; ') : `Defensive ${ability.name}`
+  };
 }

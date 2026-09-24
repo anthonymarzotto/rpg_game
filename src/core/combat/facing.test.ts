@@ -14,7 +14,7 @@ import {
   executeAbility,
   isFlankOrRear
 } from './resolver';
-import { SNEAK_ATTACK, STRIKE } from '../../data/packages';
+import { SNEAK_ATTACK, STRIKE, ARCANE_BLAST } from '../../data/packages';
 import { MockDiceRoller } from './dice';
 import { computeTargetPreview } from './targetPreview';
 
@@ -107,6 +107,79 @@ describe('Directional Facing & Combat Arcs', () => {
       executeAbility(state, 'hero', STRIKE, { targetUnitId: 'enemy' }, dice);
 
       expect(heroCu.facing).toBe(HEX_DIRECTIONS.SOUTHEAST);
+    });
+
+    it('updates target facing to face the attack when hit by an attack', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 }); // East of hero
+
+      const state = createCombatState(arena, [hero, enemy], 'hero');
+      const enemyCu = state.units.get('enemy')!;
+
+      // Enemy starts facing EAST (facing away from hero who is to the WEST at (0, 0))
+      enemyCu.facing = HEX_DIRECTIONS.EAST;
+
+      // Hero strikes enemy from rear with a hit
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [4] });
+      const result = executeAbility(state, 'hero', STRIKE, { targetUnitId: 'enemy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      // When hit, enemy should turn around to face the attacker at (0, 0) -> WEST (3)
+      expect(enemyCu.facing).toBe(HEX_DIRECTIONS.WEST);
+    });
+
+    it('does NOT update target facing when an attack misses', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 }); // East of hero
+
+      const state = createCombatState(arena, [hero, enemy], 'hero');
+      const enemyCu = state.units.get('enemy')!;
+
+      // Enemy starts facing EAST (facing away from hero)
+      enemyCu.facing = HEX_DIRECTIONS.EAST;
+
+      // Hero attacks but rolls a MISS (d20 = 1)
+      const dice = new MockDiceRoller({ d20Rolls: [1] });
+      const result = executeAbility(state, 'hero', STRIKE, { targetUnitId: 'enemy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.hitOutcome).toBe('MISS');
+      }
+      // Target was not hit, facing remains unchanged
+      expect(enemyCu.facing).toBe(HEX_DIRECTIONS.EAST);
+    });
+
+    it('updates secondary splash targets to face the attack origin when hit by AoE damage', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      const primaryEnemy = createRecruit('enemy-1', 'Primary Enemy', { faction: 'ENEMY' });
+      const bystanderEnemy = createRecruit('enemy-2', 'Bystander Enemy', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition(primaryEnemy.id, { q: 2, r: 0 });
+      arena.setUnitPosition(bystanderEnemy.id, { q: 2, r: 1 }); // Adjacent to primary, within 1 hex
+
+      const state = createCombatState(arena, [hero, primaryEnemy, bystanderEnemy], 'hero');
+      const bystanderCu = state.units.get(bystanderEnemy.id)!;
+      // Bystander facing SOUTHEAST initially
+      bystanderCu.facing = HEX_DIRECTIONS.SOUTHEAST;
+
+      // Hero casts Arcane Blast (aoeRadius = 1) centered on primaryEnemy
+      const dice = new MockDiceRoller({ d20Rolls: [18], damageRolls: [4, 3] });
+      executeAbility(state, 'hero', ARCANE_BLAST, { targetUnitId: primaryEnemy.id }, dice);
+
+      // Hero is at (0, 0), bystander is at (2, 1).
+      // Bystander should face Northwest towards (0, 0)
+      expect(bystanderCu.facing).toBe(getDirectionBetween({ q: 2, r: 1 }, { q: 0, r: 0 }));
     });
   });
 

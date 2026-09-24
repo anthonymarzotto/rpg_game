@@ -137,6 +137,41 @@
   font-weight: 700;
 }
 
+.dev-speed-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.btn-speed {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-speed:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+.btn-speed.active {
+  background: #10b981;
+  color: #0f172a;
+  border-color: #34d399;
+  font-weight: 700;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
 .testbed-actions {
   display: flex;
   gap: 0.5rem;
@@ -563,6 +598,108 @@
   padding: 0.6rem 1rem;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
   z-index: 15;
+}
+
+/* Hostile Turn Banner Overlay */
+.enemy-turn-bar {
+  border-color: rgba(239, 68, 68, 0.45);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 25px rgba(239, 68, 68, 0.15);
+  animation: pulseEnemyBar 2s infinite ease-in-out;
+}
+
+@keyframes pulseEnemyBar {
+  0%, 100% {
+    border-color: rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    border-color: rgba(239, 68, 68, 0.7);
+  }
+}
+
+.enemy-turn-avatar-block {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.enemy-turn-avatar-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.enemy-turn-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.enemy-turn-tag-row {
+  display: flex;
+}
+
+.enemy-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #ef4444;
+}
+
+.enemy-turn-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.enemy-intent-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0.45rem 0.95rem;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  min-width: 240px;
+}
+
+.enemy-intent-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.9);
+  animation: pulseDot 1s infinite alternate;
+}
+
+@keyframes pulseDot {
+  from { opacity: 0.4; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1.15); }
+}
+
+.enemy-intent-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fecaca;
+}
+
+.ap-counter-pill.hostile-ap {
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.ap-label.hostile {
+  color: #ef4444;
+}
+
+.ap-dot.hostile.filled {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
 }
 
 .ap-counter-pill {

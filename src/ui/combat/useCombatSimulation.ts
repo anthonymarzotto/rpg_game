@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { HexCoord, getHexesInRange } from '../../core/grid/hex';
 import { Ability } from '../../core/types/ability';
 import { Unit } from '../../core/types/unit';
@@ -8,7 +8,6 @@ import { CombatState, InBattleXp } from '../../core/combat/types';
 import { canMove, canExecuteAbility } from '../../core/combat/validator';
 import { executeMove, executeAbility } from '../../core/combat/resolver';
 import { endActiveTurn } from '../../core/combat/turnClock';
-import { executeAiTurn } from '../../core/ai';
 import {
   EncounterDefinition,
   buildEncounterState
@@ -23,8 +22,15 @@ import {
 import { ClassRegistry, createClassRegistry } from '../../core/progression/registry';
 import { CLASS_CATALOG } from '../../data/classes';
 import { NoviceSandboxOptions } from '../../data/encounters/noviceSandbox';
+import {
+  AISpeedMode,
+  PACING_PRESETS,
+  CombatExecutionObserver,
+  executeHostileTurnAsync
+} from './asyncTurnSequencer';
 
 export type ActionMode = 'IDLE' | 'MOVE' | 'ABILITY';
+export type CombatPhase = 'PLAYER_ACTION' | 'HOSTILE_TURN' | 'VICTORY' | 'DEFEAT';
 
 export interface SquadMemberReconciliation {
   readonly unit: Unit;
@@ -33,8 +39,6 @@ export interface SquadMemberReconciliation {
 
 export interface UseCombatSimulationOptions {
   readonly encounterFactory: (options?: NoviceSandboxOptions) => EncounterDefinition;
-  readonly initialKit?: readonly Ability[];
-  readonly onRerollKit?: () => readonly Ability[];
   readonly classRegistry?: ClassRegistry;
 }
 
@@ -43,19 +47,20 @@ export interface UseCombatSimulationOptions {
  */
 export function useCombatSimulation({
   encounterFactory,
-  initialKit,
-  onRerollKit,
   classRegistry: injectedRegistry
 }: UseCombatSimulationOptions) {
   const defaultRegistry = useMemo(() => createClassRegistry(CLASS_CATALOG), []);
   const registry = injectedRegistry ?? defaultRegistry;
 
-  const [currentKit, setCurrentKit] = useState<readonly Ability[] | undefined>(initialKit);
   const [bankedXp, setBankedXp] = useState<InBattleXp>({ fighter: 0, rogue: 0, mage: 0 });
-  const [reconciliationResult, setReconciliationResult] = useState<PostBattleReconciliationResult | null>(null);
   const [squadReconciliations, setSquadReconciliations] = useState<readonly SquadMemberReconciliation[]>([]);
   const [activeSquadUnitId, setActiveSquadUnitId] = useState<string>('player-warrior');
   const [isVictoryModalOpen, setIsVictoryModalOpen] = useState(false);
+  const [isDefeatModalOpen, setIsDefeatModalOpen] = useState(false);
+
+  const [aiSpeed, setAiSpeed] = useState<AISpeedMode>('NORMAL');
+  const [hostileActionStatus, setHostileActionStatus] = useState<string | null>(null);
+  const [encounterSession, setEncounterSession] = useState(0);
 
   const [state, setState] = useState<CombatState>(() =>
     buildEncounterState(encounterFactory())
@@ -78,30 +83,46 @@ export function useCombatSimulation({
     () => (state.activeUnitId ? state.arena.getUnitPosition(state.activeUnitId) : undefined),
     [state]
   );
-  const isPlayerTurn = useMemo(
-    () => activeCu?.faction === 'PLAYER',
-    [activeCu]
+
+  // Authoritative interaction phase
+  const phase = useMemo<CombatPhase>(() => {
+    if (state.outcome === 'VICTORY') return 'VICTORY';
+    if (state.outcome === 'DEFEAT') return 'DEFEAT';
+    if (activeCu?.faction !== 'PLAYER') return 'HOSTILE_TURN';
+    return 'PLAYER_ACTION';
+  }, [state.outcome, activeCu]);
+
+  const isPlayerTurn = phase === 'PLAYER_ACTION';
+  const isEnemyTurn = phase === 'HOSTILE_TURN';
+
+  // Derived single-member reconciliation result
+  const reconciliationResult = useMemo(
+    () =>
+      squadReconciliations.find((s) => s.unit.id === activeSquadUnitId)?.result ??
+      squadReconciliations[0]?.result ??
+      null,
+    [squadReconciliations, activeSquadUnitId]
   );
 
   // Computes reachable tiles when in MOVE mode for currently active player unit
   const reachableCoords = useMemo<HexCoord[]>(() => {
-    if (actionMode !== 'MOVE' || !activeCoord || !activeCu || !isPlayerTurn || activeCu.currentAp < 1) {
+    if (phase !== 'PLAYER_ACTION' || actionMode !== 'MOVE' || !activeCoord || !activeCu || activeCu.currentAp < 1) {
       return [];
     }
     return state.arena.getReachableHexes(activeCoord, activeCu.unit.effectiveVitals.move);
-  }, [actionMode, activeCoord, activeCu, isPlayerTurn, state.arena]);
+  }, [phase, actionMode, activeCoord, activeCu, state.arena]);
 
   // Computes candidate tiles in range when an ability is selected
   const abilityRangeCoords = useMemo<HexCoord[]>(() => {
-    if (actionMode !== 'ABILITY' || !selectedAbility || !activeCoord || !isPlayerTurn) {
+    if (phase !== 'PLAYER_ACTION' || actionMode !== 'ABILITY' || !selectedAbility || !activeCoord) {
       return [];
     }
     return getHexesInRange(activeCoord, selectedAbility.range);
-  }, [actionMode, selectedAbility, activeCoord, isPlayerTurn]);
+  }, [phase, actionMode, selectedAbility, activeCoord]);
 
   // Candidate targets within ability range that pass validation (enemies for attacks, allies for buffs)
   const candidateTargetCoords = useMemo<HexCoord[]>(() => {
-    if (actionMode !== 'ABILITY' || !selectedAbility || !activeCoord || !isPlayerTurn) {
+    if (phase !== 'PLAYER_ACTION' || actionMode !== 'ABILITY' || !selectedAbility || !activeCoord) {
       return [];
     }
     return abilityRangeCoords.filter((coord) => {
@@ -112,11 +133,11 @@ export function useCombatSimulation({
       });
       return validation.valid;
     });
-  }, [actionMode, selectedAbility, activeCoord, isPlayerTurn, abilityRangeCoords, state]);
+  }, [phase, actionMode, selectedAbility, activeCoord, abilityRangeCoords, state]);
 
   // Live damage/hit/buff preview on hovered target
   const targetPreview = useMemo<TargetPreview | null>(() => {
-    if (actionMode !== 'ABILITY' || !selectedAbility || !hoveredCoord || !activeCu || !isPlayerTurn) {
+    if (phase !== 'PLAYER_ACTION' || actionMode !== 'ABILITY' || !selectedAbility || !hoveredCoord || !activeCu) {
       return null;
     }
     return computeTargetPreview(
@@ -125,9 +146,9 @@ export function useCombatSimulation({
       selectedAbility,
       hoveredCoord
     );
-  }, [actionMode, selectedAbility, hoveredCoord, activeCu, isPlayerTurn, state]);
+  }, [phase, actionMode, selectedAbility, hoveredCoord, activeCu, state]);
 
-  // Check and trigger post-battle reconciliation for all player squad members on VICTORY
+  // Check and trigger post-battle reconciliation for all player squad members on VICTORY / DEFEAT
   const checkEncounterProgression = useCallback(
     (nextState: CombatState) => {
       if (nextState.outcome === 'VICTORY') {
@@ -148,37 +169,99 @@ export function useCombatSimulation({
 
         setSquadReconciliations(reconciliations);
         if (reconciliations.length > 0) {
-          setReconciliationResult(reconciliations[0].result);
           setActiveSquadUnitId(reconciliations[0].unit.id);
         }
         setIsVictoryModalOpen(true);
+      } else if (nextState.outcome === 'DEFEAT') {
+        setIsDefeatModalOpen(true);
       }
     },
     [registry, bankedXp]
   );
 
-  // Automatically executes hostile turns using the headless AI decision engine
-  const advanceNonPlayerTurns = useCallback(
-    (currentState: CombatState) => {
-      let loops = 0;
-      const roller = new DevDiceRoller(diceMode);
-      while (
-        currentState.activeUnitId &&
-        currentState.units.get(currentState.activeUnitId)?.faction !== 'PLAYER' &&
-        currentState.outcome === 'IN_PROGRESS' &&
-        loops < 20
-      ) {
-        loops++;
-        executeAiTurn(currentState, currentState.activeUnitId, { diceRoller: roller });
+  // Reactive asynchronous hostile turn sequencer
+  useEffect(() => {
+    if (phase !== 'HOSTILE_TURN' || !state.activeUnitId || state.outcome !== 'IN_PROGRESS') {
+      setHostileActionStatus(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    const pacing = PACING_PRESETS[aiSpeed];
+
+    const observer: CombatExecutionObserver = {
+      onTurnTransitionStart: () => {
+        setHostileActionStatus('Preparing turn...');
+      },
+      onActionStart: (_actor, _action, description) => {
+        setHostileActionStatus(description);
+      },
+      onActionResolved: (_actor, _action, result) => {
+        if (result.type === 'MOVE') {
+          addFloatingText('Move', 'buff', result.destination);
+        } else if (result.type === 'ABILITY') {
+          const targetCoordBefore = result.target.targetUnitId
+            ? state.arena.getUnitPosition(result.target.targetUnitId)
+            : result.target.coord;
+          const actorCoord = state.arena.getUnitPosition(state.activeUnitId);
+          dispatchResolutionFeedback(
+            state,
+            result.resolution,
+            result.ability,
+            targetCoordBefore,
+            actorCoord,
+            result.target.coord ?? targetCoordBefore ?? { q: 0, r: 0 },
+            result.target.targetUnitId
+          );
+        }
+        setState({ ...state });
+        checkEncounterProgression(state);
+      },
+      onTurnCompleted: (actor, unspentAp) => {
+        if (unspentAp > 0) {
+          const actorCoord = state.arena.getUnitPosition(actor.unit.id);
+          addFloatingText(
+            `+${unspentAp * 20} CTB Gauge`,
+            'buff',
+            actorCoord ?? { q: 0, r: 0 }
+          );
+        }
+        setHostileActionStatus(null);
+        setState({ ...state });
+        checkEncounterProgression(state);
       }
-    },
-    [diceMode]
-  );
+    };
+
+    executeHostileTurnAsync(
+      state,
+      state.activeUnitId,
+      pacing,
+      observer,
+      controller.signal
+    ).catch((err: unknown) => {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Error executing hostile turn:', err);
+      }
+    });
+
+    return () => {
+      controller.abort();
+    };
+  }, [
+    phase,
+    state.activeUnitId,
+    state.outcome,
+    aiSpeed,
+    encounterSession,
+    addFloatingText,
+    dispatchResolutionFeedback,
+    checkEncounterProgression
+  ]);
 
   // Dispatches tactical intent on tile click
   const handleTileClick = useCallback(
     (coord: HexCoord) => {
-      if (!isPlayerTurn || !activeCu || !activeCoord) return;
+      if (phase !== 'PLAYER_ACTION' || !activeCu || !activeCoord) return;
 
       if (actionMode === 'MOVE') {
         const validation = canMove(state, state.activeUnitId, coord);
@@ -203,6 +286,7 @@ export function useCombatSimulation({
             ? state.arena.getUnitPosition(targetUnitId)
             : undefined;
 
+          // Dev dice overrides apply only to player actions
           const roller = new DevDiceRoller(diceMode);
           const resolution = executeAbility(
             state,
@@ -232,7 +316,7 @@ export function useCombatSimulation({
       }
     },
     [
-      isPlayerTurn,
+      phase,
       activeCu,
       activeCoord,
       actionMode,
@@ -247,18 +331,17 @@ export function useCombatSimulation({
 
   // End Turn with unspent AP refund and hand off to next unit
   const handleEndTurn = useCallback(() => {
-    if (!activeCu || !isPlayerTurn) return;
+    if (phase !== 'PLAYER_ACTION' || !activeCu) return;
     const unspent = activeCu.currentAp;
     addFloatingText(`+${unspent * 20} CTB Gauge`, 'buff', activeCoord ?? { q: 0, r: 0 });
 
     endActiveTurn(state);
-    advanceNonPlayerTurns(state);
 
     setActionMode('IDLE');
     setSelectedAbility(null);
     setState({ ...state });
     checkEncounterProgression(state);
-  }, [activeCu, isPlayerTurn, activeCoord, state, addFloatingText, advanceNonPlayerTurns, checkEncounterProgression]);
+  }, [phase, activeCu, activeCoord, state, addFloatingText, checkEncounterProgression]);
 
   // Switches action mode from ActionBar
   const selectAction = useCallback(
@@ -281,12 +364,8 @@ export function useCombatSimulation({
   const handleSelectSquadUnit = useCallback(
     (unitId: string) => {
       setActiveSquadUnitId(unitId);
-      const match = squadReconciliations.find((s) => s.unit.id === unitId);
-      if (match) {
-        setReconciliationResult(match.result);
-      }
     },
-    [squadReconciliations]
+    []
   );
 
   // Resolves player choice when multiple archetypes qualified simultaneously for the selected squad unit
@@ -307,7 +386,6 @@ export function useCombatSimulation({
       setSquadReconciliations((prev) =>
         prev.map((s) => (s.unit.id === activeSquadUnitId ? { ...s, result: updatedResult } : s))
       );
-      setReconciliationResult(updatedResult);
     },
     [squadReconciliations, activeSquadUnitId, state.units, registry, bankedXp]
   );
@@ -316,8 +394,10 @@ export function useCombatSimulation({
   const handleRematch = useCallback(
     (_configuredLoadout?: UnitLoadout) => {
       setIsVictoryModalOpen(false);
-      setReconciliationResult(null);
+      setIsDefeatModalOpen(false);
       setSquadReconciliations([]);
+      setHostileActionStatus(null);
+      setEncounterSession((prev) => prev + 1);
 
       const fresh = buildEncounterState(encounterFactory());
       setState(fresh);
@@ -332,9 +412,11 @@ export function useCombatSimulation({
   // Full reset back to encounter start
   const handleResetEncounter = useCallback(() => {
     setBankedXp({ fighter: 0, rogue: 0, mage: 0 });
-    setReconciliationResult(null);
     setSquadReconciliations([]);
     setIsVictoryModalOpen(false);
+    setIsDefeatModalOpen(false);
+    setHostileActionStatus(null);
+    setEncounterSession((prev) => prev + 1);
 
     const fresh = buildEncounterState(encounterFactory());
     setState(fresh);
@@ -342,29 +424,18 @@ export function useCombatSimulation({
     setSelectedAbility(null);
     setHoveredCoord(null);
     clearFloatingTexts();
-  }, [currentKit, encounterFactory, clearFloatingTexts]);
-
-  // Re-roll starter ability kit
-  const handleRerollKit = useCallback(() => {
-    if (!onRerollKit) return;
-    const newKit = onRerollKit();
-    setCurrentKit(newKit);
-    setBankedXp({ fighter: 0, rogue: 0, mage: 0 });
-    setReconciliationResult(null);
-    setSquadReconciliations([]);
-    setIsVictoryModalOpen(false);
-
-    const fresh = buildEncounterState(encounterFactory());
-    setState(fresh);
-    setActionMode('IDLE');
-    setSelectedAbility(null);
-  }, [encounterFactory, onRerollKit]);
+  }, [encounterFactory, clearFloatingTexts]);
 
   return {
     state,
     activeCu,
     activeCoord,
+    phase,
     isPlayerTurn,
+    isEnemyTurn,
+    aiSpeed,
+    setAiSpeed,
+    hostileActionStatus,
     actionMode,
     selectedAbility,
     hoveredCoord,
@@ -382,12 +453,13 @@ export function useCombatSimulation({
     handleSelectSquadUnit,
     isVictoryModalOpen,
     setIsVictoryModalOpen,
+    isDefeatModalOpen,
+    setIsDefeatModalOpen,
     selectAction,
     handleTileClick,
     handleEndTurn,
     handleSelectArchetypeChoice,
     handleRematch,
-    handleResetEncounter,
-    handleRerollKit
+    handleResetEncounter
   };
 }

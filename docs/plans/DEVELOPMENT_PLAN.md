@@ -34,7 +34,7 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 2: TACTICAL COMBAT ENEMY AI & MULTI-UNIT BATTLES      │
 │  - [x] 2.1 Headless AI decision engine (COMPLETED)          │
-│  - [ ] 2.2 CTB multi-unit turn sequencing & pacing          │
+│  - [x] 2.2 CTB multi-unit turn sequencing & pacing (COMPLETED)│
 │  - [x] 2.3 Multi-unit party squads & allied targeting (COMPLETED)│
 └──────────────────────────────┬──────────────────────────────┘
                                │
@@ -150,12 +150,19 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
     * Conserves unspent AP to bank the +20 CTB gauge refund when actions fall below baseline utility threshold.
 * **Testing & Verification**: 7 headless Vitest simulations verifying deterministic AI behavior, vulnerability targeting, flanking, standoff range, AP conservation, seeded dice tie-breaking, and multi-action turn execution without rendering components.
 
-### 2.2. Asynchronous CTB Multi-Unit Sequencing
-* **Eliminate Passive Dummy Stepping**:
-  * Retire `autoAdvancePassiveDummies` in favor of full asynchronous CTB turn scheduling where hostile units accumulate gauge and claim active turns naturally.
-* **Turn Notification & Execution Dispatch**:
-  * UI state engine coordinates enemy turn pacing (e.g., brief action pauses so players can follow enemy movements, strikes, and floating combat text).
-  * Dev toggles for AI step speed (instant for testing, paced for gameplay).
+### 2.2. Asynchronous CTB Multi-Unit Sequencing (`src/core/ai/`, `src/ui/combat/`) <── COMPLETED & TESTED
+* **Eliminate Synchronous Hostile Turn Loops**:
+  * Retired synchronous batch execution in favor of full asynchronous CTB turn scheduling where hostile units accumulate gauge and claim active turns naturally.
+* **Extensible Headless Sequencer & DRY Action Execution**:
+  * Extracted pure `executeAiAction` in `src/core/ai/decisionEngine.ts` returning structured `AIActionResult` and `AbilityResolution`.
+  * Implemented headless, event-driven `executeHostileTurnAsync` in `src/ui/combat/asyncTurnSequencer.ts` using `CombatExecutionObserver` and `AbortSignal` cancellation for safe lifecycle management.
+* **Turn Notification, HUD Banner & Execution Dispatch**:
+  * Dedicated `EnemyTurnBanner` replaces the player's Action Bar during hostile turns, rendering the enemy's standee portrait, real-time action description (e.g. *"Bandit Skirmisher B attacks Alden with Throw Dart"*), and hostile AP pips while strictly locking player inputs.
+  * Direct action execution with sustained feedback pause: applies actions immediately, fires floating combat text (hits, crits, grazes, misses, knockback), and holds for step delay so players can observe each hostile maneuver.
+  * Added 3-tier dev speed controls (`1x` 600ms, `2x` 200ms, `Instant` 0ms) in the testbed bar, with a 400ms turn-transition pause between consecutive active combatants.
+  * Dev dice overrides isolated to player actions; hostile units always roll standard fair dice.
+* **Battle Defeat Flow**:
+  * Added `BattleDefeatModal` when all squad members fall in combat (`outcome === 'DEFEAT'`), pausing combat and offering a "Retry Skirmish" rematch button.
 
 ### 2.3. Multi-Unit Party & Squad Combat (`src/core/combat/`, `src/ui/combat/`, `src/data/encounters/`) <── COMPLETED & TESTED
 * **Party Roster in Combat**:

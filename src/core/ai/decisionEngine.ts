@@ -1,11 +1,12 @@
-import { CombatState, CombatUnit } from '../combat/types';
-import { HexCoord, hexDistance, hexEquals, CombatArc, getCombatArc } from '../grid/hex';
+import { CombatState, CombatUnit, AbilityResolution } from '../combat/types';
+import { HexCoord, hexDistance, hexEquals, getCombatArc } from '../grid/hex';
 import { getEffectiveMove } from '../combat/effectiveVitals';
-import { computeAbilityMetrics, AbilityMetrics } from '../combat/targetPreview';
-import { executeMove, executeAbility, isFlankOrRear } from '../combat/resolver';
+import { computeAbilityMetrics } from '../combat/targetPreview';
+import { executeMove, executeAbility } from '../combat/resolver';
 import { endActiveTurn } from '../combat/turnClock';
-import { SeededDiceRoller } from '../combat/dice';
-import { AIAction, AIDecisionOptions, MoveAIAction, AbilityAIAction } from './types';
+import { SeededDiceRoller, DiceRoller } from '../combat/dice';
+import { Ability } from '../types/ability';
+import { AIAction, AIDecisionOptions } from './types';
 import {
   resolveAIProfile,
   getArchetypeWeights,
@@ -13,7 +14,8 @@ import {
   scoreVulnerability,
   scoreFlankOpportunity,
   scoreStandoffDistance,
-  scoreFocusFire
+  scoreFocusFire,
+  scoreBuffAbility
 } from './heuristics';
 
 const defaultDiceRoller = new SeededDiceRoller();
@@ -120,17 +122,25 @@ export function decideNextAction(
         );
         if (!metrics || !metrics.hasLoS) continue;
 
-        // Buff value heuristic: prioritize damaged allies or buffing self/frontline
-        const maxHp = allyCu.unit.effectiveVitals.maxHp;
-        const missingHp = maxHp - allyCu.currentHp;
-        const buffScore = 15 + missingHp * 2;
+        const buff = scoreBuffAbility(
+          cu,
+          allyCu,
+          ability,
+          currentCoord,
+          allyCoord,
+          hostileUnits,
+          state,
+          profile
+        );
+
+        if (buff.score <= 0) continue;
 
         candidateActions.push({
           type: 'ABILITY',
           ability,
           target: { coord: allyCoord, targetUnitId: allyCu.unit.id },
-          score: Math.round(buffScore * 10) / 10,
-          reason: `Buff ally ${allyCu.unit.name} with ${ability.name}`
+          score: buff.score,
+          reason: buff.reason ?? `Buff ally ${allyCu.unit.name} with ${ability.name}`
         });
       }
     }
@@ -296,6 +306,55 @@ export function decideNextAction(
   return tiedCandidates[rollIndex];
 }
 
+export type AIActionResult =
+  | { readonly type: 'MOVE'; readonly destination: HexCoord }
+  | {
+      readonly type: 'ABILITY';
+      readonly ability: Ability;
+      readonly target: { readonly coord?: HexCoord; readonly targetUnitId?: string };
+      readonly resolution: AbilityResolution;
+    }
+  | { readonly type: 'CONSERVE_AP'; readonly unspentAp: number };
+
+/**
+ * Pure execution of a single AIAction against the CombatState.
+ * Returns structured execution details including AbilityResolution.
+ */
+export function executeAiAction(
+  state: CombatState,
+  actorUnitId: string,
+  action: AIAction,
+  diceRoller?: DiceRoller
+): AIActionResult {
+  const cu = state.units.get(actorUnitId);
+  if (!cu) {
+    throw new Error(`Unit ${actorUnitId} not found in combat state.`);
+  }
+
+  if (action.type === 'MOVE') {
+    executeMove(state, actorUnitId, action.destination);
+    return { type: 'MOVE', destination: action.destination };
+  }
+
+  if (action.type === 'ABILITY') {
+    const resolution = executeAbility(
+      state,
+      actorUnitId,
+      action.ability,
+      action.target,
+      diceRoller
+    );
+    return {
+      type: 'ABILITY',
+      ability: action.ability,
+      target: action.target,
+      resolution
+    };
+  }
+
+  return { type: 'CONSERVE_AP', unspentAp: cu.currentAp };
+}
+
 /**
  * Headless turn runner that executes AI decisions iteratively until AP is exhausted
  * or conserved, concluding the turn cleanly with CTB gauge recovery.
@@ -318,13 +377,10 @@ export function executeAiTurn(
 
     const action = decideNextAction(state, actorUnitId, options);
     executedActions.push(action);
+    const result = executeAiAction(state, actorUnitId, action, options?.diceRoller);
 
-    if (action.type === 'CONSERVE_AP') {
+    if (result.type === 'CONSERVE_AP' || state.outcome !== 'IN_PROGRESS') {
       break;
-    } else if (action.type === 'MOVE') {
-      executeMove(state, actorUnitId, action.destination);
-    } else if (action.type === 'ABILITY') {
-      executeAbility(state, actorUnitId, action.ability, action.target, options?.diceRoller);
     }
   }
 
