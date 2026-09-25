@@ -214,7 +214,7 @@ export function useCombatSimulation({
             result.target.targetUnitId
           );
         }
-        setState({ ...state });
+        setState({ ...state, combatLog: [...state.combatLog] });
         checkEncounterProgression(state);
       },
       onTurnCompleted: (actor, unspentAp) => {
@@ -227,7 +227,7 @@ export function useCombatSimulation({
           );
         }
         setHostileActionStatus(null);
-        setState({ ...state });
+        setState({ ...state, combatLog: [...state.combatLog] });
         checkEncounterProgression(state);
       }
     };
@@ -269,7 +269,7 @@ export function useCombatSimulation({
           executeMove(state, state.activeUnitId, coord);
           addFloatingText('Move', 'buff', coord);
           setActionMode('IDLE');
-          setState({ ...state });
+          setState({ ...state, combatLog: [...state.combatLog] });
           checkEncounterProgression(state);
         } else {
           addFloatingText(validation.reason, 'miss', coord);
@@ -308,7 +308,7 @@ export function useCombatSimulation({
 
           setActionMode('IDLE');
           setSelectedAbility(null);
-          setState({ ...state });
+          setState({ ...state, combatLog: [...state.combatLog] });
           checkEncounterProgression(state);
         } else if (targetUnitId) {
           addFloatingText(validation.reason, 'miss', coord);
@@ -339,7 +339,7 @@ export function useCombatSimulation({
 
     setActionMode('IDLE');
     setSelectedAbility(null);
-    setState({ ...state });
+    setState({ ...state, combatLog: [...state.combatLog] });
     checkEncounterProgression(state);
   }, [phase, activeCu, activeCoord, state, addFloatingText, checkEncounterProgression]);
 

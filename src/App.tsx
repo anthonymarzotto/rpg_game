@@ -6,7 +6,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState<'constellation' | 'arena'>('arena');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden' }}>
       {/* Functional top tab navigation (temporary scaffolding) */}
       <div
         style={{
@@ -15,7 +15,8 @@ export function App() {
           padding: '0.35rem 0.75rem',
           backgroundColor: '#0a0d14',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          zIndex: 100
+          zIndex: 100,
+          flexShrink: 0
         }}
       >
         <button
@@ -50,7 +51,7 @@ export function App() {
         </button>
       </div>
 
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {activeTab === 'arena' ? <CombatArena /> : <ConstellationChart />}
       </div>
     </div>

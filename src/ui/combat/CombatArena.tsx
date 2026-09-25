@@ -16,6 +16,7 @@ import './CombatArena.css';
 
 export function CombatArena() {
   const [tokenAesthetic, setTokenAesthetic] = useState<TokenAesthetic>('stained-glass');
+  const [fieldZoom, setFieldZoom] = useState<number>(1.0);
 
   const {
     state,
@@ -52,6 +53,15 @@ export function CombatArena() {
     encounterFactory: createNoviceSandboxEncounter
   });
 
+  const handleCanvasWheel = (e: React.WheelEvent) => {
+    // Smooth mouse-wheel field zoom
+    if (e.deltaY < 0) {
+      setFieldZoom((z) => Math.min(1.8, Math.round((z + 0.05) * 100) / 100));
+    } else if (e.deltaY > 0) {
+      setFieldZoom((z) => Math.max(0.6, Math.round((z - 0.05) * 100) / 100));
+    }
+  };
+
   const hoveredUnitCu = useMemo(() => {
     if (!hoveredCoord) return undefined;
     const unitId = state.arena.getUnitAt(hoveredCoord);
@@ -83,7 +93,7 @@ export function CombatArena() {
           <span className="testbed-badge">Phase 2 • Squad Tactics (3v4)</span>
         </div>
 
-        {/* Dev Controls: Dice, Speed & Token Style */}
+        {/* Dev Controls: Dice, Speed, Zoom & Token Style */}
         <div className="testbed-center-controls">
           {/* Token Aesthetic Selector */}
           <div className="dev-aesthetic-controls">
@@ -104,6 +114,35 @@ export function CombatArena() {
                 {opt.label}
               </button>
             ))}
+          </div>
+
+          {/* Arena Zoom Controls */}
+          <div className="dev-zoom-controls" title="Scroll wheel over arena also zooms">
+            <span className="dev-label">🔍 Zoom:</span>
+            <button
+              className="btn-zoom"
+              onClick={() => setFieldZoom((z) => Math.max(0.6, Math.round((z - 0.1) * 10) / 10))}
+              title="Zoom out arena"
+            >
+              −
+            </button>
+            <span className="zoom-value">{Math.round(fieldZoom * 100)}%</span>
+            <button
+              className="btn-zoom"
+              onClick={() => setFieldZoom((z) => Math.min(1.8, Math.round((z + 0.1) * 10) / 10))}
+              title="Zoom in arena"
+            >
+              +
+            </button>
+            {fieldZoom !== 1.0 && (
+              <button
+                className="btn-zoom-reset"
+                onClick={() => setFieldZoom(1.0)}
+                title="Reset zoom to 100%"
+              >
+                ⟲
+              </button>
+            )}
           </div>
 
           {/* AI Speed Controls */}
@@ -170,7 +209,7 @@ export function CombatArena() {
         />
 
         {/* Center SVG Hex Arena */}
-        <div className="arena-canvas-container">
+        <div className="arena-canvas-container" onWheel={handleCanvasWheel}>
           <HexGridSvg
             state={state}
             reachableCoords={reachableCoords}
@@ -180,12 +219,13 @@ export function CombatArena() {
             floatingTexts={floatingTexts}
             targetPreview={targetPreview}
             tokenAesthetic={tokenAesthetic}
+            zoom={fieldZoom}
             onTileClick={handleTileClick}
             onTileHover={setHoveredCoord}
           />
         </div>
 
-        {/* Right Combat Log Sidebar */}
+        {/* Right Combat Log Panel */}
         <CombatLogPanel
           logEntries={state.combatLog}
           turnNumber={state.turnNumber}

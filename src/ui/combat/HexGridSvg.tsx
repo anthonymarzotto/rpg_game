@@ -14,6 +14,7 @@ export interface HexGridSvgProps {
   readonly floatingTexts: readonly FloatingText[];
   readonly targetPreview: TargetPreview | null;
   readonly tokenAesthetic?: TokenAesthetic;
+  readonly zoom?: number;
   readonly onTileClick: (coord: HexCoord) => void;
   readonly onTileHover: (coord: HexCoord | null) => void;
 }
@@ -47,6 +48,7 @@ export function HexGridSvg({
   floatingTexts,
   targetPreview,
   tokenAesthetic = 'stained-glass',
+  zoom = 1,
   onTileClick,
   onTileHover
 }: HexGridSvgProps) {
@@ -68,7 +70,7 @@ export function HexGridSvg({
     return state.arena.getAllTiles();
   }, [state.arena]);
 
-  // Compute dynamic viewBox and backdrop radius based on arena bounds
+  // Compute dynamic viewBox and backdrop radius based on arena bounds and zoom
   const { viewBox, backdropRadius } = useMemo(() => {
     if (allTiles.length === 0) {
       return { viewBox: '-320 -280 640 560', backdropRadius: 230 };
@@ -86,10 +88,17 @@ export function HexGridSvg({
     }
     const paddingX = HEX_RADIUS + 35;
     const paddingY = HEX_RADIUS + 45;
-    const x = Math.round(minX - paddingX);
-    const y = Math.round(minY - paddingY);
-    const width = Math.round(maxX - minX + paddingX * 2);
-    const height = Math.round(maxY - minY + paddingY * 2);
+    const origWidth = Math.round(maxX - minX + paddingX * 2);
+    const origHeight = Math.round(maxY - minY + paddingY * 2);
+    const origX = Math.round(minX - paddingX);
+    const origY = Math.round(minY - paddingY);
+
+    const safeZoom = Math.max(0.5, Math.min(2.2, zoom));
+    const width = Math.round(origWidth / safeZoom);
+    const height = Math.round(origHeight / safeZoom);
+    const x = Math.round(origX + (origWidth - width) / 2);
+    const y = Math.round(origY + (origHeight - height) / 2);
+
     const maxDimension = Math.max(maxX - minX, maxY - minY);
     const backdropRadius = Math.round(maxDimension / 2 + HEX_RADIUS * 0.7);
 
@@ -97,7 +106,7 @@ export function HexGridSvg({
       viewBox: `${x} ${y} ${width} ${height}`,
       backdropRadius
     };
-  }, [allTiles]);
+  }, [allTiles, zoom]);
 
   return (
     <svg
