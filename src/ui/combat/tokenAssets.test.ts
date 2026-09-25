@@ -1,0 +1,310 @@
+import { describe, it, expect } from 'vitest';
+import { Unit } from '../../core/types/unit';
+import { HEX_DIRECTIONS } from '../../core/grid/hex';
+import {
+  resolveTokenAssetPath,
+  resolvePixelTokenBase,
+  isPixelAsset,
+  AVAILABLE_PIXEL_TOKENS,
+  HEX_TO_PIXEL_ROTATION,
+  getUnitTokenBase,
+  getUnitTokenUrls,
+  preloadCombatUnitTokens,
+  preloadImageUrls,
+  clearImageCache
+} from './tokenAssets';
+
+function createMockUnit(overrides: Partial<Unit> = {}): Unit {
+  return {
+    id: 'test-unit',
+    name: 'Test Unit',
+    gender: 'male',
+    race: 'human',
+    faction: 'PLAYER',
+    progression: {
+      unitId: 'test-unit',
+      currentLevel: 1,
+      archetypePoints: { fighter: 1, rogue: 0, mage: 0 },
+      constellation: []
+    },
+    baseAttributes: { force: 2, finesse: 2, focus: 2 },
+    effectiveVitals: {
+      maxHp: 30,
+      maxAp: 3,
+      speed: 10,
+      move: 3,
+      evasion: 10,
+      resolve: 10,
+      armor: 1,
+      ward: 0
+    },
+    loadout: {
+      activeClassId: 'novice',
+      unlockedClassIds: ['novice'],
+      archetypeSelections: { fighter: 'novice' },
+      equippedAbilities: [],
+      wildcardPassives: []
+    },
+    ...overrides
+  };
+}
+
+describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
+  describe('Classic Aesthetic', () => {
+    it('returns null for classic aesthetic to trigger vector fallback', () => {
+      const unit = createMockUnit();
+      expect(resolveTokenAssetPath(unit, 'classic')).toBeNull();
+    });
+  });
+
+  describe('Legacy Aesthetics (enamel & stained-glass)', () => {
+    it('resolves enamel tokens without facing or suffix', () => {
+      const novice = createMockUnit();
+      expect(resolveTokenAssetPath(novice, 'enamel')).toBe('/assets/tokens/enamel/000_human_male.png');
+    });
+
+    it('resolves stained-glass tokens with _glass suffix', () => {
+      const novice = createMockUnit();
+      expect(resolveTokenAssetPath(novice, 'stained-glass')).toBe(
+        '/assets/tokens/stained-glass/000_human_male_glass.png'
+      );
+    });
+  });
+
+  describe('Pixel Aesthetic & Hex Facing', () => {
+    it('resolves novice (000_human_male) to pixel idle rotation paths for each hex direction', () => {
+      const novice = createMockUnit({ gender: 'male', race: 'human' });
+
+      expect(resolveTokenAssetPath(novice, 'pixel', HEX_DIRECTIONS.EAST)).toBe(
+        '/assets/tokens/pixel/000_human_male/Idle/rotations/east.png'
+      );
+      expect(resolveTokenAssetPath(novice, 'pixel', HEX_DIRECTIONS.NORTHEAST)).toBe(
+        '/assets/tokens/pixel/000_human_male/Idle/rotations/north-east.png'
+      );
+      expect(resolveTokenAssetPath(novice, 'pixel', HEX_DIRECTIONS.NORTHWEST)).toBe(
+        '/assets/tokens/pixel/000_human_male/Idle/rotations/north-west.png'
+      );
+      expect(resolveTokenAssetPath(novice, 'pixel', HEX_DIRECTIONS.WEST)).toBe(
+        '/assets/tokens/pixel/000_human_male/Idle/rotations/west.png'
+      );
+      expect(resolveTokenAssetPath(novice, 'pixel', HEX_DIRECTIONS.SOUTHWEST)).toBe(
+        '/assets/tokens/pixel/000_human_male/Idle/rotations/south-west.png'
+      );
+      expect(resolveTokenAssetPath(novice, 'pixel', HEX_DIRECTIONS.SOUTHEAST)).toBe(
+        '/assets/tokens/pixel/000_human_male/Idle/rotations/south-east.png'
+      );
+    });
+
+    it('resolves warrior (00_human_male) to pixel idle rotation paths', () => {
+      const warrior = createMockUnit({
+        gender: 'male',
+        race: 'human',
+        loadout: {
+          activeClassId: 'warrior',
+          unlockedClassIds: ['warrior'],
+          archetypeSelections: { fighter: 'warrior' },
+          equippedAbilities: [],
+          wildcardPassives: []
+        }
+      });
+
+      expect(resolveTokenAssetPath(warrior, 'pixel', HEX_DIRECTIONS.EAST)).toBe(
+        '/assets/tokens/pixel/00_human_male/Idle/rotations/east.png'
+      );
+      expect(resolveTokenAssetPath(warrior, 'pixel', HEX_DIRECTIONS.SOUTHWEST)).toBe(
+        '/assets/tokens/pixel/00_human_male/Idle/rotations/south-west.png'
+      );
+    });
+
+    it('resolves thief (81_human_male) to pixel idle rotation paths', () => {
+      const thief = createMockUnit({
+        gender: 'male',
+        race: 'human',
+        loadout: {
+          activeClassId: 'thief',
+          unlockedClassIds: ['thief'],
+          archetypeSelections: { rogue: 'thief' },
+          equippedAbilities: [],
+          wildcardPassives: []
+        }
+      });
+
+      expect(resolveTokenAssetPath(thief, 'pixel', HEX_DIRECTIONS.EAST)).toBe(
+        '/assets/tokens/pixel/81_human_male/Idle/rotations/east.png'
+      );
+      expect(resolveTokenAssetPath(thief, 'pixel', HEX_DIRECTIONS.NORTHWEST)).toBe(
+        '/assets/tokens/pixel/81_human_male/Idle/rotations/north-west.png'
+      );
+    });
+
+    it('resolves wizard (99_human_male) to pixel idle rotation paths', () => {
+      const wizard = createMockUnit({
+        gender: 'male',
+        race: 'human',
+        loadout: {
+          activeClassId: 'wizard',
+          unlockedClassIds: ['wizard'],
+          archetypeSelections: { mage: 'wizard' },
+          equippedAbilities: [],
+          wildcardPassives: []
+        }
+      });
+
+      expect(resolveTokenAssetPath(wizard, 'pixel', HEX_DIRECTIONS.EAST)).toBe(
+        '/assets/tokens/pixel/99_human_male/Idle/rotations/east.png'
+      );
+      expect(resolveTokenAssetPath(wizard, 'pixel', HEX_DIRECTIONS.SOUTHEAST)).toBe(
+        '/assets/tokens/pixel/99_human_male/Idle/rotations/south-east.png'
+      );
+    });
+
+    it('defaults to front-facing south.png when facing is omitted (UI portraits)', () => {
+      const novice = createMockUnit();
+      expect(resolveTokenAssetPath(novice, 'pixel')).toBe(
+        '/assets/tokens/pixel/000_human_male/Idle/rotations/south.png'
+      );
+    });
+
+    it('gracefully falls back to available male sprite if female pixel sprite is not yet generated', () => {
+      // Female novice does not have female-specific assets, so falls back to 000_human_male
+      const femaleNovice = createMockUnit({ gender: 'female' });
+      expect(resolvePixelTokenBase(femaleNovice)).toBe('000_human_male');
+      expect(resolveTokenAssetPath(femaleNovice, 'pixel')).toBe(
+        '/assets/tokens/pixel/000_human_male/Idle/rotations/south.png'
+      );
+
+      // Female thief (Lyra) falls back to 81_human_male
+      const femaleThief = createMockUnit({
+        gender: 'female',
+        loadout: {
+          activeClassId: 'thief',
+          unlockedClassIds: ['thief'],
+          archetypeSelections: { rogue: 'thief' },
+          equippedAbilities: [],
+          wildcardPassives: []
+        }
+      });
+      expect(resolvePixelTokenBase(femaleThief)).toBe('81_human_male');
+      expect(resolveTokenAssetPath(femaleThief, 'pixel')).toBe(
+        '/assets/tokens/pixel/81_human_male/Idle/rotations/south.png'
+      );
+    });
+
+    it('returns null for ungenerated pixel classes to trigger the default vector fallback', () => {
+      // Elementalist (class 60) does not exist in pixel assets yet
+      const elementalist = createMockUnit({
+        gender: 'male',
+        loadout: {
+          activeClassId: 'elementalist',
+          unlockedClassIds: ['elementalist'],
+          archetypeSelections: { mage: 'elementalist' },
+          equippedAbilities: [],
+          wildcardPassives: []
+        }
+      });
+      expect(resolvePixelTokenBase(elementalist)).toBeNull();
+      expect(resolveTokenAssetPath(elementalist, 'pixel')).toBeNull();
+    });
+  });
+
+  describe('isPixelAsset helper', () => {
+    it('returns true for pixel token paths', () => {
+      expect(isPixelAsset('/assets/tokens/pixel/000_human_male/Idle/rotations/east.png')).toBe(true);
+    });
+
+    it('returns false for enamel, stained glass, and null', () => {
+      expect(isPixelAsset('/assets/tokens/enamel/000_human_male.png')).toBe(false);
+      expect(isPixelAsset('/assets/tokens/stained-glass/000_human_male_glass.png')).toBe(false);
+      expect(isPixelAsset(null)).toBe(false);
+      expect(isPixelAsset('')).toBe(false);
+    });
+  });
+
+  describe('Scoped Preloading & URL Generation', () => {
+    it('getUnitTokenBase correctly formats identifier', () => {
+      const warrior = createMockUnit({
+        gender: 'male',
+        race: 'human',
+        loadout: {
+          activeClassId: 'warrior',
+          unlockedClassIds: ['warrior'],
+          archetypeSelections: { fighter: 'warrior' },
+          equippedAbilities: [],
+          wildcardPassives: []
+        }
+      });
+      expect(getUnitTokenBase(warrior)).toBe('00_human_male');
+
+      const thief = createMockUnit({
+        gender: 'male',
+        race: 'human',
+        loadout: {
+          activeClassId: 'thief',
+          unlockedClassIds: ['thief'],
+          archetypeSelections: { rogue: 'thief' },
+          equippedAbilities: [],
+          wildcardPassives: []
+        }
+      });
+      expect(getUnitTokenBase(thief)).toBe('81_human_male');
+    });
+
+    it('getUnitTokenUrls returns all 7 rotation URLs for pixel units on whitelist', () => {
+      const novice = createMockUnit();
+      const urls = getUnitTokenUrls(novice, 'pixel');
+
+      expect(urls).toHaveLength(7);
+      expect(urls).toContain('/assets/tokens/pixel/000_human_male/Idle/rotations/east.png');
+      expect(urls).toContain('/assets/tokens/pixel/000_human_male/Idle/rotations/south.png');
+      expect(urls).toContain('/assets/tokens/pixel/000_human_male/Idle/rotations/south-west.png');
+    });
+
+    it('getUnitTokenUrls returns empty array for classic or ungenerated pixel units', () => {
+      const novice = createMockUnit();
+      expect(getUnitTokenUrls(novice, 'classic')).toEqual([]);
+
+      const elementalist = createMockUnit({
+        gender: 'male',
+        loadout: {
+          activeClassId: 'elementalist',
+          unlockedClassIds: ['elementalist'],
+          archetypeSelections: { mage: 'elementalist' },
+          equippedAbilities: [],
+          wildcardPassives: []
+        }
+      });
+      expect(getUnitTokenUrls(elementalist, 'pixel')).toEqual([]);
+    });
+
+    it('getUnitTokenUrls returns single URL for stained-glass and enamel', () => {
+      const novice = createMockUnit();
+      expect(getUnitTokenUrls(novice, 'stained-glass')).toEqual([
+        '/assets/tokens/stained-glass/000_human_male_glass.png'
+      ]);
+      expect(getUnitTokenUrls(novice, 'enamel')).toEqual([
+        '/assets/tokens/enamel/000_human_male.png'
+      ]);
+    });
+
+    it('preloadCombatUnitTokens executes safely and deduplicates repeated unit classes', async () => {
+      clearImageCache();
+      const novice1 = createMockUnit({ id: 'novice-1' });
+      const novice2 = createMockUnit({ id: 'novice-2' }); // same class/race/gender
+      const warrior = createMockUnit({
+        id: 'warrior-1',
+        loadout: {
+          activeClassId: 'warrior',
+          unlockedClassIds: ['warrior'],
+          archetypeSelections: { fighter: 'warrior' },
+          equippedAbilities: [],
+          wildcardPassives: []
+        }
+      });
+
+      // Should complete without error in Node/browser environments
+      await expect(
+        preloadCombatUnitTokens([novice1, novice2, warrior], 'pixel')
+      ).resolves.toBeDefined();
+    });
+  });
+});

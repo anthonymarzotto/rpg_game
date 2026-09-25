@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useCombatSimulation } from './useCombatSimulation';
 import { DiceMode } from './devDice';
 import { createNoviceSandboxEncounter } from '../../data/encounters/noviceSandbox';
@@ -10,7 +10,7 @@ import { CombatLogPanel } from './CombatLogPanel';
 import { BattleVictoryModal } from './BattleVictoryModal';
 import { BattleDefeatModal } from './BattleDefeatModal';
 import { InitiativeRibbon } from './InitiativeRibbon';
-import { TokenAesthetic } from './tokenAssets';
+import { TokenAesthetic, preloadCombatUnitTokens } from './tokenAssets';
 import { AISpeedMode } from './asyncTurnSequencer';
 import './CombatArena.css';
 
@@ -68,6 +68,12 @@ export function CombatArena() {
       .map((cu) => ({ unit: cu.unit }));
   }, [squadReconciliations, state.units]);
 
+  // Preload token sprites strictly for active combatants to eliminate rotation lag
+  useEffect(() => {
+    const combatUnits = Array.from(state.units.values()).map((cu) => cu.unit);
+    preloadCombatUnitTokens(combatUnits, tokenAesthetic);
+  }, [state.units, tokenAesthetic]);
+
   return (
     <div className="combat-arena-container">
       {/* Top Testbed Bar */}
@@ -86,6 +92,7 @@ export function CombatArena() {
               [
                 { id: 'stained-glass', label: 'Stained Glass' },
                 { id: 'enamel', label: 'Enamel' },
+                { id: 'pixel', label: 'Pixel' },
                 { id: 'classic', label: 'Classic' }
               ] as const
             ).map((opt) => (

@@ -1,5 +1,5 @@
 import { Unit } from '../../core/types/unit';
-import { TokenAesthetic, resolveTokenAssetPath } from './tokenAssets';
+import { TokenAesthetic, resolveTokenAssetPath, isPixelAsset } from './tokenAssets';
 import './BattleDefeatModal.css';
 
 export interface BattleDefeatModalProps {
@@ -33,13 +33,21 @@ export function BattleDefeatModal({
         <div className="defeat-squad-grid">
           {squadMembers.map(({ unit }) => {
             const tokenSrc = resolveTokenAssetPath(unit, tokenAesthetic);
+            const isPixel = isPixelAsset(tokenSrc);
             return (
               <div key={unit.id} className="defeat-squad-member">
-                <img
-                  src={tokenSrc ?? undefined}
-                  alt={unit.name}
-                  className="defeat-member-avatar"
-                />
+                {tokenSrc ? (
+                  <img
+                    src={tokenSrc}
+                    alt={unit.name}
+                    className="defeat-member-avatar"
+                    style={isPixel ? { imageRendering: 'pixelated' } : undefined}
+                  />
+                ) : (
+                  <div className="defeat-member-avatar-fallback">
+                    {unit.name.charAt(0)}
+                  </div>
+                )}
                 <span className="defeat-member-name">
                   {unit.name.split(' ')[0]}
                 </span>

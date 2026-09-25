@@ -1,0 +1,36 @@
+{
+  "group_id": "dce8f70e-cb8b-46e4-957d-619f8674a45a",
+  "states": [
+    {
+      "character": {
+        "id": "49c93ae0-1a00-4f46-a75a-1c0b430a2a5a",
+        "name": "Idle",
+        "prompt": "A young wizard in a worn, oversized robe and pointed hat, holding a simple wooden wand in a steady hand, standing in a wide, grounded stance.",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-09-24T19:36:39.494927+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-09-25T02:32:19.856453"
+}

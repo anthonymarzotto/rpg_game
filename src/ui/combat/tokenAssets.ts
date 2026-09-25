@@ -1,23 +1,43 @@
 import { Unit } from '../../core/types/unit';
 import { CLASS_CATALOG } from '../../data/classes';
+import { HexDirection } from '../../core/grid/hex';
 
-export type TokenAesthetic = 'stained-glass' | 'enamel' | 'classic';
+export type TokenAesthetic = 'stained-glass' | 'enamel' | 'pixel' | 'classic';
 
 /**
- * Maps a Unit and chosen aesthetic to its corresponding token PNG asset URL.
- * Returns null if aesthetic is 'classic' (which renders the legacy vector circle).
+ * Whitelist of unit token identifiers with completed pixel graphic sets.
  */
-export function resolveTokenAssetPath(
-  unit: Unit,
-  aesthetic: TokenAesthetic
-): string | null {
-  if (aesthetic === 'classic') {
-    return null;
-  }
+export const AVAILABLE_PIXEL_TOKENS = new Set<string>([
+  '000_human_male', // Novice
+  '00_human_male',  // Warrior
+  '81_human_male',  // Thief
+  '99_human_male',  // Wizard
+]);
 
+/**
+ * Maps the 6 pointy-topped hex directions to their corresponding 8-way pixel sprite rotation.
+ * 0: East (+1, 0)
+ * 1: Northeast (+1, -1)
+ * 2: Northwest (0, -1)
+ * 3: West (-1, 0)
+ * 4: Southwest (-1, +1)
+ * 5: Southeast (0, +1)
+ */
+export const HEX_TO_PIXEL_ROTATION: Record<HexDirection, string> = {
+  0: 'east',
+  1: 'north-east',
+  2: 'north-west',
+  3: 'west',
+  4: 'south-west',
+  5: 'south-east',
+};
+
+/**
+ * Resolves the token base identifier string for a unit (e.g. '000_human_male').
+ */
+export function getUnitTokenBase(unit: Unit): string {
   const activeClassId = unit.loadout.activeClassId;
 
-  // Novice is '000', otherwise look up the 2-digit class number from catalog
   let classNo = '000';
   if (activeClassId !== 'novice') {
     const classDef = CLASS_CATALOG.find((c) => c.id === activeClassId);
@@ -26,9 +46,176 @@ export function resolveTokenAssetPath(
     }
   }
 
-  const race = unit.race;
-  const gender = unit.gender;
+  return `${classNo}_${unit.race}_${unit.gender}`;
+}
+
+/**
+ * Resolves the available pixel token identifier for a unit.
+ * If a specific gender/race sprite set hasn't been generated yet,
+ * it gracefully falls back to the available variant for that class (e.g. female falls back to male).
+ */
+export function resolvePixelTokenBase(unit: Unit): string | null {
+  const activeClassId = unit.loadout.activeClassId;
+
+  let classNo = '000';
+  if (activeClassId !== 'novice') {
+    const classDef = CLASS_CATALOG.find((c) => c.id === activeClassId);
+    if (classDef) {
+      classNo = classDef.no;
+    }
+  }
+
+  // 1. Exact match (e.g. 81_human_female)
+  const exact = `${classNo}_${unit.race}_${unit.gender}`;
+  if (AVAILABLE_PIXEL_TOKENS.has(exact)) {
+    return exact;
+  }
+
+  // 2. Gender fallback for the same class and race (e.g. 81_human_male)
+  const altGender = unit.gender === 'female' ? 'male' : 'female';
+  const genderFallback = `${classNo}_${unit.race}_${altGender}`;
+  if (AVAILABLE_PIXEL_TOKENS.has(genderFallback)) {
+    return genderFallback;
+  }
+
+  // 3. Human base fallback if a non-human race lacks graphics
+  const humanFallback = `${classNo}_human_${unit.gender}`;
+  if (AVAILABLE_PIXEL_TOKENS.has(humanFallback)) {
+    return humanFallback;
+  }
+  const humanMaleFallback = `${classNo}_human_male`;
+  if (AVAILABLE_PIXEL_TOKENS.has(humanMaleFallback)) {
+    return humanMaleFallback;
+  }
+
+  return null;
+}
+
+/**
+ * Standard pixel rotation sprite names needed for gameplay and UI.
+ */
+export const PIXEL_ROTATIONS = [
+  'east',
+  'north-east',
+  'north-west',
+  'west',
+  'south-west',
+  'south-east',
+  'south'
+] as const;
+
+/**
+ * Checks whether an asset source URL belongs to the pixel token set.
+ */
+export function isPixelAsset(src: string | null): boolean {
+  return typeof src === 'string' && src.includes('/tokens/pixel/');
+}
+
+/**
+ * Maps a Unit, chosen aesthetic, and optional facing direction to its corresponding token PNG asset URL.
+ * Returns null if aesthetic is 'classic' (which renders the legacy vector circle)
+ * or if 'pixel' aesthetic is requested but the unit has no pixel assets available yet (falls back to default vector token).
+ */
+export function resolveTokenAssetPath(
+  unit: Unit,
+  aesthetic: TokenAesthetic,
+  facing?: HexDirection
+): string | null {
+  if (aesthetic === 'classic') {
+    return null;
+  }
+
+  if (aesthetic === 'pixel') {
+    const pixelBase = resolvePixelTokenBase(unit);
+    if (!pixelBase) {
+      return null;
+    }
+    // When facing is specified on the hex grid, resolve 6-direction rotation;
+    // For general UI portraits (ribbons, banners, modals), default to 'south' (front-facing)
+    const rotation = facing !== undefined ? HEX_TO_PIXEL_ROTATION[facing] : 'south';
+    return `/assets/tokens/pixel/${pixelBase}/Idle/rotations/${rotation}.png`;
+  }
+
+  const tokenBase = getUnitTokenBase(unit);
   const suffix = aesthetic === 'stained-glass' ? '_glass' : '';
 
-  return `/assets/tokens/${aesthetic}/${classNo}_${race}_${gender}${suffix}.png`;
+  return `/assets/tokens/${aesthetic}/${tokenBase}${suffix}.png`;
 }
+
+/**
+ * Returns all asset URLs required to render a unit under the specified aesthetic.
+ * For 'pixel', returns all 6 directional rotation frames plus front-facing 'south'.
+ * For 'stained-glass' and 'enamel', returns the single standee texture.
+ * For 'classic' or ungenerated pixel units, returns an empty array.
+ */
+export function getUnitTokenUrls(unit: Unit, aesthetic: TokenAesthetic): string[] {
+  if (aesthetic === 'classic') {
+    return [];
+  }
+
+  if (aesthetic === 'pixel') {
+    const pixelBase = resolvePixelTokenBase(unit);
+    if (!pixelBase) {
+      return [];
+    }
+    return PIXEL_ROTATIONS.map(
+      (rot) => `/assets/tokens/pixel/${pixelBase}/Idle/rotations/${rot}.png`
+    );
+  }
+
+  const tokenBase = getUnitTokenBase(unit);
+  const suffix = aesthetic === 'stained-glass' ? '_glass' : '';
+  return [`/assets/tokens/${aesthetic}/${tokenBase}${suffix}.png`];
+}
+
+const imageCache = new Map<string, HTMLImageElement>();
+
+/**
+ * Preloads and decodes image URLs into the browser cache asynchronously.
+ * Skips images that have already been requested.
+ */
+export function preloadImageUrls(urls: Iterable<string>): Promise<void[]> {
+  if (typeof window === 'undefined' || typeof Image === 'undefined') {
+    return Promise.resolve([]);
+  }
+
+  const promises: Promise<void>[] = [];
+  for (const url of urls) {
+    if (!url || imageCache.has(url)) continue;
+
+    const img = new Image();
+    img.src = url;
+    imageCache.set(url, img);
+    if (typeof img.decode === 'function') {
+      promises.push(img.decode().catch(() => {}));
+    }
+  }
+
+  return Promise.all(promises);
+}
+
+/**
+ * Clears the in-memory preloaded image cache (primarily used in testing).
+ */
+export function clearImageCache(): void {
+  imageCache.clear();
+}
+
+/**
+ * Eagerly preloads token assets strictly for the units participating in the current battle.
+ * Avoids loading unused class assets across the catalog.
+ */
+export function preloadCombatUnitTokens(
+  units: Iterable<Unit>,
+  aesthetic: TokenAesthetic
+): Promise<void[]> {
+  const urlSet = new Set<string>();
+  for (const unit of units) {
+    const urls = getUnitTokenUrls(unit, aesthetic);
+    for (const url of urls) {
+      urlSet.add(url);
+    }
+  }
+  return preloadImageUrls(urlSet);
+}
+

@@ -3,7 +3,7 @@ import { HexCoord, toHexKey, getFacingAngleDegrees } from '../../core/grid/hex';
 import { CombatState } from '../../core/combat/types';
 import { TargetPreview } from '../../core/combat/targetPreview';
 import { FloatingText } from './useFloatingCombatText';
-import { TokenAesthetic, resolveTokenAssetPath } from './tokenAssets';
+import { TokenAesthetic, resolveTokenAssetPath, isPixelAsset } from './tokenAssets';
 
 export interface HexGridSvgProps {
   readonly state: CombatState;
@@ -281,7 +281,8 @@ export function HexGridSvg({
             const badgeSymbol = isPlayer ? '🛡️' : isEnemy ? '🎯' : '⚪';
             const hpBarFill = isPlayer ? '#10b981' : hpPercent < 40 ? '#ef4444' : '#f59e0b';
 
-            const tokenAssetSrc = resolveTokenAssetPath(cu.unit, tokenAesthetic);
+            const tokenAssetSrc = resolveTokenAssetPath(cu.unit, tokenAesthetic, cu.facing);
+            const isPixel = isPixelAsset(tokenAssetSrc);
             const isFacingWest = cu.facing === 2 || cu.facing === 3 || cu.facing === 4;
             const isCandidate = candidateSet.has(toHexKey(pos));
             const candidateReticleStroke = isPlayer ? '#10b981' : '#f59e0b';
@@ -360,7 +361,7 @@ export function HexGridSvg({
                       />
                     )}
 
-                    {/* Upright Standee Cutout Image with Horizontal Facing Flip */}
+                    {/* Upright Standee Cutout Image (Pixel sprites have native 6-way rotations; legacy sprites flip horizontally) */}
                     <image
                       href={tokenAssetSrc}
                       x="-30"
@@ -369,7 +370,8 @@ export function HexGridSvg({
                       height="60"
                       preserveAspectRatio="xMidYMax meet"
                       filter="url(#standee-drop-shadow)"
-                      transform={`scale(${isFacingWest ? -1 : 1}, 1)`}
+                      transform={!isPixel && isFacingWest ? 'scale(-1, 1)' : undefined}
+                      style={isPixel ? { imageRendering: 'pixelated' } : undefined}
                     />
 
                     {/* Unit Name Plate (above head) */}
