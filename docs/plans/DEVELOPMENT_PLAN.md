@@ -186,7 +186,7 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 
 **Primary Goal**: Establish a coherent multi-encounter campaign loop with a dedicated Camp/Barracks hub for squad progression, backed by client persistence across browser sessions.
 
-### 3.1. Campaign & Roster Domain Model (`src/core/campaign/`)
+### 3.1. Campaign & Roster Domain Model (`src/core/campaign/`) <── COMPLETED & TESTED
 * **Pure Campaign Domain Architecture**:
   * `CampaignState`: Active campaign metadata, player roster (`Unit[]`), unlocked progression milestones, and active campaign stage.
   * **Encounter Progression Graph**:
