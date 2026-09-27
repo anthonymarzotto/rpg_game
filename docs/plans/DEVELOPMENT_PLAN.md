@@ -40,10 +40,10 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ PHASE 3: PERSISTENCE & CAMPAIGN FLOW                        │
-│  - [ ] 3.1 IndexedDB storage engine (roster, checkpoints)   │
-│  - [ ] 3.2 Campaign & encounter progression (multi-battle)  │
-│  - [ ] 3.3 Between-battle camp / barracks hub               │
+│ PHASE 3: CAMPAIGN PROGRESSION & CLIENT PERSISTENCE          │
+│  - [ ] 3.1 Campaign & roster domain model (multi-battle)    │
+│  - [ ] 3.2 Camp / barracks hub & deployment loop            │
+│  - [ ] 3.3 Client persistence & save management (IndexedDB) │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
@@ -182,25 +182,39 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 
 ---
 
-## Phase 3: Client Persistence & Campaign Flow
+## Phase 3: Campaign Progression & Client Persistence
 
-**Primary Goal**: Enable persistent progression, roster management, and multi-encounter campaigns across browser sessions.
+**Primary Goal**: Establish a coherent multi-encounter campaign loop with a dedicated Camp/Barracks hub for squad progression, backed by client persistence across browser sessions.
 
-### 3.1. IndexedDB Storage Architecture (`idb-keyval`)
-* **Serialization Contracts**:
-  * **Party & Unit State**: Base attributes, accumulated archetype points, completed constellation path, unlocked classes, designated active class, and equipped wildcard abilities/passives.
-  * **Session Checkpoint / Suspend State**: Exact mid-battle serialization allowing players to refresh or leave the browser and resume in-progress combat.
-  * **Settings & Preferences** (`localStorage`): Combat text speed, dice display preferences, and UI options.
-  * **Portable Save Export/Import**: JSON export and import mechanism for backup and portability.
-* **Testing**: Headless unit tests verifying round-trip serialization and schema migrations.
+### 3.1. Campaign & Roster Domain Model (`src/core/campaign/`)
+* **Pure Campaign Domain Architecture**:
+  * `CampaignState`: Active campaign metadata, player roster (`Unit[]`), unlocked progression milestones, and active campaign stage.
+  * **Encounter Progression Graph**:
+    * Structured progression across sequential battles or branching nodes with scaling enemy squad compositions and objectives.
+    * Encounter definitions decoupled from presentation, taking in the player's persistent roster and returning battle definitions.
+  * **Campaign State Transitions**:
+    * Clean transition lifecycle: `Camp` -> `Deployment` -> `Encounter` -> `Victory / Defeat Reconciliation` -> `Return to Camp`.
+    * Unit progression carries over: XP, archetype point allocation, unlocked classes, and loadouts directly update the persistent roster.
+* **Testing & Verification**:
+  * Headless Vitest suite validating campaign creation, roster progression across multi-battle sequences, and victory/defeat state handling.
 
-### 3.2. Campaign & Multi-Encounter Progression Flow
-* **Encounter Progression Graph**:
-  * Structure encounters into sequential battles, gauntlets, or branching node maps with scaling difficulty and objective types.
-* **Post-Battle Camp / Barracks Hub**:
-  * Transition from the battle victory modal into a dedicated camp screen between encounters.
-  * Inspect party members, review constellations, allocate earned archetype points, set active classes, and customize equipped ability/passive wildcard slots from the unlocked pool.
-  * Prepare and select party loadouts for the next deployment.
+### 3.2. Camp / Barracks Hub & Progression Loop (`src/ui/camp/`)
+* **Dedicated Camp / Barracks View**:
+  * Transition from `BattleVictoryModal` into a dedicated Camp hub rather than an isolated rematch button.
+  * Squad management interface: inspect roster heroes (Alden, Lyra, Vael), view constellation trees, spend accumulated archetype points to level up, and adjust active classes and wildcard ability/passive slots.
+* **Encounter Deployment & Stage Selection**:
+  * Node map / stage selector allowing players to inspect upcoming enemy threats, select party loadouts, and deploy into the next skirmish.
+  * Defeat flow integration: fallback to Camp or retry the encounter without corrupting roster state.
+
+### 3.3. Client Persistence & Save Management (`src/core/storage/`)
+* **Campaign & Settings Serialization**:
+  * Persist `CampaignState` into IndexedDB (`idb-keyval`) automatically upon entering Camp or completing milestones.
+  * Headless serialization contracts for saving/loading full party rosters, unlocked nodes, and campaign progress.
+  * Settings & Preferences (`localStorage`): Combat text speed, dice display mode, and visual theme options.
+  * Portable Save Export/Import: JSON backup and restoration.
+  * *(Optional / Future)*: Mid-battle suspend checkpointing as a progressive enhancement on top of campaign saves.
+* **Testing & Verification**:
+  * Headless tests verifying round-trip JSON and IndexedDB serialization and migration safety.
 
 ---
 
