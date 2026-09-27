@@ -5,12 +5,9 @@ import {
   resolveTokenAssetPath,
   resolvePixelTokenBase,
   isPixelAsset,
-  AVAILABLE_PIXEL_TOKENS,
-  HEX_TO_PIXEL_ROTATION,
   getUnitTokenBase,
   getUnitTokenUrls,
   preloadCombatUnitTokens,
-  preloadImageUrls,
   clearImageCache
 } from './tokenAssets';
 
@@ -40,11 +37,10 @@ function createMockUnit(overrides: Partial<Unit> = {}): Unit {
     },
     loadout: {
       activeClassId: 'novice',
-      unlockedClassIds: ['novice'],
-      archetypeSelections: { fighter: 'novice' },
-      equippedAbilities: [],
-      wildcardPassives: []
+      wildcardAbilityIds: [],
+      wildcardPassiveIds: []
     },
+    starterAbilityIds: ['strike', 'throw_dart', 'spark'],
     ...overrides
   };
 }
@@ -101,10 +97,8 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
         race: 'human',
         loadout: {
           activeClassId: 'warrior',
-          unlockedClassIds: ['warrior'],
-          archetypeSelections: { fighter: 'warrior' },
-          equippedAbilities: [],
-          wildcardPassives: []
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
         }
       });
 
@@ -122,10 +116,8 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
         race: 'human',
         loadout: {
           activeClassId: 'thief',
-          unlockedClassIds: ['thief'],
-          archetypeSelections: { rogue: 'thief' },
-          equippedAbilities: [],
-          wildcardPassives: []
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
         }
       });
 
@@ -143,10 +135,8 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
         race: 'human',
         loadout: {
           activeClassId: 'wizard',
-          unlockedClassIds: ['wizard'],
-          archetypeSelections: { mage: 'wizard' },
-          equippedAbilities: [],
-          wildcardPassives: []
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
         }
       });
 
@@ -178,10 +168,8 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
         gender: 'female',
         loadout: {
           activeClassId: 'thief',
-          unlockedClassIds: ['thief'],
-          archetypeSelections: { rogue: 'thief' },
-          equippedAbilities: [],
-          wildcardPassives: []
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
         }
       });
       expect(resolvePixelTokenBase(femaleThief)).toBe('81_human_male');
@@ -196,10 +184,8 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
         gender: 'male',
         loadout: {
           activeClassId: 'elementalist',
-          unlockedClassIds: ['elementalist'],
-          archetypeSelections: { mage: 'elementalist' },
-          equippedAbilities: [],
-          wildcardPassives: []
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
         }
       });
       expect(resolvePixelTokenBase(elementalist)).toBeNull();
@@ -227,10 +213,8 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
         race: 'human',
         loadout: {
           activeClassId: 'warrior',
-          unlockedClassIds: ['warrior'],
-          archetypeSelections: { fighter: 'warrior' },
-          equippedAbilities: [],
-          wildcardPassives: []
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
         }
       });
       expect(getUnitTokenBase(warrior)).toBe('00_human_male');
@@ -240,10 +224,8 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
         race: 'human',
         loadout: {
           activeClassId: 'thief',
-          unlockedClassIds: ['thief'],
-          archetypeSelections: { rogue: 'thief' },
-          equippedAbilities: [],
-          wildcardPassives: []
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
         }
       });
       expect(getUnitTokenBase(thief)).toBe('81_human_male');
@@ -267,10 +249,8 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
         gender: 'male',
         loadout: {
           activeClassId: 'elementalist',
-          unlockedClassIds: ['elementalist'],
-          archetypeSelections: { mage: 'elementalist' },
-          equippedAbilities: [],
-          wildcardPassives: []
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
         }
       });
       expect(getUnitTokenUrls(elementalist, 'pixel')).toEqual([]);
@@ -294,10 +274,8 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
         id: 'warrior-1',
         loadout: {
           activeClassId: 'warrior',
-          unlockedClassIds: ['warrior'],
-          archetypeSelections: { fighter: 'warrior' },
-          equippedAbilities: [],
-          wildcardPassives: []
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
         }
       });
 

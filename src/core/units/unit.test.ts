@@ -57,6 +57,7 @@ describe('Unit Entity Factory', () => {
     expect(recruit.name).toBe('Alden');
     expect(recruit.progression.currentLevel).toBe(0);
     expect(recruit.progression.constellation).toHaveLength(0);
+    expect(recruit.progression.accumulatedXp).toEqual({ fighter: 0, rogue: 0, mage: 0 });
     expect(recruit.baseAttributes).toEqual({ force: 0, finesse: 0, focus: 0 });
     expect(recruit.effectiveVitals.maxHp).toBe(12);
     expect(recruit.loadout.activeClassId).toBe('novice');

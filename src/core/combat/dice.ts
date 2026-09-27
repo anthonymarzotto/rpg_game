@@ -2,6 +2,7 @@
  * Dice rolling contracts and implementations for combat resolution.
  */
 
+import { createRng } from '../prng';
 export type RollAdvantage = 'ADVANTAGE' | 'NORMAL';
 
 export interface DiceRoller {
@@ -12,24 +13,17 @@ export interface DiceRoller {
 }
 
 /**
- * Deterministic 32-bit Mulberry32 PRNG.
+ * Deterministic dice roller powered by Mulberry32 PRNG.
  */
 export class SeededDiceRoller implements DiceRoller {
-  private state: number;
+  private rng: () => number;
 
   constructor(seed = 1337) {
-    this.state = seed;
-  }
-
-  private next(): number {
-    let t = (this.state += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    this.rng = createRng(seed);
   }
 
   private singleD20(): number {
-    return Math.floor(this.next() * 20) + 1;
+    return Math.floor(this.rng() * 20) + 1;
   }
 
   public rollD20(advantage: RollAdvantage = 'NORMAL'): number {
@@ -45,7 +39,7 @@ export class SeededDiceRoller implements DiceRoller {
     if (count <= 0 || sides <= 0) return 0;
     let total = 0;
     for (let i = 0; i < count; i++) {
-      total += Math.floor(this.next() * sides) + 1;
+      total += Math.floor(this.rng() * sides) + 1;
     }
     return total;
   }

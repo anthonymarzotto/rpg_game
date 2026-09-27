@@ -95,7 +95,12 @@ export function createInitialProgression(unitId: string): UnitProgression {
       rogue: 0,
       mage: 0
     },
-    constellation: []
+    constellation: [],
+    accumulatedXp: {
+      fighter: 0,
+      rogue: 0,
+      mage: 0
+    }
   };
 }
 
@@ -134,7 +139,8 @@ export function advanceArchetypeLevel(
     unitId: progression.unitId,
     currentLevel: nextLevel,
     archetypePoints: newPoints,
-    constellation: newConstellation
+    constellation: newConstellation,
+    accumulatedXp: progression.accumulatedXp
   };
 }
 
