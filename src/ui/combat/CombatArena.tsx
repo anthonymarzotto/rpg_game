@@ -10,12 +10,11 @@ import { CombatLogPanel } from './CombatLogPanel';
 import { BattleVictoryModal } from './BattleVictoryModal';
 import { BattleDefeatModal } from './BattleDefeatModal';
 import { InitiativeRibbon } from './InitiativeRibbon';
-import { TokenAesthetic, preloadCombatUnitTokens } from './tokenAssets';
+import { preloadCombatUnitTokens } from './tokenAssets';
 import { AISpeedMode } from './asyncTurnSequencer';
 import './CombatArena.css';
 
 export function CombatArena() {
-  const [tokenAesthetic, setTokenAesthetic] = useState<TokenAesthetic>('stained-glass');
   const [fieldZoom, setFieldZoom] = useState<number>(1.0);
 
   const {
@@ -81,8 +80,8 @@ export function CombatArena() {
   // Preload token sprites strictly for active combatants to eliminate rotation lag
   useEffect(() => {
     const combatUnits = Array.from(state.units.values()).map((cu) => cu.unit);
-    preloadCombatUnitTokens(combatUnits, tokenAesthetic);
-  }, [state.units, tokenAesthetic]);
+    preloadCombatUnitTokens(combatUnits);
+  }, [state.units]);
 
   return (
     <div className="combat-arena-container">
@@ -93,29 +92,8 @@ export function CombatArena() {
           <span className="testbed-badge">Phase 2 • Squad Tactics (3v4)</span>
         </div>
 
-        {/* Dev Controls: Dice, Speed, Zoom & Token Style */}
+        {/* Dev Controls: Dice, Speed, Zoom */}
         <div className="testbed-center-controls">
-          {/* Token Aesthetic Selector */}
-          <div className="dev-aesthetic-controls">
-            <span className="dev-label">🎨 Style:</span>
-            {(
-              [
-                { id: 'stained-glass', label: 'Stained Glass' },
-                { id: 'enamel', label: 'Enamel' },
-                { id: 'pixel', label: 'Pixel' },
-                { id: 'classic', label: 'Classic' }
-              ] as const
-            ).map((opt) => (
-              <button
-                key={opt.id}
-                className={`btn-aesthetic ${tokenAesthetic === opt.id ? 'active' : ''}`}
-                onClick={() => setTokenAesthetic(opt.id)}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-
           {/* Arena Zoom Controls */}
           <div className="dev-zoom-controls" title="Scroll wheel over arena also zooms">
             <span className="dev-label">🔍 Zoom:</span>
@@ -195,8 +173,8 @@ export function CombatArena() {
       </div>
 
       {/* CTB Timeline Initiative Ribbon */}
-      <div style={{ marginTop: '6px', marginBottom: '4px' }}>
-        <InitiativeRibbon state={state} tokenAesthetic={tokenAesthetic} />
+      <div className="arena-ribbon-dock">
+        <InitiativeRibbon state={state} />
       </div>
 
       {/* Main Arena Content Layout */}
@@ -218,7 +196,6 @@ export function CombatArena() {
             hoveredCoord={hoveredCoord}
             floatingTexts={floatingTexts}
             targetPreview={targetPreview}
-            tokenAesthetic={tokenAesthetic}
             zoom={fieldZoom}
             onTileClick={handleTileClick}
             onTileHover={setHoveredCoord}
@@ -237,7 +214,6 @@ export function CombatArena() {
         <EnemyTurnBanner
           activeCu={activeCu}
           actionDescription={hostileActionStatus}
-          tokenAesthetic={tokenAesthetic}
         />
       ) : (
         <ActionBar
@@ -266,7 +242,6 @@ export function CombatArena() {
       <BattleDefeatModal
         isOpen={isDefeatModalOpen}
         squadMembers={playerSquadUnits}
-        tokenAesthetic={tokenAesthetic}
         onRetry={handleResetEncounter}
       />
     </div>

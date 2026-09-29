@@ -40,15 +40,15 @@ export function ClassInspectorOverlay({
     <div className="inspector-overlay">
       <div className="inspector-header">
         <span className="inspector-tier">Tier {inspectedClass.totalPoints}</span>
-        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
+        <span className="text-dim">
           #{inspectedClass.no}
         </span>
       </div>
       <div className="inspector-name">{inspectedClass.name}</div>
-      <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.35rem' }}>
-        Req: <span style={{ color: '#ef4444' }}>{inspectedClass.requirements.fighter}F</span> /{' '}
-        <span style={{ color: '#10b981' }}>{inspectedClass.requirements.rogue}R</span> /{' '}
-        <span style={{ color: '#8b5cf6' }}>{inspectedClass.requirements.mage}M</span>
+      <div className="inspector-reqs">
+        Req: <span className="text-fighter">{inspectedClass.requirements.fighter}F</span> /{' '}
+        <span className="text-rogue">{inspectedClass.requirements.rogue}R</span> /{' '}
+        <span className="text-mage">{inspectedClass.requirements.mage}M</span>
       </div>
       <div className="inspector-status">
         {isUnlocked ? (
@@ -118,7 +118,7 @@ export function ClassInspectorSidebar({
           <span className="unit-level-badge">
             Level {progression.currentLevel} / {MAX_LEVEL}
           </span>
-          <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
+          <span className="text-dim">
             {progression.currentLevel === MAX_LEVEL
               ? 'Capstone Sealed'
               : 'Novice Adventurer'}
@@ -131,13 +131,12 @@ export function ClassInspectorSidebar({
         {/* Archetype Points Meters */}
         <div className="points-grid">
           <div className="point-bar-item">
-            <span style={{ color: 'var(--color-fighter)', fontWeight: 600 }}>Fighter</span>
+            <span className="text-fighter font-semibold">Fighter</span>
             <div className="bar-track">
               <div
-                className="bar-fill"
+                className="bar-fill bar-fill-fighter"
                 style={{
-                  width: `${(progression.archetypePoints.fighter / MAX_ARCHETYPE_POINTS) * 100}%`,
-                  background: 'var(--color-fighter)'
+                  width: `${(progression.archetypePoints.fighter / MAX_ARCHETYPE_POINTS) * 100}%`
                 }}
               />
             </div>
@@ -147,13 +146,12 @@ export function ClassInspectorSidebar({
           </div>
 
           <div className="point-bar-item">
-            <span style={{ color: 'var(--color-rogue)', fontWeight: 600 }}>Rogue</span>
+            <span className="text-rogue font-semibold">Rogue</span>
             <div className="bar-track">
               <div
-                className="bar-fill"
+                className="bar-fill bar-fill-rogue"
                 style={{
-                  width: `${(progression.archetypePoints.rogue / MAX_ARCHETYPE_POINTS) * 100}%`,
-                  background: 'var(--color-rogue)'
+                  width: `${(progression.archetypePoints.rogue / MAX_ARCHETYPE_POINTS) * 100}%`
                 }}
               />
             </div>
@@ -163,13 +161,12 @@ export function ClassInspectorSidebar({
           </div>
 
           <div className="point-bar-item">
-            <span style={{ color: 'var(--color-mage)', fontWeight: 600 }}>Mage</span>
+            <span className="text-mage font-semibold">Mage</span>
             <div className="bar-track">
               <div
-                className="bar-fill"
+                className="bar-fill bar-fill-mage"
                 style={{
-                  width: `${(progression.archetypePoints.mage / MAX_ARCHETYPE_POINTS) * 100}%`,
-                  background: 'var(--color-mage)'
+                  width: `${(progression.archetypePoints.mage / MAX_ARCHETYPE_POINTS) * 100}%`
                 }}
               />
             </div>

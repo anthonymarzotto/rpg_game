@@ -82,7 +82,7 @@ export function ActionBar({
               </span>
             )}
             {ability.effect && (
-              <span style={{ gridColumn: 'span 2', color: '#f59e0b' }}>
+              <span className="tooltip-effect-span text-gold">
                 Effect: <b>{ability.effect.type}</b> (Mag: {ability.effect.magnitude})
               </span>
             )}

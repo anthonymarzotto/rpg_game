@@ -2,7 +2,7 @@ import { Unit } from '../../core/types/unit';
 import { CLASS_CATALOG } from '../../data/classes';
 import { HexDirection } from '../../core/grid/hex';
 
-export type TokenAesthetic = 'stained-glass' | 'enamel' | 'pixel' | 'classic';
+export type TokenAesthetic = 'pixel';
 
 /**
  * Whitelist of unit token identifiers with completed pixel graphic sets.
@@ -31,23 +31,6 @@ export const HEX_TO_PIXEL_ROTATION: Record<HexDirection, string> = {
   4: 'south-west',
   5: 'south-east',
 };
-
-/**
- * Resolves the token base identifier string for a unit (e.g. '000_human_male').
- */
-export function getUnitTokenBase(unit: Unit): string {
-  const activeClassId = unit.loadout.activeClassId;
-
-  let classNo = '000';
-  if (activeClassId !== 'novice') {
-    const classDef = CLASS_CATALOG.find((c) => c.id === activeClassId);
-    if (classDef) {
-      classNo = classDef.no;
-    }
-  }
-
-  return `${classNo}_${unit.race}_${unit.gender}`;
-}
 
 /**
  * Resolves the available pixel token identifier for a unit.
@@ -112,60 +95,35 @@ export function isPixelAsset(src: string | null): boolean {
 }
 
 /**
- * Maps a Unit, chosen aesthetic, and optional facing direction to its corresponding token PNG asset URL.
- * Returns null if aesthetic is 'classic' (which renders the legacy vector circle)
- * or if 'pixel' aesthetic is requested but the unit has no pixel assets available yet (falls back to default vector token).
+ * Maps a Unit and optional facing direction to its corresponding pixel sprite PNG URL.
+ * Returns null if the unit has no pixel assets available yet (triggering vector circle fallback).
  */
 export function resolveTokenAssetPath(
   unit: Unit,
-  aesthetic: TokenAesthetic,
   facing?: HexDirection
 ): string | null {
-  if (aesthetic === 'classic') {
+  const pixelBase = resolvePixelTokenBase(unit);
+  if (!pixelBase) {
     return null;
   }
-
-  if (aesthetic === 'pixel') {
-    const pixelBase = resolvePixelTokenBase(unit);
-    if (!pixelBase) {
-      return null;
-    }
-    // When facing is specified on the hex grid, resolve 6-direction rotation;
-    // For general UI portraits (ribbons, banners, modals), default to 'south' (front-facing)
-    const rotation = facing !== undefined ? HEX_TO_PIXEL_ROTATION[facing] : 'south';
-    return `/assets/tokens/pixel/${pixelBase}/Idle/rotations/${rotation}.png`;
-  }
-
-  const tokenBase = getUnitTokenBase(unit);
-  const suffix = aesthetic === 'stained-glass' ? '_glass' : '';
-
-  return `/assets/tokens/${aesthetic}/${tokenBase}${suffix}.png`;
+  // When facing is specified on the hex grid, resolve 6-direction rotation;
+  // For general UI portraits (ribbons, banners, modals), default to 'south' (front-facing)
+  const rotation = facing !== undefined ? HEX_TO_PIXEL_ROTATION[facing] : 'south';
+  return `/assets/tokens/pixel/${pixelBase}/Idle/rotations/${rotation}.png`;
 }
 
 /**
- * Returns all asset URLs required to render a unit under the specified aesthetic.
- * For 'pixel', returns all 6 directional rotation frames plus front-facing 'south'.
- * For 'stained-glass' and 'enamel', returns the single standee texture.
- * For 'classic' or ungenerated pixel units, returns an empty array.
+ * Returns all rotation frame asset URLs required to render a unit's pixel sprite.
+ * Returns an empty array if the unit has no pixel assets available yet.
  */
-export function getUnitTokenUrls(unit: Unit, aesthetic: TokenAesthetic): string[] {
-  if (aesthetic === 'classic') {
+export function getUnitTokenUrls(unit: Unit): string[] {
+  const pixelBase = resolvePixelTokenBase(unit);
+  if (!pixelBase) {
     return [];
   }
-
-  if (aesthetic === 'pixel') {
-    const pixelBase = resolvePixelTokenBase(unit);
-    if (!pixelBase) {
-      return [];
-    }
-    return PIXEL_ROTATIONS.map(
-      (rot) => `/assets/tokens/pixel/${pixelBase}/Idle/rotations/${rot}.png`
-    );
-  }
-
-  const tokenBase = getUnitTokenBase(unit);
-  const suffix = aesthetic === 'stained-glass' ? '_glass' : '';
-  return [`/assets/tokens/${aesthetic}/${tokenBase}${suffix}.png`];
+  return PIXEL_ROTATIONS.map(
+    (rot) => `/assets/tokens/pixel/${pixelBase}/Idle/rotations/${rot}.png`
+  );
 }
 
 const imageCache = new Map<string, HTMLImageElement>();
@@ -206,12 +164,11 @@ export function clearImageCache(): void {
  * Avoids loading unused class assets across the catalog.
  */
 export function preloadCombatUnitTokens(
-  units: Iterable<Unit>,
-  aesthetic: TokenAesthetic
+  units: Iterable<Unit>
 ): Promise<void[]> {
   const urlSet = new Set<string>();
   for (const unit of units) {
-    const urls = getUnitTokenUrls(unit, aesthetic);
+    const urls = getUnitTokenUrls(unit);
     for (const url of urls) {
       urlSet.add(url);
     }

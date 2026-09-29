@@ -438,3 +438,40 @@
 .status-eligible { color: #f59e0b; }
 .status-locked { color: #ef4444; }
 .status-unreached { color: #6b7280; }
+
+.inspector-reqs {
+  font-size: 0.8rem;
+  color: var(--color-text-dim, #9ca3af);
+  margin-top: 0.35rem;
+}
+
+.bar-fill-fighter {
+  background: var(--color-archetype-fighter);
+}
+
+.bar-fill-rogue {
+  background: var(--color-archetype-rogue);
+}
+
+.bar-fill-mage {
+  background: var(--color-archetype-mage);
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.timeline-empty-msg {
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-style: italic;
+  padding: 0.5rem 0;
+}
+
+.timeline-node-name {
+  font-weight: 600;
+}
+
+.timeline-node-level {
+  font-size: 0.7rem;
+}

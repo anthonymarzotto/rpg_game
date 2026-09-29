@@ -1,18 +1,16 @@
 import { Unit } from '../../core/types/unit';
-import { TokenAesthetic, resolveTokenAssetPath, isPixelAsset } from './tokenAssets';
+import { resolveTokenAssetPath } from './tokenAssets';
 import './BattleDefeatModal.css';
 
 export interface BattleDefeatModalProps {
   readonly isOpen: boolean;
   readonly squadMembers: readonly { readonly unit: Unit }[];
-  readonly tokenAesthetic?: TokenAesthetic;
   readonly onRetry: () => void;
 }
 
 export function BattleDefeatModal({
   isOpen,
   squadMembers,
-  tokenAesthetic = 'stained-glass',
   onRetry
 }: BattleDefeatModalProps) {
   if (!isOpen) return null;
@@ -32,16 +30,14 @@ export function BattleDefeatModal({
         {/* Squad Status Grid */}
         <div className="defeat-squad-grid">
           {squadMembers.map(({ unit }) => {
-            const tokenSrc = resolveTokenAssetPath(unit, tokenAesthetic);
-            const isPixel = isPixelAsset(tokenSrc);
+            const tokenSrc = resolveTokenAssetPath(unit);
             return (
               <div key={unit.id} className="defeat-squad-member">
                 {tokenSrc ? (
                   <img
                     src={tokenSrc}
                     alt={unit.name}
-                    className="defeat-member-avatar"
-                    style={isPixel ? { imageRendering: 'pixelated' } : undefined}
+                    className="defeat-member-avatar pixel-art"
                   />
                 ) : (
                   <div className="defeat-member-avatar-fallback">

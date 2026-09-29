@@ -220,6 +220,12 @@
   text-align: center;
 }
 
+.choice-prompt-desc {
+  margin: 0.2rem 0;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+}
+
 .choice-buttons-grid {
   display: flex;
   gap: 0.5rem;

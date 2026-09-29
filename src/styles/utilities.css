@@ -1,0 +1,84 @@
+/* ==========================================================================
+   RPG Game Shared Utilities
+   Reusable utility classes built on design tokens from src/styles/tokens.css
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Archetype & Faction Text Colors
+   -------------------------------------------------------------------------- */
+.text-fighter {
+  color: var(--color-archetype-fighter);
+}
+
+.text-rogue {
+  color: var(--color-archetype-rogue);
+}
+
+.text-mage {
+  color: var(--color-archetype-mage);
+}
+
+.text-gold {
+  color: var(--color-player-active);
+}
+
+.text-cyan {
+  color: var(--color-player-ally);
+}
+
+.text-hostile {
+  color: var(--color-hostile);
+}
+
+.text-muted {
+  color: #94a3b8;
+}
+
+.text-dim {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* --------------------------------------------------------------------------
+   Glassmorphic Surface Containers
+   -------------------------------------------------------------------------- */
+.glass-panel {
+  background: var(--surface-panel);
+  backdrop-filter: var(--blur-panel);
+  -webkit-backdrop-filter: var(--blur-panel);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-glass);
+}
+
+.glass-panel-elevated {
+  background: var(--surface-panel-elevated);
+  backdrop-filter: var(--blur-panel);
+  -webkit-backdrop-filter: var(--blur-panel);
+  border: 1px solid var(--border-highlight);
+  box-shadow: var(--shadow-glass);
+}
+
+/* --------------------------------------------------------------------------
+   Sprite & Asset Rendering
+   -------------------------------------------------------------------------- */
+.pixel-art {
+  image-rendering: var(--pixel-rendering, pixelated);
+}
+
+/* --------------------------------------------------------------------------
+   Pointer & Interaction Helpers
+   -------------------------------------------------------------------------- */
+.pointer-events-none {
+  pointer-events: none;
+}
+
+.pointer-events-all {
+  pointer-events: all;
+}
+
+/* --------------------------------------------------------------------------
+   Typography Weights
+   -------------------------------------------------------------------------- */
+.font-semibold {
+  font-weight: 600;
+}
+

@@ -67,7 +67,7 @@ describe('Campaign End-to-End Headless Integration Flow', () => {
     expect(updatedB.progression.constellation).toContain('thief');
 
     expect(updatedC.progression.currentLevel).toBe(0);
-    expect(updatedC.progression.accumulatedXp.mage).toBe(3);
+    expect(updatedC.progression.accumulatedXp!.mage).toBe(3);
 
     // Hero A equips Warrior active class and valid wildcards
     const starterA = updatedA.starterAbilityIds;
@@ -98,7 +98,7 @@ describe('Campaign End-to-End Headless Integration Flow', () => {
 
     // XP gained in failed attempt was discarded
     const cAfterDefeat = campaign.roster.find((u) => u.id === recruitC.id)!;
-    expect(cAfterDefeat.progression.accumulatedXp.mage).toBe(3);
+    expect(cAfterDefeat.progression.accumulatedXp!.mage).toBe(3);
 
     // 5. Retry Stage 2 (or Reroll with New Battle)
     campaign = regenerateCurrentStageEncounter(campaign, 2024);
@@ -121,7 +121,7 @@ describe('Campaign End-to-End Headless Integration Flow', () => {
     // 6. Camp Progression Phase 2: Hero C Promotes to Wizard!
     const cBeforePromote = campaign.roster.find((u) => u.id === recruitC.id)!;
     // 3 + 4 = 7 Mage XP!
-    expect(cBeforePromote.progression.accumulatedXp.mage).toBe(7);
+    expect(cBeforePromote.progression.accumulatedXp!.mage).toBe(7);
 
     campaign = allocateCampArchetypePoint(campaign, recruitC.id, 'MAGE');
     const cPromoted = campaign.roster.find((u) => u.id === recruitC.id)!;
@@ -129,7 +129,7 @@ describe('Campaign End-to-End Headless Integration Flow', () => {
     expect(cPromoted.progression.currentLevel).toBe(1);
     expect(cPromoted.progression.constellation).toContain('wizard');
     // 7 - 5 = 2 Mage XP safely preserved!
-    expect(cPromoted.progression.accumulatedXp.mage).toBe(2);
+    expect(cPromoted.progression.accumulatedXp!.mage).toBe(2);
 
     // All 3 heroes are now promoted veterans with persistent stats!
     expect(campaign.roster.every((u) => u.progression.currentLevel === 1)).toBe(true);

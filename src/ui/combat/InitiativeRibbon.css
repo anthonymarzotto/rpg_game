@@ -2,12 +2,12 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-panel);
+  backdrop-filter: var(--blur-panel);
+  border: 1px solid var(--border-subtle);
   border-radius: 24px;
   padding: 6px 14px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-glass);
   max-width: fit-content;
   margin: 0 auto;
 }
@@ -78,18 +78,18 @@
 
 /* Active Acting Halos */
 .initiative-chip.chip-active .chip-avatar-wrap {
-  border-color: #fbbf24;
-  box-shadow: 0 0 12px rgba(251, 191, 36, 0.8), inset 0 0 8px rgba(251, 191, 36, 0.4);
+  border-color: var(--color-player-active);
+  box-shadow: 0 0 12px var(--color-player-active), inset 0 0 8px rgba(245, 158, 11, 0.4);
   transform: scale(1.12);
   animation: pulseHalo 2s infinite ease-in-out;
 }
 
 @keyframes pulseHalo {
   0%, 100% {
-    box-shadow: 0 0 10px rgba(251, 191, 36, 0.7);
+    box-shadow: 0 0 10px var(--color-player-active);
   }
   50% {
-    box-shadow: 0 0 18px rgba(251, 191, 36, 1);
+    box-shadow: 0 0 18px var(--color-player-active);
   }
 }
 
@@ -98,6 +98,7 @@
   height: 32px;
   border-radius: 50%;
   object-fit: cover;
+  image-rendering: var(--pixel-rendering, pixelated);
 }
 
 .chip-avatar-fallback {
@@ -112,12 +113,12 @@
 }
 
 .chip-avatar-fallback.player {
-  background: #0284c7;
+  background: var(--color-player-ally);
   color: #fff;
 }
 
 .chip-avatar-fallback.enemy {
-  background: #be123c;
+  background: var(--color-hostile);
   color: #fff;
 }
 

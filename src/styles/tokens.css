@@ -1,0 +1,74 @@
+/* ==========================================================================
+   RPG Game Design Tokens
+   Central source of truth for palettes, typography, surfaces, and states.
+   Documented in DESIGN.md at the project root.
+   ========================================================================== */
+
+:root {
+  /* ------------------------------------------------------------------------
+     Typography
+     ------------------------------------------------------------------------ */
+  --font-display: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-ui: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, Menlo, Monaco, Consolas, monospace;
+
+  /* ------------------------------------------------------------------------
+     Archetype Triad (Primary Attributes)
+     ------------------------------------------------------------------------ */
+  --color-archetype-fighter: #ef4444;
+  --color-archetype-rogue:   #10b981;
+  --color-archetype-mage:    #8b5cf6;
+
+  /* Aliases for legacy combat stylesheets */
+  --color-fighter: var(--color-archetype-fighter);
+  --color-rogue:   var(--color-archetype-rogue);
+  --color-mage:    var(--color-archetype-mage);
+
+  /* ------------------------------------------------------------------------
+     Class Highlights
+     ------------------------------------------------------------------------ */
+  --color-class-novice:   #94a3b8;
+  --color-class-warrior:  #f97316;
+  --color-class-thief:    #34d399;
+  --color-class-wizard:   #a78bfa;
+
+  /* ------------------------------------------------------------------------
+     Tactical Factions & State Accents
+     ------------------------------------------------------------------------ */
+  --color-player-active: #f59e0b; /* Amber Gold active halo & actions */
+  --color-player-ally:   #06b6d4; /* Luminous Cyan ally buffs & targeting */
+  --color-hostile:       #ef4444; /* Vicious Crimson threat */
+  --color-hostile-glow:  rgba(239, 68, 68, 0.4);
+
+  /* Aliases for legacy combat styles */
+  --color-cyan: var(--color-player-ally);
+  --color-gold: var(--color-player-active);
+
+  /* ------------------------------------------------------------------------
+     Vitals & Resource Meters
+     ------------------------------------------------------------------------ */
+  --color-vital-hp:      #22c55e;
+  --color-vital-hp-low:  #ef4444;
+  --color-vital-ap:      #f59e0b;
+  --color-vital-ctb:     #38bdf8;
+
+  /* ------------------------------------------------------------------------
+     Surfaces & Glassmorphism
+     ------------------------------------------------------------------------ */
+  --surface-app-bg:         #06080e;
+  --surface-panel:          rgba(15, 23, 42, 0.8);
+  --surface-panel-elevated: rgba(30, 41, 59, 0.85);
+  --surface-overlay:        rgba(2, 6, 23, 0.75);
+
+  --border-subtle:          rgba(255, 255, 255, 0.08);
+  --border-highlight:       rgba(255, 255, 255, 0.2);
+  --border-focus-gold:      #f59e0b;
+
+  --shadow-glass:           0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --blur-panel:             blur(12px);
+
+  /* ------------------------------------------------------------------------
+     Pixel Sprite Asset Rules
+     ------------------------------------------------------------------------ */
+  --pixel-rendering:        pixelated;
+}

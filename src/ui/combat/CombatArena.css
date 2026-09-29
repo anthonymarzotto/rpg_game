@@ -1,12 +1,4 @@
-/* Combat Arena Testbed Stylesheet */
-
-:root {
-  --color-fighter: #ef4444;
-  --color-rogue: #10b981;
-  --color-mage: #8b5cf6;
-  --color-cyan: #06b6d4;
-  --color-gold: #f59e0b;
-}
+/* Combat Arena Testbed Stylesheet (uses tokens from src/styles/tokens.css) */
 
 .combat-arena-container {
   display: flex;
@@ -17,10 +9,10 @@
   flex: 1;
   min-height: 0;
   box-sizing: border-box;
-  background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #090d16 60%, #030712 100%);
+  background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, var(--surface-app-bg) 60%, #030712 100%);
   color: #f8fafc;
   overflow: hidden;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-ui);
   user-select: none;
   position: relative;
 }
@@ -33,9 +25,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.6rem 1.25rem;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-panel);
+  backdrop-filter: var(--blur-panel);
+  border-bottom: 1px solid var(--border-subtle);
   z-index: 20;
 }
 
@@ -64,41 +56,6 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-}
-
-.dev-aesthetic-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: rgba(0, 0, 0, 0.35);
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.btn-aesthetic {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-aesthetic:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #f8fafc;
-}
-
-.btn-aesthetic.active {
-  background: #38bdf8;
-  color: #0f172a;
-  border-color: #7dd3fc;
-  font-weight: 700;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
 }
 
 .dev-zoom-controls {
@@ -538,6 +495,25 @@
   gap: 0.35rem;
   font-size: 0.76rem;
   color: #cbd5e1;
+}
+
+.preview-badges-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.preview-damage-row {
+  grid-column: span 2;
+}
+
+.arena-ribbon-dock {
+  margin-top: 6px;
+  margin-bottom: 4px;
+}
+
+.token-name-label {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 .preview-blocked-msg {
@@ -1277,6 +1253,10 @@
   color: #cbd5e1;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-top: 0.4rem;
+}
+
+.tooltip-effect-span {
+  grid-column: span 2;
 }
 
 /* -------------------------------------------------------------------------- */

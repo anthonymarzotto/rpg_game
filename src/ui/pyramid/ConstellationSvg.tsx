@@ -173,7 +173,7 @@ export function ConstellationSvg({
                     r={isUnlocked ? 4 : isHovered ? 3.5 : 2.5}
                     fill={isUnlocked ? '#fff' : isHovered ? '#fff' : '#f59e0b'}
                     filter={isUnlocked || isHovered ? 'url(#star-glow)' : undefined}
-                    style={{ pointerEvents: 'none' }}
+                    className="pointer-events-none"
                   />
                 )}
 
@@ -192,7 +192,7 @@ export function ConstellationSvg({
                     fontWeight={isUnlocked || isHovered ? '700' : '600'}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    style={{ pointerEvents: 'none' }}
+                    className="pointer-events-none"
                   >
                     {pt.cls.name}
                   </text>
@@ -205,7 +205,7 @@ export function ConstellationSvg({
 
       {/* Active Constellation Traversal Lines */}
       {constellationPathD && (
-        <g style={{ pointerEvents: 'none' }}>
+        <g className="pointer-events-none">
           <path d={constellationPathD} fill="none" className="constellation-path-glow" />
           <path d={constellationPathD} fill="none" className="constellation-path-core" />
         </g>
@@ -238,7 +238,7 @@ export function ConstellationSvg({
               onMouseLeave={() => onHoverNode(null)}
             >
               {/* Hit area for reliable hover detection on small nodes */}
-              <circle r="14" fill="transparent" style={{ pointerEvents: 'all' }} />
+              <circle r="14" fill="transparent" className="pointer-events-all" />
 
               {/* Inner visual group scaled on hover */}
               <g className="star-visual">
@@ -296,7 +296,7 @@ export function ConstellationSvg({
                   fontSize={isUnlocked ? '10' : '8'}
                   fontWeight={isUnlocked || isEligible ? '700' : '500'}
                   textAnchor="middle"
-                  style={{ pointerEvents: 'none' }}
+                  className="pointer-events-none"
                 >
                   {pt.cls.name}
                 </text>

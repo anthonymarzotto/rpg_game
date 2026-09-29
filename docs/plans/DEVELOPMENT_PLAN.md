@@ -199,12 +199,18 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
   * Headless Vitest suite validating campaign creation, roster progression across multi-battle sequences, and victory/defeat state handling.
 
 ### 3.2. Camp / Barracks Hub & Progression Loop (`src/ui/camp/`)
-* **Dedicated Camp / Barracks View**:
-  * Transition from `BattleVictoryModal` into a dedicated Camp hub rather than an isolated rematch button.
-  * Squad management interface: inspect roster heroes (Alden, Lyra, Vael), view constellation trees, spend accumulated archetype points to level up, and adjust active classes and wildcard ability/passive slots.
-* **Encounter Deployment & Stage Selection**:
-  * Node map / stage selector allowing players to inspect upcoming enemy threats, select party loadouts, and deploy into the next skirmish.
-  * Defeat flow integration: fallback to Camp or retry the encounter without corrupting roster state.
+* **Campaign Screen Flow & Lifecycle**:
+  * **Start Screen**: Root entry view supporting `New Game` (initializes fresh campaign with starter Novices) and `Continue` (resumes persistent campaign state).
+  * **Unified Game Loop**: `Start Screen` -> `Camp Hub` -> `Tactical Combat Arena` -> `Victory / Defeat Reconciliation` -> `Return to Camp`.
+  * **Defeat Flow**: Combat defeat **always** returns the party to Camp (no in-arena rematch on squad wipe; prompts tactical reconsideration, hero rotation, or ability re-speccing before re-deploying).
+* **Camp Information Architecture ("Active Squad Dock + Reserve Drawer")**:
+  * **Active Vanguard (Top / Main Dock)**: High-prominence hero cards for the active 1–3 units who just fought, displaying accumulated XP progress, glowing `✦ LEVEL READY` alerts, quick loadout adjustments, and swap actions.
+  * **Reserve Barracks (Bottom / Expandable Tray)**: Scalable, filterable tray supporting uncapped roster growth (filters: *All*, *Level Ready*, *Class*, *Level*) with 1-click swap into active slots.
+  * **Expedition Briefing & War Room (Side Panel)**: Real-time stage overview displaying stage index, threat budget, detected enemy composition (rendered via pixel token chips), active squad summary, and `[ DEPLOY SQUAD ]` action.
+  * **Deep Progression Drawer**: Inspecting a hero or clicking Level Up slides in the Constellation Pyramid and wildcard loadout customizer in a focused overlay/drawer.
+* **Aesthetic System & Token Standardization**:
+  * **Pixel Art Primary**: Standardize on pixel art sprite tokens (`public/assets/tokens/pixel/`) as the game's primary token visual identity, deprecating legacy standees and using vector badges purely as a graceful fallback.
+  * **Design Tokens & Architecture**: Introduce centralized design tokens (`DESIGN.md` and CSS variables) for dark celestial glassmorphism, archetype colors (Force/Finesse/Focus), and typography to enable clean aesthetic customization and drop-in asset slots.
 
 ### 3.3. Client Persistence & Save Management (`src/core/storage/`)
 * **Campaign & Settings Serialization**:

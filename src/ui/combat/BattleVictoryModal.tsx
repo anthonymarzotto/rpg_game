@@ -248,10 +248,10 @@ export function BattleVictoryModal({
         {/* Choice Prompt if Multiple Qualified */}
         {requiresChoice && (
           <div className="choice-prompt-card">
-            <div className="victory-section-title" style={{ color: '#fbbf24' }}>
+            <div className="victory-section-title text-gold">
               ✦ Multiple Paths Available!
             </div>
-            <p style={{ margin: '0.2rem 0', fontSize: '0.82rem', color: '#cbd5e1' }}>
+            <p className="choice-prompt-desc">
               Your actions qualified for multiple archetypes. Choose which path to advance first:
             </p>
             <div className="choice-buttons-grid">

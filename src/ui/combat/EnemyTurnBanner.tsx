@@ -1,22 +1,19 @@
 import { CombatUnit } from '../../core/combat/types';
-import { TokenAesthetic, resolveTokenAssetPath, isPixelAsset } from './tokenAssets';
+import { resolveTokenAssetPath } from './tokenAssets';
 
 export interface EnemyTurnBannerProps {
   readonly activeCu: CombatUnit | undefined;
   readonly actionDescription: string | null;
-  readonly tokenAesthetic?: TokenAesthetic;
 }
 
 export function EnemyTurnBanner({
   activeCu,
-  actionDescription,
-  tokenAesthetic = 'stained-glass'
+  actionDescription
 }: EnemyTurnBannerProps) {
   if (!activeCu) return null;
 
   const currentAp = activeCu.currentAp;
-  const tokenSrc = resolveTokenAssetPath(activeCu.unit, tokenAesthetic);
-  const isPixel = isPixelAsset(tokenSrc);
+  const tokenSrc = resolveTokenAssetPath(activeCu.unit);
 
   return (
     <div className="combat-action-bar-container enemy-turn-bar">
@@ -26,8 +23,7 @@ export function EnemyTurnBanner({
           <img
             src={tokenSrc}
             alt={activeCu.unit.name}
-            className="enemy-turn-avatar-img"
-            style={isPixel ? { imageRendering: 'pixelated' } : undefined}
+            className="enemy-turn-avatar-img pixel-art"
           />
         ) : (
           <span className="enemy-turn-avatar-fallback" role="img" aria-label="Hostile unit">🎯</span>

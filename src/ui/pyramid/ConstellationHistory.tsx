@@ -6,20 +6,13 @@ export interface ConstellationHistoryProps {
 
 export function ConstellationHistory({ constellation }: ConstellationHistoryProps) {
   return (
-    <div className="sim-controls" style={{ flex: 1 }}>
+    <div className="sim-controls flex-1">
       <div className="sim-section-label">
         Constellation Path ({constellation.length} Stars Unlocked)
       </div>
       <div className="constellation-timeline">
         {constellation.length === 0 ? (
-          <div
-            style={{
-              fontSize: '0.78rem',
-              color: '#6b7280',
-              fontStyle: 'italic',
-              padding: '0.5rem 0'
-            }}
-          >
+          <div className="timeline-empty-msg">
             No stars unlocked yet. Advance an archetype to ignite your first star.
           </div>
         ) : (
@@ -28,8 +21,8 @@ export function ConstellationHistory({ constellation }: ConstellationHistoryProp
             if (!cls) return null;
             return (
               <div key={id} className="timeline-node">
-                <span style={{ fontWeight: 600 }}>{cls.name}</span>
-                <span style={{ color: 'var(--color-gold)', fontSize: '0.7rem' }}>
+                <span className="timeline-node-name">{cls.name}</span>
+                <span className="timeline-node-level text-gold">
                   Level {cls.totalPoints}
                 </span>
               </div>

@@ -34,7 +34,7 @@ export function resolveCampaignVictory(
 ): CampaignState {
   const updatedRoster = state.roster.map((unit) => {
     const gains = result.unitXpGains[unit.id];
-    const currentXp = unit.progression.accumulatedXp;
+    const currentXp = unit.progression.accumulatedXp ?? { fighter: 0, rogue: 0, mage: 0 };
     const updatedXp: ArchetypePoints = {
       fighter: currentXp.fighter + (gains?.fighter ?? 0),
       rogue: currentXp.rogue + (gains?.rogue ?? 0),
@@ -137,7 +137,7 @@ export function allocateCampArchetypePoint(
   }
 
   const threshold = LEVEL_XP_THRESHOLDS[currentLevel] ?? 5;
-  const currentXp = unit.progression.accumulatedXp;
+  const currentXp = unit.progression.accumulatedXp ?? { fighter: 0, rogue: 0, mage: 0 };
   const archKey = archetype.toLowerCase() as keyof ArchetypePoints;
 
   if (currentXp[archKey] < threshold) {

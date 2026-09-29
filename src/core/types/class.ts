@@ -20,5 +20,6 @@ export interface UnitProgression {
   readonly archetypePoints: ArchetypePoints;
   readonly constellation: readonly string[];
   /** Accumulated unspent archetype XP carried between encounters */
-  readonly accumulatedXp: ArchetypePoints;
+  readonly accumulatedXp?: ArchetypePoints;
 }
+

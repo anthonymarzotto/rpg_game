@@ -148,13 +148,13 @@ export function UnitStatusCard({
 
         {/* In-Battle Archetype XP Accumulator */}
         <div className="hud-xp-tally">
-          <span style={{ color: 'var(--color-fighter, #ef4444)' }}>
+          <span className="text-fighter">
             F: {activeCu.inBattleXp.fighter} XP
           </span>
-          <span style={{ color: 'var(--color-rogue, #10b981)' }}>
+          <span className="text-rogue">
             R: {activeCu.inBattleXp.rogue} XP
           </span>
-          <span style={{ color: 'var(--color-mage, #8b5cf6)' }}>
+          <span className="text-mage">
             M: {activeCu.inBattleXp.mage} XP
           </span>
         </div>
@@ -168,7 +168,7 @@ export function UnitStatusCard({
             {targetPreview.isBlockedLoS ? (
               <span className="los-badge blocked">✖ Screened</span>
             ) : (
-              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+              <div className="preview-badges-row">
                 {targetPreview.isFlankAdvantage && (
                   <span className="advantage-indicator-badge">
                     ✦ {targetPreview.combatArc === 'REAR' ? 'Rear' : 'Flank'} (+1d6)
@@ -185,7 +185,7 @@ export function UnitStatusCard({
 
           {/* Active Modifiers on Target (if present) */}
           {hoveredUnitCu && hoveredUnitCu.activeModifiers.length > 0 && (
-            <div className="active-modifiers-row" style={{ marginTop: '0.35rem' }}>
+            <div className="active-modifiers-row">
               {hoveredUnitCu.activeModifiers.map((mod, idx) => {
                 const { text, isDebuff } = formatModifierBadge(mod);
                 return (
@@ -205,12 +205,12 @@ export function UnitStatusCard({
           ) : (
             <div className="preview-details-grid">
               <div>
-                Hit Chance: <b style={{ color: '#fbbf24' }}>{targetPreview.toHitChance}%</b>
+                Hit Chance: <b className="text-gold">{targetPreview.toHitChance}%</b>
               </div>
               <div>
                 Target {targetPreview.defenseType}: <b>{targetPreview.targetDefense}</b>
               </div>
-              <div style={{ gridColumn: 'span 2' }}>
+              <div className="preview-damage-row">
                 Damage Profile: <b>{targetPreview.damageRange}</b>
               </div>
             </div>
@@ -223,20 +223,20 @@ export function UnitStatusCard({
         <div className="target-preview-card">
           <div className="preview-header">
             <span className="preview-label">Inspected Unit</span>
-            <span className="unit-ctb-gauge" style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+            <span className="unit-ctb-gauge text-muted">
               Gauge: {hoveredUnitCu.initiativeGauge}/100
             </span>
           </div>
           <div className="preview-target-name">
             {hoveredUnitCu.unit.name}{' '}
-            <span className="unit-role-badge" style={{ fontSize: '0.65rem', marginLeft: '0.3rem' }}>
+            <span className="unit-role-badge">
               {formatRoleTitle(hoveredUnitCu)}
             </span>
           </div>
 
           {/* Active Passives on Inspected Unit */}
           {hoveredUnitCu.passives && hoveredUnitCu.passives.length > 0 && (
-            <div className="hud-passives-row" style={{ marginTop: '0.35rem' }}>
+            <div className="hud-passives-row">
               <span className="passives-row-label">PASSIVES:</span>
               {hoveredUnitCu.passives.map((p) => (
                 <span
@@ -252,7 +252,7 @@ export function UnitStatusCard({
 
           {/* Active Modifiers on Inspected Unit */}
           {hoveredUnitCu.activeModifiers.length > 0 && (
-            <div className="active-modifiers-row" style={{ marginTop: '0.35rem' }}>
+            <div className="active-modifiers-row">
               {hoveredUnitCu.activeModifiers.map((mod, idx) => {
                 const { text, isDebuff } = formatModifierBadge(mod);
                 return (

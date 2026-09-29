@@ -3,7 +3,7 @@ import { HexCoord, toHexKey, getFacingAngleDegrees } from '../../core/grid/hex';
 import { CombatState } from '../../core/combat/types';
 import { TargetPreview } from '../../core/combat/targetPreview';
 import { FloatingText } from './useFloatingCombatText';
-import { TokenAesthetic, resolveTokenAssetPath, isPixelAsset } from './tokenAssets';
+import { resolveTokenAssetPath } from './tokenAssets';
 
 export interface HexGridSvgProps {
   readonly state: CombatState;
@@ -13,7 +13,6 @@ export interface HexGridSvgProps {
   readonly hoveredCoord: HexCoord | null;
   readonly floatingTexts: readonly FloatingText[];
   readonly targetPreview: TargetPreview | null;
-  readonly tokenAesthetic?: TokenAesthetic;
   readonly zoom?: number;
   readonly onTileClick: (coord: HexCoord) => void;
   readonly onTileHover: (coord: HexCoord | null) => void;
@@ -47,7 +46,6 @@ export function HexGridSvg({
   hoveredCoord,
   floatingTexts,
   targetPreview,
-  tokenAesthetic = 'stained-glass',
   zoom = 1,
   onTileClick,
   onTileHover
@@ -220,7 +218,7 @@ export function HexGridSvg({
 
               {/* Obstacle pattern with data-driven label */}
               {isObstacle && (
-                <g style={{ pointerEvents: 'none' }}>
+                <g className="pointer-events-none">
                   <circle cx={x} cy={y} r="12" fill="rgba(100, 116, 139, 0.4)" />
                   <text
                     x={x}
@@ -243,7 +241,7 @@ export function HexGridSvg({
                   fill="rgba(255, 255, 255, 0.2)"
                   fontSize="7"
                   textAnchor="middle"
-                  style={{ pointerEvents: 'none' }}
+                  className="pointer-events-none"
                 >
                   {coord.q},{coord.r}
                 </text>
@@ -254,7 +252,7 @@ export function HexGridSvg({
       </g>
 
       {/* 2. Unit Tokens Layer */}
-      <g className="units-layer" style={{ pointerEvents: 'none' }}>
+      <g className="units-layer pointer-events-none">
         {Array.from(state.units.entries())
           .filter(([_, cu]) => !cu.isDefeated)
           .map(([unitId, cu]) => {
@@ -290,9 +288,7 @@ export function HexGridSvg({
             const badgeSymbol = isPlayer ? '🛡️' : isEnemy ? '🎯' : '⚪';
             const hpBarFill = isPlayer ? '#10b981' : hpPercent < 40 ? '#ef4444' : '#f59e0b';
 
-            const tokenAssetSrc = resolveTokenAssetPath(cu.unit, tokenAesthetic, cu.facing);
-            const isPixel = isPixelAsset(tokenAssetSrc);
-            const isFacingWest = cu.facing === 2 || cu.facing === 3 || cu.facing === 4;
+            const tokenAssetSrc = resolveTokenAssetPath(cu.unit, cu.facing);
             const isCandidate = candidateSet.has(toHexKey(pos));
             const candidateReticleStroke = isPlayer ? '#10b981' : '#f59e0b';
             const candidateGlowFilter = isPlayer ? 'url(#tile-glow-cyan)' : 'url(#tile-glow-amber)';
@@ -300,7 +296,7 @@ export function HexGridSvg({
             return (
               <g key={unitId} transform={`translate(${x}, ${y})`}>
                 {tokenAssetSrc ? (
-                  /* Standee Presentation */
+                  /* Pixel Token Presentation */
                   <>
                     {/* Base Ground Blur Shadow */}
                     <ellipse
@@ -370,7 +366,7 @@ export function HexGridSvg({
                       />
                     )}
 
-                    {/* Upright Standee Cutout Image (Pixel sprites have native 6-way rotations; legacy sprites flip horizontally) */}
+                    {/* Upright Pixel Sprite Image (Native 6-way rotations) */}
                     <image
                       href={tokenAssetSrc}
                       x="-30"
@@ -379,8 +375,7 @@ export function HexGridSvg({
                       height="60"
                       preserveAspectRatio="xMidYMax meet"
                       filter="url(#standee-drop-shadow)"
-                      transform={!isPixel && isFacingWest ? 'scale(-1, 1)' : undefined}
-                      style={isPixel ? { imageRendering: 'pixelated' } : undefined}
+                      className="pixel-art"
                     />
 
                     {/* Unit Name Plate (above head) */}
@@ -391,7 +386,7 @@ export function HexGridSvg({
                       fontSize="8.5"
                       fontWeight="700"
                       textAnchor="middle"
-                      style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}
+                      className="token-name-label"
                     >
                       {cu.unit.name.split(' ')[0]}
                     </text>
@@ -601,7 +596,7 @@ export function HexGridSvg({
       </g>
 
       {/* 3. Floating Combat Feedback Numbers */}
-      <g className="floating-text-layer" style={{ pointerEvents: 'none' }}>
+      <g className="floating-text-layer pointer-events-none">
         {floatingTexts.map((ft) => {
           const { x, y } = hexToPixel(ft.coord);
           let color = '#ffffff';

@@ -1,18 +1,14 @@
 import { useMemo } from 'react';
 import { CombatState } from '../../core/combat/types';
 import { predictTurnOrder } from '../../core/combat/turnClock';
-import { TokenAesthetic, resolveTokenAssetPath, isPixelAsset } from './tokenAssets';
+import { resolveTokenAssetPath } from './tokenAssets';
 import './InitiativeRibbon.css';
 
 export interface InitiativeRibbonProps {
   readonly state: CombatState;
-  readonly tokenAesthetic?: TokenAesthetic;
 }
 
-export function InitiativeRibbon({
-  state,
-  tokenAesthetic = 'stained-glass'
-}: InitiativeRibbonProps) {
+export function InitiativeRibbon({ state }: InitiativeRibbonProps) {
   const projectedTurns = useMemo(() => {
     return predictTurnOrder(state, 8);
   }, [state]);
@@ -32,8 +28,7 @@ export function InitiativeRibbon({
         {projectedTurns.map((turn, index) => {
           const cu = state.units.get(turn.unitId);
           const unit = cu?.unit;
-          const tokenSrc = unit ? resolveTokenAssetPath(unit, tokenAesthetic) : null;
-          const isPixel = isPixelAsset(tokenSrc);
+          const tokenSrc = unit ? resolveTokenAssetPath(unit) : null;
           const isPlayer = turn.faction === 'PLAYER';
 
           return (
@@ -49,8 +44,7 @@ export function InitiativeRibbon({
                   <img
                     src={tokenSrc}
                     alt={turn.name}
-                    className="chip-avatar-img"
-                    style={isPixel ? { imageRendering: 'pixelated' } : undefined}
+                    className="chip-avatar-img pixel-art"
                   />
                 ) : (
                   <div className={`chip-avatar-fallback ${isPlayer ? 'player' : 'enemy'}`}>

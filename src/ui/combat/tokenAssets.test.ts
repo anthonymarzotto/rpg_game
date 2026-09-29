@@ -5,7 +5,6 @@ import {
   resolveTokenAssetPath,
   resolvePixelTokenBase,
   isPixelAsset,
-  getUnitTokenBase,
   getUnitTokenUrls,
   preloadCombatUnitTokens,
   clearImageCache
@@ -46,47 +45,26 @@ function createMockUnit(overrides: Partial<Unit> = {}): Unit {
 }
 
 describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
-  describe('Classic Aesthetic', () => {
-    it('returns null for classic aesthetic to trigger vector fallback', () => {
-      const unit = createMockUnit();
-      expect(resolveTokenAssetPath(unit, 'classic')).toBeNull();
-    });
-  });
-
-  describe('Legacy Aesthetics (enamel & stained-glass)', () => {
-    it('resolves enamel tokens without facing or suffix', () => {
-      const novice = createMockUnit();
-      expect(resolveTokenAssetPath(novice, 'enamel')).toBe('/assets/tokens/enamel/000_human_male.png');
-    });
-
-    it('resolves stained-glass tokens with _glass suffix', () => {
-      const novice = createMockUnit();
-      expect(resolveTokenAssetPath(novice, 'stained-glass')).toBe(
-        '/assets/tokens/stained-glass/000_human_male_glass.png'
-      );
-    });
-  });
-
   describe('Pixel Aesthetic & Hex Facing', () => {
     it('resolves novice (000_human_male) to pixel idle rotation paths for each hex direction', () => {
       const novice = createMockUnit({ gender: 'male', race: 'human' });
 
-      expect(resolveTokenAssetPath(novice, 'pixel', HEX_DIRECTIONS.EAST)).toBe(
+      expect(resolveTokenAssetPath(novice, HEX_DIRECTIONS.EAST)).toBe(
         '/assets/tokens/pixel/000_human_male/Idle/rotations/east.png'
       );
-      expect(resolveTokenAssetPath(novice, 'pixel', HEX_DIRECTIONS.NORTHEAST)).toBe(
+      expect(resolveTokenAssetPath(novice, HEX_DIRECTIONS.NORTHEAST)).toBe(
         '/assets/tokens/pixel/000_human_male/Idle/rotations/north-east.png'
       );
-      expect(resolveTokenAssetPath(novice, 'pixel', HEX_DIRECTIONS.NORTHWEST)).toBe(
+      expect(resolveTokenAssetPath(novice, HEX_DIRECTIONS.NORTHWEST)).toBe(
         '/assets/tokens/pixel/000_human_male/Idle/rotations/north-west.png'
       );
-      expect(resolveTokenAssetPath(novice, 'pixel', HEX_DIRECTIONS.WEST)).toBe(
+      expect(resolveTokenAssetPath(novice, HEX_DIRECTIONS.WEST)).toBe(
         '/assets/tokens/pixel/000_human_male/Idle/rotations/west.png'
       );
-      expect(resolveTokenAssetPath(novice, 'pixel', HEX_DIRECTIONS.SOUTHWEST)).toBe(
+      expect(resolveTokenAssetPath(novice, HEX_DIRECTIONS.SOUTHWEST)).toBe(
         '/assets/tokens/pixel/000_human_male/Idle/rotations/south-west.png'
       );
-      expect(resolveTokenAssetPath(novice, 'pixel', HEX_DIRECTIONS.SOUTHEAST)).toBe(
+      expect(resolveTokenAssetPath(novice, HEX_DIRECTIONS.SOUTHEAST)).toBe(
         '/assets/tokens/pixel/000_human_male/Idle/rotations/south-east.png'
       );
     });
@@ -102,10 +80,10 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
         }
       });
 
-      expect(resolveTokenAssetPath(warrior, 'pixel', HEX_DIRECTIONS.EAST)).toBe(
+      expect(resolveTokenAssetPath(warrior, HEX_DIRECTIONS.EAST)).toBe(
         '/assets/tokens/pixel/00_human_male/Idle/rotations/east.png'
       );
-      expect(resolveTokenAssetPath(warrior, 'pixel', HEX_DIRECTIONS.SOUTHWEST)).toBe(
+      expect(resolveTokenAssetPath(warrior, HEX_DIRECTIONS.SOUTHWEST)).toBe(
         '/assets/tokens/pixel/00_human_male/Idle/rotations/south-west.png'
       );
     });
@@ -121,10 +99,10 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
         }
       });
 
-      expect(resolveTokenAssetPath(thief, 'pixel', HEX_DIRECTIONS.EAST)).toBe(
+      expect(resolveTokenAssetPath(thief, HEX_DIRECTIONS.EAST)).toBe(
         '/assets/tokens/pixel/81_human_male/Idle/rotations/east.png'
       );
-      expect(resolveTokenAssetPath(thief, 'pixel', HEX_DIRECTIONS.NORTHWEST)).toBe(
+      expect(resolveTokenAssetPath(thief, HEX_DIRECTIONS.NORTHWEST)).toBe(
         '/assets/tokens/pixel/81_human_male/Idle/rotations/north-west.png'
       );
     });
@@ -140,17 +118,17 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
         }
       });
 
-      expect(resolveTokenAssetPath(wizard, 'pixel', HEX_DIRECTIONS.EAST)).toBe(
+      expect(resolveTokenAssetPath(wizard, HEX_DIRECTIONS.EAST)).toBe(
         '/assets/tokens/pixel/99_human_male/Idle/rotations/east.png'
       );
-      expect(resolveTokenAssetPath(wizard, 'pixel', HEX_DIRECTIONS.SOUTHEAST)).toBe(
+      expect(resolveTokenAssetPath(wizard, HEX_DIRECTIONS.SOUTHEAST)).toBe(
         '/assets/tokens/pixel/99_human_male/Idle/rotations/south-east.png'
       );
     });
 
     it('defaults to front-facing south.png when facing is omitted (UI portraits)', () => {
       const novice = createMockUnit();
-      expect(resolveTokenAssetPath(novice, 'pixel')).toBe(
+      expect(resolveTokenAssetPath(novice)).toBe(
         '/assets/tokens/pixel/000_human_male/Idle/rotations/south.png'
       );
     });
@@ -159,7 +137,7 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       // Female novice does not have female-specific assets, so falls back to 000_human_male
       const femaleNovice = createMockUnit({ gender: 'female' });
       expect(resolvePixelTokenBase(femaleNovice)).toBe('000_human_male');
-      expect(resolveTokenAssetPath(femaleNovice, 'pixel')).toBe(
+      expect(resolveTokenAssetPath(femaleNovice)).toBe(
         '/assets/tokens/pixel/000_human_male/Idle/rotations/south.png'
       );
 
@@ -173,7 +151,7 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
         }
       });
       expect(resolvePixelTokenBase(femaleThief)).toBe('81_human_male');
-      expect(resolveTokenAssetPath(femaleThief, 'pixel')).toBe(
+      expect(resolveTokenAssetPath(femaleThief)).toBe(
         '/assets/tokens/pixel/81_human_male/Idle/rotations/south.png'
       );
     });
@@ -189,7 +167,7 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
         }
       });
       expect(resolvePixelTokenBase(elementalist)).toBeNull();
-      expect(resolveTokenAssetPath(elementalist, 'pixel')).toBeNull();
+      expect(resolveTokenAssetPath(elementalist)).toBeNull();
     });
   });
 
@@ -198,7 +176,7 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       expect(isPixelAsset('/assets/tokens/pixel/000_human_male/Idle/rotations/east.png')).toBe(true);
     });
 
-    it('returns false for enamel, stained glass, and null', () => {
+    it('returns false for non-pixel paths and null', () => {
       expect(isPixelAsset('/assets/tokens/enamel/000_human_male.png')).toBe(false);
       expect(isPixelAsset('/assets/tokens/stained-glass/000_human_male_glass.png')).toBe(false);
       expect(isPixelAsset(null)).toBe(false);
@@ -207,7 +185,7 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
   });
 
   describe('Scoped Preloading & URL Generation', () => {
-    it('getUnitTokenBase correctly formats identifier', () => {
+    it('resolvePixelTokenBase correctly identifies base identifiers', () => {
       const warrior = createMockUnit({
         gender: 'male',
         race: 'human',
@@ -217,7 +195,7 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
           wildcardPassiveIds: []
         }
       });
-      expect(getUnitTokenBase(warrior)).toBe('00_human_male');
+      expect(resolvePixelTokenBase(warrior)).toBe('00_human_male');
 
       const thief = createMockUnit({
         gender: 'male',
@@ -228,12 +206,12 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
           wildcardPassiveIds: []
         }
       });
-      expect(getUnitTokenBase(thief)).toBe('81_human_male');
+      expect(resolvePixelTokenBase(thief)).toBe('81_human_male');
     });
 
     it('getUnitTokenUrls returns all 7 rotation URLs for pixel units on whitelist', () => {
       const novice = createMockUnit();
-      const urls = getUnitTokenUrls(novice, 'pixel');
+      const urls = getUnitTokenUrls(novice);
 
       expect(urls).toHaveLength(7);
       expect(urls).toContain('/assets/tokens/pixel/000_human_male/Idle/rotations/east.png');
@@ -241,10 +219,7 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       expect(urls).toContain('/assets/tokens/pixel/000_human_male/Idle/rotations/south-west.png');
     });
 
-    it('getUnitTokenUrls returns empty array for classic or ungenerated pixel units', () => {
-      const novice = createMockUnit();
-      expect(getUnitTokenUrls(novice, 'classic')).toEqual([]);
-
+    it('getUnitTokenUrls returns empty array for ungenerated pixel units', () => {
       const elementalist = createMockUnit({
         gender: 'male',
         loadout: {
@@ -253,17 +228,7 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
           wildcardPassiveIds: []
         }
       });
-      expect(getUnitTokenUrls(elementalist, 'pixel')).toEqual([]);
-    });
-
-    it('getUnitTokenUrls returns single URL for stained-glass and enamel', () => {
-      const novice = createMockUnit();
-      expect(getUnitTokenUrls(novice, 'stained-glass')).toEqual([
-        '/assets/tokens/stained-glass/000_human_male_glass.png'
-      ]);
-      expect(getUnitTokenUrls(novice, 'enamel')).toEqual([
-        '/assets/tokens/enamel/000_human_male.png'
-      ]);
+      expect(getUnitTokenUrls(elementalist)).toEqual([]);
     });
 
     it('preloadCombatUnitTokens executes safely and deduplicates repeated unit classes', async () => {
@@ -281,7 +246,7 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
 
       // Should complete without error in Node/browser environments
       await expect(
-        preloadCombatUnitTokens([novice1, novice2, warrior], 'pixel')
+        preloadCombatUnitTokens([novice1, novice2, warrior])
       ).resolves.toBeDefined();
     });
   });
