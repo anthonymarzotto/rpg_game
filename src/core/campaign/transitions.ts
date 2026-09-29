@@ -11,7 +11,9 @@ import { ClassRegistry } from '../progression/registry';
 import { CLASS_REGISTRY } from '../../data/classes';
 import { getClassPackage } from '../../data/packages';
 import { CampaignState } from './types';
+import { EncounterDefinition } from '../combat/encounter';
 import { generateStageEncounter } from './encounterGenerator';
+import { generateProceduralRecruit } from './campaignFactory';
 
 export interface CampaignBattleResult {
   readonly encounterId: string;
@@ -115,6 +117,32 @@ export function resolveCampaignDefeat(
 }
 
 /**
+ * Synchronizes player units in an EncounterDefinition with their current live roster state.
+ */
+export function syncEncounterPlayerUnits(
+  encounter: EncounterDefinition,
+  roster: readonly Unit[]
+): EncounterDefinition {
+  const rosterMap = new Map(roster.map((u) => [u.id, u]));
+  const updatedUnits = encounter.units.map((placed) => {
+    if (placed.unit.faction !== 'PLAYER') {
+      return placed;
+    }
+    const liveUnit = rosterMap.get(placed.unit.id);
+    if (!liveUnit) return placed;
+    return {
+      ...placed,
+      unit: { ...liveUnit, faction: 'PLAYER' as const }
+    };
+  });
+
+  return {
+    ...encounter,
+    units: updatedUnits
+  };
+}
+
+/**
  * Levels up a unit in Camp by spending threshold XP on the chosen archetype:
  * - Deducts threshold cost strictly from the chosen archetype's accumulated XP
  * - Retains all excess XP and non-chosen archetype XP
@@ -177,9 +205,15 @@ export function allocateCampArchetypePoint(
     effectiveVitals: updatedVitals
   };
 
+  const updatedRoster = state.roster.map((u) => (u.id === unitId ? updatedUnit : u));
+  const updatedEncounter = state.currentEncounter
+    ? syncEncounterPlayerUnits(state.currentEncounter, updatedRoster)
+    : undefined;
+
   return {
     ...state,
-    roster: state.roster.map((u) => (u.id === unitId ? updatedUnit : u)),
+    roster: updatedRoster,
+    currentEncounter: updatedEncounter,
     updatedAt: Date.now()
   };
 }
@@ -208,9 +242,15 @@ export function updateCampUnitLoadout(
     loadout: { ...loadout }
   };
 
+  const updatedRoster = state.roster.map((u) => (u.id === unitId ? updatedUnit : u));
+  const updatedEncounter = state.currentEncounter
+    ? syncEncounterPlayerUnits(state.currentEncounter, updatedRoster)
+    : undefined;
+
   return {
     ...state,
-    roster: state.roster.map((u) => (u.id === unitId ? updatedUnit : u)),
+    roster: updatedRoster,
+    currentEncounter: updatedEncounter,
     updatedAt: Date.now()
   };
 }
@@ -258,6 +298,25 @@ export function regenerateCurrentStageEncounter(
     ...state,
     currentSeed: seed,
     currentEncounter: encounter,
+    updatedAt: Date.now()
+  };
+}
+
+/**
+ * Recruits a fresh Level-0 Novice into the campaign roster.
+ */
+export function recruitNovice(
+  state: CampaignState,
+  options?: { readonly rng?: () => number }
+): CampaignState {
+  const rng = options?.rng ?? Math.random;
+  const nextId = `${state.id}-unit-${state.roster.length + 1}`;
+  const usedNames = new Set(state.roster.map((u) => u.name));
+  const newRecruit = generateProceduralRecruit(nextId, rng, usedNames);
+
+  return {
+    ...state,
+    roster: [...state.roster, newRecruit],
     updatedAt: Date.now()
   };
 }

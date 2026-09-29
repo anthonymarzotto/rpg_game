@@ -1,6 +1,6 @@
-# Hex Tactics RPG
+# Astral Tactics
 
-A browser-based turn-based tactical RPG built with a strictly decoupled simulation and presentation architecture.
+A celestial turn-based tactical RPG featuring a 100-class Constellation Star Pyramid, hex-grid positional combat, and an expedition camp progression loop.
 
 ---
 

@@ -1,6 +1,6 @@
 # Development Plan & Tactical Roadmap
 
-This document outlines the prioritized implementation phases for the ongoing development of the Hex Tactics RPG. 
+This document outlines the prioritized implementation phases for the ongoing development of Astral Tactics. 
 
 Following our core architectural tenet (**Decoupled Simulation & Presentation**), every gameplay mechanic, AI decision model, and data pipeline is implemented and tested first as pure headless TypeScript logic in `src/core/` before integrating with the React + SVG + CSS presentation tier.
 

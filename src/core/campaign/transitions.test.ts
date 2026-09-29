@@ -6,7 +6,8 @@ import {
   allocateCampArchetypePoint,
   updateCampUnitLoadout,
   setCampActiveSquad,
-  regenerateCurrentStageEncounter
+  regenerateCurrentStageEncounter,
+  recruitNovice
 } from './transitions';
 
 describe('Campaign State Transitions & Lifecycle Reducers', () => {
@@ -112,6 +113,11 @@ describe('Campaign State Transitions & Lifecycle Reducers', () => {
       rogue: 5,
       mage: 1
     });
+
+    // Synchronizes placed unit in pending encounter
+    const placedInEncounter = leveledState.currentEncounter?.units.find((p) => p.unit.id === hero1.id);
+    expect(placedInEncounter?.unit.progression.currentLevel).toBe(1);
+    expect(placedInEncounter?.unit.baseAttributes.force).toBe(leveledHero.baseAttributes.force);
   });
 
   it('rejects leveling up if accumulated XP does not meet threshold', () => {
@@ -170,6 +176,10 @@ describe('Campaign State Transitions & Lifecycle Reducers', () => {
 
     expect(updatedHero.loadout.activeClassId).toBe('warrior');
     expect(updatedHero.loadout.wildcardAbilityIds).toEqual(['quick_thrust', 'spark']);
+
+    const placedInEncounter = updatedState.currentEncounter?.units.find((p) => p.unit.id === hero1.id);
+    expect(placedInEncounter?.unit.loadout.activeClassId).toBe('warrior');
+    expect(placedInEncounter?.unit.loadout.wildcardAbilityIds).toEqual(['quick_thrust', 'spark']);
   });
 
   it('re-rolls the encounter for the current stage with a new seed', () => {
@@ -194,5 +204,19 @@ describe('Campaign State Transitions & Lifecycle Reducers', () => {
     expect(stateSquad.activeSquadIds).toEqual(squad3);
     const playerUnits = stateSquad.currentEncounter!.units.filter((u) => u.unit.faction === 'PLAYER');
     expect(playerUnits).toHaveLength(3);
+  });
+
+  it('recruits a fresh Level-0 Novice into the campaign roster', () => {
+    const initial = createCampaign({ seed: 800 });
+    expect(initial.roster).toHaveLength(3);
+
+    const updated = recruitNovice(initial);
+    expect(updated.roster).toHaveLength(4);
+
+    const recruited = updated.roster[3];
+    expect(recruited.progression.currentLevel).toBe(0);
+    expect(recruited.loadout.activeClassId).toBe('novice');
+    expect(recruited.effectiveVitals.maxHp).toBeGreaterThan(0);
+    expect(recruited.id).toContain('unit-4');
   });
 });

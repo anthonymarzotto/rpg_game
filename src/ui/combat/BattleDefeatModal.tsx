@@ -5,13 +5,15 @@ import './BattleDefeatModal.css';
 export interface BattleDefeatModalProps {
   readonly isOpen: boolean;
   readonly squadMembers: readonly { readonly unit: Unit }[];
-  readonly onRetry: () => void;
+  readonly onRetry?: () => void;
+  readonly onRetreatToCamp?: () => void;
 }
 
 export function BattleDefeatModal({
   isOpen,
   squadMembers,
-  onRetry
+  onRetry,
+  onRetreatToCamp
 }: BattleDefeatModalProps) {
   if (!isOpen) return null;
 
@@ -55,9 +57,19 @@ export function BattleDefeatModal({
 
         {/* Actions */}
         <div className="defeat-actions">
-          <button className="btn-defeat-retry" onClick={onRetry}>
-            ↺ Retry Skirmish
-          </button>
+          {onRetreatToCamp ? (
+            <button
+              className="btn-defeat-retry btn-defeat-retreat"
+              onClick={onRetreatToCamp}
+              data-testid="defeat-retreat-camp-btn"
+            >
+              ⛺ Retreat to Camp
+            </button>
+          ) : (
+            <button className="btn-defeat-retry" onClick={onRetry}>
+              ↺ Retry Skirmish
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -1,0 +1,293 @@
+.hero-drawer-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--surface-overlay);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 500;
+  display: flex;
+  justify-content: flex-end;
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.hero-drawer-panel {
+  width: 100%;
+  max-width: 680px;
+  height: 100%;
+  background: var(--surface-panel-elevated);
+  border-left: 1px solid var(--border-highlight);
+  box-shadow: -10px 0 32px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  animation: slide-in-right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.hero-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(15, 23, 42, 0.95);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.hero-drawer-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-player-active);
+  letter-spacing: 0.04em;
+}
+
+.hero-drawer-close-btn {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid var(--border-subtle);
+  color: var(--color-text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: all 0.15s ease;
+}
+
+.hero-drawer-close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--color-hostile);
+  color: #fff;
+}
+
+.hero-drawer-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+/* Hero Vitals Header Section */
+.drawer-hero-overview {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.drawer-avatar-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-highlight);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.drawer-token-img {
+  width: 56px;
+  height: 56px;
+  image-rendering: pixelated;
+}
+
+.drawer-overview-info {
+  flex: 1;
+}
+
+.drawer-overview-name {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+}
+
+.drawer-overview-class {
+  font-size: 0.85rem;
+  color: var(--color-player-active);
+  text-transform: capitalize;
+}
+
+.drawer-attributes-row {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* Level Up Interactive Box */
+.drawer-level-up-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: 10px;
+}
+
+.level-up-box-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-player-active);
+  letter-spacing: 0.04em;
+}
+
+.level-up-archetype-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.btn-archetype-spend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.btn-archetype-spend.fighter {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fff;
+}
+
+.btn-archetype-spend.fighter:hover {
+  background: var(--color-archetype-fighter);
+  color: #0b0f19;
+}
+
+.btn-archetype-spend.rogue {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #fff;
+}
+
+.btn-archetype-spend.rogue:hover {
+  background: var(--color-archetype-rogue);
+  color: #0b0f19;
+}
+
+.btn-archetype-spend.mage {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #fff;
+}
+
+.btn-archetype-spend.mage:hover {
+  background: var(--color-archetype-mage);
+  color: #0b0f19;
+}
+
+/* Constellation Pyramid Visualizer Box */
+.drawer-constellation-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.drawer-section-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.drawer-svg-viewport {
+  width: 100%;
+  height: 260px;
+  position: relative;
+  background: radial-gradient(circle at 50% 50%, #161e31 0%, #080c14 100%);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Loadout Customizer Section */
+.drawer-loadout-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.drawer-loadout-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.drawer-field-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.drawer-select {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid var(--border-subtle);
+  color: var(--color-text-main);
+  font-size: 0.88rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.drawer-select:focus {
+  border-color: var(--color-player-active);
+}
+
+.drawer-core-abilities-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.drawer-core-chip {
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--color-player-active);
+  font-size: 0.75rem;
+}

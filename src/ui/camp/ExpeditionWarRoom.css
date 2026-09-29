@@ -1,0 +1,204 @@
+.expedition-war-room {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-panel-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: var(--blur-panel);
+  -webkit-backdrop-filter: var(--blur-panel);
+  box-sizing: border-box;
+  gap: 1.25rem;
+}
+
+.war-room-header {
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 0.85rem;
+}
+
+.war-room-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-player-active);
+  margin-bottom: 0.25rem;
+}
+
+.war-room-stage-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+  letter-spacing: 0.03em;
+}
+
+.war-room-intel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.intel-section-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.threat-budget-pill {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: var(--color-hostile);
+}
+
+.enemy-tokens-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.enemy-token-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.enemy-token-card:hover {
+  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.enemy-token-avatar-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.enemy-token-img {
+  width: 30px;
+  height: 30px;
+  image-rendering: pixelated;
+}
+
+.enemy-token-fallback {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-hostile);
+  font-family: var(--font-display);
+}
+
+.enemy-token-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.enemy-token-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.enemy-token-class {
+  font-size: 0.75rem;
+  color: var(--color-hostile);
+  text-transform: capitalize;
+}
+
+.readiness-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+
+.readiness-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.readiness-status-ready {
+  color: var(--color-vital-hp);
+}
+
+.readiness-status-empty {
+  color: var(--color-vital-hp-low);
+}
+
+.readiness-warning {
+  font-size: 0.75rem;
+  color: var(--color-vital-hp-low);
+  font-style: italic;
+}
+
+.deploy-squad-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  height: 52px;
+  padding: 0 1.5rem;
+  border-radius: 10px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #0b0f19;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+}
+
+.deploy-squad-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(245, 158, 11, 0.6);
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.deploy-squad-btn:not(:disabled):active {
+  transform: translateY(0);
+}
+
+.deploy-squad-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+  box-shadow: none;
+}

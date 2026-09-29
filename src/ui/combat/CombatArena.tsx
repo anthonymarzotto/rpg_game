@@ -12,10 +12,30 @@ import { BattleDefeatModal } from './BattleDefeatModal';
 import { InitiativeRibbon } from './InitiativeRibbon';
 import { preloadCombatUnitTokens } from './tokenAssets';
 import { AISpeedMode } from './asyncTurnSequencer';
+import { EncounterDefinition } from '../../core/combat/encounter';
+import { CombatState } from '../../core/combat/types';
+import { SquadMemberReconciliation } from './useCombatSimulation';
 import './CombatArena.css';
 
-export function CombatArena() {
+export interface CombatArenaProps {
+  readonly encounter?: EncounterDefinition;
+  readonly onVictory?: (result: { state: CombatState; reconciliations: readonly SquadMemberReconciliation[] }) => void;
+  readonly onDefeat?: (result: { state: CombatState }) => void;
+  readonly onExit?: () => void;
+}
+
+export function CombatArena({
+  encounter,
+  onVictory,
+  onDefeat,
+  onExit
+}: CombatArenaProps = {}) {
   const [fieldZoom, setFieldZoom] = useState<number>(1.0);
+
+  const activeEncounter = useMemo(
+    () => encounter ?? createNoviceSandboxEncounter(),
+    [encounter]
+  );
 
   const {
     state,
@@ -48,9 +68,7 @@ export function CombatArena() {
     handleSelectArchetypeChoice,
     handleRematch,
     handleResetEncounter
-  } = useCombatSimulation({
-    encounterFactory: createNoviceSandboxEncounter
-  });
+  } = useCombatSimulation({ encounter: activeEncounter });
 
   const handleCanvasWheel = (e: React.WheelEvent) => {
     // Smooth mouse-wheel field zoom
@@ -119,6 +137,16 @@ export function CombatArena() {
                 title="Reset zoom to 100%"
               >
                 ⟲
+              </button>
+            )}
+            {onExit && (
+              <button
+                type="button"
+                className="btn-arena-exit font-ui"
+                onClick={onExit}
+                title="Return to Camp Hub"
+              >
+                ⛺ Camp
               </button>
             )}
           </div>
@@ -236,6 +264,11 @@ export function CombatArena() {
         onSelectArchetypeChoice={handleSelectArchetypeChoice}
         onRematch={handleRematch}
         onDismiss={() => setIsVictoryModalOpen(false)}
+        onProceedToCamp={
+          onVictory
+            ? () => onVictory({ state, reconciliations: squadReconciliations })
+            : undefined
+        }
       />
 
       {/* Post-Battle Defeat Modal */}
@@ -243,6 +276,11 @@ export function CombatArena() {
         isOpen={isDefeatModalOpen}
         squadMembers={playerSquadUnits}
         onRetry={handleResetEncounter}
+        onRetreatToCamp={
+          onDefeat
+            ? () => onDefeat({ state })
+            : undefined
+        }
       />
     </div>
   );

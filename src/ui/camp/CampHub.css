@@ -1,0 +1,118 @@
+.camp-hub-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  background: radial-gradient(circle at 50% 15%, #131b2e 0%, var(--surface-app-bg) 80%);
+  color: var(--color-text-main);
+  box-sizing: border-box;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.camp-hub-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-panel);
+  backdrop-filter: var(--blur-panel);
+  -webkit-backdrop-filter: var(--blur-panel);
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+.camp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.camp-brand {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--color-player-active);
+  text-shadow: 0 0 16px rgba(245, 158, 11, 0.4);
+}
+
+.camp-stage-badge {
+  padding: 0.25rem 0.75rem;
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: var(--color-player-ally);
+}
+
+.camp-header-stats {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.camp-stat-win {
+  color: var(--color-vital-hp);
+}
+
+.camp-stat-loss {
+  color: var(--color-hostile);
+}
+
+.camp-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.camp-exit-btn {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid var(--border-subtle);
+  color: var(--color-text-muted);
+  padding: 0.35rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.camp-exit-btn:hover {
+  background: rgba(51, 65, 85, 0.9);
+  color: var(--color-text-main);
+  border-color: var(--border-highlight);
+}
+
+.camp-hub-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem 1.75rem 2rem 1.75rem;
+  box-sizing: border-box;
+  overflow-y: auto;
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.camp-upper-section {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .camp-upper-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+.camp-reserve-section {
+  width: 100%;
+}

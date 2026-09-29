@@ -1,0 +1,270 @@
+.hero-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-panel-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: var(--blur-panel);
+  -webkit-backdrop-filter: var(--blur-panel);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.hero-card:hover {
+  border-color: var(--border-highlight);
+  transform: translateY(-2px);
+}
+
+.hero-card.level-ready {
+  border-color: var(--color-player-active);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
+}
+
+.hero-card.swapping-active {
+  border: 2px dashed var(--color-player-ally);
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+  animation: pulse-swap 2s infinite;
+}
+
+@keyframes pulse-swap {
+  0%, 100% { border-color: var(--color-player-ally); }
+  50% { border-color: var(--color-player-active); }
+}
+
+.hero-card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.hero-card-avatar-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--border-highlight);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.hero-card-token {
+  width: 44px;
+  height: 44px;
+  image-rendering: pixelated;
+}
+
+.hero-card-avatar-fallback {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-player-active);
+  font-family: var(--font-display);
+}
+
+.hero-card-identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-card-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0 0 0.2rem 0;
+}
+
+.hero-card-class-tag {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  text-transform: capitalize;
+}
+
+.hero-card-vitals {
+  margin-bottom: 0.85rem;
+}
+
+.hero-card-hp-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.hero-card-hp-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.hero-card-hp-fill {
+  width: 100%;
+  height: 100%;
+  background: var(--color-vital-hp);
+  transition: width 0.3s ease;
+}
+
+.hero-card-hp-fill.critical {
+  background: var(--color-vital-hp-low);
+}
+
+.hero-card-attributes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.6rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.attr-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.attr-item.force { color: var(--color-archetype-fighter); }
+.attr-item.finesse { color: var(--color-archetype-rogue); }
+.attr-item.focus { color: var(--color-archetype-mage); }
+
+.hero-card-xp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.xp-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+}
+
+.xp-bar-label {
+  width: 52px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+.xp-bar-label.fighter { color: var(--color-archetype-fighter); }
+.xp-bar-label.rogue { color: var(--color-archetype-rogue); }
+.xp-bar-label.mage { color: var(--color-archetype-mage); }
+
+.xp-bar-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.xp-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.xp-bar-fill.fighter { background: var(--color-archetype-fighter); }
+.xp-bar-fill.rogue { background: var(--color-archetype-rogue); }
+.xp-bar-fill.mage { background: var(--color-archetype-mage); }
+
+.xp-bar-val {
+  width: 38px;
+  text-align: right;
+  color: var(--color-text-dim);
+  font-size: 0.68rem;
+}
+
+.hero-level-ready-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  border-radius: 6px;
+  color: var(--color-player-active);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+  animation: glow-pulse 1.8s infinite ease-in-out;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1; text-shadow: 0 0 10px rgba(245, 158, 11, 0.8); }
+}
+
+.hero-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.hero-action-btn {
+  flex: 1;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  box-sizing: border-box;
+}
+
+.hero-action-btn.primary {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: var(--color-player-active);
+}
+
+.hero-action-btn.primary:hover {
+  background: var(--color-player-active);
+  color: #0b0f19;
+}
+
+.hero-action-btn.secondary {
+  background: rgba(30, 41, 59, 0.7);
+  border-color: var(--border-subtle);
+  color: var(--color-text-muted);
+}
+
+.hero-action-btn.secondary:not(:disabled):hover {
+  background: rgba(51, 65, 85, 0.8);
+  color: var(--color-text-main);
+  border-color: var(--border-highlight);
+}
+
+.hero-action-btn.secondary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.hero-action-btn.swapping {
+  background: rgba(6, 182, 212, 0.25);
+  border-color: var(--color-player-ally);
+  color: #fff;
+}

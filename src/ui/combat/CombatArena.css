@@ -208,6 +208,25 @@
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+.btn-arena-exit {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: var(--color-player-active);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 0.25rem;
+}
+
+.btn-arena-exit:hover {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: var(--color-player-active);
+  color: #fff;
+}
+
 .reroll-btn:hover {
   color: #c084fc;
 }

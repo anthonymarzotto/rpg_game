@@ -21,7 +21,6 @@ import {
 } from '../../core/progression/postBattle';
 import { ClassRegistry, createClassRegistry } from '../../core/progression/registry';
 import { CLASS_CATALOG } from '../../data/classes';
-import { NoviceSandboxOptions } from '../../data/encounters/noviceSandbox';
 import {
   AISpeedMode,
   PACING_PRESETS,
@@ -38,7 +37,7 @@ export interface SquadMemberReconciliation {
 }
 
 export interface UseCombatSimulationOptions {
-  readonly encounterFactory: (options?: NoviceSandboxOptions) => EncounterDefinition;
+  readonly encounter: EncounterDefinition;
   readonly classRegistry?: ClassRegistry;
 }
 
@@ -46,7 +45,7 @@ export interface UseCombatSimulationOptions {
  * Orchestrates combat interaction state, squad turn sequencing, action selection, and intent dispatch.
  */
 export function useCombatSimulation({
-  encounterFactory,
+  encounter,
   classRegistry: injectedRegistry
 }: UseCombatSimulationOptions) {
   const defaultRegistry = useMemo(() => createClassRegistry(CLASS_CATALOG), []);
@@ -63,7 +62,7 @@ export function useCombatSimulation({
   const [encounterSession, setEncounterSession] = useState(0);
 
   const [state, setState] = useState<CombatState>(() =>
-    buildEncounterState(encounterFactory())
+    buildEncounterState(encounter)
   );
   const [actionMode, setActionMode] = useState<ActionMode>('IDLE');
   const [selectedAbility, setSelectedAbility] = useState<Ability | null>(null);
@@ -399,14 +398,14 @@ export function useCombatSimulation({
       setHostileActionStatus(null);
       setEncounterSession((prev) => prev + 1);
 
-      const fresh = buildEncounterState(encounterFactory());
+      const fresh = buildEncounterState(encounter);
       setState(fresh);
       setActionMode('IDLE');
       setSelectedAbility(null);
       setHoveredCoord(null);
       clearFloatingTexts();
     },
-    [encounterFactory, clearFloatingTexts]
+    [encounter, clearFloatingTexts]
   );
 
   // Full reset back to encounter start
@@ -418,13 +417,13 @@ export function useCombatSimulation({
     setHostileActionStatus(null);
     setEncounterSession((prev) => prev + 1);
 
-    const fresh = buildEncounterState(encounterFactory());
+    const fresh = buildEncounterState(encounter);
     setState(fresh);
     setActionMode('IDLE');
     setSelectedAbility(null);
     setHoveredCoord(null);
     clearFloatingTexts();
-  }, [encounterFactory, clearFloatingTexts]);
+  }, [encounter, clearFloatingTexts]);
 
   return {
     state,
