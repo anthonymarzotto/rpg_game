@@ -29,8 +29,8 @@
   box-shadow: 0 0 35px rgba(245, 158, 11, 0.15), 0 20px 25px -5px rgba(0, 0, 0, 0.5);
   border-radius: 12px;
   padding: 1.5rem;
-  color: #f3f4f6;
-  font-family: system-ui, -apple-system, sans-serif;
+  color: var(--color-text-main);
+  font-family: var(--font-ui);
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -139,7 +139,7 @@
 
 .xp-stat-box.fighter { border-color: rgba(239, 68, 68, 0.3); }
 .xp-stat-box.rogue { border-color: rgba(16, 185, 129, 0.3); }
-.xp-stat-box.mage { border-color: rgba(59, 130, 246, 0.3); }
+.xp-stat-box.mage { border-color: rgba(139, 92, 246, 0.3); }
 
 .xp-stat-label {
   font-size: 0.75rem;
@@ -150,9 +150,9 @@
   gap: 0.3rem;
 }
 
-.xp-stat-box.fighter .xp-stat-label { color: #f87171; }
-.xp-stat-box.rogue .xp-stat-label { color: #34d399; }
-.xp-stat-box.mage .xp-stat-label { color: #60a5fa; }
+.xp-stat-box.fighter .xp-stat-label { color: var(--color-archetype-fighter); }
+.xp-stat-box.rogue .xp-stat-label { color: var(--color-archetype-rogue); }
+.xp-stat-box.mage .xp-stat-label { color: var(--color-archetype-mage); }
 
 .xp-stat-value {
   font-size: 1.15rem;

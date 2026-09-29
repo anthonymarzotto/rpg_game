@@ -249,8 +249,21 @@
   filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.6));
 }
 
+.hex-tile-group {
+  cursor: default;
+}
+
 .hex-tile-group polygon {
   transition: fill 0.15s ease, stroke 0.15s ease, stroke-width 0.15s ease;
+}
+
+.hex-tile-group.reachable,
+.hex-tile-group.candidate {
+  cursor: pointer;
+}
+
+.hex-tile-group.in-range {
+  cursor: crosshair;
 }
 
 .hex-tile-group.reachable:hover polygon {
@@ -840,7 +853,7 @@
   background: rgba(0, 0, 0, 0.3);
   padding: 0.1rem 0.35rem;
   border-radius: 4px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 .log-card-secondary {

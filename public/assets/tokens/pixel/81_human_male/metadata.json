@@ -1,11 +1,11 @@
 {
-  "group_id": "58295ef1-391c-4d29-b24c-1b86552d32b0",
+  "group_id": "cb6b2f1f-8b42-4821-a938-9ef79c43f538",
   "states": [
     {
       "character": {
-        "id": "45fda9e6-318c-4b5f-89f4-524e0e3e27e3",
+        "id": "ca8f3a62-c049-4cc1-aa0a-e35c958d1eec",
         "name": "Idle",
-        "prompt": "A male thief in light leather jerkin and simple trousers, holding a short dagger, standing in a ready, crouched stance with a focused expression, low top-down perspective.",
+        "prompt": "A chibi male thief in a light leather jerkin and simple trousers, crouched in a ready combat stance, gripping a short dagger, expressive anime-style eyes, low top-down perspective.",
         "size": {
           "width": 64,
           "height": 64
@@ -13,7 +13,7 @@
         "template_id": "mannequin",
         "directions": 8,
         "view": "low top-down",
-        "created_at": "2026-09-24T19:14:40.944545+00:00"
+        "created_at": "2026-09-28T16:10:41.978423+00:00"
       },
       "folder": "Idle",
       "frames": {
@@ -32,5 +32,5 @@
     }
   ],
   "export_version": "3.1",
-  "export_date": "2026-09-25T02:32:17.092506"
+  "export_date": "2026-09-29T00:54:14.194527"
 }

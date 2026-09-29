@@ -80,6 +80,7 @@ export function resolvePixelTokenBase(unit: Unit): string | null {
 export const PIXEL_ROTATIONS = [
   'east',
   'north-east',
+  'north',
   'north-west',
   'west',
   'south-west',

@@ -1,11 +1,11 @@
 {
-  "group_id": "dce8f70e-cb8b-46e4-957d-619f8674a45a",
+  "group_id": "17fbb01a-42b0-4fa4-9d1b-c48f79f84730",
   "states": [
     {
       "character": {
-        "id": "49c93ae0-1a00-4f46-a75a-1c0b430a2a5a",
+        "id": "f1d68105-b262-4745-9069-fc1ac950f760",
         "name": "Idle",
-        "prompt": "A young wizard in a worn, oversized robe and pointed hat, holding a simple wooden wand in a steady hand, standing in a wide, grounded stance.",
+        "prompt": "A chibi wizard in a tattered, oversized robe and slouchy pointed hat, holding a gnarled wooden wand, wide grounded stance, expressive anime-style eyes, low top-down perspective, crisp black outlines.",
         "size": {
           "width": 64,
           "height": 64
@@ -13,7 +13,7 @@
         "template_id": "mannequin",
         "directions": 8,
         "view": "low top-down",
-        "created_at": "2026-09-24T19:36:39.494927+00:00"
+        "created_at": "2026-09-28T13:02:02.720124+00:00"
       },
       "folder": "Idle",
       "frames": {
@@ -32,5 +32,5 @@
     }
   ],
   "export_version": "3.1",
-  "export_date": "2026-09-25T02:32:19.856453"
+  "export_date": "2026-09-29T00:53:43.709984"
 }

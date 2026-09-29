@@ -1,11 +1,11 @@
 {
-  "group_id": "d277f0be-80f0-43f8-b7e5-9c0661be2367",
+  "group_id": "a849df7e-3afd-4cd8-aa04-a3730e58a075",
   "states": [
     {
       "character": {
-        "id": "b147020f-aea2-4466-ae03-f35fcfef9565",
+        "id": "7c255119-e49d-407b-b175-8d4d35f49750",
         "name": "Idle",
-        "prompt": "A young male novice standing in a ready combat stance, wearing a simple linen tunic and leather vest, holding a basic iron shortsword and a small wooden buckler shield, brown hair, cheerful and innocent expression, low top-down perspective.",
+        "prompt": "A chibi young male novice standing in a ready combat stance, wearing a simple linen tunic and leather vest, holding a basic iron shortsword and a small wooden buckler shield. Short brown hair, cheerful and innocent expression with anime-style eyes, low top-down perspective.",
         "size": {
           "width": 64,
           "height": 64
@@ -13,7 +13,7 @@
         "template_id": "mannequin",
         "directions": 8,
         "view": "low top-down",
-        "created_at": "2026-09-24T02:00:26.834274+00:00"
+        "created_at": "2026-09-28T16:52:26.997629+00:00"
       },
       "folder": "Idle",
       "frames": {
@@ -32,5 +32,5 @@
     }
   ],
   "export_version": "3.1",
-  "export_date": "2026-09-24T02:05:26.117674"
+  "export_date": "2026-09-29T00:55:12.149741"
 }

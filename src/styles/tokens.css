@@ -53,12 +53,24 @@
   --color-vital-ctb:     #38bdf8;
 
   /* ------------------------------------------------------------------------
+     Typography Colors
+     ------------------------------------------------------------------------ */
+  --color-text-main:        #f3f4f6;
+  --color-text-muted:       #9ca3af;
+  --color-text-dim:         #6b7280;
+
+  /* ------------------------------------------------------------------------
      Surfaces & Glassmorphism
      ------------------------------------------------------------------------ */
   --surface-app-bg:         #06080e;
   --surface-panel:          rgba(15, 23, 42, 0.8);
   --surface-panel-elevated: rgba(30, 41, 59, 0.85);
   --surface-overlay:        rgba(2, 6, 23, 0.75);
+
+  /* Card aliases for constellation and modal stylesheets */
+  --bg-deep:                #080a10;
+  --bg-card:                rgba(18, 22, 34, 0.85);
+  --border-card:            rgba(255, 255, 255, 0.1);
 
   --border-subtle:          rgba(255, 255, 255, 0.08);
   --border-highlight:       rgba(255, 255, 255, 0.2);

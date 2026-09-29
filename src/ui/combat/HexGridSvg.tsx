@@ -206,7 +206,6 @@ export function HexGridSvg({
               onClick={() => onTileClick(coord)}
               onMouseEnter={() => onTileHover(coord)}
               onMouseLeave={() => onTileHover(null)}
-              style={{ cursor: isReachable || isCandidate ? 'pointer' : isRange ? 'crosshair' : 'default' }}
             >
               <polygon
                 points={polyPoints}

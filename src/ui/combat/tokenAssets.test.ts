@@ -209,12 +209,13 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       expect(resolvePixelTokenBase(thief)).toBe('81_human_male');
     });
 
-    it('getUnitTokenUrls returns all 7 rotation URLs for pixel units on whitelist', () => {
+    it('getUnitTokenUrls returns all 8 rotation URLs for pixel units on whitelist', () => {
       const novice = createMockUnit();
       const urls = getUnitTokenUrls(novice);
 
-      expect(urls).toHaveLength(7);
+      expect(urls).toHaveLength(8);
       expect(urls).toContain('/assets/tokens/pixel/000_human_male/Idle/rotations/east.png');
+      expect(urls).toContain('/assets/tokens/pixel/000_human_male/Idle/rotations/north.png');
       expect(urls).toContain('/assets/tokens/pixel/000_human_male/Idle/rotations/south.png');
       expect(urls).toContain('/assets/tokens/pixel/000_human_male/Idle/rotations/south-west.png');
     });
