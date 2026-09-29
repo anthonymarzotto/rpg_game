@@ -133,4 +133,71 @@ describe('HeroProgressionDrawer Component', () => {
     expect(html).toContain('Wildcard Ability 2:');
     expect(html).toContain('Wildcard Passive Trait:');
   });
+
+  it('renders persistent Class Inspector Card displaying class details and abilities', () => {
+    const hero = makeMockUnit({
+      progression: {
+        unitId: 'hero-1',
+        currentLevel: 1,
+        constellation: ['warrior'],
+        accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+        archetypePoints: { fighter: 1, rogue: 0, mage: 0 }
+      },
+      loadout: {
+        activeClassId: 'warrior',
+        wildcardAbilityIds: ['strike'],
+        wildcardPassiveIds: []
+      }
+    });
+    const campaign = makeMockCampaign(hero);
+    const html = renderToStaticMarkup(
+      <HeroProgressionDrawer
+        hero={hero}
+        campaign={campaign}
+        onClose={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+      />
+    );
+
+    // Inspector card shows warrior details
+    expect(html).toContain('drawer-class-inspector-card');
+    expect(html).toContain('Warrior');
+    expect(html).toContain('Tier 1');
+    expect(html).toContain('Force: 1');
+    expect(html).toContain('Active Class Equipped');
+    // Tactical slot cards for equipped wildcards
+    expect(html).toContain('drawer-tactical-slot-card');
+    expect(html).toContain('Strike');
+  });
+
+  it('renders Equip As Active Class action when inspecting an unlocked non-active class', () => {
+    const hero = makeMockUnit({
+      progression: {
+        unitId: 'hero-1',
+        currentLevel: 1,
+        constellation: ['warrior'],
+        accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+        archetypePoints: { fighter: 1, rogue: 0, mage: 0 }
+      },
+      loadout: {
+        activeClassId: 'novice',
+        wildcardAbilityIds: [],
+        wildcardPassiveIds: []
+      }
+    });
+    const campaign = makeMockCampaign(hero);
+    const html = renderToStaticMarkup(
+      <HeroProgressionDrawer
+        hero={hero}
+        campaign={campaign}
+        onClose={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+      />
+    );
+
+    // Initial inspection shows novice (currently active)
+    expect(html).toContain('Novice');
+    expect(html).toContain('Active Class Equipped');
+  });
 });
+
