@@ -43,10 +43,10 @@ describe('HeroCard Component', () => {
     expect(html).toContain('20 / 20');
     expect(html).toContain('FRC: 1');
     expect(html).toContain('Inspect');
-    expect(html).not.toContain('✦ LEVEL READY!');
+    expect(html).not.toContain('✦ ASCENSION READY!');
   });
 
-  it('renders LEVEL READY banner and Level Up CTA when archetype threshold is reached', () => {
+  it('renders ASCENSION READY banner and Ascend CTA when archetype threshold is reached', () => {
     const unit = makeMockUnit({
       progression: {
         unitId: 'hero-1',
@@ -61,11 +61,11 @@ describe('HeroCard Component', () => {
       <HeroCard unit={unit} onInspect={onInspect} />
     );
 
-    expect(html).toContain('✦ LEVEL READY!');
-    expect(html).toContain('✦ Level Up');
+    expect(html).toContain('✦ ASCENSION READY!');
+    expect(html).toContain('✦ Ascend');
   });
 
-  it('renders disabled Bench button when canBench is false', () => {
+  it('renders disabled Withdraw button when canBench is false', () => {
     const unit = makeMockUnit();
     const onInspect = vi.fn();
     const onBench = vi.fn();
@@ -74,6 +74,6 @@ describe('HeroCard Component', () => {
     );
 
     expect(html).toContain('disabled=""');
-    expect(html).toContain('Bench');
+    expect(html).toContain('Withdraw');
   });
 });

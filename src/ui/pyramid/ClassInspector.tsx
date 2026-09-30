@@ -92,7 +92,7 @@ export function ClassInspectorSidebar({
   return (
     <div className="hud-sidebar">
       <div className="hud-header">
-        <h1>Class Constellation</h1>
+        <h1>The Constellation</h1>
         <div className="hud-subtitle">100-Class Pyramid Progression</div>
       </div>
 
@@ -120,8 +120,8 @@ export function ClassInspectorSidebar({
           </span>
           <span className="text-dim">
             {progression.currentLevel === MAX_LEVEL
-              ? 'Capstone Sealed'
-              : 'Novice Adventurer'}
+              ? 'Capstone Reached'
+              : 'Novice Wayfarer'}
           </span>
         </div>
         <div className="unit-primary-class">

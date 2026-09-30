@@ -32,16 +32,16 @@ export function ExpeditionWarRoom({
     <aside className="expedition-war-room" data-testid="expedition-war-room">
       {/* Header */}
       <div className="war-room-header">
-        <span className="war-room-badge font-mono">Stage Reconnaissance</span>
+        <span className="war-room-badge font-mono">Astral Scrying & Recon</span>
         <h2 className="war-room-stage-title font-display">
-          Stage {stage}: {encounter?.name ?? 'Approaching Threats'}
+          Stage {stage}: {encounter?.name ?? 'Approaching Trial'}
         </h2>
       </div>
 
       {/* Detected Hostiles / Intel */}
       <div className="war-room-intel-section">
         <div className="intel-section-title font-ui">
-          <span>Detected Threats ({enemyUnits.length})</span>
+          <span>Detected Hostiles ({enemyUnits.length})</span>
           <span className="threat-budget-pill font-mono">
             Threat: {estimatedThreat || 30} pts
           </span>
@@ -49,7 +49,7 @@ export function ExpeditionWarRoom({
 
         <div className="enemy-tokens-list">
           {enemyUnits.length === 0 ? (
-            <div className="text-muted font-ui">Reconnaissance in progress...</div>
+            <div className="text-muted font-ui">Scrying astral sector...</div>
           ) : (
             enemyUnits.map(({ unit }) => {
               const tokenSrc = resolveTokenAssetPath(unit);
@@ -78,14 +78,14 @@ export function ExpeditionWarRoom({
       {/* Squad Readiness Check */}
       <div className="readiness-section">
         <div className="readiness-label font-ui">
-          <span>Squad Readiness:</span>
+          <span>Vanguard Readiness:</span>
           <span className={isSquadReady ? 'readiness-status-ready' : 'readiness-status-empty'}>
-            {activeSquadCount} / 3 Heroes Ready
+            {activeSquadCount} / 3 Wayfarers Ready
           </span>
         </div>
         {!isSquadReady && (
           <span className="readiness-warning font-ui">
-            Deploy at least 1 hero into the active vanguard before departing.
+            Attune at least 1 wayfarer into the active vanguard before entering the trial.
           </span>
         )}
       </div>
@@ -98,7 +98,7 @@ export function ExpeditionWarRoom({
         disabled={!isSquadReady}
         data-testid="deploy-squad-btn"
       >
-        ⚔️ DEPLOY SQUAD
+        ✦ ENTER TRIAL
       </button>
     </aside>
   );

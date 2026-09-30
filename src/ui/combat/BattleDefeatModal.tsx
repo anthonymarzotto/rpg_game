@@ -22,10 +22,10 @@ export function BattleDefeatModal({
       <div className="defeat-modal-card">
         {/* Header */}
         <div className="defeat-header">
-          <span className="defeat-title-badge">⚔️ Squad Defeated</span>
-          <h2>The Skirmish Was Lost</h2>
+          <span className="defeat-title-badge">⚔️ Vanguard Defeated</span>
+          <h2>The Trial Was Lost</h2>
           <p className="defeat-subtitle">
-            All party members have fallen on the tactical field.
+            All wayfarers in The Vanguard have fallen. Returning to The Nexus to regroup.
           </p>
         </div>
 
@@ -63,11 +63,11 @@ export function BattleDefeatModal({
               onClick={onRetreatToCamp}
               data-testid="defeat-retreat-camp-btn"
             >
-              ⛺ Retreat to Camp
+              ⛺ Retreat to The Nexus
             </button>
           ) : (
             <button className="btn-defeat-retry" onClick={onRetry}>
-              ↺ Retry Skirmish
+              ↺ Retry Trial
             </button>
           )}
         </div>

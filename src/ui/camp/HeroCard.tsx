@@ -62,13 +62,13 @@ export function HeroCard({
 
       {/* Attributes: Force / Finesse / Focus */}
       <div className="hero-card-attributes font-mono">
-        <span className="attr-item force" title="Force (Physical / Kinetic)">
+        <span className="attr-item force" title="Force">
           ⚔️ FRC: {unit.baseAttributes.force}
         </span>
-        <span className="attr-item finesse" title="Finesse (Agility / Criticals)">
+        <span className="attr-item finesse" title="Finesse">
           🗡️ FIN: {unit.baseAttributes.finesse}
         </span>
-        <span className="attr-item focus" title="Focus (Arcane / Resolve)">
+        <span className="attr-item focus" title="Focus">
           🔮 FOC: {unit.baseAttributes.focus}
         </span>
       </div>
@@ -76,7 +76,7 @@ export function HeroCard({
       {/* Level Ready Alert */}
       {levelStatus.isReady && (
         <div className="hero-level-ready-banner font-ui" data-testid="level-ready-banner">
-          ✦ LEVEL READY!
+          ✦ ASCENSION READY!
         </div>
       )}
 
@@ -124,7 +124,7 @@ export function HeroCard({
           onClick={() => onInspect(unit)}
           data-testid="hero-inspect-btn"
         >
-          {levelStatus.isReady ? '✦ Level Up' : 'Inspect'}
+          {levelStatus.isReady ? '✦ Ascend' : 'Inspect'}
         </button>
 
         {onSwap && (
@@ -144,10 +144,10 @@ export function HeroCard({
             className="hero-action-btn secondary font-ui"
             onClick={() => onBench(unit.id)}
             disabled={!canBench}
-            title={canBench ? 'Move hero to Reserve Barracks' : 'Cannot bench the only active squad hero'}
+            title={canBench ? 'Return to The Enclave' : 'Cannot withdraw the only wayfarer in The Vanguard'}
             data-testid="hero-bench-btn"
           >
-            Bench
+            Withdraw
           </button>
         )}
       </div>

@@ -45,7 +45,7 @@ export function HeroMiniCard({
       </div>
 
       {levelStatus.isReady && (
-        <span className="mini-card-level-badge font-ui">✦ LEVEL READY</span>
+        <span className="mini-card-level-badge font-ui">✦ ASCENSION READY</span>
       )}
 
       <div className="mini-card-actions">

@@ -3,13 +3,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { StartScreen } from './StartScreen';
 
 describe('StartScreen Component', () => {
-  it('renders start screen with title, subtitle, New Expedition CTA, and version', () => {
+  it('renders start screen with title, New Astral Expedition CTA, and version', () => {
     const onNewGame = vi.fn();
     const html = renderToStaticMarkup(<StartScreen onNewGame={onNewGame} />);
 
     expect(html).toContain('ASTRAL TACTICS');
-    expect(html).toContain('Tactical RPG Campaign &amp; Class Constellation');
-    expect(html).toContain('New Expedition');
+    expect(html).toContain('New Astral Expedition');
     expect(html).toContain('v0.3.2');
   });
 

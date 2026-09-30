@@ -51,7 +51,7 @@ export function ActionBar({
           disabled={!hasAp}
           onClick={() => onSelectAction(isSelected ? null : ability)}
         >
-          {isWildcard && <span className="wildcard-ribbon">Wildcard</span>}
+          {isWildcard && <span className="wildcard-ribbon">Resonant</span>}
           <span className="action-icon">{icon}</span>
           <div className="action-text-block">
             <span className="action-name">{ability.name}</span>
@@ -64,7 +64,7 @@ export function ActionBar({
           <div className="tooltip-title-row">
             <span className="tooltip-name">{ability.name}</span>
             <span className="tooltip-tag">
-              {isWildcard ? 'Wildcard • ' : ''}
+              {isWildcard ? 'Resonant • ' : ''}
               {ability.archetypeTag ?? 'Universal'}
             </span>
           </div>
@@ -158,7 +158,7 @@ export function ActionBar({
           className={`btn-action move-btn ${actionMode === 'MOVE' ? 'active' : ''}`}
           disabled={currentAp < 1}
           onClick={() => onSelectAction(actionMode === 'MOVE' ? null : 'MOVE')}
-          title="Move up to your Move distance (costs 1 AP)"
+          title="Traverse the astral grid (costs 1 AP)"
         >
           <span className="action-icon">🏃</span>
           <div className="action-text-block">
@@ -173,7 +173,7 @@ export function ActionBar({
         {/* Wildcard Abilities Divider & Deck */}
         {wildcardAbilities.length > 0 && (
           <>
-            <div className="action-deck-divider" title="Wildcard Deck" />
+            <div className="action-deck-divider" title="Resonant Deck" />
             {wildcardAbilities.map((ability) => renderAbilityButton(ability, true))}
           </>
         )}
@@ -183,7 +183,7 @@ export function ActionBar({
           <span className="action-icon">⏳</span>
           <div className="action-text-block">
             <span className="action-name">End Turn</span>
-            <span className="action-cost">+{currentAp * 20} CTB</span>
+            <span className="action-cost">+{currentAp * 20} Initiative</span>
           </div>
         </button>
       </div>

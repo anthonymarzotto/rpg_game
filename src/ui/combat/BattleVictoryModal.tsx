@@ -59,9 +59,9 @@ export function BattleVictoryModal({
       <div className="victory-modal-card">
         {/* Header */}
         <div className="victory-header">
-          <span className="victory-title-badge">🏆 Objective Complete</span>
-          <h2>Trial Victory!</h2>
-          <p>You have satisfied the combat trial milestone.</p>
+          <span className="victory-title-badge">✦ Trial Complete</span>
+          <h2>Trial Triumph!</h2>
+          <p>The trial has been overcome. Your vanguard returns victorious.</p>
         </div>
 
         {/* Squad Member Selection Tabs */}
@@ -114,10 +114,10 @@ export function BattleVictoryModal({
         {requiresChoice && (
           <div className="choice-prompt-card">
             <div className="victory-section-title text-gold">
-              ✦ Multiple Paths Available!
+              ✦ Multiple Disciplines Ready!
             </div>
             <p className="choice-prompt-desc">
-              Your actions qualified for multiple archetypes. Choose which path to advance first:
+              Your actions qualified for multiple disciplines. Choose which path to ascend first:
             </p>
             <div className="choice-buttons-grid">
               {qualifyingArchetypes.map((archetype) => (
@@ -127,9 +127,9 @@ export function BattleVictoryModal({
                   className="btn-choice"
                   onClick={() => onSelectArchetypeChoice(archetype)}
                 >
-                  {archetype === 'FIGHTER' && '⚔️ Advance Warrior (Fighter)'}
-                  {archetype === 'ROGUE' && '🗡️ Advance Thief (Rogue)'}
-                  {archetype === 'MAGE' && '🔮 Advance Wizard (Mage)'}
+                  {archetype === 'FIGHTER' && '⚔️ Ascend: Warrior (Fighter)'}
+                  {archetype === 'ROGUE' && '🗡️ Ascend: Thief (Rogue)'}
+                  {archetype === 'MAGE' && '🔮 Ascend: Wizard (Mage)'}
                 </button>
               ))}
             </div>
@@ -141,7 +141,7 @@ export function BattleVictoryModal({
           <div className="level-unlock-card">
             <div className="level-unlock-header">
               <div className="class-title-glow">
-                🌟 Unlocked: {unlockedClass.name}
+                🌟 Class Unlocked: {unlockedClass.name}
               </div>
               <span className="level-tier-badge">Tier {unlockedClass.totalPoints} • Level 1</span>
             </div>
@@ -172,11 +172,11 @@ export function BattleVictoryModal({
               onClick={onProceedToCamp}
               data-testid="victory-proceed-camp-btn"
             >
-              ⛺ Return to Camp
+              ✦ Return to The Nexus
             </button>
           ) : (
             <button type="button" className="btn-rematch-action" onClick={onRematch}>
-              ⚔️ Continue / Rematch
+              ⚔️ Retry Trial
             </button>
           )}
           <button type="button" className="btn-dismiss-action" onClick={onDismiss}>

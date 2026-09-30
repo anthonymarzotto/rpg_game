@@ -21,7 +21,7 @@ export function InitiativeRibbon({ state }: InitiativeRibbonProps) {
     <div className="initiative-ribbon-container">
       <div className="initiative-label-box">
         <span className="initiative-icon">⏳</span>
-        <span className="initiative-text">CTB QUEUE</span>
+        <span className="initiative-text">TURN QUEUE</span>
       </div>
 
       <div className="initiative-track">
@@ -37,7 +37,7 @@ export function InitiativeRibbon({ state }: InitiativeRibbonProps) {
               className={`initiative-chip ${
                 turn.isCurrentActive ? 'chip-active' : ''
               } ${isPlayer ? 'chip-player' : 'chip-enemy'}`}
-              title={`${turn.name} • ${turn.faction} (CTB: ${Math.round(turn.projectedGauge)})`}
+              title={`${turn.name} • ${turn.faction} (Initiative: ${Math.round(turn.projectedGauge)})`}
             >
               <div className="chip-avatar-wrap">
                 {tokenSrc ? (

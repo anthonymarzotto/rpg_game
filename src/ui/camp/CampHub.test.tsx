@@ -25,27 +25,27 @@ describe('CampHub Integration Test Suite', () => {
     );
 
     // Header elements
-    expect(html).toContain('EXPEDITION CAMP');
-    expect(html).toContain('Stage 1');
-    expect(html).toContain('Victories: 0');
-    expect(html).toContain('Defeats: 0');
-    expect(html).toContain('Exit to Title');
+    expect(html).toContain('THE NEXUS');
+    expect(html).toContain('Sector 1');
+    expect(html).toContain('Triumphs: 0');
+    expect(html).toContain('Eclipses: 0');
+    expect(html).toContain('Return to Portal');
 
     // Active squad dock with 3 units
-    expect(html).toContain('Active Vanguard');
+    expect(html).toContain('The Vanguard');
     expect(html).toContain('3 / 3');
     for (const unit of campaign.roster) {
       expect(html).toContain(unit.name);
     }
 
     // Expedition war room
-    expect(html).toContain('Stage Reconnaissance');
-    expect(html).toContain('DEPLOY SQUAD');
+    expect(html).toContain('Astral Scrying &amp; Recon');
+    expect(html).toContain('ENTER TRIAL');
 
     // Reserve barracks tray
-    expect(html).toContain('Reserve Barracks');
-    expect(html).toContain('+ Recruit Novice');
-    expect(html).toContain('No heroes in reserve. Recruit a Novice to expand your roster!');
+    expect(html).toContain('The Enclave');
+    expect(html).toContain('+ Awaken Novice');
+    expect(html).toContain('No wayfarers in The Enclave. Awaken a Novice to expand your roster!');
 
     // Progression drawer is closed initially
     expect(html).not.toContain('Hero Progression:');
@@ -74,8 +74,8 @@ describe('CampHub Integration Test Suite', () => {
 
     // Reserve hero should now be listed in reserve barracks
     expect(html).toContain(reserveHero!.name);
-    expect(html).toContain('1 Hero');
-    expect(html).not.toContain('No heroes in reserve. Recruit a Novice to expand your roster!');
+    expect(html).toContain('1 Wayfarer');
+    expect(html).not.toContain('No wayfarers in The Enclave. Awaken a Novice to expand your roster!');
   });
 
   it('reflects benching and deployment state changes (Smart Two-Way Swapping)', () => {
@@ -96,7 +96,7 @@ describe('CampHub Integration Test Suite', () => {
 
     // Squad is 2/3 with an empty slot
     expect(htmlWithEmptySlot).toContain('2 / 3');
-    expect(htmlWithEmptySlot).toContain('Empty Vanguard Slot');
+    expect(htmlWithEmptySlot).toContain('Vacant Conduit');
 
     // HeroC is in reserve and shows Deploy button because active squad < 3
     expect(htmlWithEmptySlot).toContain(heroC.name);
@@ -116,9 +116,9 @@ describe('CampHub Integration Test Suite', () => {
 
     expect(htmlSwapped).toContain(heroA.name);
     expect(htmlSwapped).toContain(heroC.name);
-    expect(htmlSwapped).toContain('Empty Vanguard Slot');
+    expect(htmlSwapped).toContain('Vacant Conduit');
     // HeroB is now in reserve
-    expect(htmlSwapped).toContain('1 Hero');
+    expect(htmlSwapped).toContain('1 Wayfarer');
   });
 
   it('renders hero progression drawer with constellation and archetype point spend', () => {
@@ -155,7 +155,7 @@ describe('CampHub Integration Test Suite', () => {
       />
     );
 
-    expect(htmlLeveled).toContain('EXPEDITION CAMP');
+    expect(htmlLeveled).toContain('THE NEXUS');
     expect(htmlLeveled).toContain(leveledHero.name);
   });
 
@@ -171,9 +171,9 @@ describe('CampHub Integration Test Suite', () => {
       />
     );
 
-    expect(html).toContain('DEPLOY SQUAD');
+    expect(html).toContain('ENTER TRIAL');
     expect(html).toContain('Threat:');
-    expect(html).toContain('Detected Threats');
+    expect(html).toContain('Detected Hostiles');
     expect(html).not.toContain('disabled=""');
   });
 });

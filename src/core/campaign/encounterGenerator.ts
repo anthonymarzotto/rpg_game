@@ -204,7 +204,7 @@ export function generateArenaObstacles(
         coord,
         isWalkable: false,
         terrainType: 'OBSTACLE',
-        label: 'Ruins'
+        label: 'RUINS'
       }));
     }
   }
@@ -259,7 +259,7 @@ export function generateStageEncounter(
 
   return {
     id: `stage-${stage}-encounter-${effectiveSeed}`,
-    name: `Stage ${stage} Skirmish`,
+    name: `Sector ${stage} Trial`,
     arenaRadius: radius,
     tileOverrides: obstacles,
     units: placedUnits,

@@ -54,13 +54,12 @@ describe('HeroProgressionDrawer Component', () => {
       />
     );
 
-    expect(html).toContain('Hero Progression: Valerius');
     expect(html).toContain('Valerius');
     expect(html).toContain('Level 0 novice');
     expect(html).toContain('Force: 2');
     expect(html).toContain('Finesse: 1');
     expect(html).toContain('Focus: 0');
-    expect(html).toContain('Class Constellation');
+    expect(html).toContain('The Constellation');
     expect(html).toContain('drawer-svg-viewport');
     expect(html).toContain('chart-svg');
   });
@@ -85,11 +84,11 @@ describe('HeroProgressionDrawer Component', () => {
       />
     );
 
-    expect(html).toContain('Level Ready: Allocate 1 Archetype Point');
-    expect(html).toContain('Advance Fighter (+1 Force)');
+    expect(html).toContain('Ascension Ready: Channel 1 Astral Discipline Point');
+    expect(html).toContain('Ascend: Fighter (+1 Force)');
     expect(html).toContain('Current: 5 XP');
-    expect(html).not.toContain('Advance Rogue');
-    expect(html).not.toContain('Advance Mage');
+    expect(html).not.toContain('Ascend: Rogue');
+    expect(html).not.toContain('Ascend: Mage');
   });
 
   it('hides Level Ready allocation CTA when hero does not have enough XP', () => {
@@ -112,7 +111,7 @@ describe('HeroProgressionDrawer Component', () => {
       />
     );
 
-    expect(html).not.toContain('Level Ready: Allocate 1 Archetype Point');
+    expect(html).not.toContain('Ascension Ready: Channel 1 Astral Discipline Point');
   });
 
   it('renders loadout configuration options for active class, wildcards, and passive', () => {
@@ -127,11 +126,11 @@ describe('HeroProgressionDrawer Component', () => {
       />
     );
 
-    expect(html).toContain('Equipped Loadout &amp; Wildcards');
-    expect(html).toContain('Active Class:');
-    expect(html).toContain('Wildcard Ability 1:');
-    expect(html).toContain('Wildcard Ability 2:');
-    expect(html).toContain('Wildcard Passive Trait:');
+    expect(html).toContain('Combat Manifest');
+    expect(html).toContain('Assumed Class:');
+    expect(html).toContain('Resonant Ability I:');
+    expect(html).toContain('Resonant Ability II:');
+    expect(html).toContain('Resonant Passive:');
   });
 
   it('renders persistent Class Inspector Card displaying class details and abilities', () => {
@@ -164,7 +163,7 @@ describe('HeroProgressionDrawer Component', () => {
     expect(html).toContain('Warrior');
     expect(html).toContain('Tier 1');
     expect(html).toContain('Force: 1');
-    expect(html).toContain('Active Class Equipped');
+    expect(html).toContain('Assumed Class');
     // Tactical slot cards for equipped wildcards
     expect(html).toContain('drawer-tactical-slot-card');
     expect(html).toContain('Strike');
@@ -197,7 +196,7 @@ describe('HeroProgressionDrawer Component', () => {
 
     // Initial inspection shows novice (currently active)
     expect(html).toContain('Novice');
-    expect(html).toContain('Active Class Equipped');
+    expect(html).toContain('Assumed Class');
   });
 });
 

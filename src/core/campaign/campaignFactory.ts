@@ -40,7 +40,7 @@ export function createCampaign(options?: CreateCampaignOptions): CampaignState {
   const seed = options?.seed ?? (options?.rng ? Math.floor(options.rng() * 1_000_000) : Date.now());
   const rng = options?.rng ?? createRng(seed);
   const campaignId = options?.id ?? `campaign-${seed}`;
-  const campaignName = options?.name ?? 'Campaign #1';
+  const campaignName = options?.name ?? 'Astral Expedition #1';
   const squadSize = options?.initialSquadSize ?? 3;
 
   const usedNames = new Set<string>();

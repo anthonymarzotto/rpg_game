@@ -106,8 +106,8 @@ export function CombatArena({
       {/* Top Testbed Bar */}
       <div className="testbed-top-bar">
         <div className="testbed-title-block">
-          <h2>⚔️ Tactical Arena Testbed</h2>
-          <span className="testbed-badge">Phase 2 • Squad Tactics (3v4)</span>
+          <h2>✦ Astral Trial</h2>
+          <span className="testbed-badge">{activeEncounter.name ?? 'Celestial Trial'}</span>
         </div>
 
         {/* Dev Controls: Dice, Speed, Zoom */}
@@ -195,7 +195,7 @@ export function CombatArena({
         {/* Global Controls */}
         <div className="testbed-actions">
           <button className="btn-testbed reset-btn" onClick={handleResetEncounter} title="Restores all units and HP to start">
-            ↺ Reset Arena
+            ↺ Reset Trial
           </button>
         </div>
       </div>

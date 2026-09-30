@@ -92,12 +92,12 @@ export function CampHub({
       {/* Header */}
       <header className="camp-hub-header">
         <div className="camp-header-left">
-          <span className="camp-brand font-display">✦ EXPEDITION CAMP</span>
-          <span className="camp-stage-badge font-mono">Stage {campaign.stage}</span>
+          <span className="camp-brand font-display">✦ THE NEXUS</span>
+          <span className="camp-stage-badge font-mono">Sector {campaign.stage}</span>
         </div>
         <div className="camp-header-stats font-mono">
-          <span className="camp-stat-win">Victories: {campaign.history.victories}</span>
-          <span className="camp-stat-loss">Defeats: {campaign.history.defeats}</span>
+          <span className="camp-stat-win">Triumphs: {campaign.history.victories}</span>
+          <span className="camp-stat-loss">Eclipses: {campaign.history.defeats}</span>
         </div>
         <div className="camp-header-actions">
           {onExitToTitle && (
@@ -105,10 +105,10 @@ export function CampHub({
               type="button"
               className="camp-exit-btn font-ui"
               onClick={onExitToTitle}
-              title="Return to Title Screen"
+              title="Return to Portal"
               data-testid="camp-exit-title-btn"
             >
-              Exit to Title
+              Return to Portal
             </button>
           )}
         </div>

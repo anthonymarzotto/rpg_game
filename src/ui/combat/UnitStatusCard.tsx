@@ -166,7 +166,7 @@ export function UnitStatusCard({
           <div className="preview-header">
             <span className="preview-label">Target Preview</span>
             {targetPreview.isBlockedLoS ? (
-              <span className="los-badge blocked">✖ Screened</span>
+              <span className="los-badge blocked">✖ Obstructed</span>
             ) : (
               <div className="preview-badges-row">
                 {targetPreview.isFlankAdvantage && (

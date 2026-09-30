@@ -18,7 +18,6 @@ export function StartScreen({
         <header className="start-screen-header">
           <div className="start-screen-emblem">✦</div>
           <h1 className="start-screen-title font-display">ASTRAL TACTICS</h1>
-          <p className="start-screen-subtitle">Tactical RPG Campaign & Class Constellation</p>
         </header>
 
         <div className="start-screen-actions">
@@ -28,7 +27,7 @@ export function StartScreen({
             onClick={onNewGame}
             data-testid="start-new-game-btn"
           >
-            ⚔️ New Expedition
+            ✦ New Astral Expedition
           </button>
 
           <div className="start-screen-continue-group">
@@ -40,7 +39,7 @@ export function StartScreen({
               aria-disabled={!canContinue}
               data-testid="start-continue-btn"
             >
-              ✦ Continue Run
+              ✦ Resume Expedition
             </button>
           </div>
         </div>

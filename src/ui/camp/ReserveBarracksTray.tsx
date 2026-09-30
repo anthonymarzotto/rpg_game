@@ -54,9 +54,9 @@ export function ReserveBarracksTray({
       {/* Header and Controls */}
       <div className="reserve-tray-header">
         <div className="reserve-tray-title-group">
-          <h3 className="reserve-tray-title font-display">Reserve Barracks</h3>
+          <h3 className="reserve-tray-title font-display">The Enclave</h3>
           <span className="reserve-count-badge font-mono">
-            {reserveHeroes.length} {reserveHeroes.length === 1 ? 'Hero' : 'Heroes'}
+            {reserveHeroes.length} {reserveHeroes.length === 1 ? 'Wayfarer' : 'Wayfarers'}
           </span>
         </div>
 
@@ -78,7 +78,7 @@ export function ReserveBarracksTray({
               onClick={() => setActiveFilter('level_ready')}
               data-testid="filter-level-ready-btn"
             >
-              ✦ Level Ready ({levelReadyCount})
+              ✦ Ascension Ready ({levelReadyCount})
             </button>
           )}
 
@@ -101,7 +101,7 @@ export function ReserveBarracksTray({
           onClick={onRecruitNovice}
           data-testid="recruit-novice-btn"
         >
-          + Recruit Novice
+          + Awaken Novice
         </button>
       </div>
 
@@ -109,7 +109,7 @@ export function ReserveBarracksTray({
       {swappingHeroName && (
         <div className="reserve-swap-banner font-ui" data-testid="reserve-swap-banner">
           <span>
-            🔄 Select a reserve hero below to replace <strong>{swappingHeroName}</strong> in the active vanguard:
+            🔄 Select a wayfarer from The Enclave to attune in place of <strong>{swappingHeroName}</strong>:
           </span>
           {onCancelSwap && (
             <button
@@ -129,8 +129,8 @@ export function ReserveBarracksTray({
         {filteredHeroes.length === 0 ? (
           <div className="reserve-empty-state font-ui">
             {reserveHeroes.length === 0
-              ? 'No heroes in reserve. Recruit a Novice to expand your roster!'
-              : 'No reserve heroes match the selected filter.'}
+              ? 'No wayfarers in The Enclave. Awaken a Novice to expand your roster!'
+              : 'No reserve wayfarers match the selected filter.'}
           </div>
         ) : (
           filteredHeroes.map((unit) => (

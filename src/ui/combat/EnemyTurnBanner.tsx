@@ -33,7 +33,7 @@ export function EnemyTurnBanner({
       {/* Unit Identification */}
       <div className="enemy-turn-identity">
         <div className="enemy-turn-tag-row">
-          <span className="enemy-badge">Hostile Turn</span>
+          <span className="enemy-badge">Enemy Turn</span>
         </div>
         <span className="enemy-turn-name">{activeCu.unit.name}</span>
       </div>
@@ -42,7 +42,7 @@ export function EnemyTurnBanner({
       <div className="enemy-intent-pill">
         <span className="enemy-intent-pulse" />
         <span className="enemy-intent-text">
-          {actionDescription ?? 'Evaluating tactical positions...'}
+          {actionDescription ?? 'Scrutinizing the astral field...'}
         </span>
       </div>
 

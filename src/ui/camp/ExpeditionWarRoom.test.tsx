@@ -61,7 +61,7 @@ describe('ExpeditionWarRoom Component', () => {
     expect(html).toContain('Threat: 20 pts');
     expect(html).toContain('Bandit Scout');
     expect(html).toContain('Bandit Brawler');
-    expect(html).toContain('3 / 3 Heroes Ready');
+    expect(html).toContain('3 / 3 Wayfarers Ready');
     expect(html).not.toContain('disabled=""');
   });
 
@@ -75,6 +75,6 @@ describe('ExpeditionWarRoom Component', () => {
     );
 
     expect(html).toContain('disabled=""');
-    expect(html).toContain('Deploy at least 1 hero into the active vanguard');
+    expect(html).toContain('Attune at least 1 wayfarer into the active vanguard');
   });
 });

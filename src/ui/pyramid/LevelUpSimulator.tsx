@@ -20,7 +20,7 @@ export function LevelUpSimulator({
     <>
       {/* Level Up Simulator Controls */}
       <div className="sim-controls">
-        <div className="sim-section-label">Advance Archetype Level</div>
+        <div className="sim-section-label">Ascend Archetype Level</div>
         <div className="point-buttons">
           <button
             className="btn-point fighter"
@@ -57,7 +57,7 @@ export function LevelUpSimulator({
 
       {/* Quick Presets */}
       <div className="sim-controls">
-        <div className="sim-section-label">Demo Constellation Paths</div>
+        <div className="sim-section-label">Constellation Presets</div>
         <div className="presets-grid">
           <button
             className="btn-preset"

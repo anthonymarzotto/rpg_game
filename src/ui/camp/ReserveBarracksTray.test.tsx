@@ -46,13 +46,13 @@ describe('ReserveBarracksTray Component', () => {
       />
     );
 
-    expect(html).toContain('Reserve Barracks');
-    expect(html).toContain('2 Heroes');
-    expect(html).toContain('+ Recruit Novice');
+    expect(html).toContain('The Enclave');
+    expect(html).toContain('2 Wayfarers');
+    expect(html).toContain('+ Awaken Novice');
     expect(html).toContain('Garrick');
     expect(html).toContain('Kaelen');
     expect(html).toContain('All (2)');
-    expect(html).toContain('Level Ready (1)');
+    expect(html).toContain('Ascension Ready (1)');
   });
 
   it('renders swap guidance banner and Slot In buttons when in swap mode', () => {
@@ -70,7 +70,7 @@ describe('ReserveBarracksTray Component', () => {
       />
     );
 
-    expect(html).toContain('Select a reserve hero below to replace');
+    expect(html).toContain('Select a wayfarer from The Enclave to attune in place of');
     expect(html).toContain('Roland');
     expect(html).toContain('Slot In');
     expect(html).toContain('Cancel Swap');
@@ -87,6 +87,6 @@ describe('ReserveBarracksTray Component', () => {
       />
     );
 
-    expect(html).toContain('No heroes in reserve. Recruit a Novice');
+    expect(html).toContain('No wayfarers in The Enclave. Awaken a Novice');
   });
 });

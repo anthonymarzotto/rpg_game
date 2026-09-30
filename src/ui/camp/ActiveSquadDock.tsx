@@ -30,7 +30,7 @@ export function ActiveSquadDock({
     <section className="active-squad-dock" data-testid="active-squad-dock">
       <header className="squad-dock-header">
         <h2 className="squad-dock-title font-display">
-          <span>⚔️ Active Vanguard</span>
+          <span>✦ The Vanguard</span>
           <span className="squad-count-badge font-mono">
             {activeSquad.length} / {maxSquadSize}
           </span>
@@ -60,9 +60,9 @@ export function ActiveSquadDock({
               data-testid={`empty-squad-slot-${index}`}
             >
               <div className="empty-slot-plus">+</div>
-              <span className="empty-slot-label font-ui">Empty Vanguard Slot</span>
+              <span className="empty-slot-label font-ui">Vacant Conduit</span>
               <span className="empty-slot-hint font-ui">
-                Deploy a reserve hero from the barracks below
+                Attune a reserve wayfarer to this conduit
               </span>
             </div>
           );

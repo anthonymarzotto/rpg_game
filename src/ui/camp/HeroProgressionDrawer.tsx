@@ -242,9 +242,6 @@ export function HeroProgressionDrawer({
               )}
             </div>
             <div className="drawer-header-titles">
-              <h2 className="hero-drawer-title font-display">
-                ✦ Hero Progression: {hero.name}
-              </h2>
               <div className="drawer-overview-class font-ui">
                 <span className="drawer-overview-name">{hero.name}</span> — Level {hero.progression.currentLevel} {hero.loadout.activeClassId}
               </div>
@@ -280,7 +277,7 @@ export function HeroProgressionDrawer({
             {levelStatus.isReady && (
               <div className="drawer-level-up-box" data-testid="drawer-level-up-box">
                 <h4 className="level-up-box-title font-ui">
-                  ✦ Level Ready: Allocate 1 Archetype Point ({levelStatus.threshold} XP)
+                  ✦ Ascension Ready: Channel 1 Astral Discipline Point ({levelStatus.threshold} XP)
                 </h4>
                 <div className="level-up-archetype-options">
                   {levelStatus.qualifyingArchetypes.includes('FIGHTER') && (
@@ -290,7 +287,7 @@ export function HeroProgressionDrawer({
                       onClick={() => handleLevelUp('FIGHTER')}
                       data-testid="spend-fighter-btn"
                     >
-                      <span>⚔️ Advance Fighter (+1 Force)</span>
+                      <span>⚔️ Ascend: Fighter (+1 Force)</span>
                       <span className="font-mono">Current: {xp.fighter} XP</span>
                     </button>
                   )}
@@ -301,7 +298,7 @@ export function HeroProgressionDrawer({
                       onClick={() => handleLevelUp('ROGUE')}
                       data-testid="spend-rogue-btn"
                     >
-                      <span>🗡️ Advance Rogue (+1 Finesse)</span>
+                      <span>🗡️ Ascend: Rogue (+1 Finesse)</span>
                       <span className="font-mono">Current: {xp.rogue} XP</span>
                     </button>
                   )}
@@ -312,7 +309,7 @@ export function HeroProgressionDrawer({
                       onClick={() => handleLevelUp('MAGE')}
                       data-testid="spend-mage-btn"
                     >
-                      <span>🔮 Advance Mage (+1 Focus)</span>
+                      <span>🔮 Ascend: Mage (+1 Focus)</span>
                       <span className="font-mono">Current: {xp.mage} XP</span>
                     </button>
                   )}
@@ -323,9 +320,9 @@ export function HeroProgressionDrawer({
             {/* Constellation Star Chart Preview */}
             <div className="drawer-constellation-section">
               <div className="drawer-section-header">
-                <span className="drawer-section-title font-ui">Class Constellation</span>
+                <span className="drawer-section-title font-ui">The Constellation</span>
                 <span className="drawer-section-hint font-mono">
-                  Hover star to scan • Click node to pin details &amp; equip
+                  Hover node to scan • Click to inspect &amp; equip
                 </span>
               </div>
 
@@ -362,9 +359,9 @@ export function HeroProgressionDrawer({
                       </div>
                       <div className="scanner-status font-ui">
                         {isHoveredUnlocked ? (
-                          <span className="status-unlocked">★ Unlocked in Constellation</span>
+                          <span className="status-unlocked">★ Class Unlocked</span>
                         ) : isHoveredEligible ? (
-                          <span className="status-eligible">✦ Eligible Next Level</span>
+                          <span className="status-eligible">✦ Next Ascension</span>
                         ) : isHoveredLocked ? (
                           <span className="status-locked">✕ Locked Out</span>
                         ) : (
@@ -378,11 +375,11 @@ export function HeroProgressionDrawer({
                   ) : (
                     <div className="scanner-body idle">
                       <div className="scanner-header">
-                        <span className="scanner-idle-title font-ui">✦ Star Scanner</span>
+                        <span className="scanner-idle-title font-ui">✦ Node Scanner</span>
                         <span className="scanner-idle-badge font-mono">STANDBY</span>
                       </div>
                       <p className="scanner-idle-desc font-ui">
-                        Hover over any star node to preview requirements &amp; status.
+                        Hover over any node to analyze requirements &amp; status.
                       </p>
                       <span className="scanner-idle-hint font-mono">Click node to pin</span>
                     </div>
@@ -416,7 +413,7 @@ export function HeroProgressionDrawer({
                     ) : isSelectedUnlocked ? (
                       <span className="status-unlocked">★ Unlocked</span>
                     ) : isSelectedEligible ? (
-                      <span className="status-eligible">✦ Eligible Next Level</span>
+                      <span className="status-eligible">✦ Next Ascension</span>
                     ) : isSelectedLocked ? (
                       <span className="status-locked">✕ Locked Out</span>
                     ) : (
@@ -492,7 +489,7 @@ export function HeroProgressionDrawer({
                 {isSelectedUnlocked ? (
                   isSelectedActive ? (
                     <button type="button" className="btn-equip-class equipped font-ui" disabled>
-                      ✓ Active Class Equipped
+                      ✓ Assumed Class
                     </button>
                   ) : (
                     <button
@@ -501,20 +498,20 @@ export function HeroProgressionDrawer({
                       onClick={() => handleUpdateLoadout({ activeClassId: selectedClassDef.id })}
                       data-testid="btn-equip-active-class"
                     >
-                      ✦ Equip As Active Class
+                      ✦ Assume Class
                     </button>
                   )
                 ) : isSelectedEligible ? (
                   <div className="inspector-instruction font-ui">
-                    ✦ Spend an archetype point at level-up to unlock this class.
+                    ✦ Ascend to unlock this class.
                   </div>
                 ) : isSelectedLocked ? (
                   <div className="inspector-instruction locked font-ui">
-                    ✕ Locked Out: Hero archetype point distribution cannot reach this class.
+                    ✕ Locked Out: This wayfarer's ascension path cannot reach this class.
                   </div>
                 ) : (
                   <div className="inspector-instruction locked font-ui">
-                    ○ Future Pathway: Higher tier requirements needed.
+                    ○ Future Pathway: Further ascensions required.
                   </div>
                 )}
               </div>
@@ -524,11 +521,11 @@ export function HeroProgressionDrawer({
           {/* Right Column: Equipped Loadout & Wildcards */}
           <div className="drawer-right-col">
             <div className="drawer-loadout-section" data-testid="drawer-loadout-section">
-              <span className="drawer-section-title font-ui">Equipped Loadout &amp; Wildcards</span>
+              <span className="drawer-section-title font-ui">Combat Manifest</span>
 
               {/* Active Class */}
               <div className="drawer-loadout-field">
-                <label className="drawer-field-label font-ui">Active Class:</label>
+                <label className="drawer-field-label font-ui">Assumed Class:</label>
                 <select
                   className="drawer-select font-ui"
                   value={hero.loadout.activeClassId}
@@ -574,7 +571,7 @@ export function HeroProgressionDrawer({
 
               {/* Wildcard Ability 1 */}
               <div className="drawer-loadout-field">
-                <label className="drawer-field-label font-ui">Wildcard Ability 1:</label>
+                <label className="drawer-field-label font-ui">Resonant Ability I:</label>
                 <select
                   className="drawer-select font-ui"
                   value={currentWildcard1}
@@ -599,7 +596,7 @@ export function HeroProgressionDrawer({
                   <div className="drawer-tactical-slot-card">
                     <div className="slot-card-header font-ui">
                       <span className={`slot-tag ${equippedWildcard1Ability.archetypeTag?.toLowerCase() ?? 'fighter'} font-mono`}>
-                        {equippedWildcard1Ability.archetypeTag ?? 'WILDCARD'}
+                        {equippedWildcard1Ability.archetypeTag ?? 'RESONANT'}
                       </span>
                       <span className="slot-name font-display">{equippedWildcard1Ability.name}</span>
                       <span className="slot-ap font-mono">{equippedWildcard1Ability.apCost} AP</span>
@@ -608,14 +605,14 @@ export function HeroProgressionDrawer({
                   </div>
                 ) : (
                   <div className="drawer-tactical-empty-slot font-mono">
-                    (No wildcard ability equipped)
+                    (No resonant ability slotted)
                   </div>
                 )}
               </div>
 
               {/* Wildcard Ability 2 */}
               <div className="drawer-loadout-field">
-                <label className="drawer-field-label font-ui">Wildcard Ability 2:</label>
+                <label className="drawer-field-label font-ui">Resonant Ability II:</label>
                 <select
                   className="drawer-select font-ui"
                   value={currentWildcard2}
@@ -640,7 +637,7 @@ export function HeroProgressionDrawer({
                   <div className="drawer-tactical-slot-card">
                     <div className="slot-card-header font-ui">
                       <span className={`slot-tag ${equippedWildcard2Ability.archetypeTag?.toLowerCase() ?? 'fighter'} font-mono`}>
-                        {equippedWildcard2Ability.archetypeTag ?? 'WILDCARD'}
+                        {equippedWildcard2Ability.archetypeTag ?? 'RESONANT'}
                       </span>
                       <span className="slot-name font-display">{equippedWildcard2Ability.name}</span>
                       <span className="slot-ap font-mono">{equippedWildcard2Ability.apCost} AP</span>
@@ -649,14 +646,14 @@ export function HeroProgressionDrawer({
                   </div>
                 ) : (
                   <div className="drawer-tactical-empty-slot font-mono">
-                    (No wildcard ability equipped)
+                    (No resonant ability slotted)
                   </div>
                 )}
               </div>
 
               {/* Wildcard Passive */}
               <div className="drawer-loadout-field">
-                <label className="drawer-field-label font-ui">Wildcard Passive Trait:</label>
+                <label className="drawer-field-label font-ui">Resonant Passive:</label>
                 <select
                   className="drawer-select font-ui"
                   value={currentWildcardPassive}
@@ -684,7 +681,7 @@ export function HeroProgressionDrawer({
                   </div>
                 ) : (
                   <div className="drawer-tactical-empty-slot font-mono">
-                    (No wildcard passive equipped)
+                    (No resonant passive slotted)
                   </div>
                 )}
               </div>

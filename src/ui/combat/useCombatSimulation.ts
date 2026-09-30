@@ -332,7 +332,7 @@ export function useCombatSimulation({
   const handleEndTurn = useCallback(() => {
     if (phase !== 'PLAYER_ACTION' || !activeCu) return;
     const unspent = activeCu.currentAp;
-    addFloatingText(`+${unspent * 20} CTB Gauge`, 'buff', activeCoord ?? { q: 0, r: 0 });
+    addFloatingText(`+${unspent * 20} Initiative`, 'buff', activeCoord ?? { q: 0, r: 0 });
 
     endActiveTurn(state);
 

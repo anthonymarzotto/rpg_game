@@ -118,7 +118,7 @@ export function App() {
                 setIsDevMenuOpen(false);
               }}
             >
-              🏠 Start Screen
+              🏠 Portal
             </button>
             <button
               type="button"
@@ -131,7 +131,7 @@ export function App() {
                 setIsDevMenuOpen(false);
               }}
             >
-              ⛺ Camp Hub
+              ⛺ Astral Hub
             </button>
             <button
               type="button"
@@ -141,7 +141,7 @@ export function App() {
                 setIsDevMenuOpen(false);
               }}
             >
-              ⚔️ Novice Sandbox Arena
+              ⚔️ Astral Trial
             </button>
             <button
               type="button"
@@ -151,7 +151,7 @@ export function App() {
                 setIsDevMenuOpen(false);
               }}
             >
-              ✦ Raw Constellation Chart
+              ✦ Stellar Constellation Chart
             </button>
           </div>
         )}
@@ -162,7 +162,7 @@ export function App() {
         <div className="app-dev-banner font-ui">
           <span>
             {currentView === 'DEV_SANDBOX'
-              ? '🛠️ Developer Mode: Standalone Novice Combat Sandbox'
+              ? '🛠️ Developer Mode: Standalone Astral Trial'
               : '🛠️ Developer Mode: Standalone Constellation Lattice'}
           </span>
           <button

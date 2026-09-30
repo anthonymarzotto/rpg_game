@@ -41,11 +41,11 @@ describe('ActiveSquadDock Component', () => {
       />
     );
 
-    expect(html).toContain('Active Vanguard');
+    expect(html).toContain('The Vanguard');
     expect(html).toContain('2 / 3');
     expect(html).toContain('Roland');
     expect(html).toContain('Lyra');
-    expect(html).toContain('Empty Vanguard Slot');
+    expect(html).toContain('Vacant Conduit');
   });
 
   it('renders 3 hero cards and zero empty slots when squad is full (3/3)', () => {
@@ -67,6 +67,6 @@ describe('ActiveSquadDock Component', () => {
     expect(html).toContain('Roland');
     expect(html).toContain('Lyra');
     expect(html).toContain('Vael');
-    expect(html).not.toContain('Empty Vanguard Slot');
+    expect(html).not.toContain('Vacant Conduit');
   });
 });

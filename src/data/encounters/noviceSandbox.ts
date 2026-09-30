@@ -175,7 +175,7 @@ export function createNoviceSandboxEncounter(
 
   return {
     id: 'novice-sandbox',
-    name: 'Tactical Squad Arena',
+    name: 'Novice Astral Trial',
     arenaRadius: 3,
     tileOverrides: [{ coord: { q: 0, r: 2 }, isWalkable: false, label: 'PILLAR' }],
     units: [

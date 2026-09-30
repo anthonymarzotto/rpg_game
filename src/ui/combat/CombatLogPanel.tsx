@@ -199,7 +199,7 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
       {/* Log Header */}
       <div className="combat-log-header">
         <div className="log-header-left">
-          <span className="log-title">📜 Combat Log</span>
+          <span className="log-title">📜 Astral Chronicle</span>
           <span className="log-turn-badge">Turn {turnNumber}</span>
         </div>
 
@@ -234,10 +234,10 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
         {displayedEntries.length === 0 ? (
           <div className="log-empty-hint">
             {filter === 'ALL'
-              ? '⚔️ Encounter started. Select Move or an Ability to engage.'
+              ? '⚔️ Trial started. Nothing logged yet.'
               : filter === 'COMBAT'
-              ? 'No attacks or abilities logged yet.'
-              : 'No movement steps logged yet.'}
+              ? 'No combat logged yet.'
+              : 'No moves logged yet.'}
           </div>
         ) : (
           displayedEntries.map((entry, idx) => {

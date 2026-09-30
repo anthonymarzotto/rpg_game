@@ -8,12 +8,12 @@ export function ConstellationHistory({ constellation }: ConstellationHistoryProp
   return (
     <div className="sim-controls flex-1">
       <div className="sim-section-label">
-        Constellation Path ({constellation.length} Stars Unlocked)
+        Constellation Path ({constellation.length} Classes Unlocked)
       </div>
       <div className="constellation-timeline">
         {constellation.length === 0 ? (
           <div className="timeline-empty-msg">
-            No stars unlocked yet. Advance an archetype to ignite your first star.
+            No classes unlocked yet. Ascend an archetype to unlock your first class.
           </div>
         ) : (
           constellation.map((id) => {
