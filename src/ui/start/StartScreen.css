@@ -118,6 +118,39 @@
   filter: grayscale(0.5);
 }
 
+.start-screen-archives-btn {
+  background: transparent;
+  border: 1px dashed var(--border-subtle);
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.start-screen-archives-btn:hover {
+  border-color: var(--color-player-ally);
+  color: var(--color-text-main);
+  background: rgba(14, 165, 233, 0.1);
+}
+
+.start-screen-full-warning {
+  font-size: 0.8rem;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  line-height: 1.35;
+  margin-bottom: 0.25rem;
+}
+
 .start-screen-footer {
   margin-top: 2.5rem;
 }

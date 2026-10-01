@@ -176,4 +176,31 @@ describe('CampHub Integration Test Suite', () => {
     expect(html).toContain('Detected Hostiles');
     expect(html).not.toContain('disabled=""');
   });
+
+  it('renders save button when onSaveCampaign is provided and omits when not provided', () => {
+    const campaign = createCampaign({ seed: 123 });
+    const onSave = vi.fn();
+
+    const htmlWithSave = renderToStaticMarkup(
+      <CampHub
+        campaign={campaign}
+        onDeploySquad={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+        onSaveCampaign={onSave}
+      />
+    );
+
+    expect(htmlWithSave).toContain('camp-save-btn');
+    expect(htmlWithSave).toContain('✦ Save Expedition');
+
+    const htmlWithoutSave = renderToStaticMarkup(
+      <CampHub
+        campaign={campaign}
+        onDeploySquad={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+      />
+    );
+
+    expect(htmlWithoutSave).not.toContain('camp-save-btn');
+  });
 });

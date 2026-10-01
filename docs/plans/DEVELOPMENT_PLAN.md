@@ -44,7 +44,7 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 │ PHASE 3: CAMPAIGN PROGRESSION & CLIENT PERSISTENCE          │
 │  - [x] 3.1 Campaign & roster domain model (COMPLETED)       │
 │  - [x] 3.2 Camp / barracks hub & deployment loop (COMPLETED)│
-│  - [ ] 3.3 Client persistence & save management (IndexedDB) │
+│  - [x] 3.3 Client persistence & save management (COMPLETED) │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
@@ -213,15 +213,17 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
   * **Pixel Art Primary**: Standardize on pixel art sprite tokens (`public/assets/tokens/pixel/`) as the game's primary token visual identity, deprecating legacy standees and using vector badges purely as a graceful fallback.
   * **Design Tokens & Architecture**: Introduce centralized design tokens (`DESIGN.md` and CSS variables) for dark celestial glassmorphism, archetype colors (Force/Finesse/Focus), and typography to enable clean aesthetic customization and drop-in asset slots.
 
-### 3.3. Client Persistence & Save Management (`src/core/storage/`)
-* **Campaign & Settings Serialization**:
-  * Persist `CampaignState` into IndexedDB (`idb-keyval`) automatically upon entering Camp or completing milestones.
-  * Headless serialization contracts for saving/loading full party rosters, unlocked nodes, and campaign progress.
-  * Settings & Preferences (`localStorage`): Combat text speed, dice display mode, and visual theme options.
-  * Portable Save Export/Import: JSON backup and restoration.
-  * *(Optional / Future)*: Mid-battle suspend checkpointing as a progressive enhancement on top of campaign saves.
+### 3.3. Client Persistence & Save Management (`src/core/storage/`) <── COMPLETED & TESTED
+* **Multi-Slot Persistence & Save Management**:
+  * Headless storage manager utilizing IndexedDB (`idb-keyval`) across 3 fixed save slots (`slot-1`, `slot-2`, `slot-3`).
+  * Structured `SaveEnvelope` format with versioning (`version: 1`), saved timestamp, slot binding, and campaign payload.
+  * Strict version checking with instant invalidation on incompatible saves (no complex migration overhead during active development).
+  * Lightweight slot metadata summary extraction for instant Start Screen slot card rendering without full roster deserialization.
+  * Dedicated `[ ✦ Save Expedition ]` button in the Camp Hub header providing manual save triggers with immediate `✦ Saved!` visual confirmation.
+  * Portable JSON Save Export/Import supporting file download and upload into empty slots.
+  * Start Screen integration with dynamic `✦ Resume Expedition`, auto-allocation of first open slot on `✦ New Astral Expedition`, capacity blocking when all 3 slots are occupied, and an interactive `SaveSlotDrawer` for managing archives.
 * **Testing & Verification**:
-  * Headless tests verifying round-trip JSON and IndexedDB serialization and migration safety.
+  * Headless Vitest suites (`saveManager.test.ts`, `exportImport.test.ts`, `StartScreen.test.tsx`, `SaveSlotDrawer.test.tsx`, `CampHub.test.tsx`) validating multi-slot saves, loads, slot deletions, corrupted version rejection, JSON round-trips, and UI integration.
 
 ---
 

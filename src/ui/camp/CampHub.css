@@ -69,6 +69,40 @@
   gap: 0.75rem;
 }
 
+.camp-save-btn {
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid rgba(14, 165, 233, 0.4);
+  color: #38bdf8;
+  padding: 0.35rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.camp-save-btn:hover:not(:disabled) {
+  background: rgba(14, 165, 233, 0.3);
+  border-color: #38bdf8;
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.35);
+  color: #f0f9ff;
+}
+
+.camp-save-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.camp-save-btn.saved {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.6);
+  color: #34d399;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
+}
+
 .camp-exit-btn {
   background: rgba(30, 41, 59, 0.7);
   border: 1px solid var(--border-subtle);

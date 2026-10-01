@@ -13,16 +13,33 @@ export interface CampHubProps {
   readonly onDeploySquad: () => void;
   readonly onUpdateCampaign: (nextState: CampaignState) => void;
   readonly onExitToTitle?: () => void;
+  readonly onSaveCampaign?: () => Promise<void> | void;
 }
 
 export function CampHub({
   campaign,
   onDeploySquad,
   onUpdateCampaign,
-  onExitToTitle
+  onExitToTitle,
+  onSaveCampaign
 }: CampHubProps) {
   const [swappingHeroId, setSwappingHeroId] = useState<string | null>(null);
   const [inspectingHeroId, setInspectingHeroId] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  const handleSave = useCallback(async () => {
+    if (!onSaveCampaign || saveStatus === 'saving') return;
+    setSaveStatus('saving');
+    try {
+      await onSaveCampaign();
+      setSaveStatus('saved');
+      setTimeout(() => {
+        setSaveStatus('idle');
+      }, 2000);
+    } catch {
+      setSaveStatus('idle');
+    }
+  }, [onSaveCampaign, saveStatus]);
 
   // Active squad units in deployment order
   const activeSquad = useMemo(() => {
@@ -100,6 +117,22 @@ export function CampHub({
           <span className="camp-stat-loss">Eclipses: {campaign.history.defeats}</span>
         </div>
         <div className="camp-header-actions">
+          {onSaveCampaign && (
+            <button
+              type="button"
+              className={`camp-save-btn font-ui ${saveStatus === 'saved' ? 'saved' : ''}`}
+              onClick={handleSave}
+              disabled={saveStatus === 'saving'}
+              title="Save expedition progress"
+              data-testid="camp-save-btn"
+            >
+              {saveStatus === 'saving'
+                ? '✦ Saving...'
+                : saveStatus === 'saved'
+                ? '✦ Saved!'
+                : '✦ Save Expedition'}
+            </button>
+          )}
           {onExitToTitle && (
             <button
               type="button"

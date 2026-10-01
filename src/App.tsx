@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { CombatArena } from './ui/combat/CombatArena';
 import { StartScreen } from './ui/start/StartScreen';
 import { CampHub } from './ui/camp/CampHub';
@@ -11,6 +11,18 @@ import {
 } from './core/campaign/transitions';
 import { CampaignState } from './core/campaign/types';
 import { CombatState, InBattleXp } from './core/combat/types';
+import {
+  saveCampaignSlot,
+  loadCampaignSlot,
+  deleteCampaignSlot,
+  getSlotSummaries,
+  getFirstOpenSlot
+} from './core/storage/saveManager';
+import {
+  triggerSaveDownload,
+  importCampaignJson
+} from './core/storage/exportImport';
+import { SaveSlotId, SlotSummary } from './core/storage/types';
 import './App.css';
 
 export type AppView = 'START' | 'CAMP' | 'ARENA' | 'DEV_SANDBOX';
@@ -18,29 +30,115 @@ export type AppView = 'START' | 'CAMP' | 'ARENA' | 'DEV_SANDBOX';
 export function App() {
   const [currentView, setCurrentView] = useState<AppView>('START');
   const [campaignState, setCampaignState] = useState<CampaignState | null>(null);
+  const [activeSlotId, setActiveSlotId] = useState<SaveSlotId | null>(null);
+  const [slotSummaries, setSlotSummaries] = useState<readonly SlotSummary[]>([]);
   const [isDevMenuOpen, setIsDevMenuOpen] = useState<boolean>(false);
 
-  // Start Screen Actions
-  const handleNewGame = useCallback(() => {
-    const fresh = createCampaign();
-    setCampaignState(fresh);
-    setCurrentView('CAMP');
+  // Refresh slot metadata summaries from storage
+  const refreshSlots = useCallback(async () => {
+    try {
+      const summaries = await getSlotSummaries();
+      setSlotSummaries(summaries);
+    } catch {
+      // Storage unavailable or blocked
+    }
   }, []);
 
-  const handleContinue = useCallback(() => {
-    if (campaignState) {
-      setCurrentView('CAMP');
+  useEffect(() => {
+    refreshSlots();
+  }, [refreshSlots]);
+
+  // Start Screen Actions
+  const handleNewGame = useCallback(async () => {
+    const targetSlot = await getFirstOpenSlot();
+    if (!targetSlot) {
+      return; // All slots full
     }
-  }, [campaignState]);
+
+    const fresh = createCampaign();
+    await saveCampaignSlot(targetSlot, fresh);
+    setActiveSlotId(targetSlot);
+    setCampaignState(fresh);
+    setCurrentView('CAMP');
+    await refreshSlots();
+  }, [refreshSlots]);
+
+  const handleStartNewSlot = useCallback(
+    async (slotId: SaveSlotId) => {
+      const fresh = createCampaign();
+      await saveCampaignSlot(slotId, fresh);
+      setActiveSlotId(slotId);
+      setCampaignState(fresh);
+      setCurrentView('CAMP');
+      await refreshSlots();
+    },
+    [refreshSlots]
+  );
+
+  const handleResumeSlot = useCallback(
+    async (slotId: SaveSlotId) => {
+      const loaded = await loadCampaignSlot(slotId);
+      if (loaded) {
+        setActiveSlotId(slotId);
+        setCampaignState(loaded);
+        setCurrentView('CAMP');
+      }
+    },
+    []
+  );
+
+  const handleDeleteSlot = useCallback(
+    async (slotId: SaveSlotId) => {
+      await deleteCampaignSlot(slotId);
+      if (activeSlotId === slotId) {
+        setActiveSlotId(null);
+        setCampaignState(null);
+      }
+      await refreshSlots();
+    },
+    [activeSlotId, refreshSlots]
+  );
+
+  const handleExportSlot = useCallback(async (slotId: SaveSlotId) => {
+    const campaign = await loadCampaignSlot(slotId);
+    if (campaign) {
+      triggerSaveDownload(slotId, campaign);
+    }
+  }, []);
+
+  const handleImportJson = useCallback(
+    async (slotId: SaveSlotId, jsonString: string): Promise<boolean | string> => {
+      const result = importCampaignJson(jsonString, slotId);
+      if (!result.success) {
+        return result.error;
+      }
+
+      await saveCampaignSlot(slotId, result.envelope.campaign);
+      await refreshSlots();
+      return true;
+    },
+    [refreshSlots]
+  );
 
   // Camp Hub Actions
   const handleDeploySquad = useCallback(() => {
     setCurrentView('ARENA');
   }, []);
 
-  const handleExitToTitle = useCallback(() => {
+  const handleExitToTitle = useCallback(async () => {
     setCurrentView('START');
-  }, []);
+    await refreshSlots();
+  }, [refreshSlots]);
+
+  const handleSaveCampaign = useCallback(async () => {
+    if (!campaignState) return;
+    const targetSlot = activeSlotId ?? (await getFirstOpenSlot()) ?? 'slot-1';
+    await saveCampaignSlot(targetSlot, campaignState);
+    if (!activeSlotId) {
+      setActiveSlotId(targetSlot);
+    }
+    await refreshSlots();
+  }, [activeSlotId, campaignState, refreshSlots]);
 
   // Combat Reconciliation Actions
   const handleCombatVictory = useCallback(
@@ -92,6 +190,9 @@ export function App() {
     },
     [campaignState]
   );
+
+  const isAllSlotsFull =
+    slotSummaries.length > 0 && slotSummaries.every((s) => !s.isEmpty);
 
   return (
     <div className="app-root">
@@ -165,8 +266,14 @@ export function App() {
         {currentView === 'START' && (
           <StartScreen
             onNewGame={handleNewGame}
-            onContinue={handleContinue}
-            canContinue={Boolean(campaignState)}
+            canContinue={Boolean(campaignState) || slotSummaries.some((s) => !s.isEmpty && !s.isCorrupted)}
+            isFull={isAllSlotsFull}
+            slotSummaries={slotSummaries}
+            onResumeSlot={handleResumeSlot}
+            onStartNewSlot={handleStartNewSlot}
+            onDeleteSlot={handleDeleteSlot}
+            onExportSlot={handleExportSlot}
+            onImportJson={handleImportJson}
           />
         )}
 
@@ -176,6 +283,7 @@ export function App() {
             onDeploySquad={handleDeploySquad}
             onUpdateCampaign={setCampaignState}
             onExitToTitle={handleExitToTitle}
+            onSaveCampaign={handleSaveCampaign}
           />
         )}
 

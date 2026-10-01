@@ -59,3 +59,14 @@ The system SHALL display the pending stage encounter information in an Expeditio
 #### Scenario: Deploying active squad to combat
 - **WHEN** the player clicks `[ DEPLOY SQUAD ]` with at least 1 active unit assigned
 - **THEN** the application transitions from Camp into the Tactical Combat Arena with the active squad and pre-generated encounter
+
+### Requirement: Manual Campaign Save
+The system SHALL provide a manual save action in the Camp Hub header that persists the current campaign state to its bound save slot with immediate visual confirmation.
+
+#### Scenario: Saving campaign from Camp Hub
+- **WHEN** the player clicks `[ ✦ Save ]` in the Camp Hub header
+- **THEN** the active campaign state is committed to its assigned save slot in IndexedDB
+
+#### Scenario: Save visual feedback
+- **WHEN** the save action successfully completes
+- **THEN** the button displays a temporary `✦ Saved!` visual confirmation state
