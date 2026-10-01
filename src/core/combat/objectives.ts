@@ -11,13 +11,6 @@ export function evaluateCondition(condition: ObjectiveCondition, state: CombatSt
     return condition.anyOf.some((c) => evaluateCondition(c, state));
   }
 
-  if (condition.kind === 'ARCHETYPE_XP_EARNED') {
-    const cu = state.units.get(condition.unitId);
-    if (!cu) return false;
-    const key = condition.archetype.toLowerCase() as keyof typeof cu.inBattleXp;
-    return (cu.inBattleXp[key] ?? 0) >= condition.amount;
-  }
-
   if (condition.kind === 'FACTION_DEFEATED') {
     const factionUnits = Array.from(state.units.values()).filter(
       (cu) => (cu.faction ?? cu.unit.faction) === condition.faction

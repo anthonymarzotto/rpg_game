@@ -6,32 +6,24 @@ import { modifierHandler } from './modifierHandler';
 import { teleportHandler } from './teleportHandler';
 import { cleaveHandler } from './cleaveHandler';
 
-class EffectRegistry {
-  private handlers = new Map<AbilityEffect['type'], EffectHandler<any>>();
+export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
+  KNOCKBACK: knockbackHandler,
+  RETREAT_STEP: retreatHandler,
+  SLOW: modifierHandler,
+  ARMOR_BUFF: modifierHandler,
+  WARD_BUFF: modifierHandler,
+  TELEPORT: teleportHandler,
+  CLEAVE: cleaveHandler
+};
 
-  constructor() {
-    this.register('KNOCKBACK', knockbackHandler);
-    this.register('RETREAT_STEP', retreatHandler);
-    this.register('SLOW', modifierHandler);
-    this.register('ARMOR_BUFF', modifierHandler);
-    this.register('WARD_BUFF', modifierHandler);
-    this.register('TELEPORT', teleportHandler);
-    this.register('CLEAVE', cleaveHandler);
+export const defaultEffectRegistry = {
+  register<T extends AbilityEffect>(type: T['type'] | string, handler: EffectHandler<T>): void {
+    EFFECT_HANDLERS[type] = handler;
+  },
+  get(type: string): EffectHandler | undefined {
+    return EFFECT_HANDLERS[type];
   }
-
-  public register<T extends AbilityEffect>(
-    type: T['type'],
-    handler: EffectHandler<T>
-  ): void {
-    this.handlers.set(type, handler);
-  }
-
-  public get(type: AbilityEffect['type']): EffectHandler | undefined {
-    return this.handlers.get(type);
-  }
-}
-
-export const defaultEffectRegistry = new EffectRegistry();
+};
 
 /**
  * Dispatches secondary and support effects for an ability using the effect registry.
@@ -39,7 +31,7 @@ export const defaultEffectRegistry = new EffectRegistry();
 export function executeAbilityEffects(
   ability: Ability,
   ctx: EffectContext,
-  registry: EffectRegistry = defaultEffectRegistry
+  registry = defaultEffectRegistry
 ): EffectExecutionResult {
   if (!ability.effect) {
     return { events: [] };

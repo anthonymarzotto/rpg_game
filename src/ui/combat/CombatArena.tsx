@@ -14,12 +14,12 @@ import { preloadCombatUnitTokens } from './tokenAssets';
 import { AISpeedMode } from './asyncTurnSequencer';
 import { EncounterDefinition } from '../../core/combat/encounter';
 import { CombatState } from '../../core/combat/types';
-import { SquadMemberReconciliation } from './useCombatSimulation';
+import { SquadMemberVictorySummary } from './useCombatSimulation';
 import './CombatArena.css';
 
 export interface CombatArenaProps {
   readonly encounter?: EncounterDefinition;
-  readonly onVictory?: (result: { state: CombatState; reconciliations: readonly SquadMemberReconciliation[] }) => void;
+  readonly onVictory?: (result: { state: CombatState; summaries?: readonly SquadMemberVictorySummary[] }) => void;
   readonly onDefeat?: (result: { state: CombatState }) => void;
   readonly onExit?: () => void;
 }
@@ -55,8 +55,7 @@ export function CombatArena({
     abilityRangeCoords,
     candidateTargetCoords,
     targetPreview,
-    reconciliationResult,
-    squadReconciliations,
+    squadSummaries,
     activeSquadUnitId,
     handleSelectSquadUnit,
     isVictoryModalOpen,
@@ -65,7 +64,6 @@ export function CombatArena({
     selectAction,
     handleTileClick,
     handleEndTurn,
-    handleSelectArchetypeChoice,
     handleRematch,
     handleResetEncounter
   } = useCombatSimulation({ encounter: activeEncounter });
@@ -87,13 +85,13 @@ export function CombatArena({
 
   // Squad members for defeat modal display
   const playerSquadUnits = useMemo(() => {
-    if (squadReconciliations.length > 0) {
-      return squadReconciliations;
+    if (squadSummaries.length > 0) {
+      return squadSummaries;
     }
     return Array.from(state.units.values())
       .filter((cu) => cu.faction === 'PLAYER')
-      .map((cu) => ({ unit: cu.unit }));
-  }, [squadReconciliations, state.units]);
+      .map((cu) => ({ unit: cu.unit, earnedXp: cu.inBattleXp }));
+  }, [squadSummaries, state.units]);
 
   // Preload token sprites strictly for active combatants to eliminate rotation lag
   useEffect(() => {
@@ -253,20 +251,17 @@ export function CombatArena({
         />
       )}
 
-      {/* Post-Battle Victory & Level Unlock Modal */}
+      {/* Post-Battle Victory Modal */}
       <BattleVictoryModal
         isOpen={isVictoryModalOpen}
-        reconciliationResult={reconciliationResult}
-        playerUnit={activeCu?.unit}
-        squadMembers={squadReconciliations}
+        squadMembers={squadSummaries}
         activeSquadUnitId={activeSquadUnitId}
         onSelectSquadUnit={handleSelectSquadUnit}
-        onSelectArchetypeChoice={handleSelectArchetypeChoice}
         onRematch={handleRematch}
         onDismiss={() => setIsVictoryModalOpen(false)}
         onProceedToCamp={
           onVictory
-            ? () => onVictory({ state, reconciliations: squadReconciliations })
+            ? () => onVictory({ state })
             : undefined
         }
       />

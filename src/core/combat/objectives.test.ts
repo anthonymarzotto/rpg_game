@@ -26,24 +26,23 @@ function setupTestCombatState() {
 }
 
 describe('objectives evaluation engine', () => {
-  it('evaluates ARCHETYPE_XP_EARNED correctly', () => {
+  it('evaluates FACTION_DEFEATED correctly', () => {
     const state = setupTestCombatState();
     const condition = {
-      kind: 'ARCHETYPE_XP_EARNED' as const,
-      unitId: 'player',
-      archetype: 'FIGHTER' as const,
-      amount: 5
+      kind: 'FACTION_DEFEATED' as const,
+      faction: 'ENEMY' as const
     };
 
     expect(evaluateCondition(condition, state)).toBe(false);
 
-    state.units.get('player')!.inBattleXp.fighter = 4;
+    // Defeat dummy1
+    state.units.get('dummy1')!.currentHp = 0;
+    state.units.get('dummy1')!.isDefeated = true;
     expect(evaluateCondition(condition, state)).toBe(false);
 
-    state.units.get('player')!.inBattleXp.fighter = 5;
-    expect(evaluateCondition(condition, state)).toBe(true);
-
-    state.units.get('player')!.inBattleXp.fighter = 7;
+    // Defeat dummy2
+    state.units.get('dummy2')!.currentHp = 0;
+    state.units.get('dummy2')!.isDefeated = true;
     expect(evaluateCondition(condition, state)).toBe(true);
   });
 
@@ -51,49 +50,44 @@ describe('objectives evaluation engine', () => {
     const state = setupTestCombatState();
     const condition = {
       allOf: [
-        { kind: 'ARCHETYPE_XP_EARNED' as const, unitId: 'player', archetype: 'FIGHTER' as const, amount: 2 },
-        { kind: 'ARCHETYPE_XP_EARNED' as const, unitId: 'player', archetype: 'MAGE' as const, amount: 3 }
+        { kind: 'FACTION_DEFEATED' as const, faction: 'ENEMY' as const }
       ]
     };
 
     expect(evaluateCondition(condition, state)).toBe(false);
 
-    state.units.get('player')!.inBattleXp.fighter = 2;
-    expect(evaluateCondition(condition, state)).toBe(false);
+    state.units.get('dummy1')!.currentHp = 0;
+    state.units.get('dummy1')!.isDefeated = true;
+    state.units.get('dummy2')!.currentHp = 0;
+    state.units.get('dummy2')!.isDefeated = true;
 
-    state.units.get('player')!.inBattleXp.mage = 3;
     expect(evaluateCondition(condition, state)).toBe(true);
   });
 
-  it('evaluates composable anyOf condition trees (any archetype 5 XP)', () => {
+  it('evaluates composable anyOf condition trees', () => {
     const state = setupTestCombatState();
     const condition = {
       anyOf: [
-        { kind: 'ARCHETYPE_XP_EARNED' as const, unitId: 'player', archetype: 'FIGHTER' as const, amount: 5 },
-        { kind: 'ARCHETYPE_XP_EARNED' as const, unitId: 'player', archetype: 'ROGUE' as const, amount: 5 },
-        { kind: 'ARCHETYPE_XP_EARNED' as const, unitId: 'player', archetype: 'MAGE' as const, amount: 5 }
+        { kind: 'FACTION_DEFEATED' as const, faction: 'ENEMY' as const }
       ]
     };
 
     expect(evaluateCondition(condition, state)).toBe(false);
 
-    // Earning 5 Rogue XP triggers it
-    state.units.get('player')!.inBattleXp.rogue = 5;
+    state.units.get('dummy1')!.currentHp = 0;
+    state.units.get('dummy1')!.isDefeated = true;
+    state.units.get('dummy2')!.currentHp = 0;
+    state.units.get('dummy2')!.isDefeated = true;
+
     expect(evaluateCondition(condition, state)).toBe(true);
   });
 
   describe('evaluateEncounterOutcome', () => {
     const objectives: readonly EncounterObjective[] = [
       {
-        id: 'trial_xp',
-        description: 'Earn 5 XP in any archetype',
-        condition: {
-          anyOf: [
-            { kind: 'ARCHETYPE_XP_EARNED', unitId: 'player', archetype: 'FIGHTER', amount: 5 },
-            { kind: 'ARCHETYPE_XP_EARNED', unitId: 'player', archetype: 'ROGUE', amount: 5 },
-            { kind: 'ARCHETYPE_XP_EARNED', unitId: 'player', archetype: 'MAGE', amount: 5 }
-          ]
-        }
+        id: 'rout_enemies',
+        description: 'Defeat all enemies',
+        condition: { kind: 'FACTION_DEFEATED', faction: 'ENEMY' }
       }
     ];
 
@@ -104,14 +98,15 @@ describe('objectives evaluation engine', () => {
 
     it('returns VICTORY when all objectives are fulfilled', () => {
       const state = setupTestCombatState();
-      state.units.get('player')!.inBattleXp.fighter = 5;
+      state.units.get('dummy1')!.currentHp = 0;
+      state.units.get('dummy1')!.isDefeated = true;
+      state.units.get('dummy2')!.currentHp = 0;
+      state.units.get('dummy2')!.isDefeated = true;
       expect(evaluateEncounterOutcome(objectives, state)).toBe('VICTORY');
     });
 
-    it('prioritizes DEFEAT if the player recruit falls', () => {
+    it('prioritizes DEFEAT if all player units fall', () => {
       const state = setupTestCombatState();
-      // Even if XP threshold was somehow met, falling in battle is defeat
-      state.units.get('player')!.inBattleXp.fighter = 5;
       state.units.get('player')!.currentHp = 0;
       state.units.get('player')!.isDefeated = true;
 

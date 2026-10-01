@@ -3,7 +3,6 @@ import { HexCoord, getHexesInRange } from '../../core/grid/hex';
 import { Ability } from '../../core/types/ability';
 import { Unit } from '../../core/types/unit';
 import { UnitLoadout } from '../../core/types/loadout';
-import { Archetype } from '../../core/types/class';
 import { CombatState, InBattleXp } from '../../core/combat/types';
 import { canMove, canExecuteAbility } from '../../core/combat/validator';
 import { executeMove, executeAbility } from '../../core/combat/resolver';
@@ -16,12 +15,6 @@ import { TargetPreview, computeTargetPreview } from '../../core/combat/targetPre
 import { DiceMode, DevDiceRoller } from './devDice';
 import { useFloatingCombatText } from './useFloatingCombatText';
 import {
-  PostBattleReconciliationResult,
-  reconcilePostBattleProgression
-} from '../../core/progression/postBattle';
-import { ClassRegistry, createClassRegistry } from '../../core/progression/registry';
-import { CLASS_CATALOG } from '../../data/classes';
-import {
   AISpeedMode,
   PACING_PRESETS,
   CombatExecutionObserver,
@@ -31,28 +24,22 @@ import {
 export type ActionMode = 'IDLE' | 'MOVE' | 'ABILITY';
 export type CombatPhase = 'PLAYER_ACTION' | 'HOSTILE_TURN' | 'VICTORY' | 'DEFEAT';
 
-export interface SquadMemberReconciliation {
+export interface SquadMemberVictorySummary {
   readonly unit: Unit;
-  readonly result: PostBattleReconciliationResult;
+  readonly earnedXp: InBattleXp;
 }
 
 export interface UseCombatSimulationOptions {
   readonly encounter: EncounterDefinition;
-  readonly classRegistry?: ClassRegistry;
 }
 
 /**
  * Orchestrates combat interaction state, squad turn sequencing, action selection, and intent dispatch.
  */
 export function useCombatSimulation({
-  encounter,
-  classRegistry: injectedRegistry
+  encounter
 }: UseCombatSimulationOptions) {
-  const defaultRegistry = useMemo(() => createClassRegistry(CLASS_CATALOG), []);
-  const registry = injectedRegistry ?? defaultRegistry;
-
-  const [bankedXp, setBankedXp] = useState<InBattleXp>({ fighter: 0, rogue: 0, mage: 0 });
-  const [squadReconciliations, setSquadReconciliations] = useState<readonly SquadMemberReconciliation[]>([]);
+  const [squadSummaries, setSquadSummaries] = useState<readonly SquadMemberVictorySummary[]>([]);
   const [activeSquadUnitId, setActiveSquadUnitId] = useState<string>('player-warrior');
   const [isVictoryModalOpen, setIsVictoryModalOpen] = useState(false);
   const [isDefeatModalOpen, setIsDefeatModalOpen] = useState(false);
@@ -93,15 +80,6 @@ export function useCombatSimulation({
 
   const isPlayerTurn = phase === 'PLAYER_ACTION';
   const isEnemyTurn = phase === 'HOSTILE_TURN';
-
-  // Derived single-member reconciliation result
-  const reconciliationResult = useMemo(
-    () =>
-      squadReconciliations.find((s) => s.unit.id === activeSquadUnitId)?.result ??
-      squadReconciliations[0]?.result ??
-      null,
-    [squadReconciliations, activeSquadUnitId]
-  );
 
   // Computes reachable tiles when in MOVE mode for currently active player unit
   const reachableCoords = useMemo<HexCoord[]>(() => {
@@ -155,27 +133,21 @@ export function useCombatSimulation({
           (cu) => cu.faction === 'PLAYER'
         );
 
-        const reconciliations: SquadMemberReconciliation[] = playerUnits.map((pCu) => {
-          const currentUnit = pCu.unit;
-          const result = reconcilePostBattleProgression(
-            currentUnit,
-            pCu.inBattleXp,
-            registry,
-            { bankedXp }
-          );
-          return { unit: currentUnit, result };
-        });
+        const summaries: SquadMemberVictorySummary[] = playerUnits.map((pCu) => ({
+          unit: pCu.unit,
+          earnedXp: { ...pCu.inBattleXp }
+        }));
 
-        setSquadReconciliations(reconciliations);
-        if (reconciliations.length > 0) {
-          setActiveSquadUnitId(reconciliations[0].unit.id);
+        setSquadSummaries(summaries);
+        if (summaries.length > 0) {
+          setActiveSquadUnitId(summaries[0].unit.id);
         }
         setIsVictoryModalOpen(true);
       } else if (nextState.outcome === 'DEFEAT') {
         setIsDefeatModalOpen(true);
       }
     },
-    [registry, bankedXp]
+    []
   );
 
   // Reactive asynchronous hostile turn sequencer
@@ -367,34 +339,12 @@ export function useCombatSimulation({
     []
   );
 
-  // Resolves player choice when multiple archetypes qualified simultaneously for the selected squad unit
-  const handleSelectArchetypeChoice = useCallback(
-    (archetype: Archetype) => {
-      const match = squadReconciliations.find((s) => s.unit.id === activeSquadUnitId);
-      if (!match) return;
-      const cu = state.units.get(activeSquadUnitId);
-      if (!cu) return;
-
-      const updatedResult = reconcilePostBattleProgression(
-        match.unit,
-        cu.inBattleXp,
-        registry,
-        { bankedXp, selectedArchetypeChoice: archetype }
-      );
-
-      setSquadReconciliations((prev) =>
-        prev.map((s) => (s.unit.id === activeSquadUnitId ? { ...s, result: updatedResult } : s))
-      );
-    },
-    [squadReconciliations, activeSquadUnitId, state.units, registry, bankedXp]
-  );
-
   // Resets the arena encounter
   const handleRematch = useCallback(
     (_configuredLoadout?: UnitLoadout) => {
       setIsVictoryModalOpen(false);
       setIsDefeatModalOpen(false);
-      setSquadReconciliations([]);
+      setSquadSummaries([]);
       setHostileActionStatus(null);
       setEncounterSession((prev) => prev + 1);
 
@@ -410,8 +360,7 @@ export function useCombatSimulation({
 
   // Full reset back to encounter start
   const handleResetEncounter = useCallback(() => {
-    setBankedXp({ fighter: 0, rogue: 0, mage: 0 });
-    setSquadReconciliations([]);
+    setSquadSummaries([]);
     setIsVictoryModalOpen(false);
     setIsDefeatModalOpen(false);
     setHostileActionStatus(null);
@@ -446,8 +395,7 @@ export function useCombatSimulation({
     abilityRangeCoords,
     candidateTargetCoords,
     targetPreview,
-    reconciliationResult,
-    squadReconciliations,
+    squadSummaries,
     activeSquadUnitId,
     handleSelectSquadUnit,
     isVictoryModalOpen,
@@ -457,7 +405,6 @@ export function useCombatSimulation({
     selectAction,
     handleTileClick,
     handleEndTurn,
-    handleSelectArchetypeChoice,
     handleRematch,
     handleResetEncounter
   };

@@ -4,6 +4,7 @@ import {
   isClassLockedOut
 } from '../../core/progression/pyramid';
 import { ProjectionMode, STAR_POINTS } from './geometry';
+import './ConstellationSvg.css';
 
 export interface ConstellationSvgProps {
   readonly mode: ProjectionMode;

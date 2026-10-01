@@ -13,7 +13,7 @@ A celestial turn-based tactical RPG featuring a 100-class Constellation Star Pyr
 | **Simulation Core** | Pure TypeScript (Headless) | Pure domain logic with zero DOM or rendering engine dependencies. Can execute deterministically in Node.js. |
 | **Presentation & Arena** | React + SVG + CSS | Declarative vector-based digital tabletop arena, glowing hex highlights, procedural unit tokens, and smooth CSS animations without raster asset overhead. |
 | **HUD & UI Layer** | [React](https://react.dev/) + CSS Modules | Declarative UI for menus, modals, dialogs, inspector cards, and HUD overlays. |
-| **State Orchestration** | [Zustand](https://github.com/pmndrs/zustand) | Lightweight reactive store and hooks connecting headless simulation events and React UI components. |
+| **State Orchestration** | React Hooks & State | Clean reactive state and hooks connecting headless simulation events and React UI components. |
 | **Testing Framework** | [Vitest](https://vitest.dev/) | High-speed unit and integration test runner for verifying simulation logic headlessly. |
 | **Client Persistence** | IndexedDB & `localStorage` | IndexedDB (via `idb-keyval`) for game saves and session suspend states; `localStorage` for player settings. |
 | **Map & Data Storage** | Structured JSON / TypeScript | Human- and agent-readable static definitions for game data and level layouts. |

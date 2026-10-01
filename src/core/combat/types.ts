@@ -1,5 +1,4 @@
 import { Unit, Faction } from '../types/unit';
-import { Archetype } from '../types/class';
 import { AbilityEffect, Ability } from '../types/ability';
 import { PassiveTrait } from '../types/passive';
 import { HexCoord, HexDirection } from '../grid/hex';
@@ -152,8 +151,7 @@ export interface CombatLogEntry {
  * Atomic conditions evaluated against a combat state.
  */
 export type AtomicObjective =
-  | { readonly kind: 'FACTION_DEFEATED'; readonly faction: Faction }
-  | { readonly kind: 'ARCHETYPE_XP_EARNED'; readonly unitId: string; readonly archetype: Archetype; readonly amount: number };
+  | { readonly kind: 'FACTION_DEFEATED'; readonly faction: Faction };
 
 /**
  * Composable condition tree supporting allOf and anyOf boolean logic.

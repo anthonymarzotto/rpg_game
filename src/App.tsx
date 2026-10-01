@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { ConstellationChart } from './ui/ConstellationChart';
 import { CombatArena } from './ui/combat/CombatArena';
 import { StartScreen } from './ui/start/StartScreen';
 import { CampHub } from './ui/camp/CampHub';
@@ -14,7 +13,7 @@ import { CampaignState } from './core/campaign/types';
 import { CombatState, InBattleXp } from './core/combat/types';
 import './App.css';
 
-export type AppView = 'START' | 'CAMP' | 'ARENA' | 'DEV_SANDBOX' | 'DEV_CONSTELLATION';
+export type AppView = 'START' | 'CAMP' | 'ARENA' | 'DEV_SANDBOX';
 
 export function App() {
   const [currentView, setCurrentView] = useState<AppView>('START');
@@ -143,28 +142,14 @@ export function App() {
             >
               ⚔️ Astral Trial
             </button>
-            <button
-              type="button"
-              className={`app-dev-menu-item ${currentView === 'DEV_CONSTELLATION' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentView('DEV_CONSTELLATION');
-                setIsDevMenuOpen(false);
-              }}
-            >
-              ✦ Stellar Constellation Chart
-            </button>
           </div>
         )}
       </div>
 
       {/* Dev Mode Banner when in isolated sandbox views */}
-      {(currentView === 'DEV_SANDBOX' || currentView === 'DEV_CONSTELLATION') && (
+      {currentView === 'DEV_SANDBOX' && (
         <div className="app-dev-banner font-ui">
-          <span>
-            {currentView === 'DEV_SANDBOX'
-              ? '🛠️ Developer Mode: Standalone Astral Trial'
-              : '🛠️ Developer Mode: Standalone Constellation Lattice'}
-          </span>
+          <span>🛠️ Developer Mode: Standalone Astral Trial</span>
           <button
             type="button"
             className="app-dev-back-btn"
@@ -214,8 +199,6 @@ export function App() {
             onExit={() => setCurrentView(campaignState ? 'CAMP' : 'START')}
           />
         )}
-
-        {currentView === 'DEV_CONSTELLATION' && <ConstellationChart />}
       </div>
     </div>
   );

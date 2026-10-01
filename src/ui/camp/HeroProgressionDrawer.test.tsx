@@ -198,5 +198,21 @@ describe('HeroProgressionDrawer Component', () => {
     expect(html).toContain('Novice');
     expect(html).toContain('Assumed Class');
   });
+
+  it('renders the Dev XP button for quick ascension testing', () => {
+    const hero = makeMockUnit();
+    const campaign = makeMockCampaign(hero);
+    const html = renderToStaticMarkup(
+      <HeroProgressionDrawer
+        hero={hero}
+        campaign={campaign}
+        onClose={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('+10 XP (Dev)');
+    expect(html).toContain('hero-drawer-dev-xp-btn');
+  });
 });
 

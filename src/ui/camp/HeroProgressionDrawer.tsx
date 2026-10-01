@@ -228,6 +228,27 @@ export function HeroProgressionDrawer({
     setHoveredClassId(null);
   };
 
+  const handleDevGrantXp = useCallback(() => {
+    const currentXp = hero.progression.accumulatedXp ?? { fighter: 0, rogue: 0, mage: 0 };
+    const updatedHero: Unit = {
+      ...hero,
+      progression: {
+        ...hero.progression,
+        accumulatedXp: {
+          fighter: currentXp.fighter + 10,
+          rogue: currentXp.rogue + 10,
+          mage: currentXp.mage + 10
+        }
+      }
+    };
+    const nextRoster = campaign.roster.map((u) => (u.id === hero.id ? updatedHero : u));
+    onUpdateCampaign({
+      ...campaign,
+      roster: nextRoster,
+      updatedAt: Date.now()
+    });
+  }, [hero, campaign, onUpdateCampaign]);
+
   return (
     <div className="hero-drawer-backdrop" data-testid="hero-progression-drawer">
       <div className="hero-drawer-panel glass-panel-elevated">
@@ -258,15 +279,26 @@ export function HeroProgressionDrawer({
             </div>
           </div>
 
-          <button
-            type="button"
-            className="hero-drawer-close-btn"
-            onClick={onClose}
-            data-testid="hero-drawer-close-btn"
-            title="Close Progression"
-          >
-            ✕
-          </button>
+          <div className="drawer-header-right">
+            <button
+              type="button"
+              className="btn-dev-grant-xp font-mono"
+              onClick={handleDevGrantXp}
+              data-testid="hero-drawer-dev-xp-btn"
+              title="Developer Mode: Grant +10 XP to all disciplines for instant level up testing"
+            >
+              ⚡ +10 XP (Dev)
+            </button>
+            <button
+              type="button"
+              className="hero-drawer-close-btn"
+              onClick={onClose}
+              data-testid="hero-drawer-close-btn"
+              title="Close Progression"
+            >
+              ✕
+            </button>
+          </div>
         </header>
 
         {/* 2-Column Responsive Body */}
