@@ -1,11 +1,11 @@
 {
-  "group_id": "694ed41c-0c64-469a-8e0b-71e019690da2",
+  "group_id": "d2144e6a-83eb-4022-b765-0f2b176c8c04",
   "states": [
     {
       "character": {
-        "id": "3c4faf78-23e0-4863-a3cf-129b6717efaa",
+        "id": "0c91eb7b-5ddb-48b0-8e30-dc10b2d702fd",
         "name": "Idle",
-        "prompt": "A chibi human male warrior in a wide, grounded stance, wearing a simple chainmail hauberk and sturdy leather bracers, holding a basic iron sword and a small rounded wooden shield, featuring expressive anime-style eyes and short, messy hair.",
+        "prompt": "A chibi human male warrior in a wide, grounded stance, wearing a chainmail hauberk and sturdy leather bracers, holding a simple iron sword and small rounded wooden shield, featuring expressive anime-style eyes, messy hair, and vivid crimson-red cloth ties on his gear, low top-down perspective.",
         "size": {
           "width": 64,
           "height": 64
@@ -13,7 +13,7 @@
         "template_id": "mannequin",
         "directions": 8,
         "view": "low top-down",
-        "created_at": "2026-09-28T16:31:27.287752+00:00"
+        "created_at": "2026-09-30T17:55:39.102097+00:00"
       },
       "folder": "Idle",
       "frames": {
@@ -32,5 +32,5 @@
     }
   ],
   "export_version": "3.1",
-  "export_date": "2026-09-29T00:54:44.474765"
+  "export_date": "2026-10-01T02:41:19.705802"
 }
