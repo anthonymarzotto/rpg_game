@@ -8,7 +8,7 @@ The game presents a **Dark Fantasy Tactical RPG** aesthetic combining two core v
 
 ### 1.1. Thematic UI Framing Glossary
 
-The user interface uses a cohesive celestial and astral vocabulary to frame core tactical RPG systems:
+The user interface uses a cohesive celestial and astral vocabulary to frame core tactical RPG systems (for the full authoritative lexicon and copy guide, see [`docs/architecture/GLOSSARY.md`](file:///c:/Repos/rpg_game/docs/architecture/GLOSSARY.md)):
 
 | System / Area | Thematic Term | UI Presentation & Context |
 | :--- | :--- | :--- |
