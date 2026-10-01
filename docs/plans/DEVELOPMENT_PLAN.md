@@ -15,6 +15,7 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 * **Directional Facing & Combat Arcs** (`src/core/grid/`, `src/core/combat/`, `src/ui/combat/`): True directional facing (`HexDirection` 0..5), combat arc classification (`FRONT`, `FLANK`, `REAR`), dynamic facing updates, flank/rear advantage resolution, and directional token chevrons. *(Complete & Tested)*
 * **Multi-Unit Squad Combat & CTB Timeline** (`src/core/combat/`, `src/ui/combat/`): 3-hero squad party, asynchronous CTB turn order lookahead ribbon, friendly targeting, and squad wipe defeat conditions. *(Complete & Tested)*
 * **Tactical Enemy AI Decision Engine** (`src/core/ai/`): Pure domain logic, composite move-and-act evaluation, dynamic archetype heuristics (Brawler, Skirmisher, Sniper, Support), finishing blow priority, defensive vulnerability targeting, flanking navigation, and CTB AP conservation. *(Complete & Tested)*
+* **Camp & Barracks Progression Hub** (`src/core/campaign/`, `src/ui/camp/`, `src/ui/start/`): Screen flow (`StartScreen` -> `CampHub` -> `CombatArena` -> Victory/Defeat reconciliation -> Return to Camp), Active Vanguard dock, Reserve Barracks tray with smart swapping & recruitment, Expedition War Room threat briefings, and two-column Deep Progression constellation dashboard. *(Complete & Tested)*
 
 ---
 
@@ -41,8 +42,8 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 3: CAMPAIGN PROGRESSION & CLIENT PERSISTENCE          │
-│  - [ ] 3.1 Campaign & roster domain model (multi-battle)    │
-│  - [ ] 3.2 Camp / barracks hub & deployment loop            │
+│  - [x] 3.1 Campaign & roster domain model (COMPLETED)       │
+│  - [x] 3.2 Camp / barracks hub & deployment loop (COMPLETED)│
 │  - [ ] 3.3 Client persistence & save management (IndexedDB) │
 └──────────────────────────────┬──────────────────────────────┘
                                │
@@ -198,7 +199,7 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 * **Testing & Verification**:
   * Headless Vitest suite validating campaign creation, roster progression across multi-battle sequences, and victory/defeat state handling.
 
-### 3.2. Camp / Barracks Hub & Progression Loop (`src/ui/camp/`)
+### 3.2. Camp / Barracks Hub & Progression Loop (`src/ui/camp/`) <── COMPLETED & TESTED
 * **Campaign Screen Flow & Lifecycle**:
   * **Start Screen**: Root entry view supporting `New Game` (initializes fresh campaign with starter Novices) and `Continue` (resumes persistent campaign state).
   * **Unified Game Loop**: `Start Screen` -> `Camp Hub` -> `Tactical Combat Arena` -> `Victory / Defeat Reconciliation` -> `Return to Camp`.
