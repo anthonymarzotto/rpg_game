@@ -6,33 +6,36 @@ Establishes the progression, calculation, and visual mechanics for the 39 off-no
 
 ## ADDED Requirements
 
-### Requirement: Archetype-Pair Harmonization Surges
-The campaign progression engine SHALL automatically calculate and award a Harmonization Stat Surge to a unit whenever their allocated archetype points match an off-node coordinate (a coordinate with no canonical class node in the catalog). The surge values SHALL be deterministically derived from the blended archetypes and added to derived vitals:
-- Fighter + Rogue ($F > 0, R > 0, M = 0$): $+6$ Max HP and $+1$ Speed.
-- Fighter + Mage ($F > 0, M > 0, R = 0$): $+1$ Armor and $+1$ Ward.
-- Rogue + Mage ($R > 0, M > 0, F = 0$): $+1$ Move and $+1$ Evasion.
-- Tri-Hybrid ($F > 0, R > 0, M > 0$): $+5$ Max HP and $+1$ to all secondary defenses (Speed, Move, Evasion, Resolve, Armor, Ward).
+### Requirement: Wayfarer Attunements & Choice Milestone
+When a unit advances to an off-node level (a coordinate in the 100-class lattice with no canonical catalog class node), the system SHALL present an interactive two-step modal in Camp:
+1. **Step 1: Wayfarer Attunement**: The player SHALL select one balanced defensive attunement to add to the unit's permanent derived vitals:
+   - **Wayfarer's Bastion** (Force): $+6$ Max HP and $+1$ Armor.
+   - **Wayfarer's Stride** (Finesse): $+2$ Evasion and $+2$ Speed.
+   - **Wayfarer's Ward** (Focus): $+2$ Resolve and $+1$ Ward.
+   - **Wayfarer's Zenith** (Tri-Centroid at Levels 3 & 6): $+4$ Max HP, $+1$ Armor, $+1$ Ward, $+1$ Speed, $+1$ Evasion, $+1$ Resolve.
+2. **Step 2: Milestone Specialization**: The player SHALL select one of two strategic advancements:
+   - **Domain Skill Unlock**: Deterministically select 1 unlearned domain ability from the advancing archetype's domain pool where $\text{Tier} \le \text{Current Unit Level}$, adding it to the hero's permanent Wildcard ability pool.
+   - **Astral Augment Shard**: Select 1 socketable `AstralAugmentShard` module (e.g. *Starlight Lens*, *Astral Reach*, *Supernova Flare*, *Impact Shard*, *Venom Shard*, or *Static Shard*). Shards are assigned to an **Ability Slot** (0..4) in the hero's combat loadout, up to a maximum of **2 shards per slot**, augmenting whichever ability occupies that slot.
 
-#### Scenario: Advancing to an off-node hybrid coordinate
-- **WHEN** a Level 1 Warrior `(1, 0, 0)` advances with Rogue XP to Level 2 `(1, 1, 0)`
-- **THEN** their derived vitals automatically gain the Fighter/Rogue Harmonization bonus (+6 Max HP and +1 Speed) on top of standard attribute scaling
+#### Scenario: Selecting a Wayfarer Attunement on off-node level-up
+- **WHEN** a Level 1 Warrior `(1, 0, 0)` advances with Rogue XP to Level 2 `(1, 1, 0)` and the player selects *Wayfarer's Stride*
+- **THEN** their derived vitals gain +2 Evasion and +2 Speed on top of standard attribute scaling, and the modal proceeds to Milestone Specialization
 
-#### Scenario: Advancing to a tri-hybrid centroid coordinate
+#### Scenario: Tri-centroid Wayfarer's Zenith option
 - **WHEN** a unit advances from `(1, 1, 0)` with Mage XP to Level 3 `(1, 1, 1)`
-- **THEN** their derived vitals gain the Tri-Hybrid Harmonization bonus (+5 Max HP and +1 to all secondary vitals)
+- **THEN** the attunement selection includes *Wayfarer's Zenith*, granting +4 Max HP and +1 to all secondary defenses upon selection
 
-### Requirement: Off-Node Choice Milestone
-When a unit advances to an off-node level in Camp, the system SHALL prompt the player with a choice modal offering two distinct advancement options:
-1. **Domain Skill Draft**: Select 1 domain ability from the advancing archetype's domain pool that is not yet unlocked, adding it to the hero's permanent Wildcard ability pool.
-2. **Ability Overclock**: Select 1 currently equipped ability and attach a permanent `AbilityModifier` (e.g. +1 damage die tier, +1 range, -10 CTB cost, or append an effect).
+#### Scenario: Unlocking an eligible tier-gated domain skill in step 2
+- **WHEN** a Level 2 hero completes Step 1 with Rogue advancement and chooses Domain Skill Unlock
+- **THEN** the system presents all unlearned Rogue domain abilities of Tier $\le 2$ (excluding Tier 3+), and adds the selected skill to the hero's permanent wildcard pool
 
-#### Scenario: Drafting a domain skill
-- **WHEN** a player advances a Warrior to `(1, 1, 0)` and chooses the Domain Skill Draft option for Rogue
-- **THEN** the system presents available Rogue domain skills (e.g. *Smoke Veil*, *Toxic Shiv*, *Shadow Step*) and adds the selected skill to the hero's unlocked wildcard ability pool
+#### Scenario: Earning and socketing an Astral Augment Shard to an ability slot
+- **WHEN** a player completes Step 1 and chooses the Astral Augment Shard option
+- **THEN** the player selects an augment shard, adding it to the hero's loadout inventory, which can be socketed into any ability slot (0..4, max 2 shards per slot)
 
-#### Scenario: Overclocking an equipped ability
-- **WHEN** a player advances to an off-node coordinate and chooses the Ability Overclock option
-- **THEN** the player selects an equipped ability and an overclock modifier, permanently binding the modifier to that ability on the hero
+#### Scenario: Swapping an ability in an augmented slot preserves socketed shards
+- **WHEN** an ability slot holding an *Astral Reach* shard has its equipped ability changed in Camp
+- **THEN** the socketed shard remains bound to that slot and dynamically applies its +1 Range modifier to the newly equipped ability
 
 ### Requirement: Luminous Waypoint Constellation Integration
 The Constellation Star Chart SHALL calculate and render illuminated **Starlight Waypoints** at the exact barycentric coordinates for off-node points along triangle facet edges. When unlocked, the constellation laser path SHALL route through the waypoint.

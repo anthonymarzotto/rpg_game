@@ -1,0 +1,36 @@
+{
+  "group_id": "57486e6b-e6b8-4793-a063-8c7b845c14d3",
+  "states": [
+    {
+      "character": {
+        "id": "76945afa-a072-4287-96dd-7304edfb9dc4",
+        "name": "Idle",
+        "prompt": "A chibi brawler in a low, wide combat stance with fists tightly clenched, featuring a fierce expression and wide, glowing crimson anime eyes. The character wears crimson spiked leather wrist wraps and a tattered crimson sash. Vibrant violet trim adorns his clothes and accessories, rendered with selective outlines to define the silhouette and gear.",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-02T19:45:43.914290+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-04T04:16:38.079827"
+}

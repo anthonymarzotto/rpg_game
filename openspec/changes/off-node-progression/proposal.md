@@ -10,17 +10,16 @@ This change establishes Phase 4.4: Off-Node Level Progression ("The Wayfarer's P
 
 ## What Changes
 
-* **Harmonization Stat Surges (`src/core/progression/harmonization.ts`)**:
-  * Off-node levels award an automatic baseline stat surge reflecting the synergy of the blended archetypes:
-    * **Fighter + Rogue ($F+R$)**: $+6$ Max HP, $+1$ Speed.
-    * **Fighter + Mage ($F+M$)**: $+1$ Armor, $+1$ Ward.
-    * **Rogue + Mage ($R+M$)**: $+1$ Move, $+1$ Evasion.
-    * **Tri-Hybrid ($F+R+M$ at Levels 3 & 6)**: $+5$ Max HP, $+1$ to all secondary defenses (Speed, Armor, Ward, Evasion, Resolve).
-  * Automatically integrated into `computeDerivedVitals()` during camp level advancement.
-* **Off-Node Choice Modal (`src/ui/camp/OffNodeChoiceModal.tsx`)**:
-  * When leveling into an off-node in Camp, the player is presented with a choice between:
-    * **Breadth — Domain Skill Draft**: Select 1 domain ability from the advancing archetype's available pool to permanently unlock into the hero's personal Wildcard pool.
-    * **Depth — Ability Overclock**: Select 1 currently equipped ability to permanently attach an `AbilityModifier` (e.g. +1 damage die tier, +1 range, -10 CTB cost, or append an effect).
+* **Wayfarer Attunements & Choice Modal (`src/core/progression/harmonization.ts`, `src/ui/camp/OffNodeChoiceModal.tsx`)**:
+  * Off-node levels award an interactive two-step progression milestone in Camp:
+    * **Step 1: Wayfarer Attunement**: Select 1 balanced defensive surge tailored to the hero's combat role:
+      * 🛡️ **Wayfarer's Bastion** (Force): `+6 Max HP` & `+1 Armor` (frontline damage soak and flat physical mitigation).
+      * 🗡️ **Wayfarer's Stride** (Finesse): `+2 Evasion` & `+2 Speed` (10% attack avoidance, graze negation on debuffs, and 20% faster CTB recovery).
+      * 🔮 **Wayfarer's Ward** (Focus): `+2 Resolve` & `+1 Ward` (10% spell/mental debuff avoidance and flat magical mitigation).
+      * ✦ **Wayfarer's Zenith** (Tri-Centroid at Levels 3 & 6): `+4 Max HP`, `+1 Armor`, `+1 Ward`, `+1 Speed`, `+1 Evasion`, `+1 Resolve` (harmonic balance across all three apexes).
+    * **Step 2: Milestone Specialization**:
+      * **Breadth — Domain Skill Unlock**: Deterministically select 1 unlearned domain ability from the advancing archetype's pool (gated by $\text{Tier} \le \text{Unit Level}$) into the hero's permanent Wildcard pool.
+      * **Depth — Astral Augment Shard**: Earn a socketable `AstralAugmentShard` for the hero's loadout. Shards socket into any combat ability slot (0..4, max 2 shards per slot) to augment whatever ability is equipped in that slot (`+1 Die Step`, `+1 Range`, `+1 AoE`, or atomic infusions like `Knockback`, `Poison DoT`, `CTB Delay`). Excludes AP cost reductions to protect the 3-AP action economy.
 * **Constellation Star Chart Luminous Waypoints (`src/ui/pyramid/ConstellationSvg.tsx`, `geometry.ts`)**:
   * Compute exact barycentric coordinates for off-node waypoints along triangle facet boundaries.
   * Render illuminated **Starlight Waypoint** nodes on the star chart when unlocked or eligible.
@@ -28,7 +27,7 @@ This change establishes Phase 4.4: Off-Node Level Progression ("The Wayfarer's P
   * Support hovering over waypoints to inspect their harmonization blend and bonuses in the Node Scanner HUD.
 * **Hero Titles & Vanguard Identity**:
   * Heroes with off-node investments receive dynamic titles indicating their Wayfarer rank (e.g. `Warrior • Wayfarer I` through `Wayfarer VI`) on their Camp cards and combat status badges.
-  * Camp progression drawer spend buttons preview upcoming off-node rewards (e.g. `🗡️ Ascend: Rogue (+1 Finesse) • ✦ Hybrid Surge: Skirmisher`).
+  * Camp progression drawer spend buttons preview upcoming off-node rewards (e.g. `🗡️ Ascend: Rogue (+1 Finesse) • ✦ Wayfarer Milestone`).
 
 ## Capabilities
 
