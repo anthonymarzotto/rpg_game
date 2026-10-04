@@ -14,7 +14,13 @@ const STRIKE: Ability = {
   targetType: 'SINGLE_TARGET',
   damageType: 'PHYSICAL',
   defenseTarget: 'EVASION',
-  damageProfile: { count: 1, sides: 6, modifierAttribute: 'force' },
+  attackModifierAttribute: 'finesse',
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: { count: 1, sides: 6, modifierAttribute: 'force' }
+    }
+  ],
   archetypeTag: 'FIGHTER'
 };
 
@@ -27,7 +33,8 @@ const HEAL_ALLY: Ability = {
   targetType: 'ALLY',
   damageType: 'NONE',
   defenseTarget: 'RESOLVE',
-  damageProfile: { count: 1, sides: 4, modifierAttribute: 'focus' },
+  attackModifierAttribute: 'focus',
+  effects: [],
   archetypeTag: 'MAGE'
 };
 
@@ -40,7 +47,8 @@ const SELF_BUFF: Ability = {
   targetType: 'SELF',
   damageType: 'NONE',
   defenseTarget: 'RESOLVE',
-  damageProfile: { count: 1, sides: 4, modifierAttribute: 'focus' },
+  attackModifierAttribute: 'focus',
+  effects: [],
   archetypeTag: 'MAGE'
 };
 

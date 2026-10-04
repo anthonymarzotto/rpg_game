@@ -11,11 +11,12 @@ export const initiativeBoostHandler: EffectHandler = {
       return { events: [] };
     }
 
-    targetCu.initiativeGauge += effect.magnitude;
+    const boost = effect.magnitude ?? 0;
+    targetCu.initiativeGauge += boost;
 
     return {
       events: [],
-      logDetail: ` ⏩ [Initiative Boost: +${effect.magnitude} CTB Gauge]`
+      logDetail: ` ⏩ [Initiative Boost: +${boost} CTB Gauge]`
     };
   }
 };

@@ -17,11 +17,16 @@ describe('ctbDelayHandler', () => {
     range: 1,
     apCost: 2,
     damageType: 'PHYSICAL',
-    damageProfile: { count: 1, sides: 6, modifierAttribute: 'force' },
-    effect: {
-      type: 'CTB_DELAY',
-      magnitude: 25
-    }
+    effects: [
+      {
+        type: 'DAMAGE',
+        damageProfile: { count: 1, sides: 6, modifierAttribute: 'force' }
+      },
+      {
+        type: 'CTB_DELAY',
+        magnitude: 25
+      }
+    ]
   };
 
   it('reduces target initiativeGauge by magnitude and dispatches CTB_DELAY event', () => {
@@ -35,7 +40,7 @@ describe('ctbDelayHandler', () => {
     const targetCu = state.units.get('enemy')!;
     targetCu.initiativeGauge = 60;
 
-    const result = ctbDelayHandler.apply(dummyAbility.effect!, {
+    const result = ctbDelayHandler.apply(dummyAbility.effects[1], {
       state,
       actorCu: state.units.get('hero')!,
       targetCu,
@@ -64,7 +69,7 @@ describe('ctbDelayHandler', () => {
     const targetCu = state.units.get('enemy')!;
     targetCu.initiativeGauge = 10;
 
-    const result = ctbDelayHandler.apply(dummyAbility.effect!, {
+    const result = ctbDelayHandler.apply(dummyAbility.effects[1], {
       state,
       actorCu: state.units.get('hero')!,
       targetCu,
@@ -86,7 +91,7 @@ describe('ctbDelayHandler', () => {
     const hero = createRecruit('hero', 'Hero');
     const state = createCombatState(arena, [hero], 'hero');
 
-    const result = ctbDelayHandler.apply(dummyAbility.effect!, {
+    const result = ctbDelayHandler.apply(dummyAbility.effects[1], {
       state,
       actorCu: state.units.get('hero')!,
       targetCu: undefined,

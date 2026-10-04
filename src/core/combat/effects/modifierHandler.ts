@@ -13,29 +13,32 @@ export const modifierHandler: EffectHandler = {
     if (effect.type === 'SLOW') {
       targetUnitId = targetCu?.unit.id;
       if (targetUnitId) {
+        const mag = effect.magnitude ?? 1;
         modifier = {
           stat: 'move',
-          value: -effect.magnitude,
+          value: -mag,
           durationTurns: effect.durationTurns ?? 1
         };
-        logDetail = ` ❄️ [Slow: -${effect.magnitude} Move for ${effect.durationTurns ?? 1} turn(s)]`;
+        logDetail = ` ❄️ [Slow: -${mag} Move for ${effect.durationTurns ?? 1} turn(s)]`;
       }
     } else if (effect.type === 'ARMOR_BUFF') {
       targetUnitId = ability.targetType === 'ALLY' && targetCu ? targetCu.unit.id : actorCu.unit.id;
+      const mag = effect.magnitude ?? 1;
       modifier = {
         stat: 'armor',
-        value: effect.magnitude,
+        value: mag,
         durationTurns: effect.durationTurns ?? 1
       };
-      logDetail = ` 🛡️ [Armor Buff: +${effect.magnitude} Armor for ${effect.durationTurns ?? 1} turn(s)]`;
+      logDetail = ` 🛡️ [Armor Buff: +${mag} Armor for ${effect.durationTurns ?? 1} turn(s)]`;
     } else if (effect.type === 'WARD_BUFF') {
       targetUnitId = targetCu?.unit.id ?? actorCu.unit.id;
+      const mag = effect.magnitude ?? 1;
       modifier = {
         stat: 'ward',
-        value: effect.magnitude,
+        value: mag,
         durationTurns: effect.durationTurns ?? 1
       };
-      logDetail = ` 🔮 [Ward Buff: +${effect.magnitude} Ward for ${effect.durationTurns ?? 1} turn(s)]`;
+      logDetail = ` 🔮 [Ward Buff: +${mag} Ward for ${effect.durationTurns ?? 1} turn(s)]`;
     } else if (effect.type === 'STAT_MODIFIER' && effect.statModifiers) {
       targetUnitId = targetCu?.unit.id ?? actorCu.unit.id;
       const durationTurns = effect.durationTurns ?? 1;

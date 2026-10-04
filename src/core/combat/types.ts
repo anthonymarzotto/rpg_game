@@ -1,6 +1,6 @@
 import { Unit, Faction } from '../types/unit';
-import { AbilityEffect, AbilityEffectType, Ability, ConditionType } from '../types/ability';
-import { Archetype } from '../types/class';
+import { AbilityEffect, Ability, ConditionType } from '../types/ability';
+import { AbilityModifier } from '../types/modifier';
 import { PassiveTrait } from '../types/passive';
 import { HexCoord, HexDirection } from '../grid/hex';
 import { Arena, KnockbackResult } from '../grid/arena';
@@ -118,21 +118,6 @@ export interface ActiveCondition {
 }
 
 /**
- * Ephemeral modifier applied to the next matching ability execution, clearing upon use or turn end.
- */
-export interface PendingAbilityModifier {
-  readonly extraRange?: number;
-  readonly extraAoeRadius?: number;
-  readonly allowedArchetypes?: readonly Archetype[];
-  /** If specified, only abilities matching this damage type profile are modified */
-  readonly requiredDamageType?: 'MAGICAL' | 'PHYSICAL' | 'DAMAGING';
-  /** If specified, abilities with these effect types are excluded from receiving the modifier */
-  readonly excludedEffectTypes?: readonly AbilityEffectType[];
-  readonly consumesOnUse: boolean;
-  readonly expiresAtTurnEnd: boolean;
-}
-
-/**
  * Unified validation result for player actions (movement, abilities).
  */
 export type ValidationResult =
@@ -169,7 +154,7 @@ export interface CombatUnit {
   inBattleXp: InBattleXp;
   activeModifiers: ActiveModifier[];
   activeConditions: ActiveCondition[];
-  pendingAbilityModifier?: PendingAbilityModifier;
+  abilityModifiers: AbilityModifier[];
   /** Active combat abilities (Core + Wildcards) resolved from unit loadout */
   readonly abilities: readonly Ability[];
   /** Active passives (Innate + Wildcards) resolved from unit loadout */

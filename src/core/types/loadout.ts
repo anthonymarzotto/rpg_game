@@ -1,5 +1,6 @@
 import { Ability } from './ability';
 import { PassiveTrait } from './passive';
+import { AbilityModifier } from './modifier';
 
 export interface UnitLoadout {
   /** The currently designated active class (e.g. 'novice', 'warrior', 'thief') */
@@ -8,6 +9,8 @@ export interface UnitLoadout {
   readonly wildcardAbilityIds: readonly string[];
   /** Passive trait IDs equipped into the wildcard passive slots (max 1) */
   readonly wildcardPassiveIds: readonly string[];
+  /** Permanent ability modifiers (e.g. unlocked via progression or overclocks) */
+  readonly abilityModifiers?: readonly AbilityModifier[];
 }
 
 export interface ResolvedUnitLoadout {

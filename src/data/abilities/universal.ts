@@ -8,7 +8,8 @@ export const MOVE_ACTION: Ability = {
   range: 0,
   targetType: 'HEX',
   defenseTarget: 'NONE',
-  damageType: 'NONE'
+  damageType: 'NONE',
+  effects: []
 };
 
 export const WAIT_ACTION: Ability = {
@@ -19,7 +20,8 @@ export const WAIT_ACTION: Ability = {
   range: 0,
   targetType: 'SELF',
   defenseTarget: 'NONE',
-  damageType: 'NONE'
+  damageType: 'NONE',
+  effects: []
 };
 
 export const UNIVERSAL_ACTIONS: readonly Ability[] = [

@@ -190,7 +190,10 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
         ...STRIKE,
         id: 'surge_strike',
         name: 'Surge Strike',
-        effect: { type: 'CRIT_BOOST' as const, magnitude: 1 }
+        effects: [
+          ...STRIKE.effects,
+          { type: 'CRIT_BOOST' as const, magnitude: 1 }
+        ]
       };
 
       const dummy = createRecruit('dummy', 'Dummy');
@@ -204,6 +207,7 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
         inBattleXp: { fighter: 0, rogue: 0, mage: 0 },
         activeModifiers: [],
         activeConditions: [],
+        abilityModifiers: [],
         abilities: [],
         passives: [],
         facing: 0

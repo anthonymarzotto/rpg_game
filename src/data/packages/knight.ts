@@ -13,15 +13,17 @@ export const LEAD_THE_CHARGE: Ability = {
   targetType: 'SELF',
   defenseTarget: 'NONE',
   damageType: 'NONE',
-  effect: {
-    type: 'STAT_MODIFIER',
-    magnitude: 2,
-    durationTurns: 2,
-    statModifiers: {
-      move: 2,
-      speed: 2
+  effects: [
+    {
+      type: 'STAT_MODIFIER',
+      magnitude: 2,
+      durationTurns: 2,
+      statModifiers: {
+        move: 2,
+        speed: 2
+      }
     }
-  }
+  ]
 };
 
 export const CHALLENGING_SHOUT: Ability = {
@@ -34,12 +36,14 @@ export const CHALLENGING_SHOUT: Ability = {
   targetType: 'SINGLE_TARGET',
   defenseTarget: 'NONE',
   damageType: 'NONE',
-  effect: {
-    type: 'CONDITION',
-    conditionType: 'CHALLENGED',
-    magnitude: 0,
-    durationTurns: 2
-  }
+  effects: [
+    {
+      type: 'CONDITION',
+      conditionType: 'CHALLENGED',
+      magnitude: 0,
+      durationTurns: 2
+    }
+  ]
 };
 
 export const POMMEL_STRIKE: Ability = {
@@ -53,15 +57,20 @@ export const POMMEL_STRIKE: Ability = {
   defenseTarget: 'EVASION',
   attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
-  damageProfile: {
-    count: 1,
-    sides: 4,
-    modifierAttribute: 'force'
-  },
-  effect: {
-    type: 'CTB_DELAY',
-    magnitude: 20
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 1,
+        sides: 4,
+        modifierAttribute: 'force'
+      }
+    },
+    {
+      type: 'CTB_DELAY',
+      magnitude: 20
+    }
+  ]
 };
 
 export const TACTICAL_VANGUARD: PassiveTrait = {

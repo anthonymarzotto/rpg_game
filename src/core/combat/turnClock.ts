@@ -275,7 +275,14 @@ export function endActiveTurn(
 
   activeCombatUnit.initiativeGauge = calculateTurnResetGauge(unspent, overflow);
   activeCombatUnit.currentAp = 0;
-  activeCombatUnit.pendingAbilityModifier = undefined;
+  activeCombatUnit.abilityModifiers = (activeCombatUnit.abilityModifiers ?? []).filter((m) => {
+    if (m.expiresAtTurnEnd) return false;
+    if (m.durationTurns !== undefined) {
+      m.durationTurns -= 1;
+      return m.durationTurns > 0;
+    }
+    return true;
+  });
   activeCombatUnit.abilitiesUsedThisTurn = undefined;
   activeCombatUnit.hexesMovedThisTurn = 0;
 

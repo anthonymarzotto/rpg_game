@@ -5,6 +5,7 @@ import { Unit } from '../../core/types/unit';
 import { UnitLoadout } from '../../core/types/loadout';
 import { CombatState, InBattleXp } from '../../core/combat/types';
 import { canMove, canExecuteAbility } from '../../core/combat/validator';
+import { getEffectiveAbility } from '../../core/combat/modifiers';
 import { executeMove, executeAbility } from '../../core/combat/resolver';
 import { endActiveTurn } from '../../core/combat/turnClock';
 import {
@@ -91,11 +92,12 @@ export function useCombatSimulation({
 
   // Computes candidate tiles in range when an ability is selected
   const abilityRangeCoords = useMemo<HexCoord[]>(() => {
-    if (phase !== 'PLAYER_ACTION' || actionMode !== 'ABILITY' || !selectedAbility || !activeCoord) {
+    if (phase !== 'PLAYER_ACTION' || actionMode !== 'ABILITY' || !selectedAbility || !activeCoord || !activeCu) {
       return [];
     }
-    return getHexesInRange(activeCoord, selectedAbility.range);
-  }, [phase, actionMode, selectedAbility, activeCoord]);
+    const effective = getEffectiveAbility(selectedAbility, activeCu.abilityModifiers);
+    return getHexesInRange(activeCoord, effective.range);
+  }, [phase, actionMode, selectedAbility, activeCoord, activeCu]);
 
   // Candidate targets within ability range that pass validation (enemies for attacks, allies for buffs)
   const candidateTargetCoords = useMemo<HexCoord[]>(() => {

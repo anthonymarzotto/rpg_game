@@ -2,12 +2,10 @@ import { Unit } from '../types/unit';
 import {
   HexCoord,
   HEX_DIRECTIONS,
-  getHexNeighbors,
   getHexesInRange,
   hexEquals,
   hexDistance,
-  getDirectionBetween,
-  getCombatArc
+  getDirectionBetween
 } from '../grid/hex';
 import { Arena } from '../grid/arena';
 import { Ability } from '../types/ability';
@@ -18,7 +16,9 @@ import {
   CombatEvent,
   EncounterObjective
 } from './types';
-import { canMove, canExecuteAbility, canApplyPendingModifier } from './validator';
+import { canMove, canExecuteAbility } from './validator';
+import { getEffectiveAbility } from './modifiers';
+import { isFlankOrRear } from './flanking';
 import { DiceRoller, SeededDiceRoller, RollAdvantage } from './dice';
 import {
   COMBAT_RESOLUTION_CONFIG,
@@ -178,6 +178,7 @@ export function createCombatState(
       inBattleXp: { fighter: 0, rogue: 0, mage: 0 },
       activeModifiers: [],
       activeConditions: [],
+      abilityModifiers: unit.loadout?.abilityModifiers ? [...unit.loadout.abilityModifiers] : [],
       abilities: resolved?.combatAbilities ?? [],
       passives: resolved?.activePassives ?? [],
       facing: unit.faction === 'PLAYER' ? HEX_DIRECTIONS.EAST : HEX_DIRECTIONS.WEST
@@ -314,41 +315,7 @@ function applyCombatEvents(state: CombatState, events: readonly CombatEvent[]): 
   }
 }
 
-/**
- * Evaluates whether a target is flanked by the actor.
- * Flanking is achieved if:
- * 1. The attacker is in the target's FLANK or REAR combat arc, OR
- * 2. An ally of the actor is also adjacent to the target (Allied Pincer).
- */
-export function isFlankOrRear(
-  state: CombatState,
-  actorUnitId: string,
-  targetUnitId: string
-): boolean {
-  const actorCu = state.units.get(actorUnitId);
-  const targetCu = state.units.get(targetUnitId);
-  const targetCoord = state.arena.getUnitPosition(targetUnitId);
-  const actorCoord = state.arena.getUnitPosition(actorUnitId);
-  if (!actorCu || !targetCu || !targetCoord || !actorCoord) return false;
-
-  // 1. Check if attacker is in target's Flank or Rear combat arc
-  const arc = getCombatArc(targetCu.facing, targetCoord, actorCoord);
-  if (arc === 'FLANK' || arc === 'REAR') {
-    return true;
-  }
-
-  // 2. Check if any other ally of actor is adjacent to target (Allied Pincer)
-  const targetNeighbors = getHexNeighbors(targetCoord);
-  const hasAlliedFlanker = targetNeighbors.some((coord) => {
-    const occupantId = state.arena.getUnitAt(coord);
-    if (!occupantId || occupantId === actorUnitId) return false;
-    const cu = state.units.get(occupantId);
-    return cu && !cu.isDefeated && cu.currentHp > 0 && cu.faction === actorCu.faction;
-  });
-  if (hasAlliedFlanker) return true;
-
-  return false;
-}
+export { isFlankOrRear } from './flanking';
 
 /**
  * Resolves an ability execution including to-hit roll, damage, mitigation,
@@ -367,25 +334,19 @@ export function executeAbility(
   }
 
   const actorCu = requireCombatUnit(state, actorUnitId);
-  actorCu.currentAp -= ability.apCost;
+  const effectiveAbility = getEffectiveAbility(ability, actorCu.abilityModifiers);
+  actorCu.currentAp -= effectiveAbility.apCost;
 
   // Track oncePerTurn
-  if (ability.oncePerTurn) {
-    (actorCu.abilitiesUsedThisTurn ??= []).push(ability.id);
+  if (effectiveAbility.oncePerTurn) {
+    (actorCu.abilitiesUsedThisTurn ??= []).push(effectiveAbility.id);
   }
 
-  // Evaluate ephemeral pendingAbilityModifier (e.g. primed by Spell Sculpt)
-  let effectiveAbility = ability;
-  const pendingMod = actorCu.pendingAbilityModifier;
-  if (canApplyPendingModifier(pendingMod, ability)) {
-    effectiveAbility = {
-      ...ability,
-      range: ability.range + (pendingMod!.extraRange ?? 0),
-      aoeRadius: (ability.aoeRadius ?? 0) + (pendingMod!.extraAoeRadius ?? 0)
-    };
-    if (pendingMod!.consumesOnUse) {
-      actorCu.pendingAbilityModifier = undefined;
-    }
+  // Consume ephemeral modifiers that applied to this ability
+  if (effectiveAbility.appliedModifierIds.length > 0) {
+    actorCu.abilityModifiers = (actorCu.abilityModifiers ?? []).filter(
+      (m) => !(m.consumesOnUse && effectiveAbility.appliedModifierIds.includes(m.id))
+    );
   }
 
   // Turn actor to face target
@@ -532,13 +493,14 @@ export function executeAbility(
   let rollAdvantage: RollAdvantage = 'NORMAL';
   let bonusDamageProfile = undefined;
 
-  if (effectiveAbility.conditionalBonus?.condition === 'FLANK_OR_REAR') {
+  const flankEffect = effectiveAbility.effects?.find((e) => e.condition === 'FLANK_OR_REAR');
+  if (flankEffect) {
     const isFlanked = isFlankOrRear(state, actorUnitId, targetCu.unit.id);
     if (isFlanked) {
-      if (effectiveAbility.conditionalBonus.grantsAdvantage !== false) {
+      if (flankEffect.grantsAdvantage !== false) {
         rollAdvantage = 'ADVANTAGE';
       }
-      bonusDamageProfile = effectiveAbility.conditionalBonus.bonusDamage;
+      bonusDamageProfile = flankEffect.bonusDamage;
     }
   }
 
@@ -611,16 +573,21 @@ export function executeAbility(
     }
   }
 
-  // Dispatch secondary effects via pluggable registry
-  const effectResult = executeAbilityEffects(effectiveAbility, {
-    state,
-    actorCu,
-    targetCu,
-    targetCoord: target?.coord,
-    ability: effectiveAbility,
-    hitOutcome: rollResult.hitOutcome,
-    diceRoller
-  });
+  // Dispatch secondary effects via pluggable registry (excluding primary DAMAGE which was resolved above)
+  const effectResult = executeAbilityEffects(
+    effectiveAbility,
+    {
+      state,
+      actorCu,
+      targetCu,
+      targetCoord: target?.coord,
+      ability: effectiveAbility,
+      hitOutcome: rollResult.hitOutcome,
+      diceRoller
+    },
+    defaultEffectRegistry,
+    (e) => e.type !== 'DAMAGE'
+  );
 
   events.push(...effectResult.events);
 
@@ -685,7 +652,7 @@ export function executeAbility(
       mitigation: damageResult.mitigation,
       damageDealt: damageResult.damageDealt,
       damageBreakdown: damageResult.damageBreakdown,
-      effectsApplied: ability.effect ? [ability.effect] : [],
+      effectsApplied: effectiveAbility.effects,
       knockbackResult: effectResult.knockbackResult,
       wallSlamDamage: effectResult.wallSlamDamage,
       events

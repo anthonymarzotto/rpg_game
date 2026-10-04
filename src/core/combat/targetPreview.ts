@@ -8,7 +8,8 @@ import {
   getEffectiveWard
 } from './effectiveVitals';
 import { canExecuteAbility } from './validator';
-import { isFlankOrRear } from './resolver';
+import { isFlankOrRear } from './flanking';
+import { getEffectiveAbility } from './modifiers';
 
 /**
  * Authoritative tactical calculations for an ability projected against a target.
@@ -28,6 +29,7 @@ export interface AbilityMetrics {
   readonly hasLoS: boolean;
   readonly diceDescription: string;
   readonly mitigation: number;
+  readonly isDamaging: boolean;
 }
 
 /**
@@ -38,13 +40,16 @@ export interface TargetPreview {
   readonly targetName: string;
   readonly toHitChance: number;
   readonly targetDefense: number;
-  readonly defenseType: string;
+  readonly defenseType: 'Evasion' | 'Resolve';
   readonly diceDescription: string;
   readonly damageRange: string;
   readonly isBlockedLoS: boolean;
   readonly blockReason?: string;
-  readonly combatArc?: CombatArc;
-  readonly isFlankAdvantage?: boolean;
+  readonly expectedDamage: number;
+  readonly combatArc: CombatArc;
+  readonly isFlankAdvantage: boolean;
+  readonly hasLoS: boolean;
+  readonly mitigation: number;
 }
 
 /**
@@ -70,12 +75,14 @@ export function computeAbilityMetrics(
   const targetCu = state.units.get(targetUnitId);
   if (!targetCu || targetCu.isDefeated) return null;
 
+  const effectiveAbility = getEffectiveAbility(ability, actorCu.abilityModifiers);
+
   const dist = hexDistance(effectiveOrigin, targetCoord);
-  if (dist > ability.range && ability.targetType !== 'SELF') {
+  if (dist > effectiveAbility.range && effectiveAbility.targetType !== 'SELF') {
     return null;
   }
 
-  const validation = canExecuteAbility(state, actorUnitId, ability, {
+  const validation = canExecuteAbility(state, actorUnitId, effectiveAbility, {
     coord: targetCoord,
     targetUnitId,
     originCoord: effectiveOrigin,
@@ -87,9 +94,9 @@ export function computeAbilityMetrics(
   }
 
   const hasLoS = state.arena.hasLineOfSight(effectiveOrigin, targetCoord);
-  const defenseType = ability.defenseTarget === 'EVASION' ? 'Evasion' : 'Resolve';
+  const defenseType = effectiveAbility.defenseTarget === 'EVASION' ? 'Evasion' : 'Resolve';
   const targetDefense =
-    ability.defenseTarget === 'EVASION'
+    effectiveAbility.defenseTarget === 'EVASION'
       ? getEffectiveEvasion(targetCu)
       : getEffectiveResolve(targetCu);
 
@@ -97,11 +104,12 @@ export function computeAbilityMetrics(
   let isFlankAdvantage = false;
   let bonusDamageProfile = undefined;
 
-  if (ability.conditionalBonus?.condition === 'FLANK_OR_REAR') {
+  const flankEffect = effectiveAbility.effects.find((e) => e.condition === 'FLANK_OR_REAR');
+  if (flankEffect) {
     // Check if attacker arc is Flank/Rear or if an allied pincer exists
     if (combatArc === 'FLANK' || combatArc === 'REAR' || isFlankOrRear(state, actorUnitId, targetUnitId)) {
-      isFlankAdvantage = true;
-      bonusDamageProfile = ability.conditionalBonus.bonusDamage;
+      isFlankAdvantage = flankEffect.grantsAdvantage !== false;
+      bonusDamageProfile = flankEffect.bonusDamage;
     }
   }
 
@@ -111,8 +119,13 @@ export function computeAbilityMetrics(
     (actorCu.passives ?? []).some((p) => p.id === 'momentum');
   const hasAdvantage = isFlankAdvantage || isMomentumAdvantage;
 
+  // Damage effect lookup
+  const damageEffect = effectiveAbility.effects.find((e) => e.type === 'DAMAGE');
+  const diceProfile = damageEffect?.damageProfile;
+  const flatDamage = damageEffect?.flatDamage ?? 0;
+
   // Approximate to-hit chance on d20
-  const attackAttr = ability.attackModifierAttribute ?? ability.damageProfile?.modifierAttribute;
+  const attackAttr = effectiveAbility.attackModifierAttribute ?? diceProfile?.modifierAttribute;
   const attackModifier = attackAttr ? actorCu.unit.baseAttributes[attackAttr] : 0;
   const needed = Math.max(1, Math.min(20, targetDefense - attackModifier));
   const singleP = (21 - needed) / 20;
@@ -120,9 +133,8 @@ export function computeAbilityMetrics(
   const rawHitChance = Math.round(effectiveP * 100);
   const toHitChance = Math.max(5, Math.min(95, rawHitChance));
 
-  const diceProfile = ability.damageProfile;
   const damageAttr = diceProfile?.modifierAttribute;
-  const damageModifier = damageAttr ? actorCu.unit.baseAttributes[damageAttr] : 0;
+  const damageModifier = (damageAttr ? actorCu.unit.baseAttributes[damageAttr] : 0) + flatDamage;
 
   const bonusCount = bonusDamageProfile?.count ?? 0;
   const bonusSides = bonusDamageProfile?.sides ?? 0;
@@ -130,16 +142,19 @@ export function computeAbilityMetrics(
   let diceDesc = diceProfile
     ? `${diceProfile.count}d${diceProfile.sides} + ${damageAttr ?? ''}`
     : 'Support';
+  if (flatDamage > 0) {
+    diceDesc += ` +${flatDamage}`;
+  }
   if (bonusDamageProfile) {
     diceDesc += ` (+${bonusCount}d${bonusSides})`;
   }
 
   const mitigation =
-    ability.damageType === 'PHYSICAL'
+    effectiveAbility.damageType === 'PHYSICAL'
       ? getEffectiveArmor(targetCu)
       : getEffectiveWard(targetCu);
 
-  if (!diceProfile) {
+  if (!diceProfile && flatDamage === 0) {
     return {
       targetUnitId,
       targetName: targetCu.unit.name,
@@ -153,14 +168,18 @@ export function computeAbilityMetrics(
       combatArc,
       hasLoS,
       diceDescription: diceDesc,
-      mitigation: 0
+      mitigation: 0,
+      isDamaging: false
     };
   }
 
-  const minDmg = Math.max(1, diceProfile.count + bonusCount + damageModifier - mitigation);
-  const maxDmg = Math.max(1, diceProfile.count * diceProfile.sides + bonusCount * bonusSides + damageModifier - mitigation);
+  const baseCount = diceProfile?.count ?? 0;
+  const baseSides = diceProfile?.sides ?? 0;
 
-  const avgBaseRoll = diceProfile.count * ((diceProfile.sides + 1) / 2);
+  const minDmg = Math.max(1, baseCount + bonusCount + damageModifier - mitigation);
+  const maxDmg = Math.max(1, baseCount * baseSides + bonusCount * bonusSides + damageModifier - mitigation);
+
+  const avgBaseRoll = baseCount * ((baseSides + 1) / 2);
   const avgBonusRoll = bonusCount * ((bonusSides + 1) / 2);
   const avgUnmitigated = avgBaseRoll + avgBonusRoll + damageModifier;
   const avgHitDamage = Math.max(1, avgUnmitigated - mitigation);
@@ -179,20 +198,22 @@ export function computeAbilityMetrics(
     combatArc,
     hasLoS,
     diceDescription: diceDesc,
-    mitigation
+    mitigation,
+    isDamaging: true
   };
 }
 
 /**
- * Computes live tactical target preview information formatted for the UI.
+ * Computes a target preview for UI display when hovering a candidate target hex.
  */
 export function computeTargetPreview(
   state: CombatState,
   actorUnitId: string,
   ability: Ability,
-  hoveredCoord: HexCoord
+  targetCoord: HexCoord,
+  originCoord?: HexCoord
 ): TargetPreview | null {
-  const metrics = computeAbilityMetrics(state, actorUnitId, ability, hoveredCoord);
+  const metrics = computeAbilityMetrics(state, actorUnitId, ability, targetCoord, originCoord);
   if (!metrics) return null;
 
   return {
@@ -202,13 +223,15 @@ export function computeTargetPreview(
     targetDefense: metrics.targetDefense,
     defenseType: metrics.defenseType,
     diceDescription: metrics.diceDescription,
-    damageRange:
-      ability.damageProfile
-        ? `${metrics.minDamage} – ${metrics.maxDamage} (Soak: ${metrics.mitigation})`
-        : 'Buff',
+    damageRange: metrics.isDamaging
+      ? `${metrics.minDamage} – ${metrics.maxDamage} (Soak: ${metrics.mitigation})`
+      : 'Buff',
     isBlockedLoS: !metrics.hasLoS,
     blockReason: !metrics.hasLoS ? 'Line-of-Sight is screened/blocked' : undefined,
+    expectedDamage: metrics.expectedDamage,
     combatArc: metrics.combatArc,
-    isFlankAdvantage: metrics.isFlankAdvantage
+    isFlankAdvantage: metrics.isFlankAdvantage,
+    hasLoS: metrics.hasLoS,
+    mitigation: metrics.mitigation
   };
 }

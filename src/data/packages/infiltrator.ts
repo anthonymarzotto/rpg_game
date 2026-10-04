@@ -12,15 +12,17 @@ export const EXPOSE_WEAKNESS: Ability = {
   targetType: 'SINGLE_TARGET',
   defenseTarget: 'NONE',
   damageType: 'NONE',
-  effect: {
-    type: 'STAT_MODIFIER',
-    magnitude: 2,
-    durationTurns: 2,
-    statModifiers: {
-      armor: -2,
-      evasion: -2
+  effects: [
+    {
+      type: 'STAT_MODIFIER',
+      magnitude: 2,
+      durationTurns: 2,
+      statModifiers: {
+        armor: -2,
+        evasion: -2
+      }
     }
-  }
+  ]
 };
 
 export const SMOKE_VEIL: Ability = {
@@ -33,12 +35,14 @@ export const SMOKE_VEIL: Ability = {
   targetType: 'SELF',
   defenseTarget: 'NONE',
   damageType: 'NONE',
-  effect: {
-    type: 'CONDITION',
-    conditionType: 'STEALTH',
-    magnitude: 0,
-    durationTurns: 2
-  }
+  effects: [
+    {
+      type: 'CONDITION',
+      conditionType: 'STEALTH',
+      magnitude: 0,
+      durationTurns: 2
+    }
+  ]
 };
 
 export const TOXIC_SHIV: Ability = {
@@ -52,17 +56,22 @@ export const TOXIC_SHIV: Ability = {
   defenseTarget: 'EVASION',
   attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
-  damageProfile: {
-    count: 1,
-    sides: 4,
-    modifierAttribute: 'finesse'
-  },
-  effect: {
-    type: 'CONDITION',
-    conditionType: 'POISON',
-    magnitude: 2,
-    durationTurns: 2
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 1,
+        sides: 4,
+        modifierAttribute: 'finesse'
+      }
+    },
+    {
+      type: 'CONDITION',
+      conditionType: 'POISON',
+      magnitude: 2,
+      durationTurns: 2
+    }
+  ]
 };
 
 export const ELUSIVE_STRIDE: PassiveTrait = {

@@ -35,12 +35,14 @@ describe('Tier 2 Combat Engine Mechanics', () => {
       apCost: 2,
       damageType: 'NONE',
       aoeRadius: 3,
-      effect: {
-        type: 'STAT_MODIFIER',
-        magnitude: 2,
-        durationTurns: 2,
-        statModifiers: { move: 2, speed: 2 }
-      }
+      effects: [
+        {
+          type: 'STAT_MODIFIER',
+          magnitude: 2,
+          durationTurns: 2,
+          statModifiers: { move: 2, speed: 2 }
+        }
+      ]
     };
 
     const res = executeAbility(state, 'knight', leadTheCharge, {}, new MockDiceRoller());
@@ -88,10 +90,12 @@ describe('Tier 2 Combat Engine Mechanics', () => {
       apCost: 1,
       damageType: 'NONE',
       oncePerTurn: true,
-      effect: {
-        type: 'SPELL_SCULPT',
-        magnitude: 1
-      }
+      effects: [
+        {
+          type: 'SPELL_SCULPT',
+          magnitude: 1
+        }
+      ]
     };
 
     // Before Spell Sculpt, Spark cannot reach distance 4
@@ -100,8 +104,8 @@ describe('Tier 2 Combat Engine Mechanics', () => {
 
     // Cast Spell Sculpt
     executeAbility(state, 'sorcerer', spellSculpt, {}, new MockDiceRoller());
-    expect(sorcCu.pendingAbilityModifier).toBeDefined();
-    expect(sorcCu.pendingAbilityModifier?.extraRange).toBe(1);
+    expect(sorcCu.abilityModifiers.some((m) => m.id === 'spell_sculpt')).toBe(true);
+    expect(sorcCu.abilityModifiers.find((m) => m.id === 'spell_sculpt')?.deltas?.range).toBe(1);
 
     // Now Spark can reach distance 4!
     const postCheck = canExecuteAbility(state, 'sorcerer', SPARK, { targetUnitId: 'enemy' });
@@ -112,8 +116,8 @@ describe('Tier 2 Combat Engine Mechanics', () => {
     const res = executeAbility(state, 'sorcerer', SPARK, { targetUnitId: 'enemy' }, dice);
     expect(res.type).toBe('ATTACK');
 
-    // Pending modifier is consumed on use
-    expect(sorcCu.pendingAbilityModifier).toBeUndefined();
+    // Ephemeral modifier is consumed on use
+    expect(sorcCu.abilityModifiers.some((m) => m.id === 'spell_sculpt')).toBe(false);
 
     // Next Spark cannot reach distance 4 anymore
     sorcCu.currentAp = 2;
@@ -143,11 +147,13 @@ describe('Tier 2 Combat Engine Mechanics', () => {
       range: 3,
       apCost: 1,
       damageType: 'NONE',
-      effect: {
-        type: 'WARD_BUFF',
-        magnitude: 2,
-        durationTurns: 2
-      }
+      effects: [
+        {
+          type: 'WARD_BUFF',
+          magnitude: 2,
+          durationTurns: 2
+        }
+      ]
     };
 
     // Range 3 cannot reach ally at distance 4
@@ -155,7 +161,7 @@ describe('Tier 2 Combat Engine Mechanics', () => {
 
     // Prime Spell Sculpt
     executeAbility(state, 'sorcerer', SPELL_SCULPT, {}, new MockDiceRoller());
-    expect(sorcCu.pendingAbilityModifier).toBeDefined();
+    expect(sorcCu.abilityModifiers.some((m) => m.id === 'spell_sculpt')).toBe(true);
 
     // Now Arcane Barrier has effective range 4 and can target ally!
     expect(canExecuteAbility(state, 'sorcerer', mageBuff, { targetUnitId: 'ally' }).valid).toBe(true);
@@ -163,7 +169,7 @@ describe('Tier 2 Combat Engine Mechanics', () => {
     // Execute Arcane Barrier at range 4
     const res = executeAbility(state, 'sorcerer', mageBuff, { targetUnitId: 'ally' });
     expect(res.type).toBe('SUPPORT');
-    expect(sorcCu.pendingAbilityModifier).toBeUndefined();
+    expect(sorcCu.abilityModifiers.some((m) => m.id === 'spell_sculpt')).toBe(false);
   });
 
   it('Task 2.7: Sculpted Gust affects multiple hostile units in AoE and triggers collision damage on obstacle impact', () => {
@@ -191,7 +197,7 @@ describe('Tier 2 Combat Engine Mechanics', () => {
 
     // 1. Prime Spell Sculpt (+1 Range, +1 AoE)
     executeAbility(state, 'sorcerer', SPELL_SCULPT, {}, new MockDiceRoller());
-    expect(sorcCu.pendingAbilityModifier).toBeDefined();
+    expect(sorcCu.abilityModifiers.some((m) => m.id === 'spell_sculpt')).toBe(true);
 
     // 2. Cast Gust targeting enemy1 at (2, 0)
     // Sculpted Gust has range 4 and aoeRadius 1, encompassing both enemy1 and enemy2
@@ -240,7 +246,8 @@ describe('Tier 2 Combat Engine Mechanics', () => {
       range: 0,
       apCost: 1,
       damageType: 'NONE',
-      oncePerTurn: true
+      oncePerTurn: true,
+      effects: []
     };
 
     expect(canExecuteAbility(state, 'hero', onceAbility).valid).toBe(true);
@@ -298,7 +305,13 @@ describe('Tier 2 Combat Engine Mechanics', () => {
       defenseTarget: 'EVASION',
       range: 1,
       apCost: 1,
-      damageType: 'PHYSICAL'
+      damageType: 'PHYSICAL',
+      effects: [
+        {
+          type: 'DAMAGE',
+          damageProfile: { count: 1, sides: 6, modifierAttribute: 'force' }
+        }
+      ]
     };
     expect(canExecuteAbility(state, 'enemy', enemyAttack, { targetUnitId: 'infiltrator' }).valid).toBe(false);
 

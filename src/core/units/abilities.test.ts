@@ -35,9 +35,11 @@ describe('Ability Catalog Invariants', () => {
   it('ensures all damaging abilities specify a valid dice profile', () => {
     for (const ability of allNoviceAbilities) {
       if (ability.damageType !== 'NONE') {
-        expect(ability.damageProfile).toBeDefined();
-        expect(ability.damageProfile!.count).toBeGreaterThan(0);
-        expect(ability.damageProfile!.sides).toBeGreaterThan(0);
+        const damageEffect = ability.effects.find((e) => e.type === 'DAMAGE');
+        expect(damageEffect).toBeDefined();
+        expect(damageEffect!.damageProfile).toBeDefined();
+        expect(damageEffect!.damageProfile!.count).toBeGreaterThan(0);
+        expect(damageEffect!.damageProfile!.sides).toBeGreaterThan(0);
       }
     }
   });

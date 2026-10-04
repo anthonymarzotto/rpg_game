@@ -127,7 +127,7 @@ describe('CTB Turn Clock Advancement & Unspent AP Recovery', () => {
     expect(nextActive).toBe('hero');
   });
 
-  it('clears pendingAbilityModifier on active unit when turn ends', () => {
+  it('clears turn-expiring abilityModifiers on active unit when turn ends', () => {
     const arena = createRadialArena(3);
     const hero = createRecruit('hero', 'Alden');
     arena.setUnitPosition('hero', { q: 0, r: 0 });
@@ -135,15 +135,25 @@ describe('CTB Turn Clock Advancement & Unspent AP Recovery', () => {
     const state = createCombatState(arena, [hero], 'hero');
     const heroCu = state.units.get('hero')!;
 
-    heroCu.pendingAbilityModifier = {
-      extraRange: 1,
-      extraAoeRadius: 1,
+    heroCu.abilityModifiers.push({
+      id: 'spell_sculpt',
+      name: 'Spell Sculpt',
+      deltas: { range: 1, aoeRadius: 1 },
       consumesOnUse: true,
       expiresAtTurnEnd: true
-    };
+    });
+    heroCu.abilityModifiers.push({
+      id: 'temp_boost',
+      name: 'Temp Boost',
+      deltas: { apCost: -1 },
+      durationTurns: 2
+    });
 
-    expect(heroCu.pendingAbilityModifier).toBeDefined();
+    expect(heroCu.abilityModifiers).toHaveLength(2);
     endActiveTurn(state);
-    expect(heroCu.pendingAbilityModifier).toBeUndefined();
+    // expiresAtTurnEnd was removed, durationTurns decremented from 2 to 1
+    expect(heroCu.abilityModifiers).toHaveLength(1);
+    expect(heroCu.abilityModifiers[0].id).toBe('temp_boost');
+    expect(heroCu.abilityModifiers[0].durationTurns).toBe(1);
   });
 });

@@ -1,33 +1,8 @@
 import { HexCoord, hexDistance } from '../grid/hex';
 import { Ability } from '../types/ability';
-import { CombatState, ValidationResult, PendingAbilityModifier } from './types';
+import { CombatState, ValidationResult } from './types';
 import { getEffectiveMove } from './effectiveVitals';
-
-/**
- * Evaluates whether an ephemeral pending modifier can be applied to the given ability.
- */
-export function canApplyPendingModifier(
-  modifier: PendingAbilityModifier | undefined,
-  ability: Ability
-): boolean {
-  if (!modifier) return false;
-  if (modifier.allowedArchetypes && ability.archetypeTag && !modifier.allowedArchetypes.includes(ability.archetypeTag)) {
-    return false;
-  }
-  if (modifier.requiredDamageType === 'DAMAGING' && (ability.damageType === 'NONE' || !ability.damageType)) {
-    return false;
-  }
-  if (modifier.requiredDamageType === 'MAGICAL' && ability.damageType !== 'MAGICAL') {
-    return false;
-  }
-  if (modifier.requiredDamageType === 'PHYSICAL' && ability.damageType !== 'PHYSICAL') {
-    return false;
-  }
-  if (modifier.excludedEffectTypes && ability.effect && modifier.excludedEffectTypes.includes(ability.effect.type)) {
-    return false;
-  }
-  return true;
-}
+import { getEffectiveAbility } from './modifiers';
 
 /**
  * Checks if the active unit can legally move to destination.
@@ -71,7 +46,8 @@ export interface AbilityTargetOptions {
 }
 
 /**
- * Evaluates whether an ability can be cast against a target.
+ * Evaluates whether an ability can be cast against a target,
+ * taking into account all active ability modifiers on the caster.
  */
 export function canExecuteAbility(
   state: CombatState,
@@ -86,11 +62,14 @@ export function canExecuteAbility(
   if (!cu || cu.isDefeated) {
     return { valid: false, reason: 'Unit is defeated or does not exist.' };
   }
-  if (!target?.ignoreApCheck && cu.currentAp < ability.apCost) {
-    return { valid: false, reason: `Insufficient AP (requires ${ability.apCost}, has ${cu.currentAp}).` };
+
+  const effectiveAbility = getEffectiveAbility(ability, cu.abilityModifiers);
+
+  if (!target?.ignoreApCheck && cu.currentAp < effectiveAbility.apCost) {
+    return { valid: false, reason: `Insufficient AP (requires ${effectiveAbility.apCost}, has ${cu.currentAp}).` };
   }
-  if (ability.oncePerTurn && cu.abilitiesUsedThisTurn?.includes(ability.id)) {
-    return { valid: false, reason: `${ability.name} can only be used once per turn.` };
+  if (effectiveAbility.oncePerTurn && cu.abilitiesUsedThisTurn?.includes(effectiveAbility.id)) {
+    return { valid: false, reason: `${effectiveAbility.name} can only be used once per turn.` };
   }
 
   const actorCoord = target?.originCoord ?? state.arena.getUnitPosition(actorUnitId);
@@ -98,17 +77,13 @@ export function canExecuteAbility(
     return { valid: false, reason: 'Actor not placed on arena.' };
   }
 
-  let effectiveRange = ability.range;
-  const pendingMod = cu.pendingAbilityModifier;
-  if (canApplyPendingModifier(pendingMod, ability)) {
-    effectiveRange += pendingMod!.extraRange ?? 0;
-  }
+  const effectiveRange = effectiveAbility.range;
 
-  if (ability.targetType === 'SELF') {
+  if (effectiveAbility.targetType === 'SELF') {
     return { valid: true };
   }
 
-  if (ability.targetType === 'HEX') {
+  if (effectiveAbility.targetType === 'HEX') {
     if (!target?.coord) {
       return { valid: false, reason: 'Missing destination coordinate for hex-targeted ability.' };
     }
@@ -130,11 +105,11 @@ export function canExecuteAbility(
   }
 
   const targetUnitId =
-    ability.targetType === 'ALLY' && !target?.targetUnitId
+    effectiveAbility.targetType === 'ALLY' && !target?.targetUnitId
       ? actorUnitId
       : target?.targetUnitId;
 
-  if (ability.targetType === 'SINGLE_TARGET' || ability.targetType === 'ALLY') {
+  if (effectiveAbility.targetType === 'SINGLE_TARGET' || effectiveAbility.targetType === 'ALLY') {
     if (!targetUnitId) {
       return { valid: false, reason: 'Missing target unit.' };
     }
@@ -147,7 +122,7 @@ export function canExecuteAbility(
       return { valid: false, reason: 'Target unit not placed on arena.' };
     }
 
-    if (ability.targetType === 'SINGLE_TARGET') {
+    if (effectiveAbility.targetType === 'SINGLE_TARGET') {
       if (targetUnitId === actorUnitId) {
         return { valid: false, reason: 'Cannot target self with this ability.' };
       }
@@ -155,7 +130,7 @@ export function canExecuteAbility(
         cu.faction &&
         targetCu.faction &&
         cu.faction === targetCu.faction &&
-        ability.damageType !== 'NONE'
+        effectiveAbility.damageType !== 'NONE'
       ) {
         return { valid: false, reason: 'Cannot attack a friendly unit.' };
       }
@@ -167,7 +142,7 @@ export function canExecuteAbility(
       }
     }
 
-    if (ability.targetType === 'ALLY') {
+    if (effectiveAbility.targetType === 'ALLY') {
       if (
         targetUnitId !== actorUnitId &&
         cu.faction &&

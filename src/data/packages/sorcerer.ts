@@ -13,10 +13,12 @@ export const SPELL_SCULPT: Ability = {
   defenseTarget: 'NONE',
   damageType: 'NONE',
   oncePerTurn: true,
-  effect: {
-    type: 'SPELL_SCULPT',
-    magnitude: 1
-  }
+  effects: [
+    {
+      type: 'SPELL_SCULPT',
+      magnitude: 1
+    }
+  ]
 };
 
 export const IGNITE: Ability = {
@@ -30,17 +32,22 @@ export const IGNITE: Ability = {
   defenseTarget: 'RESOLVE',
   attackModifierAttribute: 'focus',
   damageType: 'MAGICAL',
-  damageProfile: {
-    count: 1,
-    sides: 4,
-    modifierAttribute: 'focus'
-  },
-  effect: {
-    type: 'CONDITION',
-    conditionType: 'BURN',
-    magnitude: 2,
-    durationTurns: 2
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 1,
+        sides: 4,
+        modifierAttribute: 'focus'
+      }
+    },
+    {
+      type: 'CONDITION',
+      conditionType: 'BURN',
+      magnitude: 2,
+      durationTurns: 2
+    }
+  ]
 };
 
 export const GUST: Ability = {
@@ -53,10 +60,12 @@ export const GUST: Ability = {
   targetType: 'SINGLE_TARGET',
   defenseTarget: 'NONE',
   damageType: 'NONE',
-  effect: {
-    type: 'KNOCKBACK',
-    magnitude: 1
-  }
+  effects: [
+    {
+      type: 'KNOCKBACK',
+      magnitude: 1
+    }
+  ]
 };
 
 export const WILD_SURGE: PassiveTrait = {

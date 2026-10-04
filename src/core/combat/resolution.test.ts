@@ -215,7 +215,7 @@ describe('Attack & Ability Resolution Outcomes', () => {
 
       // Strike has attackModifierAttribute: 'finesse', damageProfile.modifierAttribute: 'force'
       expect(STRIKE.attackModifierAttribute).toBe('finesse');
-      expect(STRIKE.damageProfile?.modifierAttribute).toBe('force');
+      expect(STRIKE.effects[0].damageProfile?.modifierAttribute).toBe('force');
 
       // Verify attack modifier uses Finesse (5)
       expect(getAttackRollModifier(actorCu, STRIKE)).toBe(5);
@@ -275,7 +275,7 @@ describe('Attack & Ability Resolution Outcomes', () => {
       const targetCu = state.units.get('target')!;
 
       expect(QUICK_THRUST.attackModifierAttribute).toBe('finesse');
-      expect(QUICK_THRUST.damageProfile?.modifierAttribute).toBe('force');
+      expect(QUICK_THRUST.effects[0].damageProfile?.modifierAttribute).toBe('force');
 
       expect(getAttackRollModifier(actorCu, QUICK_THRUST)).toBe(8);
       expect(getAbilityModifier(actorCu, QUICK_THRUST)).toBe(2);
@@ -301,7 +301,7 @@ describe('Attack & Ability Resolution Outcomes', () => {
       const targetCu = state.units.get('target')!;
 
       expect(SPARK.attackModifierAttribute).toBe('focus');
-      expect(SPARK.damageProfile?.modifierAttribute).toBe('focus');
+      expect(SPARK.effects[0].damageProfile?.modifierAttribute).toBe('focus');
 
       expect(getAttackRollModifier(actorCu, SPARK)).toBe(6);
       expect(getAbilityModifier(actorCu, SPARK)).toBe(6);

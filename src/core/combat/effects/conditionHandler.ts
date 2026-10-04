@@ -31,7 +31,7 @@ export const conditionHandler: EffectHandler = {
       const durationTurns = effect.durationTurns ?? 1;
       const damagePerTurn =
         conditionType === 'POISON' || conditionType === 'BURN'
-          ? (effect.magnitude > 0 ? effect.magnitude : 2)
+          ? (effect.magnitude !== undefined && effect.magnitude > 0 ? effect.magnitude : 2)
           : undefined;
 
       const condition: ActiveCondition = {

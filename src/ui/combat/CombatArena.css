@@ -1501,3 +1501,88 @@
   padding: 0.15rem 0.45rem;
   box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
 }
+
+/* -------------------------------------------------------------------------- */
+/* Ability Pipeline Augment Indicators & Attributions                         */
+/* -------------------------------------------------------------------------- */
+.ability-btn.augmented {
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
+}
+
+.augment-indicator {
+  font-size: 0.85rem;
+  color: #38bdf8;
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.9);
+  display: inline-flex;
+  align-items: center;
+  margin-right: 0.15rem;
+  animation: pulseAugmentGlyph 2s infinite alternate ease-in-out;
+}
+
+@keyframes pulseAugmentGlyph {
+  from { opacity: 0.8; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 4px #38bdf8); }
+}
+
+.action-cost.cost-discounted {
+  color: #10b981;
+  font-weight: 800;
+  text-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.inline-attribution-badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+}
+
+.tooltip-augment-glyph {
+  color: #38bdf8;
+  text-shadow: 0 0 6px rgba(56, 189, 248, 0.8);
+}
+
+.tooltip-augments-footer {
+  margin-top: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.tooltip-augments-title {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #38bdf8;
+  margin-bottom: 0.25rem;
+}
+
+.tooltip-augments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.tooltip-augment-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: #cbd5e1;
+}
+
+.tooltip-augment-row .augment-source {
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.tooltip-augment-row .augment-label {
+  color: #38bdf8;
+  font-weight: 600;
+}
+

@@ -153,9 +153,9 @@ describe('Task Group 5: Tier 2 Progression & End-to-End Combat Integration Flow'
     sorcCu.currentAp = 3;
     // Activate Spell Sculpt
     executeAbility(combatState, recC.id, SPELL_SCULPT);
-    expect(sorcCu.pendingAbilityModifier).toBeDefined();
-    expect(sorcCu.pendingAbilityModifier?.extraRange).toBe(1);
-    expect(sorcCu.pendingAbilityModifier?.extraAoeRadius).toBe(1);
+    expect(sorcCu.abilityModifiers.some((m) => m.id === 'spell_sculpt')).toBe(true);
+    expect(sorcCu.abilityModifiers.find((m) => m.id === 'spell_sculpt')?.deltas?.range).toBe(1);
+    expect(sorcCu.abilityModifiers.find((m) => m.id === 'spell_sculpt')?.deltas?.aoeRadius).toBe(1);
 
     // Cast Ignite with Spell Sculpt primed:
     // Rolled Crit (20), 4 damage, 1d3 Wild Surge roll 1 (+1 AP refund)
@@ -163,7 +163,7 @@ describe('Task Group 5: Tier 2 Progression & End-to-End Combat Integration Flow'
     executeAbility(combatState, recC.id, IGNITE, { targetUnitId: 'training_dummy' }, dice);
 
     // Modifier was consumed
-    expect(sorcCu.pendingAbilityModifier).toBeUndefined();
+    expect(sorcCu.abilityModifiers.some((m) => m.id === 'spell_sculpt')).toBe(false);
     // Wild surge refunded 1 AP (initial 2 AP, cost 1, refunded 1 -> 2 AP)
     expect(sorcCu.currentAp).toBe(2);
 

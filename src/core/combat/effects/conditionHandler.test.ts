@@ -29,16 +29,21 @@ describe('conditionHandler', () => {
       range: 1,
       apCost: 2,
       damageType: 'PHYSICAL',
-      damageProfile: { count: 1, sides: 4, modifierAttribute: 'finesse' },
-      effect: {
-        type: 'CONDITION',
-        conditionType: 'POISON',
-        magnitude: 2,
-        durationTurns: 3
-      }
+      effects: [
+        {
+          type: 'DAMAGE',
+          damageProfile: { count: 1, sides: 4, modifierAttribute: 'finesse' }
+        },
+        {
+          type: 'CONDITION',
+          conditionType: 'POISON',
+          magnitude: 2,
+          durationTurns: 3
+        }
+      ]
     };
 
-    const result = conditionHandler.apply(ability.effect!, {
+    const result = conditionHandler.apply(ability.effects[1], {
       state,
       actorCu,
       targetCu,
@@ -85,15 +90,17 @@ describe('conditionHandler', () => {
       range: 0,
       apCost: 1,
       damageType: 'NONE',
-      effect: {
-        type: 'CONDITION',
-        conditionType: 'STEALTH',
-        magnitude: 0,
-        durationTurns: 1
-      }
+      effects: [
+        {
+          type: 'CONDITION',
+          conditionType: 'STEALTH',
+          magnitude: 0,
+          durationTurns: 1
+        }
+      ]
     };
 
-    const result = conditionHandler.apply(ability.effect!, {
+    const result = conditionHandler.apply(ability.effects[0], {
       state,
       actorCu,
       ability,
@@ -143,15 +150,17 @@ describe('conditionHandler', () => {
       range: 3,
       apCost: 2,
       damageType: 'NONE',
-      effect: {
-        type: 'CONDITION',
-        conditionType: 'CHALLENGED',
-        magnitude: 0,
-        durationTurns: 2
-      }
+      effects: [
+        {
+          type: 'CONDITION',
+          conditionType: 'CHALLENGED',
+          magnitude: 0,
+          durationTurns: 2
+        }
+      ]
     };
 
-    conditionHandler.apply(ability.effect!, {
+    conditionHandler.apply(ability.effects[0], {
       state,
       actorCu,
       targetCu,

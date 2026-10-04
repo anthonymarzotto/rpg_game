@@ -9,7 +9,7 @@ export const ctbDelayHandler: EffectHandler = {
       return { events: [] };
     }
 
-    const delayAmount = effect.magnitude;
+    const delayAmount = effect.magnitude ?? 0;
     targetCu.initiativeGauge = Math.max(0, targetCu.initiativeGauge - delayAmount);
 
     const event: CombatEvent = {

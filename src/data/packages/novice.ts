@@ -16,11 +16,16 @@ export const STRIKE: Ability = {
   defenseTarget: 'EVASION',
   attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
-  damageProfile: {
-    count: 1,
-    sides: 6,
-    modifierAttribute: 'force'
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 1,
+        sides: 6,
+        modifierAttribute: 'force'
+      }
+    }
+  ]
 };
 
 export const SHIELD_BASH: Ability = {
@@ -34,15 +39,20 @@ export const SHIELD_BASH: Ability = {
   defenseTarget: 'EVASION',
   attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
-  damageProfile: {
-    count: 1,
-    sides: 4,
-    modifierAttribute: 'force'
-  },
-  effect: {
-    type: 'KNOCKBACK',
-    magnitude: 1
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 1,
+        sides: 4,
+        modifierAttribute: 'force'
+      }
+    },
+    {
+      type: 'KNOCKBACK',
+      magnitude: 1
+    }
+  ]
 };
 
 export const BRACE: Ability = {
@@ -56,16 +66,23 @@ export const BRACE: Ability = {
   defenseTarget: 'EVASION',
   attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
-  damageProfile: {
-    count: 1,
-    sides: 4,
-    modifierAttribute: 'force'
-  },
-  effect: {
-    type: 'ARMOR_BUFF',
-    magnitude: 2,
-    durationTurns: 1
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 1,
+        sides: 4,
+        modifierAttribute: 'force'
+      }
+    },
+    {
+      type: 'ARMOR_BUFF',
+      magnitude: 2,
+      durationTurns: 1,
+      targetScope: 'SELF',
+      applyOn: 'ALWAYS'
+    }
+  ]
 };
 
 export const NOVICE_FIGHTER_ABILITIES: readonly Ability[] = [
@@ -87,15 +104,20 @@ export const QUICK_THRUST: Ability = {
   defenseTarget: 'EVASION',
   attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
-  damageProfile: {
-    count: 1,
-    sides: 4,
-    modifierAttribute: 'force'
-  },
-  effect: {
-    type: 'CRIT_BOOST',
-    magnitude: 1
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 1,
+        sides: 4,
+        modifierAttribute: 'force'
+      }
+    },
+    {
+      type: 'CRIT_BOOST',
+      magnitude: 1
+    }
+  ]
 };
 
 export const THROW_DART: Ability = {
@@ -109,11 +131,16 @@ export const THROW_DART: Ability = {
   defenseTarget: 'EVASION',
   attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
-  damageProfile: {
-    count: 1,
-    sides: 4,
-    modifierAttribute: 'force'
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 1,
+        sides: 4,
+        modifierAttribute: 'force'
+      }
+    }
+  ]
 };
 
 export const SKIRMISH: Ability = {
@@ -127,15 +154,22 @@ export const SKIRMISH: Ability = {
   defenseTarget: 'EVASION',
   attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
-  damageProfile: {
-    count: 1,
-    sides: 4,
-    modifierAttribute: 'force'
-  },
-  effect: {
-    type: 'RETREAT_STEP',
-    magnitude: 1
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 1,
+        sides: 4,
+        modifierAttribute: 'force'
+      }
+    },
+    {
+      type: 'RETREAT_STEP',
+      magnitude: 1,
+      targetScope: 'SELF',
+      applyOn: 'ALWAYS'
+    }
+  ]
 };
 
 export const NOVICE_ROGUE_ABILITIES: readonly Ability[] = [
@@ -157,11 +191,16 @@ export const SPARK: Ability = {
   defenseTarget: 'RESOLVE',
   attackModifierAttribute: 'focus',
   damageType: 'MAGICAL',
-  damageProfile: {
-    count: 1,
-    sides: 6,
-    modifierAttribute: 'focus'
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 1,
+        sides: 6,
+        modifierAttribute: 'focus'
+      }
+    }
+  ]
 };
 
 export const FROSTBITE: Ability = {
@@ -175,16 +214,21 @@ export const FROSTBITE: Ability = {
   defenseTarget: 'RESOLVE',
   attackModifierAttribute: 'focus',
   damageType: 'MAGICAL',
-  damageProfile: {
-    count: 1,
-    sides: 4,
-    modifierAttribute: 'focus'
-  },
-  effect: {
-    type: 'SLOW',
-    magnitude: 1,
-    durationTurns: 1
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 1,
+        sides: 4,
+        modifierAttribute: 'focus'
+      }
+    },
+    {
+      type: 'SLOW',
+      magnitude: 1,
+      durationTurns: 1
+    }
+  ]
 };
 
 export const MINOR_WARD: Ability = {
@@ -197,11 +241,13 @@ export const MINOR_WARD: Ability = {
   targetType: 'ALLY',
   defenseTarget: 'NONE',
   damageType: 'NONE',
-  effect: {
-    type: 'WARD_BUFF',
-    magnitude: 2,
-    durationTurns: 1
-  }
+  effects: [
+    {
+      type: 'WARD_BUFF',
+      magnitude: 2,
+      durationTurns: 1
+    }
+  ]
 };
 
 export const NOVICE_MAGE_ABILITIES: readonly Ability[] = [

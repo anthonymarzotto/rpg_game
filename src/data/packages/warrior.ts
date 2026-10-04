@@ -14,11 +14,16 @@ export const POWER_STRIKE: Ability = {
   defenseTarget: 'EVASION',
   attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
-  damageProfile: {
-    count: 2,
-    sides: 6,
-    modifierAttribute: 'force'
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 2,
+        sides: 6,
+        modifierAttribute: 'force'
+      }
+    }
+  ]
 };
 
 export const CLEAVE: Ability = {
@@ -32,15 +37,20 @@ export const CLEAVE: Ability = {
   defenseTarget: 'EVASION',
   attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
-  damageProfile: {
-    count: 1,
-    sides: 4,
-    modifierAttribute: 'force'
-  },
-  effect: {
-    type: 'CLEAVE',
-    magnitude: 1
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 1,
+        sides: 4,
+        modifierAttribute: 'force'
+      }
+    },
+    {
+      type: 'CLEAVE',
+      magnitude: 1
+    }
+  ]
 };
 
 export const UNYIELDING: PassiveTrait = {

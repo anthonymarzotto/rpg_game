@@ -1,4 +1,4 @@
-import { Ability, DiceProfile } from '../types/ability';
+import { Ability, AbilityEffect, DiceProfile } from '../types/ability';
 import { CombatUnit, HitOutcome } from './types';
 import { getEffectiveArmor, getEffectiveWard } from './effectiveVitals';
 import { DiceRoller } from './dice';
@@ -15,7 +15,7 @@ export interface DamageResult {
 /**
  * Calculates raw attack damage, mitigation soak, graze scaling, minimum damage,
  * and a human-readable formula breakdown. Supports optional bonus dice profiles
- * (e.g. conditional Sneak Attack damage).
+ * (e.g. conditional Sneak Attack damage) and flat damage bonuses.
  */
 export function resolveDamage(
   hitOutcome: HitOutcome,
@@ -23,9 +23,14 @@ export function resolveDamage(
   actorCu: CombatUnit,
   targetCu: CombatUnit,
   diceRoller: DiceRoller,
-  bonusDamage?: DiceProfile
+  bonusDamage?: DiceProfile,
+  damageEffect?: AbilityEffect
 ): DamageResult {
-  if (hitOutcome === 'MISS' || !ability.damageProfile) {
+  const eff = damageEffect ?? ability.effects?.find((e) => e.type === 'DAMAGE');
+  const damageProfile = eff?.damageProfile;
+  const flatBonus = eff?.flatDamage ?? 0;
+
+  if (hitOutcome === 'MISS' || (!damageProfile && flatBonus === 0)) {
     return {
       rawDamage: 0,
       mitigation: 0,
@@ -34,26 +39,32 @@ export function resolveDamage(
     };
   }
 
-  const { count, sides } = ability.damageProfile;
   const modifier = getAbilityModifier(actorCu, ability);
-  let rolledDice = diceRoller.rollDice(count, sides);
-  let maximizedVal = count * sides;
-  let formulaPrefix = `${count}d${sides}`;
+  let rolledDice = 0;
+  let maximizedVal = 0;
+  let formulaPrefix = '';
+
+  if (damageProfile) {
+    const { count, sides } = damageProfile;
+    rolledDice = diceRoller.rollDice(count, sides);
+    maximizedVal = count * sides;
+    formulaPrefix = `${count}d${sides}`;
+  }
 
   if (bonusDamage && bonusDamage.count > 0 && bonusDamage.sides > 0) {
     const bonusRoll = diceRoller.rollDice(bonusDamage.count, bonusDamage.sides);
     rolledDice += bonusRoll;
     maximizedVal += bonusDamage.count * bonusDamage.sides;
-    formulaPrefix += `+${bonusDamage.count}d${bonusDamage.sides}`;
+    formulaPrefix += `${formulaPrefix ? '+' : ''}${bonusDamage.count}d${bonusDamage.sides}`;
   }
 
   const isCrit = hitOutcome === 'CRITICAL_HIT';
   const isGraze = hitOutcome === 'GRAZE';
 
-  // Maximized Crit: max base dice + rolled dice + modifier
+  // Maximized Crit: max base dice + rolled dice + modifier + flatBonus
   const rawDamage = isCrit
-    ? maximizedVal + rolledDice + modifier
-    : rolledDice + modifier;
+    ? maximizedVal + rolledDice + modifier + flatBonus
+    : rolledDice + modifier + flatBonus;
 
   const mitigationType = ability.damageType === 'PHYSICAL' ? 'Armor' : 'Ward';
   const mitigation =
@@ -77,8 +88,9 @@ export function resolveDamage(
 
   // e.g. 1d4+1d6(8)+1 - 2 Armor -> 7
   const rollDetails = isCrit ? `max ${maximizedVal}+${rolledDice}` : `${rolledDice}`;
-  const modSign = modifier >= 0 ? `+${modifier}` : `${modifier}`;
-  const damageBreakdown = `${formulaPrefix}(${rollDetails})${modSign} - ${mitigation} ${mitigationType}${modifierSuffix} -> ${damageDealt}`;
+  const totalMod = modifier + flatBonus;
+  const modSign = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
+  const damageBreakdown = `${formulaPrefix || '0'}(${rollDetails})${modSign} - ${mitigation} ${mitigationType}${modifierSuffix} -> ${damageDealt}`;
 
   return { rawDamage, mitigation, damageDealt, damageBreakdown };
 }

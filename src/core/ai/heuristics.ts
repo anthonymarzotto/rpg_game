@@ -67,7 +67,7 @@ export function resolveAIProfile(
   }
 
   const hasFlankAbility = actorCu.abilities.some(
-    (a) => a.conditionalBonus?.condition === 'FLANK_OR_REAR'
+    (a) => a.effects?.some((e) => e.condition === 'FLANK_OR_REAR')
   );
   if (hasFlankAbility) {
     return 'SKIRMISHER';
@@ -207,12 +207,12 @@ export function scoreBuffAbility(
   profile: AIProfile
 ): { score: number; reason?: string } {
   // Spell Sculpt primer check: prioritize when actor has >= 2 AP and a follow-up spell
-  if (ability.effect?.type === 'SPELL_SCULPT') {
+  if (ability.effects?.some((e) => e.type === 'SPELL_SCULPT')) {
     if (actorCu.unit.id !== targetCu.unit.id) return { score: 0 };
-    if (actorCu.pendingAbilityModifier) return { score: 0 };
+    if (actorCu.abilityModifiers?.some((m) => m.id === 'spell_sculpt')) return { score: 0 };
     if (actorCu.currentAp < 2) return { score: 0 };
     const hasFollowUpSpell = actorCu.abilities.some(
-      (a) => a.id !== ability.id && a.archetypeTag === 'MAGE' && a.effect?.type !== 'SPELL_SCULPT'
+      (a) => a.id !== ability.id && a.archetypeTag === 'MAGE' && !a.effects?.some((e) => e.type === 'SPELL_SCULPT')
     );
     if (!hasFollowUpSpell) return { score: 0 };
     return {
@@ -222,12 +222,13 @@ export function scoreBuffAbility(
   }
 
   // 1. Guard against re-applying active modifier
+  const buffEffect = ability.effects?.find((e) => e.type === 'WARD_BUFF' || e.type === 'ARMOR_BUFF' || e.type === 'SLOW');
   const targetStat =
-    ability.effect?.type === 'WARD_BUFF'
+    buffEffect?.type === 'WARD_BUFF'
       ? 'ward'
-      : ability.effect?.type === 'ARMOR_BUFF'
+      : buffEffect?.type === 'ARMOR_BUFF'
       ? 'armor'
-      : ability.effect?.type === 'SLOW'
+      : buffEffect?.type === 'SLOW'
       ? 'move'
       : undefined;
 

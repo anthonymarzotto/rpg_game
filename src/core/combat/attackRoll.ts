@@ -20,7 +20,8 @@ export interface AttackRollResult {
  * Returns the actor attribute modifier applicable to the ability damage profile.
  */
 export function getAbilityModifier(actorCu: CombatUnit, ability: Ability): number {
-  const attr = ability.damageProfile?.modifierAttribute;
+  const damageEffect = ability.effects?.find((e) => e.type === 'DAMAGE');
+  const attr = damageEffect?.damageProfile?.modifierAttribute;
   return attr ? actorCu.unit.baseAttributes[attr] : 0;
 }
 
@@ -73,7 +74,7 @@ export function resolveAttackRoll(
   const totalScore = d20 + modifier;
 
   const critMargin = COMBAT_RESOLUTION_CONFIG.critThresholdMargin;
-  const isCritBoosted = ability.effect?.type === 'CRIT_BOOST';
+  const isCritBoosted = ability.effects?.some((e) => e.type === 'CRIT_BOOST');
   const naturalCritThreshold = isCritBoosted ? 19 : 20;
 
   let hitOutcome: HitOutcome = 'MISS';

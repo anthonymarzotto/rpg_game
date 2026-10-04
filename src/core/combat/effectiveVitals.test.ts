@@ -22,6 +22,7 @@ function createTestCombatUnit(): CombatUnit {
     inBattleXp: { fighter: 0, rogue: 0, mage: 0 },
     activeModifiers: [],
     activeConditions: [],
+    abilityModifiers: [],
     abilities: [],
     passives: [],
     facing: 0

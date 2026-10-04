@@ -15,11 +15,16 @@ export const ARCANE_BLAST: Ability = {
   defenseTarget: 'RESOLVE',
   attackModifierAttribute: 'focus',
   damageType: 'MAGICAL',
-  damageProfile: {
-    count: 1,
-    sides: 4,
-    modifierAttribute: 'focus'
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 1,
+        sides: 4,
+        modifierAttribute: 'focus'
+      }
+    }
+  ]
 };
 
 export const ARCANE_AEGIS: PassiveTrait = {

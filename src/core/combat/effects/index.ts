@@ -10,3 +10,4 @@ export * from './conditionHandler';
 export * from './spellSculptHandler';
 export * from './wildSurgeHandler';
 export * from './initiativeBoostHandler';
+export * from './damageHandler';

@@ -14,10 +14,10 @@ export interface DiceProfile {
   readonly modifierAttribute: keyof TriadAttributes;
 }
 
-
 export type ConditionType = 'POISON' | 'BURN' | 'CHALLENGED' | 'STEALTH';
 
 export type AbilityEffectType =
+  | 'DAMAGE'           // Deals physical or magical damage via dice profile and/or flat damage
   | 'KNOCKBACK'        // Push target 1 hex
   | 'RETREAT_STEP'     // User steps back 1 hex freely
   | 'ARMOR_BUFF'       // Grants temporary armor boost
@@ -34,19 +34,29 @@ export type AbilityEffectType =
   | 'WILD_SURGE'       // Spontaneous arcane surges on critical hits
   | 'STAT_MODIFIER';   // Applies stat modifier (e.g. Expose Weakness -2 Armor & -2 Evasion)
 
+export type EffectTargetScope = 'TARGET' | 'SELF' | 'ALLIES';
+export type EffectApplyCondition = 'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY';
+export type AbilityCondition = 'FLANK_OR_REAR';
+
 export interface AbilityEffect {
   readonly type: AbilityEffectType;
-  readonly magnitude: number;
+  /** Delivery target for this individual effect (defaults to TARGET) */
+  readonly targetScope?: EffectTargetScope;
+  /** Trigger condition determining when effect executes (defaults to HIT_OR_CRIT for attacks/secondary, ALWAYS for self-buffs) */
+  readonly applyOn?: EffectApplyCondition;
+  readonly magnitude?: number;
+  /** Optional dice profile for damage or variable effects */
+  readonly damageProfile?: DiceProfile;
+  /** Optional flat damage component added to attack rolls */
+  readonly flatDamage?: number;
   readonly durationTurns?: number;
   readonly conditionType?: ConditionType;
   readonly statModifiers?: Partial<Record<'armor' | 'ward' | 'speed' | 'move' | 'evasion' | 'resolve', number>>;
-}
-
-export type AbilityCondition = 'FLANK_OR_REAR';
-
-export interface ConditionalBonus {
-  readonly condition: AbilityCondition;
+  /** Tactical condition required for this effect to apply (e.g. FLANK_OR_REAR for Sneak Attack) */
+  readonly condition?: AbilityCondition;
+  /** Optional bonus damage dice applied when condition is satisfied */
   readonly bonusDamage?: DiceProfile;
+  /** Whether satisfying condition grants advantage on attack roll */
   readonly grantsAdvantage?: boolean;
 }
 
@@ -67,13 +77,10 @@ export interface Ability {
   /** Triad attribute contributing to the d20 attack roll (e.g. 'finesse' for physical, 'focus' for spells) */
   readonly attackModifierAttribute?: keyof TriadAttributes;
   readonly damageType: DamageType;
-  readonly damageProfile?: DiceProfile;
-  readonly effect?: AbilityEffect;
+  /** Atomic effects array composed on the ability */
+  readonly effects: readonly AbilityEffect[];
   /** Blast AoE radius in hexes (undefined or 0 = single target hex, 1 = target + adjacent ring) */
   readonly aoeRadius?: number;
-  /** Conditional bonuses applied when tactical conditions are met (e.g. Sneak Attack) */
-  readonly conditionalBonus?: ConditionalBonus;
   /** Whether the ability can only be executed at most once per turn */
   readonly oncePerTurn?: boolean;
 }
-

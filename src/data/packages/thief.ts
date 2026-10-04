@@ -14,20 +14,23 @@ export const SNEAK_ATTACK: Ability = {
   defenseTarget: 'EVASION',
   attackModifierAttribute: 'finesse',
   damageType: 'PHYSICAL',
-  damageProfile: {
-    count: 1,
-    sides: 4,
-    modifierAttribute: 'force'
-  },
-  conditionalBonus: {
-    condition: 'FLANK_OR_REAR',
-    bonusDamage: {
-      count: 1,
-      sides: 6,
-      modifierAttribute: 'force'
-    },
-    grantsAdvantage: true
-  }
+  effects: [
+    {
+      type: 'DAMAGE',
+      damageProfile: {
+        count: 1,
+        sides: 4,
+        modifierAttribute: 'force'
+      },
+      condition: 'FLANK_OR_REAR',
+      bonusDamage: {
+        count: 1,
+        sides: 6,
+        modifierAttribute: 'force'
+      },
+      grantsAdvantage: true
+    }
+  ]
 };
 
 export const SHADOW_STEP: Ability = {
@@ -40,10 +43,12 @@ export const SHADOW_STEP: Ability = {
   targetType: 'HEX',
   defenseTarget: 'NONE',
   damageType: 'NONE',
-  effect: {
-    type: 'TELEPORT',
-    magnitude: 2
-  }
+  effects: [
+    {
+      type: 'TELEPORT',
+      magnitude: 2
+    }
+  ]
 };
 
 export const QUICKSTEP: PassiveTrait = {
