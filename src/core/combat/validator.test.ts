@@ -310,6 +310,30 @@ describe('Combat Validator', () => {
         expect(enemyTarget.reason).toContain('Cannot cast an ally ability on an enemy unit');
       }
     });
+
+    it('rejects single-target ability against a unit with STEALTH', () => {
+      const arena = createRadialArena(2);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      const rogue = createRecruit('rogue', 'Rogue', { faction: 'ENEMY' });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('rogue', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, rogue], 'hero');
+      state.units.get('rogue')!.activeConditions.push({
+        type: 'STEALTH',
+        durationTurns: 1,
+        sourceUnitId: 'rogue'
+      });
+
+      const result = canExecuteAbility(state, 'hero', STRIKE, {
+        targetUnitId: 'rogue'
+      });
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.reason).toContain('Cannot target a stealthed unit');
+      }
+    });
   });
 });
+
 

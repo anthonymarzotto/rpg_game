@@ -231,13 +231,28 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 
 **Primary Goal**: Deepen tactical variety by authoring Tier 2+ classes and introducing combat mechanics organically as specific abilities demand them.
 
-### 4.1. Tier 2+ Class Kits & Archetype Trees
-* Author bespoke active ability loadouts and passive mastery traits for Tier 2 classes using the 1 Signature + 2 Domain Pool model:
-  * **Knight** `(2, 0, 0)`: Defensive bulwark, guard/intercept mechanics, heavy kinetic displacement.
-  * **Infiltrator** `(0, 2, 0)`: High mobility, stealth/evasion, lethal flank strikes.
-  * **Sorcerer** `(0, 0, 2)`: Multi-target spell fields, elemental focus, resolve debuffs.
-  * **Cavalier** `(2, 1, 0)`, **Berserker** `(2, 0, 1)`, **Witch** `(0, 1, 2)`, etc.
-* Progress toward mid-tier hybrid classes (e.g. **Bard** `(3, 3, 3)` at the pyramid centroid).
+### 4.1. Tier 2 Pure Archetype Classes & Status Conditions (`src/data/packages/`, `src/core/combat/`) <── COMPLETED & TESTED
+* **Pure Tier 2 Class Kits Authoring**:
+  * Author bespoke active ability loadouts and passive mastery traits for pure Tier 2 classes using the 1 Signature + 2 Domain Pool model:
+    * **Knight** `(2, 0, 0)`: Leader & Controller identity (`Lead the Charge` friendly AoE aura, `Challenging Shout` forced facing taunt, `Pommel Strike` CTB delay, `Tactical Vanguard` +25 pre-encounter initiative).
+    * **Infiltrator** `(0, 2, 0)`: Saboteur / Stealth / DoT identity (`Expose Weakness` multi-stat debuff, `Smoke Veil` stealth condition, `Toxic Shiv` poison DoT, `Elusive Stride` on-move evasion boost).
+    * **Sorcerer** `(0, 0, 2)`: Metamagic & Wild Magic identity (`Spell Sculpt` range/AoE priming, `Ignite` burn DoT, `Gust` kinetic push, `Wild Surge` spontaneous on-crit 1d3 surges).
+* **On-Demand Combat Engine Infrastructure**:
+  * `ActiveCondition` model with mandatory `sourceUnitId` for accurate attribution, DoT resolution, and tactical challenge enforcement.
+  * Turn clock DoT processing (`POISON`, `BURN`) at turn start before AP grant with clean defeat termination.
+  * Pluggable `ctbDelayHandler` with gauge floored at 0.
+  * Friendly AoE buff aura resolution for `damageType: 'NONE'` abilities.
+  * Ephemeral `pendingAbilityModifier` with automatic consumption on spell cast and purge on turn end.
+  * Tactical combat advantage/disadvantage integration for `STEALTH` and `CHALLENGED`.
+* **AI, Campaign, & Presentation Systems Integration**:
+  * AI profile mapping (`knight` -> `SUPPORT`, `infiltrator` -> `SKIRMISHER`, `sorcerer` -> `SNIPER`) and Spell Sculpt primer heuristics in `heuristics.ts`.
+  * Procedural enemy encounter generation (`encounterGenerator.ts`) spawning Tier 2 units at Stage 3+ for 40 threat budget.
+  * Pixel token asset whitelisting for Knight (`02_human_male`), Infiltrator (`82_human_male`), and Sorcerer (`98_human_male`).
+* **Testing & Verification**:
+  * Comprehensive test suites (`tier2Integration.test.ts`, `tier2ProgressionIntegration.test.ts`, `tier2Mechanics.test.ts`, `ctbDelayHandler.test.ts`, `conditionHandler.test.ts`) validating recruit promotion to Tier 2 in Camp, loadout validation, pre-encounter setups, and battle resolution with 100% test pass rate across 44 suites.
+
+### 4.2. Tier 2+ Hybrid Classes & Centroid Classes (Next)
+* Author hybrid classes (e.g. **Cavalier** `(2, 1, 0)`, **Berserker** `(2, 0, 1)`, **Witch** `(0, 1, 2)`) and mid-tier centroid classes (e.g. **Bard** `(3, 3, 3)`).
 
 ### 4.2. Status Effects & Modifiers (Introduced on Demand)
 * *Architectural Principle*: Implement status conditions only when newly authored abilities require them.

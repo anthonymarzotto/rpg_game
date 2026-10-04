@@ -87,45 +87,95 @@ export function stepClockUntilReady<T extends ClockParticipant>(
  * and decrements/purges active modifiers on the newly active unit.
  */
 export function advanceTurnClock(state: CombatState): string {
-  const activeUnits = Array.from(state.units.values()).filter(
-    (cu) => !cu.isDefeated
-  );
+  while (true) {
+    const activeUnits = Array.from(state.units.values()).filter(
+      (cu) => !cu.isDefeated
+    );
 
-  if (activeUnits.length === 0) {
-    throw new Error('No living units remaining in combat encounter.');
+    if (activeUnits.length === 0) {
+      throw new Error('No living units remaining in combat encounter.');
+    }
+
+    const participants = activeUnits.map((cu) => ({
+      id: cu.unit.id,
+      gauge: cu.initiativeGauge,
+      speed: getEffectiveSpeed(cu),
+      cu
+    }));
+
+    const { winner } = stepClockUntilReady(participants);
+
+    // Sync simulated gauges back to real combat units
+    for (const p of participants) {
+      p.cu.initiativeGauge = p.gauge;
+    }
+
+    const nextActive = winner.cu;
+    state.activeUnitId = nextActive.unit.id;
+    state.turnNumber += 1;
+
+    // Resolve turn-start damage-over-time (POISON, BURN) before AP grant
+    let dotDamageTotal = 0;
+    for (const cond of nextActive.activeConditions) {
+      if (cond.type === 'POISON' || cond.type === 'BURN') {
+        const dmg = cond.damagePerTurn ?? 2;
+        dotDamageTotal += dmg;
+        state.combatLog.push({
+          turnNumber: state.turnNumber,
+          actorUnitId: nextActive.unit.id,
+          actionId: cond.type.toLowerCase(),
+          message: `${nextActive.unit.name} suffered ${dmg} ${cond.type} damage!`
+        });
+      }
+    }
+
+    if (dotDamageTotal > 0) {
+      nextActive.currentHp = Math.max(0, nextActive.currentHp - dotDamageTotal);
+    }
+
+    // Decrement durations on active unit's conditions and purge expired ones
+    nextActive.activeConditions.forEach((c) => {
+      c.durationTurns -= 1;
+    });
+    nextActive.activeConditions = nextActive.activeConditions.filter(
+      (c) => c.durationTurns > 0
+    );
+
+    // If unit died from DoT, terminate their turn immediately
+    if (nextActive.currentHp <= 0) {
+      nextActive.isDefeated = true;
+      nextActive.currentAp = 0;
+      state.arena.removeUnit(nextActive.unit.id);
+      state.combatLog.push({
+        turnNumber: state.turnNumber,
+        actorUnitId: nextActive.unit.id,
+        actionId: 'defeat',
+        message: `${nextActive.unit.name} was defeated by status condition damage!`
+      });
+      state.outcome = evaluateEncounterOutcome(state.objectives, state);
+
+      if (state.outcome !== 'IN_PROGRESS') {
+        return nextActive.unit.id;
+      }
+
+      nextActive.initiativeGauge = 0;
+      continue;
+    }
+
+    // Grant standard 3 AP
+    nextActive.currentAp = ACTION_ECONOMY_CONFIG.standardApPerTurn;
+    onTurnStartPassives(nextActive);
+
+    // Decrement durations on active unit's modifiers and purge expired ones
+    nextActive.activeModifiers.forEach((m) => {
+      m.durationTurns -= 1;
+    });
+    nextActive.activeModifiers = nextActive.activeModifiers.filter(
+      (m) => m.durationTurns > 0
+    );
+
+    return nextActive.unit.id;
   }
-
-  const participants = activeUnits.map((cu) => ({
-    id: cu.unit.id,
-    gauge: cu.initiativeGauge,
-    speed: getEffectiveSpeed(cu),
-    cu
-  }));
-
-  const { winner } = stepClockUntilReady(participants);
-
-  // Sync simulated gauges back to real combat units
-  for (const p of participants) {
-    p.cu.initiativeGauge = p.gauge;
-  }
-
-  const nextActive = winner.cu;
-  state.activeUnitId = nextActive.unit.id;
-  state.turnNumber += 1;
-
-  // Grant standard 3 AP
-  nextActive.currentAp = ACTION_ECONOMY_CONFIG.standardApPerTurn;
-  onTurnStartPassives(nextActive);
-
-  // Decrement durations on active unit's modifiers and purge expired ones
-  nextActive.activeModifiers.forEach((m) => {
-    m.durationTurns -= 1;
-  });
-  nextActive.activeModifiers = nextActive.activeModifiers.filter(
-    (m) => m.durationTurns > 0
-  );
-
-  return nextActive.unit.id;
 }
 
 /**
@@ -225,6 +275,9 @@ export function endActiveTurn(
 
   activeCombatUnit.initiativeGauge = calculateTurnResetGauge(unspent, overflow);
   activeCombatUnit.currentAp = 0;
+  activeCombatUnit.pendingAbilityModifier = undefined;
+  activeCombatUnit.abilitiesUsedThisTurn = undefined;
+  activeCombatUnit.hexesMovedThisTurn = 0;
 
   const nextActive = advanceTurnClock(state);
   state.outcome = evaluateEncounterOutcome(state.objectives, state);

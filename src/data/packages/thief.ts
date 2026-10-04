@@ -61,5 +61,6 @@ export const THIEF_PACKAGE: ClassPackage = {
   className: 'Thief',
   signatureAbility: SNEAK_ATTACK,
   domainAbilities: [SHADOW_STEP, SKIRMISH],
-  passive: QUICKSTEP
+  passive: QUICKSTEP,
+  aiProfile: 'SKIRMISHER'
 };

@@ -1,0 +1,36 @@
+{
+  "group_id": "8039443a-71ac-4406-9178-90b0a91e46b0",
+  "states": [
+    {
+      "character": {
+        "id": "57c482fa-53a0-46b8-aac9-adc480b21aad",
+        "name": "Idle",
+        "prompt": "A chibi male sorcerer in a wide, balanced stance with arms extended, wearing a simple hooded robe accented with violet #8b5cf6 trim, large expressive anime-style eyes, crisp black outlines, low top-down perspective.",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-02T02:21:23.248496+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-02T02:34:41.525136"
+}

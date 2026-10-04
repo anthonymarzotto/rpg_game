@@ -203,6 +203,7 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
         isDefeated: false,
         inBattleXp: { fighter: 0, rogue: 0, mage: 0 },
         activeModifiers: [],
+        activeConditions: [],
         abilities: [],
         passives: [],
         facing: 0

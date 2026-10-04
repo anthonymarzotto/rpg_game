@@ -1,7 +1,33 @@
 import { HexCoord, hexDistance } from '../grid/hex';
 import { Ability } from '../types/ability';
-import { CombatState, ValidationResult } from './types';
+import { CombatState, ValidationResult, PendingAbilityModifier } from './types';
 import { getEffectiveMove } from './effectiveVitals';
+
+/**
+ * Evaluates whether an ephemeral pending modifier can be applied to the given ability.
+ */
+export function canApplyPendingModifier(
+  modifier: PendingAbilityModifier | undefined,
+  ability: Ability
+): boolean {
+  if (!modifier) return false;
+  if (modifier.allowedArchetypes && ability.archetypeTag && !modifier.allowedArchetypes.includes(ability.archetypeTag)) {
+    return false;
+  }
+  if (modifier.requiredDamageType === 'DAMAGING' && (ability.damageType === 'NONE' || !ability.damageType)) {
+    return false;
+  }
+  if (modifier.requiredDamageType === 'MAGICAL' && ability.damageType !== 'MAGICAL') {
+    return false;
+  }
+  if (modifier.requiredDamageType === 'PHYSICAL' && ability.damageType !== 'PHYSICAL') {
+    return false;
+  }
+  if (modifier.excludedEffectTypes && ability.effect && modifier.excludedEffectTypes.includes(ability.effect.type)) {
+    return false;
+  }
+  return true;
+}
 
 /**
  * Checks if the active unit can legally move to destination.
@@ -63,10 +89,19 @@ export function canExecuteAbility(
   if (!target?.ignoreApCheck && cu.currentAp < ability.apCost) {
     return { valid: false, reason: `Insufficient AP (requires ${ability.apCost}, has ${cu.currentAp}).` };
   }
+  if (ability.oncePerTurn && cu.abilitiesUsedThisTurn?.includes(ability.id)) {
+    return { valid: false, reason: `${ability.name} can only be used once per turn.` };
+  }
 
   const actorCoord = target?.originCoord ?? state.arena.getUnitPosition(actorUnitId);
   if (!actorCoord) {
     return { valid: false, reason: 'Actor not placed on arena.' };
+  }
+
+  let effectiveRange = ability.range;
+  const pendingMod = cu.pendingAbilityModifier;
+  if (canApplyPendingModifier(pendingMod, ability)) {
+    effectiveRange += pendingMod!.extraRange ?? 0;
   }
 
   if (ability.targetType === 'SELF') {
@@ -78,8 +113,8 @@ export function canExecuteAbility(
       return { valid: false, reason: 'Missing destination coordinate for hex-targeted ability.' };
     }
     const dist = hexDistance(actorCoord, target.coord);
-    if (dist > ability.range) {
-      return { valid: false, reason: `Target out of range (distance ${dist} > range ${ability.range}).` };
+    if (dist > effectiveRange) {
+      return { valid: false, reason: `Target out of range (distance ${dist} > range ${effectiveRange}).` };
     }
     const destTile = state.arena.getTile(target.coord);
     if (!destTile) {
@@ -124,6 +159,12 @@ export function canExecuteAbility(
       ) {
         return { valid: false, reason: 'Cannot attack a friendly unit.' };
       }
+      if (
+        targetCu.activeConditions?.some((c) => c.type === 'STEALTH') &&
+        (!cu.faction || !targetCu.faction || cu.faction !== targetCu.faction)
+      ) {
+        return { valid: false, reason: 'Cannot target a stealthed unit directly.' };
+      }
     }
 
     if (ability.targetType === 'ALLY') {
@@ -138,8 +179,8 @@ export function canExecuteAbility(
     }
 
     const dist = hexDistance(actorCoord, targetCoord);
-    if (dist > ability.range) {
-      return { valid: false, reason: `Target out of range (distance ${dist} > range ${ability.range}).` };
+    if (dist > effectiveRange) {
+      return { valid: false, reason: `Target out of range (distance ${dist} > range ${effectiveRange}).` };
     }
 
     if (!state.arena.hasLineOfSight(actorCoord, targetCoord)) {

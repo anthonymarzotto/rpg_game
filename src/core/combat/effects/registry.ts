@@ -5,6 +5,11 @@ import { retreatHandler } from './retreatHandler';
 import { modifierHandler } from './modifierHandler';
 import { teleportHandler } from './teleportHandler';
 import { cleaveHandler } from './cleaveHandler';
+import { ctbDelayHandler } from './ctbDelayHandler';
+import { conditionHandler } from './conditionHandler';
+import { spellSculptHandler } from './spellSculptHandler';
+import { initiativeBoostHandler } from './initiativeBoostHandler';
+import { wildSurgeHandler } from './wildSurgeHandler';
 
 export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
   KNOCKBACK: knockbackHandler,
@@ -12,8 +17,16 @@ export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
   SLOW: modifierHandler,
   ARMOR_BUFF: modifierHandler,
   WARD_BUFF: modifierHandler,
+  STAT_MODIFIER: modifierHandler,
   TELEPORT: teleportHandler,
-  CLEAVE: cleaveHandler
+  CLEAVE: cleaveHandler,
+  CTB_DELAY: ctbDelayHandler,
+  INITIATIVE_BOOST: initiativeBoostHandler,
+  CONDITION: conditionHandler,
+  CONDITION_APPLIED: conditionHandler,
+  FORCE_FACING: conditionHandler,
+  SPELL_SCULPT: spellSculptHandler,
+  WILD_SURGE: wildSurgeHandler
 };
 
 export const defaultEffectRegistry = {

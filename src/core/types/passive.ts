@@ -1,10 +1,11 @@
 import { DerivedCombatVitals } from './stats';
+import { AbilityEffect, DamageType } from './ability';
 
 /**
  * Trigger hook for passive traits. Kept minimal with 'ALWAYS' for now.
  * Can be expanded with conditional hooks (e.g. 'ON_HIT', 'ON_KILL') in future phases.
  */
-export type PassiveTriggerHook = 'ALWAYS';
+export type PassiveTriggerHook = 'ALWAYS' | 'BATTLE_START' | 'ON_MOVE' | 'ON_CRIT';
 
 /**
  * Tactical conditions that can trigger passive roll modifiers during combat.
@@ -35,4 +36,10 @@ export interface PassiveTrait {
   readonly statModifiers?: Partial<DerivedCombatVitals>;
   /** Conditional roll modifiers (e.g. Momentum granting Advantage) */
   readonly rollModifier?: PassiveRollModifier;
+  /** Pluggable effect payload executed when the trigger hook fires */
+  readonly effect?: AbilityEffect;
+  /** Optional filter constraint for trigger (e.g. only on MAGICAL critical hits) */
+  readonly triggerFilter?: {
+    readonly damageType?: DamageType;
+  };
 }

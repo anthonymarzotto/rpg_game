@@ -411,6 +411,92 @@ describe('Attack & Ability Resolution Outcomes', () => {
         expect(result.details.damageBreakdown).toContain('1d4+1d6');
       }
     });
+
+    it('grants Advantage when attacking from STEALTH and breaks stealth after attack', () => {
+      const arena = createRadialArena(3);
+      const infiltrator = createRecruit('infiltrator', 'Infiltrator', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+      arena.setUnitPosition('infiltrator', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [infiltrator, enemy], 'infiltrator');
+      const infCu = state.units.get('infiltrator')!;
+      infCu.activeConditions.push({
+        type: 'STEALTH',
+        durationTurns: 1,
+        sourceUnitId: 'infiltrator'
+      });
+
+      // Mock dice roller provides [4, 17] for d20. Advantage takes 17!
+      const dice = new MockDiceRoller({ d20Rolls: [4, 17], damageRolls: [3] });
+      const result = executeAbility(state, 'infiltrator', STRIKE, { targetUnitId: 'enemy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.d20Roll).toBe(17);
+      }
+      // Stealth is broken
+      expect(infCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(false);
+    });
+
+    it('imposes Disadvantage when CHALLENGED and attacking a unit other than the challenger', () => {
+      const arena = createRadialArena(3);
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+      const knight = createRecruit('knight', 'Knight', { faction: 'PLAYER' });
+      const wizard = createRecruit('wizard', 'Wizard', { faction: 'PLAYER' });
+
+      arena.setUnitPosition('enemy', { q: 0, r: 0 });
+      arena.setUnitPosition('knight', { q: 1, r: 0 });
+      arena.setUnitPosition('wizard', { q: 0, r: 1 });
+
+      const state = createCombatState(arena, [enemy, knight, wizard], 'enemy');
+      const enemyCu = state.units.get('enemy')!;
+
+      // Knight challenged the Enemy
+      enemyCu.activeConditions.push({
+        type: 'CHALLENGED',
+        durationTurns: 2,
+        sourceUnitId: 'knight'
+      });
+
+      // Enemy attacks Wizard (not the Knight) -> Disadvantage!
+      // Mock dice: [19, 5]. Disadvantage takes 5!
+      const dice = new MockDiceRoller({ d20Rolls: [19, 5], damageRolls: [2] });
+      const result = executeAbility(state, 'enemy', STRIKE, { targetUnitId: 'wizard' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.d20Roll).toBe(5);
+      }
+    });
+
+    it('rolls normally when CHALLENGED and attacking the challenger', () => {
+      const arena = createRadialArena(3);
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+      const knight = createRecruit('knight', 'Knight', { faction: 'PLAYER' });
+
+      arena.setUnitPosition('enemy', { q: 0, r: 0 });
+      arena.setUnitPosition('knight', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [enemy, knight], 'enemy');
+      const enemyCu = state.units.get('enemy')!;
+
+      // Knight challenged the Enemy
+      enemyCu.activeConditions.push({
+        type: 'CHALLENGED',
+        durationTurns: 2,
+        sourceUnitId: 'knight'
+      });
+
+      // Enemy attacks Knight (the challenger) -> Normal roll (single d20: 16)
+      const dice = new MockDiceRoller({ d20Rolls: [16], damageRolls: [2] });
+      const result = executeAbility(state, 'enemy', STRIKE, { targetUnitId: 'knight' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.d20Roll).toBe(16);
+      }
+    });
   });
 });
 

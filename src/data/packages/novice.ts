@@ -218,12 +218,12 @@ export const ALL_NOVICE_ABILITIES: readonly Ability[] = [
 
 /**
  * Innate Novice passive trait: Momentum.
- * Moving 2 or more hexes immediately before an attack grants Advantage on that attack.
+ * Moving 2 or more hexes grants Advantage on the first attack made after moving. Consumed upon attacking and dismissed at the end of the turn.
  */
 export const MOMENTUM: PassiveTrait = {
   id: 'momentum',
   name: 'Momentum',
-  description: 'Moving 2 or more hexes immediately before an attack grants Advantage on that attack.',
+  description: 'Moving 2 or more hexes grants Advantage on the first attack made after moving. Consumed upon attacking and dismissed at the end of the turn.',
   hook: 'ALWAYS',
   rollModifier: {
     condition: { type: 'MOVED_MIN_DISTANCE', minHexes: 2 },

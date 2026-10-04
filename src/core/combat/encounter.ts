@@ -3,6 +3,7 @@ import { HexCoord, HexDirection } from '../grid/hex';
 import { createRadialArena } from '../grid/templates';
 import { CombatState, EncounterObjective } from './types';
 import { createCombatState } from './resolver';
+export { applyPreEncounterSetup } from './resolver';
 
 /**
  * Unit placement on the tactical grid.

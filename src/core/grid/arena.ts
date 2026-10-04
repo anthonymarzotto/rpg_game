@@ -4,8 +4,9 @@ import {
   hexDistance,
   getHexNeighbors,
   getHexLine,
-  hexSubtract,
-  hexAdd
+  hexAdd,
+  getDirectionBetween,
+  POINTY_HEX_DIRECTIONS
 } from './hex';
 import { DISPLACEMENT_CONFIG } from '../config/balance';
 
@@ -226,18 +227,13 @@ export class Arena {
       throw new Error(`Target hex (${targetCoord.q}, ${targetCoord.r}) does not exist in arena.`);
     }
 
-    // Directional vector: delta = target - attacker
-    const rawDelta = hexSubtract(targetCoord, attackerCoord);
     const dist = hexDistance(attackerCoord, targetCoord);
     if (dist === 0) {
       return { finalCoord: targetCoord, isCollided: false };
     }
 
-    // Single step direction
-    const stepDir: HexCoord = {
-      q: Math.round(rawDelta.q / dist),
-      r: Math.round(rawDelta.r / dist)
-    };
+    const dir = getDirectionBetween(attackerCoord, targetCoord);
+    const stepDir = POINTY_HEX_DIRECTIONS[dir];
 
     let current = targetCoord;
 

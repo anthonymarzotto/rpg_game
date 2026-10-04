@@ -292,6 +292,30 @@ export function HexGridSvg({
             const candidateReticleStroke = isPlayer ? '#10b981' : '#f59e0b';
             const candidateGlowFilter = isPlayer ? 'url(#tile-glow-cyan)' : 'url(#tile-glow-amber)';
 
+            const isStealthed = (cu.activeConditions ?? []).some((c) => c.type === 'STEALTH');
+            const statusIcons: string[] = [
+              ...(cu.activeConditions ?? []).map((c) =>
+                c.type === 'STEALTH' ? '👤' :
+                c.type === 'POISON' ? '🧪' :
+                c.type === 'BURN' ? '🔥' :
+                c.type === 'CHALLENGED' ? '⚔️' : '✨'
+              ),
+              ...(cu.activeModifiers ?? []).map((m) =>
+                m.stat === 'move' && m.value < 0 ? '❄️' :
+                m.stat === 'move' && m.value > 0 ? '💨' :
+                m.stat === 'armor' ? '🛡️' :
+                m.stat === 'ward' ? '🔮' :
+                m.stat === 'speed' ? '⚡' : '✨'
+              )
+            ];
+            const hasDebuff =
+              (cu.activeModifiers ?? []).some((m) => m.value < 0) ||
+              (cu.activeConditions ?? []).some(
+                (c) => c.type === 'POISON' || c.type === 'BURN' || c.type === 'CHALLENGED'
+              );
+            const statusBubbleStroke = isStealthed ? '#c084fc' : hasDebuff ? '#f87171' : '#fbbf24';
+            const statusBubbleWidth = Math.max(statusIcons.length * 13 + 6, 20);
+
             return (
               <g key={unitId} transform={`translate(${x}, ${y})`}>
                 {tokenAssetSrc ? (
@@ -365,6 +389,20 @@ export function HexGridSvg({
                       />
                     )}
 
+                    {/* Stealthed Smoke Aura Halo on Pedestal */}
+                    {isStealthed && (
+                      <ellipse
+                        cx="0"
+                        cy="2"
+                        rx="21"
+                        ry="8"
+                        fill="rgba(168, 85, 247, 0.22)"
+                        stroke="#c084fc"
+                        strokeWidth="1.8"
+                        strokeDasharray="4 3"
+                      />
+                    )}
+
                     {/* Upright Pixel Sprite Image (Native 6-way rotations) */}
                     <image
                       href={tokenAssetSrc}
@@ -375,6 +413,7 @@ export function HexGridSvg({
                       preserveAspectRatio="xMidYMax meet"
                       filter="url(#standee-drop-shadow)"
                       className="pixel-art"
+                      opacity={isStealthed ? 0.52 : 1}
                     />
 
                     {/* Unit Name Plate (above head) */}
@@ -390,31 +429,26 @@ export function HexGridSvg({
                       {cu.unit.name.split(' ')[0]}
                     </text>
 
-                    {/* Active Status Modifiers on Standee */}
-                    {cu.activeModifiers.length > 0 && (
+                    {/* Active Status Effects on Standee */}
+                    {statusIcons.length > 0 && (
                       <g transform="translate(0, -74)">
                         <rect
-                          x={-cu.activeModifiers.length * 7}
-                          y="-5.5"
-                          width={cu.activeModifiers.length * 14}
-                          height="11"
-                          rx="5.5"
-                          fill="rgba(15, 23, 42, 0.9)"
-                          stroke={cu.activeModifiers.some((m) => m.value < 0) ? '#38bdf8' : '#fbbf24'}
-                          strokeWidth="0.8"
+                          x={-statusBubbleWidth / 2}
+                          y="-6"
+                          width={statusBubbleWidth}
+                          height="12"
+                          rx="6"
+                          fill="rgba(15, 23, 42, 0.92)"
+                          stroke={statusBubbleStroke}
+                          strokeWidth="1"
                         />
                         <text
                           x="0"
-                          y="2.5"
-                          fontSize="7"
+                          y="3"
+                          fontSize="7.5"
                           textAnchor="middle"
                         >
-                          {cu.activeModifiers.map((m) =>
-                            m.stat === 'move' && m.value < 0 ? '❄️' :
-                            m.stat === 'armor' ? '🛡️' :
-                            m.stat === 'ward' ? '🔮' :
-                            m.stat === 'speed' ? '⚡' : '✨'
-                          ).join('')}
+                          {statusIcons.join('')}
                         </text>
                       </g>
                     )}
@@ -472,8 +506,10 @@ export function HexGridSvg({
                     <circle
                       r="17"
                       fill={tokenFill}
-                      stroke={tokenStroke}
+                      stroke={isStealthed ? '#c084fc' : tokenStroke}
                       strokeWidth={isActiveActor ? 3 : isPlayer ? 2.5 : 2}
+                      strokeDasharray={isStealthed ? '4 3' : undefined}
+                      opacity={isStealthed ? 0.6 : 1}
                       filter={isPlayer ? 'url(#tile-glow-cyan)' : undefined}
                     />
 
@@ -524,31 +560,26 @@ export function HexGridSvg({
                       {cu.unit.name.split(' ')[0]}
                     </text>
 
-                    {/* Active Status Modifiers on Token */}
-                    {cu.activeModifiers.length > 0 && (
+                    {/* Active Status Effects on Token */}
+                    {statusIcons.length > 0 && (
                       <g transform="translate(0, -34)">
                         <rect
-                          x={-cu.activeModifiers.length * 7}
-                          y="-5.5"
-                          width={cu.activeModifiers.length * 14}
-                          height="11"
-                          rx="5.5"
-                          fill="rgba(15, 23, 42, 0.9)"
-                          stroke={cu.activeModifiers.some((m) => m.value < 0) ? '#38bdf8' : '#fbbf24'}
-                          strokeWidth="0.8"
+                          x={-statusBubbleWidth / 2}
+                          y="-6"
+                          width={statusBubbleWidth}
+                          height="12"
+                          rx="6"
+                          fill="rgba(15, 23, 42, 0.92)"
+                          stroke={statusBubbleStroke}
+                          strokeWidth="1"
                         />
                         <text
                           x="0"
-                          y="2.5"
-                          fontSize="7"
+                          y="3"
+                          fontSize="7.5"
                           textAnchor="middle"
                         >
-                          {cu.activeModifiers.map((m) =>
-                            m.stat === 'move' && m.value < 0 ? '❄️' :
-                            m.stat === 'armor' ? '🛡️' :
-                            m.stat === 'ward' ? '🔮' :
-                            m.stat === 'speed' ? '⚡' : '✨'
-                          ).join('')}
+                          {statusIcons.join('')}
                         </text>
                       </g>
                     )}

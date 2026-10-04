@@ -3,6 +3,7 @@ import { CombatArc, HexCoord, hexDistance } from '../grid/hex';
 import { AbilityMetrics } from '../combat/targetPreview';
 import { Ability } from '../types/ability';
 import { AIProfile, AIArchetypeWeights } from './types';
+import { getClassPackage } from '../../data/packages';
 
 export const DEFAULT_ARCHETYPE_WEIGHTS: Record<AIProfile, AIArchetypeWeights> = {
   BRAWLER: {
@@ -48,7 +49,7 @@ export const DEFAULT_ARCHETYPE_WEIGHTS: Record<AIProfile, AIArchetypeWeights> = 
 };
 
 /**
- * Resolves an authoritative AI profile for a unit by inspecting its active class,
+ * Resolves an authoritative AI profile for a unit by inspecting its active class package,
  * abilities, and optional override.
  */
 export function resolveAIProfile(
@@ -57,17 +58,25 @@ export function resolveAIProfile(
 ): AIProfile {
   if (override) return override;
 
+  const classId = actorCu.unit.loadout?.activeClassId;
+  if (classId) {
+    const pkg = getClassPackage(classId);
+    if (pkg?.aiProfile) {
+      return pkg.aiProfile;
+    }
+  }
+
   const hasFlankAbility = actorCu.abilities.some(
     (a) => a.conditionalBonus?.condition === 'FLANK_OR_REAR'
   );
-  if (hasFlankAbility || actorCu.unit.loadout?.activeClassId === 'thief') {
+  if (hasFlankAbility) {
     return 'SKIRMISHER';
   }
 
   const hasRangedAttack = actorCu.abilities.some(
     (a) => a.range >= 2 && a.damageType !== 'NONE'
   );
-  if (hasRangedAttack || actorCu.unit.loadout?.activeClassId === 'wizard') {
+  if (hasRangedAttack) {
     return 'SNIPER';
   }
 
@@ -197,6 +206,21 @@ export function scoreBuffAbility(
   state: CombatState,
   profile: AIProfile
 ): { score: number; reason?: string } {
+  // Spell Sculpt primer check: prioritize when actor has >= 2 AP and a follow-up spell
+  if (ability.effect?.type === 'SPELL_SCULPT') {
+    if (actorCu.unit.id !== targetCu.unit.id) return { score: 0 };
+    if (actorCu.pendingAbilityModifier) return { score: 0 };
+    if (actorCu.currentAp < 2) return { score: 0 };
+    const hasFollowUpSpell = actorCu.abilities.some(
+      (a) => a.id !== ability.id && a.archetypeTag === 'MAGE' && a.effect?.type !== 'SPELL_SCULPT'
+    );
+    if (!hasFollowUpSpell) return { score: 0 };
+    return {
+      score: 25.0,
+      reason: 'Prime Spell Sculpt before casting Mage spell'
+    };
+  }
+
   // 1. Guard against re-applying active modifier
   const targetStat =
     ability.effect?.type === 'WARD_BUFF'

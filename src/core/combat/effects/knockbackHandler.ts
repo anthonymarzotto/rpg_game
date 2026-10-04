@@ -3,6 +3,7 @@ import { AbilityEffect } from '../../types/ability';
 import { CombatEvent } from '../types';
 import { getEffectiveArmor } from '../effectiveVitals';
 import { DISPLACEMENT_CONFIG } from '../../config/balance';
+import { hexEquals } from '../../grid/hex';
 
 export const knockbackHandler: EffectHandler = {
   apply(effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
@@ -29,10 +30,26 @@ export const knockbackHandler: EffectHandler = {
 
     if (knockbackResult.isCollided) {
       const targetArmor = getEffectiveArmor(targetCu);
+      const { ability } = ctx;
+      const attrKey: 'force' | 'finesse' | 'focus' =
+        ability?.attackModifierAttribute ??
+        (ability?.archetypeTag === 'MAGE' ? 'focus' : ability?.archetypeTag === 'ROGUE' ? 'finesse' : 'force');
+      const attrBonus = actorCu.unit.baseAttributes[attrKey] ?? 0;
       wallSlamDamage = Math.max(
         1,
-        DISPLACEMENT_CONFIG.wallSlamBaseDamage + actorCu.unit.baseAttributes.force - targetArmor
+        DISPLACEMENT_CONFIG.wallSlamBaseDamage + attrBonus - targetArmor
       );
+
+      // If unit displaced at all before colliding, record displacement
+      if (!hexEquals(targetCoord, knockbackResult.finalCoord)) {
+        events.push({
+          type: 'DISPLACEMENT',
+          unitId: targetCu.unit.id,
+          fromCoord: targetCoord,
+          toCoord: knockbackResult.finalCoord,
+          kind: 'KNOCKBACK'
+        });
+      }
 
       events.push({
         type: 'COLLISION',

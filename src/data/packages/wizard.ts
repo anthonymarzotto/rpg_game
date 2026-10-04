@@ -37,5 +37,6 @@ export const WIZARD_PACKAGE: ClassPackage = {
   className: 'Wizard',
   signatureAbility: ARCANE_BLAST,
   domainAbilities: [SPARK, FROSTBITE],
-  passive: ARCANE_AEGIS
+  passive: ARCANE_AEGIS,
+  aiProfile: 'SNIPER'
 };

@@ -1,11 +1,8 @@
 import { HexCoord } from '../grid/hex';
 import { Ability } from '../types/ability';
 import { DiceRoller } from '../combat/dice';
-
-/**
- * High-level behavioral archetype governing tactical priorities.
- */
-export type AIProfile = 'BRAWLER' | 'SKIRMISHER' | 'SNIPER' | 'SUPPORT';
+import type { AIProfile } from '../types/ai';
+export type { AIProfile };
 
 /**
  * Tunable heuristic scoring weights for AI decision evaluation.

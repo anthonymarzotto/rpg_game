@@ -15,20 +15,31 @@ export interface DiceProfile {
 }
 
 
+export type ConditionType = 'POISON' | 'BURN' | 'CHALLENGED' | 'STEALTH';
+
 export type AbilityEffectType =
-  | 'KNOCKBACK'     // Push target 1 hex
-  | 'RETREAT_STEP'  // User steps back 1 hex freely
-  | 'ARMOR_BUFF'    // Grants temporary armor boost
-  | 'WARD_BUFF'     // Grants temporary ward boost
-  | 'SLOW'          // Reduces target movement range
-  | 'CRIT_BOOST'    // Lowers critical hit threshold (e.g., crits on 19-20)
-  | 'TELEPORT'      // Shadow Step phase teleport to target hex
-  | 'CLEAVE';       // Sweeps to adjacent frontal enemy
+  | 'KNOCKBACK'        // Push target 1 hex
+  | 'RETREAT_STEP'     // User steps back 1 hex freely
+  | 'ARMOR_BUFF'       // Grants temporary armor boost
+  | 'WARD_BUFF'        // Grants temporary ward boost
+  | 'SLOW'             // Reduces target movement range
+  | 'CRIT_BOOST'       // Lowers critical hit threshold (e.g., crits on 19-20)
+  | 'TELEPORT'         // Shadow Step phase teleport to target hex
+  | 'CLEAVE'           // Sweeps to adjacent frontal enemy
+  | 'CTB_DELAY'        // Delays target CTB initiative gauge
+  | 'INITIATIVE_BOOST' // Boosts target CTB initiative gauge (e.g. Tactical Vanguard)
+  | 'FORCE_FACING'     // Forces target to face actor
+  | 'CONDITION'        // Applies a status condition (Poison, Burn, Challenged, Stealth)
+  | 'SPELL_SCULPT'     // Primes pending ability modifier for next Mage spell
+  | 'WILD_SURGE'       // Spontaneous arcane surges on critical hits
+  | 'STAT_MODIFIER';   // Applies stat modifier (e.g. Expose Weakness -2 Armor & -2 Evasion)
 
 export interface AbilityEffect {
   readonly type: AbilityEffectType;
   readonly magnitude: number;
   readonly durationTurns?: number;
+  readonly conditionType?: ConditionType;
+  readonly statModifiers?: Partial<Record<'armor' | 'ward' | 'speed' | 'move' | 'evasion' | 'resolve', number>>;
 }
 
 export type AbilityCondition = 'FLANK_OR_REAR';
@@ -62,5 +73,7 @@ export interface Ability {
   readonly aoeRadius?: number;
   /** Conditional bonuses applied when tactical conditions are met (e.g. Sneak Attack) */
   readonly conditionalBonus?: ConditionalBonus;
+  /** Whether the ability can only be executed at most once per turn */
+  readonly oncePerTurn?: boolean;
 }
 

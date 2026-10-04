@@ -3,6 +3,9 @@ import {
   WARRIOR_PACKAGE,
   THIEF_PACKAGE,
   WIZARD_PACKAGE,
+  KNIGHT_PACKAGE,
+  INFILTRATOR_PACKAGE,
+  SORCERER_PACKAGE,
   MOMENTUM,
   getClassPackage,
   getAbilityById,
@@ -20,6 +23,40 @@ describe('Class Packages & Catalog Verification', () => {
       expect(pkg.passive).toBeDefined();
       expect(pkg.passive.hook).toBe('ALWAYS');
     }
+  });
+
+  it('defines complete 3-active + 1-passive packages for Tier 2 classes', () => {
+    const packages = [KNIGHT_PACKAGE, INFILTRATOR_PACKAGE, SORCERER_PACKAGE];
+
+    for (const pkg of packages) {
+      expect(pkg.signatureAbility).toBeDefined();
+      expect(pkg.domainAbilities).toHaveLength(2);
+      expect(pkg.passive).toBeDefined();
+    }
+  });
+
+  it('correctly maps Knight abilities and passive', () => {
+    expect(KNIGHT_PACKAGE.classId).toBe('knight');
+    expect(KNIGHT_PACKAGE.signatureAbility.id).toBe('lead_the_charge');
+    expect(KNIGHT_PACKAGE.domainAbilities.map((a) => a.id)).toEqual(['challenging_shout', 'pommel_strike']);
+    expect(KNIGHT_PACKAGE.passive.id).toBe('tactical_vanguard');
+    expect(KNIGHT_PACKAGE.passive.hook).toBe('BATTLE_START');
+  });
+
+  it('correctly maps Infiltrator abilities and passive', () => {
+    expect(INFILTRATOR_PACKAGE.classId).toBe('infiltrator');
+    expect(INFILTRATOR_PACKAGE.signatureAbility.id).toBe('expose_weakness');
+    expect(INFILTRATOR_PACKAGE.domainAbilities.map((a) => a.id)).toEqual(['smoke_veil', 'toxic_shiv']);
+    expect(INFILTRATOR_PACKAGE.passive.id).toBe('elusive_stride');
+    expect(INFILTRATOR_PACKAGE.passive.hook).toBe('ON_MOVE');
+  });
+
+  it('correctly maps Sorcerer abilities and passive', () => {
+    expect(SORCERER_PACKAGE.classId).toBe('sorcerer');
+    expect(SORCERER_PACKAGE.signatureAbility.id).toBe('spell_sculpt');
+    expect(SORCERER_PACKAGE.domainAbilities.map((a) => a.id)).toEqual(['ignite', 'gust']);
+    expect(SORCERER_PACKAGE.passive.id).toBe('wild_surge');
+    expect(SORCERER_PACKAGE.passive.hook).toBe('ON_CRIT');
   });
 
   it('correctly maps Warrior abilities and passive', () => {
@@ -65,17 +102,32 @@ describe('Class Packages & Catalog Verification', () => {
     expect(getAbilityById('cleave')).toBeDefined();
     expect(getAbilityById('shadow_step')).toBeDefined();
     expect(getAbilityById('arcane_blast')).toBeDefined();
+    expect(getAbilityById('lead_the_charge')).toBeDefined();
+    expect(getAbilityById('challenging_shout')).toBeDefined();
+    expect(getAbilityById('pommel_strike')).toBeDefined();
+    expect(getAbilityById('expose_weakness')).toBeDefined();
+    expect(getAbilityById('smoke_veil')).toBeDefined();
+    expect(getAbilityById('toxic_shiv')).toBeDefined();
+    expect(getAbilityById('spell_sculpt')).toBeDefined();
+    expect(getAbilityById('ignite')).toBeDefined();
+    expect(getAbilityById('gust')).toBeDefined();
 
     // Passives
     expect(getPassiveById('momentum')).toBeDefined();
     expect(getPassiveById('unyielding')).toBeDefined();
     expect(getPassiveById('quickstep')).toBeDefined();
     expect(getPassiveById('arcane_aegis')).toBeDefined();
+    expect(getPassiveById('tactical_vanguard')).toBeDefined();
+    expect(getPassiveById('elusive_stride')).toBeDefined();
+    expect(getPassiveById('wild_surge')).toBeDefined();
 
     // Package lookup
     expect(getClassPackage('warrior')).toBe(WARRIOR_PACKAGE);
     expect(getClassPackage('thief')).toBe(THIEF_PACKAGE);
     expect(getClassPackage('wizard')).toBe(WIZARD_PACKAGE);
+    expect(getClassPackage('knight')).toBe(KNIGHT_PACKAGE);
+    expect(getClassPackage('infiltrator')).toBe(INFILTRATOR_PACKAGE);
+    expect(getClassPackage('sorcerer')).toBe(SORCERER_PACKAGE);
     expect(getClassPackage('unknown')).toBeUndefined();
   });
 });

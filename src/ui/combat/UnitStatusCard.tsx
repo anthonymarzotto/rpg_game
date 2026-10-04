@@ -1,4 +1,4 @@
-import { ActiveModifier, CombatUnit } from '../../core/combat/types';
+import { ActiveCondition, ActiveModifier, CombatUnit } from '../../core/combat/types';
 import { TargetPreview } from '../../core/combat/targetPreview';
 import {
   getEffectiveArmor,
@@ -13,6 +13,48 @@ export interface UnitStatusCardProps {
   readonly activeCu: CombatUnit | undefined;
   readonly targetPreview: TargetPreview | null;
   readonly hoveredUnitCu?: CombatUnit;
+}
+
+function formatConditionBadge(cond: ActiveCondition): {
+  text: string;
+  isDebuff: boolean;
+  className: string;
+  title: string;
+} {
+  let icon = '';
+  let label: string = cond.type;
+  let isDebuff = false;
+  let className = 'condition-stealth';
+  let title = '';
+
+  if (cond.type === 'STEALTH') {
+    icon = '👤 ';
+    label = 'STEALTH';
+    isDebuff = false;
+    className = 'condition-stealth';
+    title = 'Stealthed: Untargetable by direct attacks. Next attack gains Advantage and breaks stealth.';
+  } else if (cond.type === 'POISON') {
+    icon = '🧪 ';
+    label = `POISON (${cond.damagePerTurn ?? 2} dmg)`;
+    isDebuff = true;
+    className = 'condition-poison';
+    title = `Poisoned: Suffers ${cond.damagePerTurn ?? 2} poison damage at the start of each turn.`;
+  } else if (cond.type === 'BURN') {
+    icon = '🔥 ';
+    label = `BURN (${cond.damagePerTurn ?? 2} dmg)`;
+    isDebuff = true;
+    className = 'condition-burn';
+    title = `Burned: Suffers ${cond.damagePerTurn ?? 2} fire damage at the start of each turn.`;
+  } else if (cond.type === 'CHALLENGED') {
+    icon = '⚔️ ';
+    label = 'CHALLENGED';
+    isDebuff = true;
+    className = 'condition-challenged';
+    title = 'Challenged: Must attack the challenger or suffer Disadvantage on rolls.';
+  }
+
+  const text = `${icon}${label} (${cond.durationTurns}t)`;
+  return { text, isDebuff, className, title };
 }
 
 function formatModifierBadge(mod: ActiveModifier): { text: string; isDebuff: boolean } {
@@ -129,14 +171,27 @@ export function UnitStatusCard({
           </div>
         )}
 
-        {/* Active Modifiers (if present) */}
-        {activeCu.activeModifiers.length > 0 && (
+        {/* Active Conditions & Modifiers (if present) */}
+        {((activeCu.activeConditions && activeCu.activeConditions.length > 0) ||
+          activeCu.activeModifiers.length > 0) && (
           <div className="active-modifiers-row">
+            {activeCu.activeConditions?.map((cond, idx) => {
+              const { text, isDebuff, className, title } = formatConditionBadge(cond);
+              return (
+                <span
+                  key={`cond-${idx}`}
+                  className={`mod-badge ${className} ${isDebuff ? 'debuff' : 'buff'}`}
+                  title={title}
+                >
+                  {text}
+                </span>
+              );
+            })}
             {activeCu.activeModifiers.map((mod, idx) => {
               const { text, isDebuff } = formatModifierBadge(mod);
               return (
                 <span
-                  key={idx}
+                  key={`mod-${idx}`}
                   className={`mod-badge ${isDebuff ? 'debuff' : 'buff'}`}
                 >
                   {text}
@@ -183,14 +238,28 @@ export function UnitStatusCard({
           </div>
           <div className="preview-target-name">{targetPreview.targetName}</div>
 
-          {/* Active Modifiers on Target (if present) */}
-          {hoveredUnitCu && hoveredUnitCu.activeModifiers.length > 0 && (
+          {/* Active Conditions & Modifiers on Target (if present) */}
+          {hoveredUnitCu &&
+            ((hoveredUnitCu.activeConditions && hoveredUnitCu.activeConditions.length > 0) ||
+              hoveredUnitCu.activeModifiers.length > 0) && (
             <div className="active-modifiers-row">
+              {hoveredUnitCu.activeConditions?.map((cond, idx) => {
+                const { text, isDebuff, className, title } = formatConditionBadge(cond);
+                return (
+                  <span
+                    key={`targ-cond-${idx}`}
+                    className={`mod-badge ${className} ${isDebuff ? 'debuff' : 'buff'}`}
+                    title={title}
+                  >
+                    {text}
+                  </span>
+                );
+              })}
               {hoveredUnitCu.activeModifiers.map((mod, idx) => {
                 const { text, isDebuff } = formatModifierBadge(mod);
                 return (
                   <span
-                    key={idx}
+                    key={`targ-mod-${idx}`}
                     className={`mod-badge ${isDebuff ? 'debuff' : 'buff'}`}
                   >
                     {text}
@@ -250,14 +319,27 @@ export function UnitStatusCard({
             </div>
           )}
 
-          {/* Active Modifiers on Inspected Unit */}
-          {hoveredUnitCu.activeModifiers.length > 0 && (
+          {/* Active Conditions & Modifiers on Inspected Unit */}
+          {((hoveredUnitCu.activeConditions && hoveredUnitCu.activeConditions.length > 0) ||
+            hoveredUnitCu.activeModifiers.length > 0) && (
             <div className="active-modifiers-row">
+              {hoveredUnitCu.activeConditions?.map((cond, idx) => {
+                const { text, isDebuff, className, title } = formatConditionBadge(cond);
+                return (
+                  <span
+                    key={`insp-cond-${idx}`}
+                    className={`mod-badge ${className} ${isDebuff ? 'debuff' : 'buff'}`}
+                    title={title}
+                  >
+                    {text}
+                  </span>
+                );
+              })}
               {hoveredUnitCu.activeModifiers.map((mod, idx) => {
                 const { text, isDebuff } = formatModifierBadge(mod);
                 return (
                   <span
-                    key={idx}
+                    key={`insp-mod-${idx}`}
                     className={`mod-badge ${isDebuff ? 'debuff' : 'buff'}`}
                   >
                     {text}

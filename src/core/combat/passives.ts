@@ -55,4 +55,5 @@ export function evaluateRollPassives(actorCu: CombatUnit): PassiveRollEvaluation
  */
 export function onTurnStartPassives(cu: CombatUnit): void {
   cu.hexesMovedThisTurn = 0;
+  cu.abilitiesUsedThisTurn = undefined;
 }

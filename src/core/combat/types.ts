@@ -1,5 +1,6 @@
 import { Unit, Faction } from '../types/unit';
-import { AbilityEffect, Ability } from '../types/ability';
+import { AbilityEffect, AbilityEffectType, Ability, ConditionType } from '../types/ability';
+import { Archetype } from '../types/class';
 import { PassiveTrait } from '../types/passive';
 import { HexCoord, HexDirection } from '../grid/hex';
 import { Arena, KnockbackResult } from '../grid/arena';
@@ -46,7 +47,18 @@ export type CombatEvent =
   | {
       readonly type: 'STATUS_APPLIED';
       readonly targetUnitId: string;
-      readonly modifier: ActiveModifier;
+      readonly modifier?: ActiveModifier;
+      readonly condition?: ActiveCondition;
+    }
+  | {
+      readonly type: 'CONDITION_APPLIED';
+      readonly targetUnitId: string;
+      readonly condition: ActiveCondition;
+    }
+  | {
+      readonly type: 'CTB_DELAY';
+      readonly targetUnitId: string;
+      readonly amount: number;
     };
 
 /**
@@ -96,6 +108,31 @@ export interface ActiveModifier {
 }
 
 /**
+ * Active status condition tracking state, duration, and mandatory source unit attribution.
+ */
+export interface ActiveCondition {
+  readonly type: ConditionType;
+  durationTurns: number;
+  readonly sourceUnitId: string;
+  readonly damagePerTurn?: number;
+}
+
+/**
+ * Ephemeral modifier applied to the next matching ability execution, clearing upon use or turn end.
+ */
+export interface PendingAbilityModifier {
+  readonly extraRange?: number;
+  readonly extraAoeRadius?: number;
+  readonly allowedArchetypes?: readonly Archetype[];
+  /** If specified, only abilities matching this damage type profile are modified */
+  readonly requiredDamageType?: 'MAGICAL' | 'PHYSICAL' | 'DAMAGING';
+  /** If specified, abilities with these effect types are excluded from receiving the modifier */
+  readonly excludedEffectTypes?: readonly AbilityEffectType[];
+  readonly consumesOnUse: boolean;
+  readonly expiresAtTurnEnd: boolean;
+}
+
+/**
  * Unified validation result for player actions (movement, abilities).
  */
 export type ValidationResult =
@@ -112,6 +149,11 @@ export type AbilityResolution =
       readonly targetUnitId: string;
       readonly modifierApplied: ActiveModifier;
       readonly events?: readonly CombatEvent[];
+    }
+  | {
+      readonly type: 'SUPPORT';
+      readonly targetUnitIds: readonly string[];
+      readonly events: readonly CombatEvent[];
     };
 
 /**
@@ -126,6 +168,8 @@ export interface CombatUnit {
   isDefeated: boolean;
   inBattleXp: InBattleXp;
   activeModifiers: ActiveModifier[];
+  activeConditions: ActiveCondition[];
+  pendingAbilityModifier?: PendingAbilityModifier;
   /** Active combat abilities (Core + Wildcards) resolved from unit loadout */
   readonly abilities: readonly Ability[];
   /** Active passives (Innate + Wildcards) resolved from unit loadout */
@@ -134,6 +178,8 @@ export interface CombatUnit {
   facing: HexDirection;
   /** Distance in hexes moved during the current turn (used by Momentum) */
   hexesMovedThisTurn?: number;
+  /** IDs of abilities executed during the current turn (used by oncePerTurn) */
+  abilitiesUsedThisTurn?: string[];
 }
 
 

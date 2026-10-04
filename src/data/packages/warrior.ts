@@ -58,5 +58,6 @@ export const WARRIOR_PACKAGE: ClassPackage = {
   className: 'Warrior',
   signatureAbility: POWER_STRIKE,
   domainAbilities: [CLEAVE, BRACE],
-  passive: UNYIELDING
+  passive: UNYIELDING,
+  aiProfile: 'BRAWLER'
 };

@@ -31,6 +31,7 @@ function createTestCombatUnit(passives: CombatUnit['passives'] = []): CombatUnit
     isDefeated: false,
     inBattleXp: { fighter: 0, rogue: 0, mage: 0 },
     activeModifiers: [],
+    activeConditions: [],
     abilities: [],
     passives,
     facing: 0
@@ -181,7 +182,7 @@ describe('Phase 1.3: Passive Trait Evaluation Pipeline', () => {
   });
 
   describe('Turn Clock Integration', () => {
-    it('resets hexesMovedThisTurn when a unit starts their turn via turnClock', () => {
+    it('resets hexesMovedThisTurn when a unit ends their turn or starts their turn via turnClock', () => {
       const arena = createRadialArena(3);
       const hero = createRecruit('hero', 'Alden');
       const enemy = createRecruit('enemy', 'Goblin');
@@ -196,8 +197,9 @@ describe('Phase 1.3: Passive Trait Evaluation Pipeline', () => {
       executeMove(state, 'hero', { q: 1, r: -1 });
       expect(heroCu.hexesMovedThisTurn).toBe(1);
 
-      // End hero's turn
+      // End hero's turn - dismissed immediately at turn end
       endActiveTurn(state);
+      expect(heroCu.hexesMovedThisTurn).toBe(0);
 
       // Now enemy or hero will be active. Set hero to have moved hexes and simulate advanceTurnClock activating hero.
       heroCu.hexesMovedThisTurn = 4;
@@ -207,6 +209,52 @@ describe('Phase 1.3: Passive Trait Evaluation Pipeline', () => {
       if (nextActiveId === 'hero') {
         expect(heroCu.hexesMovedThisTurn).toBe(0);
       }
+    });
+
+    it('only applies Momentum Advantage to the first attack after moving, and dismisses on turn end', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden'); // Novice with Momentum
+      const enemy = createRecruit('enemy', 'Goblin');
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, enemy], 'hero');
+      const heroCu = state.units.get('hero')!;
+      heroCu.currentAp = 10;
+
+      // 1. Move 2 hexes to prime Momentum
+      executeMove(state, 'hero', { q: 0, r: 1 });
+      executeMove(state, 'hero', { q: 0, r: 0 });
+      expect(heroCu.hexesMovedThisTurn).toBe(2);
+
+      // 2. First attack gets Advantage from Momentum
+      const firstDice = new MockDiceRoller({ d20Rolls: [5, 18], damageRolls: [3] });
+      const firstResult = executeAbility(state, 'hero', STRIKE, { targetUnitId: 'enemy' }, firstDice);
+      expect(firstResult.type).toBe('ATTACK');
+      if (firstResult.type === 'ATTACK') {
+        expect(firstResult.details.d20Roll).toBe(18); // Higher roll chosen via Advantage
+      }
+
+      // 3. Momentum is consumed after the first attack
+      expect(heroCu.hexesMovedThisTurn).toBe(0);
+
+      // 4. Second attack without moving does NOT get Advantage
+      const secondDice = new MockDiceRoller({ d20Rolls: [14, 2], damageRolls: [3] });
+      const secondResult = executeAbility(state, 'hero', STRIKE, { targetUnitId: 'enemy' }, secondDice);
+      expect(secondResult.type).toBe('ATTACK');
+      if (secondResult.type === 'ATTACK') {
+        expect(secondResult.details.d20Roll).toBe(14); // Normal roll: first d20 taken, not 2
+      }
+
+      // 5. Move 2 hexes again to prime Momentum once more
+      executeMove(state, 'hero', { q: 0, r: 1 });
+      executeMove(state, 'hero', { q: 0, r: 0 });
+      expect(heroCu.hexesMovedThisTurn).toBe(2);
+
+      // 6. Ending turn dismisses Momentum
+      endActiveTurn(state);
+      expect(heroCu.hexesMovedThisTurn).toBe(0);
     });
   });
 });

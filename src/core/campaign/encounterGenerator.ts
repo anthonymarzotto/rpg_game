@@ -11,28 +11,34 @@ import { createRng, shuffle } from '../prng';
 import { computeSquadThreat, computeStageThreatBudget } from './threatBudget';
 import { createRecruit } from '../units/unitFactory';
 import { advanceArchetypeLevel } from '../progression/pyramid';
-import { CLASS_REGISTRY } from '../../data/classes';
+import { CLASS_REGISTRY, CLASSES_BY_ID } from '../../data/classes';
 import { computeDerivedVitals } from '../units/vitals';
 
 export type EnemyTier1Class = 'warrior' | 'thief' | 'wizard';
+export type EnemyTier2Class = 'knight' | 'infiltrator' | 'sorcerer';
 
 export const TIER1_CLASSES: readonly EnemyTier1Class[] = ['warrior', 'thief', 'wizard'];
+export const TIER2_CLASSES: readonly EnemyTier2Class[] = ['knight', 'infiltrator', 'sorcerer'];
 
-const ENEMY_TIER1_CONFIG: Record<
-  EnemyTier1Class,
-  { archetype: Archetype; attr: 'force' | 'finesse' | 'focus'; name: string }
-> = {
-  warrior: { archetype: 'FIGHTER', attr: 'force', name: 'Warrior' },
-  thief: { archetype: 'ROGUE', attr: 'finesse', name: 'Thief' },
-  wizard: { archetype: 'MAGE', attr: 'focus', name: 'Wizard' }
-};
+function getPrimaryArchetype(requirements: { fighter: number; rogue: number; mage: number }): {
+  archetype: Archetype;
+  attr: 'force' | 'finesse' | 'focus';
+} {
+  if (requirements.fighter >= requirements.rogue && requirements.fighter >= requirements.mage) {
+    return { archetype: 'FIGHTER', attr: 'force' };
+  }
+  if (requirements.rogue >= requirements.mage) {
+    return { archetype: 'ROGUE', attr: 'finesse' };
+  }
+  return { archetype: 'MAGE', attr: 'focus' };
+}
 
 /**
- * Creates an enemy combatant using core class archetypes (Novice, Warrior, Thief, Wizard).
+ * Creates an enemy combatant using core class archetypes (Novice, Tier 1, or Tier 2).
  */
 export function createEnemyUnit(
   id: string,
-  classId: 'novice' | EnemyTier1Class,
+  classId: 'novice' | EnemyTier1Class | EnemyTier2Class,
   rng?: () => number
 ): Unit {
   if (classId === 'novice') {
@@ -42,25 +48,37 @@ export function createEnemyUnit(
     });
   }
 
-  const config = ENEMY_TIER1_CONFIG[classId];
-  const recruit = createRecruit(id, config.name, {
+  const classDef = CLASSES_BY_ID[classId];
+  if (!classDef) {
+    throw new Error(`Unknown enemy class: ${classId}`);
+  }
+
+  const { archetype, attr } = getPrimaryArchetype(classDef.requirements);
+  const level = classDef.totalPoints;
+
+  const recruit = createRecruit(id, classDef.name, {
     faction: 'ENEMY',
     rng
   });
 
-  const progression = advanceArchetypeLevel(recruit.progression, config.archetype, CLASS_REGISTRY);
+  let progression = recruit.progression;
+  for (let i = 0; i < level; i++) {
+    progression = advanceArchetypeLevel(progression, archetype, CLASS_REGISTRY);
+  }
+
+  const attrBonus = level;
   const baseAttributes = {
     ...recruit.baseAttributes,
-    [config.attr]: recruit.baseAttributes[config.attr] + 1
+    [attr]: recruit.baseAttributes[attr] + attrBonus
   };
-  const effectiveVitals = computeDerivedVitals(baseAttributes, 1);
+  const effectiveVitals = computeDerivedVitals(baseAttributes, level);
 
   // Wildcards selected from recruit's rolled starter abilities
   const wildcardAbilities = recruit.starterAbilityIds.filter((aid) => aid !== 'strike').slice(0, 2);
 
   return {
     ...recruit,
-    name: config.name,
+    name: classDef.name,
     progression,
     baseAttributes,
     effectiveVitals,
@@ -74,7 +92,7 @@ export function createEnemyUnit(
 
 /**
  * Assembles an enemy squad whose combined threat cost matches the target threat budget
- * using standard Novice (10 threat) and Tier-1 classes (25 threat).
+ * using standard Novice (10 threat), Tier-1 classes (25 threat), and Tier-2 classes (40 threat).
  */
 export function assembleEnemySquad(
   budget: number,
@@ -85,9 +103,16 @@ export function assembleEnemySquad(
   const squad: Unit[] = [];
   let unitIndex = 1;
 
+  // For Stage 3+, allow Tier-2 enemies (Knight, Infiltrator, Sorcerer) if budget allows (40 threat)
+  const canUseTier2 = stage >= 3 && remaining >= 40;
+  if (canUseTier2 && rng() < 0.5) {
+    const classPick = TIER2_CLASSES[Math.floor(rng() * TIER2_CLASSES.length)];
+    squad.push(createEnemyUnit(`enemy-${unitIndex++}`, classPick, rng));
+    remaining -= 40;
+  }
+
   // For Stage 2+, allow Tier-1 enemies (Warrior, Thief, Wizard) if budget allows (25 threat)
   const canUseTier1 = stage >= 2 && remaining >= 25;
-
   if (canUseTier1 && rng() < 0.6) {
     const classPick = TIER1_CLASSES[Math.floor(rng() * TIER1_CLASSES.length)];
     squad.push(createEnemyUnit(`enemy-${unitIndex++}`, classPick, rng));

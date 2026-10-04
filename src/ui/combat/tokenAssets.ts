@@ -12,6 +12,9 @@ export const AVAILABLE_PIXEL_TOKENS = new Set<string>([
   '00_human_male',  // Warrior
   '81_human_male',  // Thief
   '99_human_male',  // Wizard
+  '02_human_male',  // Knight
+  '82_human_male',  // Infiltrator
+  '98_human_male',  // Sorcerer
 ]);
 
 /**

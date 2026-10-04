@@ -49,7 +49,27 @@ export function resolveAttackRoll(
       ? getEffectiveEvasion(targetCu)
       : getEffectiveResolve(targetCu);
 
-  const d20 = diceRoller.rollD20(options?.advantage ?? 'NORMAL');
+  let hasAdvantage = options?.advantage === 'ADVANTAGE';
+  let hasDisadvantage = options?.advantage === 'DISADVANTAGE';
+
+  // Attacking from STEALTH grants Advantage
+  if (actorCu.activeConditions?.some((c) => c.type === 'STEALTH')) {
+    hasAdvantage = true;
+  }
+
+  // CHALLENGED imposes Disadvantage when attacking anyone other than the challenger
+  if (
+    actorCu.activeConditions?.some(
+      (c) => c.type === 'CHALLENGED' && c.sourceUnitId !== targetCu.unit.id
+    )
+  ) {
+    hasDisadvantage = true;
+  }
+
+  const finalAdvantage: RollAdvantage =
+    hasAdvantage === hasDisadvantage ? 'NORMAL' : hasAdvantage ? 'ADVANTAGE' : 'DISADVANTAGE';
+
+  const d20 = diceRoller.rollD20(finalAdvantage);
   const totalScore = d20 + modifier;
 
   const critMargin = COMBAT_RESOLUTION_CONFIG.critThresholdMargin;

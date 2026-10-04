@@ -104,7 +104,7 @@ describe('Class Package Invariants', () => {
       expect(pkg.signatureAbility.id.length).toBeGreaterThan(0);
       expect(pkg.domainAbilities).toHaveLength(2);
       expect(pkg.passive.id.length).toBeGreaterThan(0);
-      expect(pkg.passive.hook).toBe('ALWAYS');
+      expect(['ALWAYS', 'BATTLE_START', 'ON_MOVE', 'ON_CRIT']).toContain(pkg.passive.hook);
     }
   });
 });

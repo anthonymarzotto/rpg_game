@@ -8,16 +8,25 @@ import {
 import { WARRIOR_PACKAGE } from './warrior';
 import { THIEF_PACKAGE } from './thief';
 import { WIZARD_PACKAGE } from './wizard';
+import { KNIGHT_PACKAGE } from './knight';
+import { INFILTRATOR_PACKAGE } from './infiltrator';
+import { SORCERER_PACKAGE } from './sorcerer';
 
 export * from './novice';
 export * from './warrior';
 export * from './thief';
 export * from './wizard';
+export * from './knight';
+export * from './infiltrator';
+export * from './sorcerer';
 
 export const CLASS_PACKAGES: Readonly<Record<string, ClassPackage>> = {
   warrior: WARRIOR_PACKAGE,
   thief: THIEF_PACKAGE,
-  wizard: WIZARD_PACKAGE
+  wizard: WIZARD_PACKAGE,
+  knight: KNIGHT_PACKAGE,
+  infiltrator: INFILTRATOR_PACKAGE,
+  sorcerer: SORCERER_PACKAGE
 };
 
 /**

@@ -1,5 +1,6 @@
 import { Ability } from './ability';
 import { PassiveTrait } from './passive';
+import { AIProfile } from './ai';
 
 export interface ClassPackage {
   readonly classId: string;
@@ -10,4 +11,6 @@ export interface ClassPackage {
   readonly domainAbilities: readonly [Ability, Ability];
   /** Innate passive trait granted while this class is active */
   readonly passive: PassiveTrait;
+  /** Default tactical archetype profile used by AI controllers */
+  readonly aiProfile?: AIProfile;
 }

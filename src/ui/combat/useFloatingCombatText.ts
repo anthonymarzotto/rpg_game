@@ -84,20 +84,42 @@ export function useFloatingCombatText() {
           } else if (event.type === 'STATUS_APPLIED') {
             const unitPos = state.arena.getUnitPosition(event.targetUnitId) ?? clickedCoord;
             setTimeout(() => {
-              addFloatingText(
-                `+${event.modifier.value} ${event.modifier.stat.toUpperCase()}`,
-                'buff',
-                unitPos
-              );
+              if (event.modifier) {
+                addFloatingText(
+                  `+${event.modifier.value} ${event.modifier.stat.toUpperCase()}`,
+                  'buff',
+                  unitPos
+                );
+              } else if (event.condition) {
+                addFloatingText(
+                  event.condition.type,
+                  event.condition.type === 'POISON' || event.condition.type === 'BURN' ? 'damage' : 'buff',
+                  unitPos
+                );
+              }
             }, 200);
           }
         }
       } else if (resolution.type === 'BUFF') {
-        addFloatingText(
-          `+${resolution.modifierApplied.value} ${resolution.modifierApplied.stat.toUpperCase()}`,
-          'buff',
-          clickedCoord
+        const conditionEvent = resolution.events?.find(
+          (e): e is Extract<typeof e, { type: 'STATUS_APPLIED' | 'CONDITION_APPLIED' }> =>
+            (e.type === 'STATUS_APPLIED' && !!e.condition) || e.type === 'CONDITION_APPLIED'
         );
+        if (conditionEvent && 'condition' in conditionEvent && conditionEvent.condition) {
+          addFloatingText(
+            conditionEvent.condition.type,
+            conditionEvent.condition.type === 'POISON' || conditionEvent.condition.type === 'BURN'
+              ? 'damage'
+              : 'buff',
+            clickedCoord
+          );
+        } else if (resolution.modifierApplied && resolution.modifierApplied.value !== 0) {
+          addFloatingText(
+            `+${resolution.modifierApplied.value} ${resolution.modifierApplied.stat.toUpperCase()}`,
+            'buff',
+            clickedCoord
+          );
+        }
       }
 
       // XP Gain Float

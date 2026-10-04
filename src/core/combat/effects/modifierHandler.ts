@@ -36,6 +36,30 @@ export const modifierHandler: EffectHandler = {
         durationTurns: effect.durationTurns ?? 1
       };
       logDetail = ` 🔮 [Ward Buff: +${effect.magnitude} Ward for ${effect.durationTurns ?? 1} turn(s)]`;
+    } else if (effect.type === 'STAT_MODIFIER' && effect.statModifiers) {
+      targetUnitId = targetCu?.unit.id ?? actorCu.unit.id;
+      const durationTurns = effect.durationTurns ?? 1;
+      const events: CombatEvent[] = [];
+      const parts: string[] = [];
+      for (const [stat, val] of Object.entries(effect.statModifiers)) {
+        if (typeof val === 'number') {
+          const mod: ActiveModifier = {
+            stat: stat as any,
+            value: val,
+            durationTurns
+          };
+          events.push({
+            type: 'STATUS_APPLIED',
+            targetUnitId,
+            modifier: mod
+          });
+          parts.push(`${val > 0 ? '+' : ''}${val} ${stat.toUpperCase()}`);
+        }
+      }
+      return {
+        events,
+        logDetail: ` 📊 [Stat Modifier: ${parts.join(', ')} for ${durationTurns} turn(s)]`
+      };
     }
 
     if (!targetUnitId || !modifier) {

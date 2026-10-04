@@ -18,7 +18,7 @@ import {
   CombatEvent,
   EncounterObjective
 } from './types';
-import { canMove, canExecuteAbility } from './validator';
+import { canMove, canExecuteAbility, canApplyPendingModifier } from './validator';
 import { DiceRoller, SeededDiceRoller, RollAdvantage } from './dice';
 import {
   COMBAT_RESOLUTION_CONFIG,
@@ -27,11 +27,12 @@ import {
 import { advanceTurnClock } from './turnClock';
 import { resolveAttackRoll } from './attackRoll';
 import { resolveDamage } from './damageEngine';
-import { executeAbilityEffects } from './effects';
+import { executeAbilityEffects, defaultEffectRegistry, EffectContext } from './effects';
 import { evaluateRollPassives, onTurnStartPassives } from './passives';
 import { evaluateEncounterOutcome } from './objectives';
 import { resolveUnitLoadout, LoadoutLookupProviders } from '../units/loadout';
 import { getClassPackage, getAbilityById, getPassiveById } from '../../data/packages';
+import { PassiveTriggerHook } from '../types/passive';
 
 const defaultDiceRoller = new SeededDiceRoller();
 
@@ -63,6 +64,93 @@ export function requireUnitPosition(arena: Arena, unitId: string): HexCoord {
   return pos;
 }
 
+export interface PassiveTriggerContext {
+  targetCu?: CombatUnit;
+  targetCoord?: HexCoord;
+  ability?: Ability;
+  diceRoller?: DiceRoller;
+}
+
+/**
+ * Triggers passives registered to a specific hook lifecycle event.
+ * Executes their effects generically via the effect registry without inspecting passive IDs.
+ */
+export function triggerPassiveHook(
+  state: CombatState,
+  actorCu: CombatUnit,
+  hook: PassiveTriggerHook,
+  extra?: PassiveTriggerContext
+): CombatEvent[] {
+  const events: CombatEvent[] = [];
+  const diceRoller = extra?.diceRoller ?? defaultDiceRoller;
+
+  for (const passive of actorCu.passives ?? []) {
+    if (passive.hook !== hook) continue;
+
+    // Check trigger filters if present (e.g. magic spell crits)
+    if (passive.triggerFilter) {
+      if (passive.triggerFilter.damageType && extra?.ability?.damageType !== passive.triggerFilter.damageType) {
+        continue;
+      }
+    }
+
+    // Execute effect if defined
+    if (passive.effect) {
+      const handler = defaultEffectRegistry.get(passive.effect.type);
+      if (handler) {
+        const ctx: EffectContext = {
+          state,
+          actorCu,
+          targetCu: extra?.targetCu ?? actorCu,
+          targetCoord: extra?.targetCoord,
+          ability: extra?.ability ?? ({
+            id: passive.id,
+            name: passive.name,
+            description: passive.description,
+            archetypeTag: 'FIGHTER',
+            apCost: 0,
+            range: 0,
+            targetType: 'SELF',
+            defenseTarget: 'NONE',
+            damageType: 'NONE'
+          } as Ability),
+          hitOutcome: 'SOLID_HIT',
+          diceRoller
+        };
+
+        const result = handler.apply(passive.effect, ctx);
+        if (result.events && result.events.length > 0) {
+          events.push(...result.events);
+        }
+        if (result.logDetail) {
+          state.combatLog.push({
+            turnNumber: state.turnNumber,
+            actorUnitId: actorCu.unit.id,
+            actionId: passive.id,
+            message: `${actorCu.unit.name}'s ${passive.name} triggered:${result.logDetail}`
+          });
+        }
+      }
+    }
+  }
+
+  return events;
+}
+
+/**
+ * Pre-encounter initialization pass evaluated across all units before the battle starts.
+ * Triggers BATTLE_START passives generically (e.g. Tactical Vanguard).
+ */
+export function applyPreEncounterSetup(state: CombatState): void {
+  for (const cu of state.units.values()) {
+    if (cu.isDefeated) continue;
+    const events = triggerPassiveHook(state, cu, 'BATTLE_START');
+    if (events.length > 0) {
+      applyCombatEvents(state, events);
+    }
+  }
+}
+
 /**
  * Initializes a new combat state container with living units placed in the arena.
  */
@@ -89,6 +177,7 @@ export function createCombatState(
       isDefeated: false,
       inBattleXp: { fighter: 0, rogue: 0, mage: 0 },
       activeModifiers: [],
+      activeConditions: [],
       abilities: resolved?.combatAbilities ?? [],
       passives: resolved?.activePassives ?? [],
       facing: unit.faction === 'PLAYER' ? HEX_DIRECTIONS.EAST : HEX_DIRECTIONS.WEST
@@ -104,6 +193,9 @@ export function createCombatState(
     outcome: 'IN_PROGRESS',
     objectives
   };
+
+  // Pre-encounter setup pass: seed initial state (e.g. +25 initiative for Tactical Vanguard)
+  applyPreEncounterSetup(state);
 
   if (initialActiveUnitId && combatUnits.has(initialActiveUnitId)) {
     state.activeUnitId = initialActiveUnitId;
@@ -146,6 +238,12 @@ export function executeMove(
   cu.currentAp -= 1;
   state.arena.setUnitPosition(actorUnitId, destination);
 
+  // Trigger ON_MOVE passives (e.g. Elusive Stride) generically
+  const moveEvents = triggerPassiveHook(state, cu, 'ON_MOVE');
+  if (moveEvents.length > 0) {
+    applyCombatEvents(state, moveEvents);
+  }
+
   state.combatLog.push({
     turnNumber: state.turnNumber,
     actorUnitId,
@@ -174,7 +272,43 @@ function applyCombatEvents(state: CombatState, events: readonly CombatEvent[]): 
     } else if (event.type === 'STATUS_APPLIED') {
       const cu = state.units.get(event.targetUnitId);
       if (cu && !cu.isDefeated) {
-        cu.activeModifiers.push(event.modifier);
+        if (event.modifier) {
+          const existing = cu.activeModifiers.find(
+            (m) => m.stat === event.modifier!.stat && m.value === event.modifier!.value
+          );
+          if (existing) {
+            existing.durationTurns = Math.max(existing.durationTurns, event.modifier.durationTurns);
+          } else {
+            cu.activeModifiers.push(event.modifier);
+          }
+        }
+        if (event.condition) {
+          const existing = cu.activeConditions.find(
+            (c) => c === event.condition || (c.type === event.condition!.type && c.sourceUnitId === event.condition!.sourceUnitId)
+          );
+          if (existing) {
+            existing.durationTurns = Math.max(existing.durationTurns, event.condition.durationTurns);
+          } else {
+            cu.activeConditions.push(event.condition);
+          }
+        }
+      }
+    } else if (event.type === 'CONDITION_APPLIED') {
+      const cu = state.units.get(event.targetUnitId);
+      if (cu && !cu.isDefeated) {
+        const existing = cu.activeConditions.find(
+          (c) => c === event.condition || (c.type === event.condition.type && c.sourceUnitId === event.condition.sourceUnitId)
+        );
+        if (existing) {
+          existing.durationTurns = Math.max(existing.durationTurns, event.condition.durationTurns);
+        } else {
+          cu.activeConditions.push(event.condition);
+        }
+      }
+    } else if (event.type === 'CTB_DELAY') {
+      const cu = state.units.get(event.targetUnitId);
+      if (cu && !cu.isDefeated) {
+        cu.initiativeGauge = Math.max(0, cu.initiativeGauge - event.amount);
       }
     }
   }
@@ -235,6 +369,25 @@ export function executeAbility(
   const actorCu = requireCombatUnit(state, actorUnitId);
   actorCu.currentAp -= ability.apCost;
 
+  // Track oncePerTurn
+  if (ability.oncePerTurn) {
+    (actorCu.abilitiesUsedThisTurn ??= []).push(ability.id);
+  }
+
+  // Evaluate ephemeral pendingAbilityModifier (e.g. primed by Spell Sculpt)
+  let effectiveAbility = ability;
+  const pendingMod = actorCu.pendingAbilityModifier;
+  if (canApplyPendingModifier(pendingMod, ability)) {
+    effectiveAbility = {
+      ...ability,
+      range: ability.range + (pendingMod!.extraRange ?? 0),
+      aoeRadius: (ability.aoeRadius ?? 0) + (pendingMod!.extraAoeRadius ?? 0)
+    };
+    if (pendingMod!.consumesOnUse) {
+      actorCu.pendingAbilityModifier = undefined;
+    }
+  }
+
   // Turn actor to face target
   const actorCoord = state.arena.getUnitPosition(actorUnitId);
   const targetCoord = target?.coord ?? (target?.targetUnitId ? state.arena.getUnitPosition(target.targetUnitId) : undefined);
@@ -243,25 +396,104 @@ export function executeAbility(
   }
 
   // Award In-Battle Archetype XP on execution
-  if (ability.archetypeTag === 'FIGHTER') {
+  if (effectiveAbility.archetypeTag === 'FIGHTER') {
     actorCu.inBattleXp.fighter += COMBAT_RESOLUTION_CONFIG.xpPerAction;
-  } else if (ability.archetypeTag === 'ROGUE') {
+  } else if (effectiveAbility.archetypeTag === 'ROGUE') {
     actorCu.inBattleXp.rogue += COMBAT_RESOLUTION_CONFIG.xpPerAction;
-  } else if (ability.archetypeTag === 'MAGE') {
+  } else if (effectiveAbility.archetypeTag === 'MAGE') {
     actorCu.inBattleXp.mage += COMBAT_RESOLUTION_CONFIG.xpPerAction;
   }
 
   // 1. Support / Buff abilities (DamageType === 'NONE')
-  if (ability.damageType === 'NONE') {
+  if (effectiveAbility.damageType === 'NONE') {
+    // AoE aura / blast resolution (friendly buffs or hostile utility/displacement)
+    if (effectiveAbility.aoeRadius && effectiveAbility.aoeRadius > 0) {
+      const centerCoord =
+        target?.coord ??
+        (target?.targetUnitId
+          ? state.arena.getUnitPosition(target.targetUnitId)
+          : actorCoord);
+
+      const affectedHexes = centerCoord
+        ? getHexesInRange(centerCoord, effectiveAbility.aoeRadius)
+        : [];
+
+      // Determine target alignment based on targetType and targeted unit
+      const primaryTargetId = target?.targetUnitId;
+      const primaryTargetCu = primaryTargetId ? state.units.get(primaryTargetId) : undefined;
+      const isFriendlyTargeting =
+        effectiveAbility.targetType === 'SELF' ||
+        effectiveAbility.targetType === 'ALLY' ||
+        (primaryTargetCu ? primaryTargetCu.faction === actorCu.faction : false);
+
+      const targetCus: CombatUnit[] = [];
+
+      // If friendly AoE aura centered on self (e.g. Lead the Charge), include actor
+      if (effectiveAbility.targetType === 'SELF' && actorCoord) {
+        targetCus.push(actorCu);
+      }
+
+      for (const hex of affectedHexes) {
+        const unitIdAtHex = state.arena.getUnitAt(hex);
+        if (unitIdAtHex && (unitIdAtHex !== actorUnitId || isFriendlyTargeting)) {
+          const cu = state.units.get(unitIdAtHex);
+          if (cu && !cu.isDefeated) {
+            const matchesAlignment = isFriendlyTargeting
+              ? (!actorCu.faction || !cu.faction || actorCu.faction === cu.faction)
+              : (!actorCu.faction || !cu.faction || actorCu.faction !== cu.faction);
+
+            if (matchesAlignment && !targetCus.some((t) => t.unit.id === cu.unit.id)) {
+              targetCus.push(cu);
+            }
+          }
+        }
+      }
+
+      const allEvents: CombatEvent[] = [];
+      let combinedLog = '';
+      for (const tCu of targetCus) {
+        const effResult = executeAbilityEffects(effectiveAbility, {
+          state,
+          actorCu,
+          targetCu: tCu,
+          targetCoord: state.arena.getUnitPosition(tCu.unit.id),
+          ability: effectiveAbility,
+          hitOutcome: 'SOLID_HIT',
+          diceRoller
+        });
+        allEvents.push(...effResult.events);
+        if (effResult.logDetail && !combinedLog.includes(effResult.logDetail)) {
+          combinedLog += effResult.logDetail;
+        }
+      }
+
+      applyCombatEvents(state, allEvents);
+      state.outcome = evaluateEncounterOutcome(state.objectives, state);
+
+      state.combatLog.push({
+        turnNumber: state.turnNumber,
+        actorUnitId,
+        actionId: effectiveAbility.id,
+        message: `${actorCu.unit.name} used ${effectiveAbility.name}.${combinedLog}`
+      });
+
+      return {
+        type: 'SUPPORT',
+        targetUnitIds: targetCus.map((c) => c.unit.id),
+        events: allEvents
+      };
+    }
+
+    // Single-target Buff / Support
     const targetId = target?.targetUnitId ?? actorUnitId;
     const targetCu = requireCombatUnit(state, targetId);
 
-    const effectResult = executeAbilityEffects(ability, {
+    const effectResult = executeAbilityEffects(effectiveAbility, {
       state,
       actorCu,
       targetCu,
       targetCoord: target?.coord,
-      ability,
+      ability: effectiveAbility,
       hitOutcome: 'SOLID_HIT',
       diceRoller
     });
@@ -281,8 +513,8 @@ export function executeAbility(
     state.combatLog.push({
       turnNumber: state.turnNumber,
       actorUnitId,
-      actionId: ability.id,
-      message: `${actorCu.unit.name} used ${ability.name}.${effectResult.logDetail ?? ''}`
+      actionId: effectiveAbility.id,
+      message: `${actorCu.unit.name} used ${effectiveAbility.name}.${effectResult.logDetail ?? ''}`
     });
 
     return {
@@ -300,13 +532,13 @@ export function executeAbility(
   let rollAdvantage: RollAdvantage = 'NORMAL';
   let bonusDamageProfile = undefined;
 
-  if (ability.conditionalBonus?.condition === 'FLANK_OR_REAR') {
+  if (effectiveAbility.conditionalBonus?.condition === 'FLANK_OR_REAR') {
     const isFlanked = isFlankOrRear(state, actorUnitId, targetCu.unit.id);
     if (isFlanked) {
-      if (ability.conditionalBonus.grantsAdvantage !== false) {
+      if (effectiveAbility.conditionalBonus.grantsAdvantage !== false) {
         rollAdvantage = 'ADVANTAGE';
       }
-      bonusDamageProfile = ability.conditionalBonus.bonusDamage;
+      bonusDamageProfile = effectiveAbility.conditionalBonus.bonusDamage;
     }
   }
 
@@ -316,13 +548,13 @@ export function executeAbility(
     rollAdvantage = 'ADVANTAGE';
   }
 
-  const rollResult = resolveAttackRoll(actorCu, targetCu, ability, diceRoller, {
+  const rollResult = resolveAttackRoll(actorCu, targetCu, effectiveAbility, diceRoller, {
     advantage: rollAdvantage
   });
 
   const damageResult = resolveDamage(
     rollResult.hitOutcome,
-    ability,
+    effectiveAbility,
     actorCu,
     targetCu,
     diceRoller,
@@ -337,7 +569,7 @@ export function executeAbility(
       type: 'DAMAGE',
       targetUnitId: targetCu.unit.id,
       amount: damageResult.damageDealt,
-      damageType: ability.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL',
+      damageType: effectiveAbility.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL',
       reason: 'ATTACK',
       sourceUnitId: actorCu.unit.id,
       isCrit: rollResult.hitOutcome === 'CRITICAL_HIT'
@@ -345,10 +577,10 @@ export function executeAbility(
   }
 
   // Secondary AoE Splash Resolution
-  if (ability.aoeRadius && ability.aoeRadius > 0 && rollResult.hitOutcome !== 'MISS') {
+  if (effectiveAbility.aoeRadius && effectiveAbility.aoeRadius > 0 && rollResult.hitOutcome !== 'MISS') {
     const targetCoord = target?.coord ?? state.arena.getUnitPosition(targetCu.unit.id);
     if (targetCoord) {
-      const aoeHexes = getHexesInRange(targetCoord, ability.aoeRadius);
+      const aoeHexes = getHexesInRange(targetCoord, effectiveAbility.aoeRadius);
       for (const hex of aoeHexes) {
         if (hexEquals(hex, targetCoord)) continue;
         const secondaryUnitId = state.arena.getUnitAt(hex);
@@ -357,7 +589,7 @@ export function executeAbility(
           if (splashCu && !splashCu.isDefeated && splashCu.currentHp > 0) {
             const splashDmg = resolveDamage(
               'SOLID_HIT',
-              ability,
+              effectiveAbility,
               actorCu,
               splashCu,
               diceRoller
@@ -367,7 +599,7 @@ export function executeAbility(
                 type: 'DAMAGE',
                 targetUnitId: splashCu.unit.id,
                 amount: splashDmg.damageDealt,
-                damageType: ability.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL',
+                damageType: effectiveAbility.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL',
                 reason: 'COLLATERAL',
                 sourceUnitId: actorCu.unit.id,
                 isCrit: false
@@ -380,17 +612,27 @@ export function executeAbility(
   }
 
   // Dispatch secondary effects via pluggable registry
-  const effectResult = executeAbilityEffects(ability, {
+  const effectResult = executeAbilityEffects(effectiveAbility, {
     state,
     actorCu,
     targetCu,
     targetCoord: target?.coord,
-    ability,
+    ability: effectiveAbility,
     hitOutcome: rollResult.hitOutcome,
     diceRoller
   });
 
   events.push(...effectResult.events);
+
+  // Trigger ON_CRIT passives (e.g. Wild Surge) on critical hits
+  if (rollResult.hitOutcome === 'CRITICAL_HIT') {
+    const critEvents = triggerPassiveHook(state, actorCu, 'ON_CRIT', {
+      targetCu,
+      ability: effectiveAbility,
+      diceRoller
+    });
+    events.push(...critEvents);
+  }
 
   // Apply all events to state
   applyCombatEvents(state, events);
@@ -415,6 +657,9 @@ export function executeAbility(
       }
     }
   }
+
+  // Attacking from stealth breaks stealth
+  actorCu.activeConditions = actorCu.activeConditions.filter((c) => c.type !== 'STEALTH');
 
   // Evaluate encounter outcome
   state.outcome = evaluateEncounterOutcome(state.objectives, state);
