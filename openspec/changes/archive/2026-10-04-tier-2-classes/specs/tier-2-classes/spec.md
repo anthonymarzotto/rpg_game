@@ -17,13 +17,13 @@ The system SHALL provide a bespoke class package for the Knight `(2 Fighter, 0 R
 #### Scenario: Lead the Charge execution
 - **WHEN** a unit executes `Lead the Charge`
 - **THEN** the action costs 2 AP and does not perform an attack roll
-- **THEN** all allied units within a 3-hex radius receive a +2 bonus to attack rolls and a +1 bonus to Move distance for 1 turn
+- **THEN** the actor and all allied units within a 3-hex radius receive a +2 bonus to Move distance and a +2 bonus to Speed for 2 turns
 
 #### Scenario: Challenging Shout execution
 - **WHEN** a unit executes `Challenging Shout` on a valid target within 3 hexes
 - **THEN** the action costs 1 AP
 - **THEN** the target immediately rotates to face the challenger
-- **THEN** the target receives the `CHALLENGED` condition for 1 turn, inflicting Disadvantage on attacks against any other unit
+- **THEN** the target receives the `CHALLENGED` condition for 2 turns, inflicting Disadvantage on attacks against any other unit through their next turn
 
 #### Scenario: Pommel Strike execution
 - **WHEN** a unit hits a target with `Pommel Strike`
@@ -69,8 +69,8 @@ The system SHALL provide a bespoke class package for the Sorcerer `(0 Fighter, 0
 #### Scenario: Spell Sculpt execution
 - **WHEN** a unit executes `Spell Sculpt`
 - **THEN** the action costs 1 AP and can be executed at most once per turn
-- **THEN** a pending ability modifier is applied to the unit granting +1 Range and +1 AoE splash radius to their next cast Mage ability
-- **THEN** the pending modifier is consumed upon casting the next spell or expires at the end of the current turn
+- **THEN** an in-combat ability modifier is applied to the unit granting +1 Range and +1 AoE splash radius to their next cast Mage ability
+- **THEN** the modifier is consumed upon casting the next spell or expires at the end of the current turn
 
 #### Scenario: Ignite execution
 - **WHEN** a unit hits a target with `Ignite`

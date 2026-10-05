@@ -21,5 +21,11 @@ export interface UnitProgression {
   readonly constellation: readonly string[];
   /** Accumulated unspent archetype XP carried between encounters */
   readonly accumulatedXp?: ArchetypePoints;
+  /** Off-node coordinate milestone keys visited (e.g. ['1,1,0', '1,1,1']) */
+  readonly offNodeMilestones?: readonly string[];
+  /** Individually unlocked domain abilities from off-node milestones */
+  readonly unlockedAbilityIds?: readonly string[];
+  /** Wayfarer Attunement IDs chosen at off-node milestones */
+  readonly earnedAttunements?: readonly string[];
 }
 

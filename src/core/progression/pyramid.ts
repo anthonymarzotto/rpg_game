@@ -1,5 +1,6 @@
 import { Archetype, ArchetypePoints, ClassDefinition, UnitProgression } from '../types/class';
 import { ClassRegistry, toCoordKey } from './registry';
+import type { WayfarerAttunementId } from './harmonization';
 
 export { toCoordKey, type ClassRegistry };
 
@@ -96,6 +97,7 @@ export function createInitialProgression(unitId: string): UnitProgression {
       mage: 0
     },
     constellation: [],
+    offNodeMilestones: [],
     accumulatedXp: {
       fighter: 0,
       rogue: 0,
@@ -104,14 +106,21 @@ export function createInitialProgression(unitId: string): UnitProgression {
   };
 }
 
+export interface AdvanceArchetypeOptions {
+  readonly attunementId?: WayfarerAttunementId;
+  readonly unlockedAbilityId?: string;
+}
+
 /**
  * Advances a unit by 1 level in the designated archetype.
  * Updates level, points, and appends the unlocked class ID to the constellation.
+ * If advancing to an off-node coordinate, records the milestone coordinate key.
  */
 export function advanceArchetypeLevel(
   progression: UnitProgression,
   archetype: Archetype,
-  registry: ClassRegistry
+  registry: ClassRegistry,
+  options?: AdvanceArchetypeOptions
 ): UnitProgression {
   if (progression.currentLevel >= MAX_LEVEL) {
     throw new Error(`Unit ${progression.unitId} has reached the maximum level cap of ${MAX_LEVEL}.`);
@@ -135,12 +144,31 @@ export function advanceArchetypeLevel(
     ? [...progression.constellation, eligibleClass.id]
     : progression.constellation;
 
+  const coordKey = toCoordKey(newPoints);
+  const existingMilestones = progression.offNodeMilestones ?? [];
+  const newMilestones = !eligibleClass && !existingMilestones.includes(coordKey)
+    ? [...existingMilestones, coordKey]
+    : existingMilestones;
+
+  const existingAttunements = progression.earnedAttunements ?? [];
+  const newAttunements = options?.attunementId
+    ? [...existingAttunements, options.attunementId]
+    : existingAttunements;
+
+  const existingUnlocked = progression.unlockedAbilityIds ?? [];
+  const newUnlocked = options?.unlockedAbilityId && !existingUnlocked.includes(options.unlockedAbilityId)
+    ? [...existingUnlocked, options.unlockedAbilityId]
+    : existingUnlocked;
+
   return {
     unitId: progression.unitId,
     currentLevel: nextLevel,
     archetypePoints: newPoints,
     constellation: newConstellation,
-    accumulatedXp: progression.accumulatedXp
+    offNodeMilestones: newMilestones,
+    accumulatedXp: progression.accumulatedXp,
+    earnedAttunements: newAttunements,
+    unlockedAbilityIds: newUnlocked
   };
 }
 

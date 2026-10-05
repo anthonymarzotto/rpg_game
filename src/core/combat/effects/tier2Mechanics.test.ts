@@ -274,7 +274,7 @@ describe('Tier 2 Combat Engine Mechanics', () => {
     expect(canExecuteAbility(state, 'hero', SPELL_SCULPT).valid).toBe(true);
   });
 
-  it('keeps STEALTH active into the next turn after ending turn, granting Advantage on next turn attack', () => {
+  it('keeps STEALTH active through enemy turns, untargetable by enemies, and purges at start of next turn', () => {
     const arena = createRadialArena(3);
     const infiltrator = createRecruit('infiltrator', 'Infiltrator', { faction: 'PLAYER' });
     const enemy = createRecruit('enemy', 'Goblin', { faction: 'ENEMY' });
@@ -285,7 +285,7 @@ describe('Tier 2 Combat Engine Mechanics', () => {
     const infCu = state.units.get('infiltrator')!;
     const enemyCu = state.units.get('enemy')!;
 
-    // Turn 1: Infiltrator casts Smoke Veil
+    // Turn 1: Infiltrator casts Smoke Veil (1 AP, 1-turn duration)
     executeAbility(state, 'infiltrator', SMOKE_VEIL);
     expect(infCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
 
@@ -295,7 +295,7 @@ describe('Tier 2 Combat Engine Mechanics', () => {
     endActiveTurn(state, 0);
 
     expect(state.activeUnitId).toBe('enemy');
-    // Enemy cannot target stealthed infiltrator directly
+    // Enemy cannot target stealthed infiltrator directly during their turn
     const enemyAttack: Ability = {
       id: 'slash',
       name: 'Slash',
@@ -321,13 +321,7 @@ describe('Tier 2 Combat Engine Mechanics', () => {
     endActiveTurn(state, 0);
 
     expect(state.activeUnitId).toBe('infiltrator');
-    // Infiltrator STILL has STEALTH active on Turn 2!
-    const stealthCondition = infCu.activeConditions.find((c) => c.type === 'STEALTH');
-    expect(stealthCondition).toBeDefined();
-    expect(stealthCondition?.durationTurns).toBe(1);
-
-    // Attacking an enemy breaks stealth and consumes it
-    executeAbility(state, 'infiltrator', enemyAttack, { targetUnitId: 'enemy' });
+    // 1-turn Stealth purges at the start of Infiltrator's next turn (like Ward)
     expect(infCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(false);
   });
 });

@@ -6,6 +6,7 @@ import { LEVEL_XP_THRESHOLDS } from '../config/balance';
 import { computeDerivedVitals } from '../units/vitals';
 import { validateUnitLoadout } from '../units/loadout';
 import { advanceArchetypeLevel, MAX_LEVEL } from '../progression/pyramid';
+import { applyWayfarerAttunement, WayfarerAttunementId } from '../progression/harmonization';
 import { ClassPackage } from '../types/classPackage';
 import { ClassRegistry } from '../progression/registry';
 import { CLASS_REGISTRY } from '../../data/classes';
@@ -142,18 +143,38 @@ export function syncEncounterPlayerUnits(
   };
 }
 
+export interface AllocateCampArchetypeOptions {
+  readonly attunementId?: WayfarerAttunementId;
+  readonly unlockedAbilityId?: string;
+  readonly earnedShardId?: string;
+}
+
 /**
  * Levels up a unit in Camp by spending threshold XP on the chosen archetype:
  * - Deducts threshold cost strictly from the chosen archetype's accumulated XP
  * - Retains all excess XP and non-chosen archetype XP
  * - Increments level, unlocks new class node, and recalculates derived vitals
+ * - Applies any chosen Wayfarer Attunement bonuses and adds earned shards to loadout
  */
 export function allocateCampArchetypePoint(
   state: CampaignState,
   unitId: string,
   archetype: Archetype,
-  registry: ClassRegistry = CLASS_REGISTRY
+  optionsOrRegistry?: AllocateCampArchetypeOptions | ClassRegistry,
+  maybeRegistry?: ClassRegistry
 ): CampaignState {
+  let options: AllocateCampArchetypeOptions | undefined;
+  let registry: ClassRegistry = CLASS_REGISTRY;
+
+  if (optionsOrRegistry && 'getClassAtCoord' in optionsOrRegistry) {
+    registry = optionsOrRegistry as ClassRegistry;
+  } else if (optionsOrRegistry) {
+    options = optionsOrRegistry as AllocateCampArchetypeOptions;
+    if (maybeRegistry) {
+      registry = maybeRegistry;
+    }
+  }
+
   const unit = state.roster.find((u) => u.id === unitId);
   if (!unit) {
     throw new Error(`Unit ${unitId} not found in campaign roster.`);
@@ -175,7 +196,10 @@ export function allocateCampArchetypePoint(
   }
 
   // Advance level and constellation via pyramid
-  const advancedProg = advanceArchetypeLevel(unit.progression, archetype, registry);
+  const advancedProg = advanceArchetypeLevel(unit.progression, archetype, registry, {
+    attunementId: options?.attunementId,
+    unlockedAbilityId: options?.unlockedAbilityId
+  });
 
   // Deduct threshold XP from the chosen archetype while preserving remaining XP
   const updatedAccumulatedXp: ArchetypePoints = {
@@ -196,13 +220,29 @@ export function allocateCampArchetypePoint(
   };
 
   // Recalculate derived vitals
-  const updatedVitals = computeDerivedVitals(updatedAttributes, finalProgression.currentLevel);
+  let updatedVitals = computeDerivedVitals(updatedAttributes, finalProgression.currentLevel);
+  if (finalProgression.earnedAttunements) {
+    for (const attunementId of finalProgression.earnedAttunements) {
+      updatedVitals = applyWayfarerAttunement(updatedVitals, attunementId as WayfarerAttunementId);
+    }
+  }
+
+  // Update loadout if a shard was earned
+  let updatedLoadout = unit.loadout;
+  if (options?.earnedShardId) {
+    const existingShards = unit.loadout?.earnedShards ?? [];
+    updatedLoadout = {
+      ...unit.loadout,
+      earnedShards: [...existingShards, options.earnedShardId]
+    };
+  }
 
   const updatedUnit: Unit = {
     ...unit,
     progression: finalProgression,
     baseAttributes: updatedAttributes,
-    effectiveVitals: updatedVitals
+    effectiveVitals: updatedVitals,
+    loadout: updatedLoadout
   };
 
   const updatedRoster = state.roster.map((u) => (u.id === unitId ? updatedUnit : u));

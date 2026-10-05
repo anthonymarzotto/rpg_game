@@ -202,6 +202,7 @@ describe('Progression and Lockout Simulation Engine', () => {
     expect(lvl2.archetypePoints).toEqual({ fighter: 1, rogue: 1, mage: 0 });
     // Constellation should still only have Warrior
     expect(lvl2.constellation).toEqual(['warrior']);
+    expect(lvl2.offNodeMilestones).toEqual(['1,1,0']);
     expect(CLASS_REGISTRY.getClassAtCoord(lvl2.archetypePoints)).toBeNull();
     expect(getEligibleClassAtLevel(lvl2.archetypePoints, 2, CLASS_REGISTRY)).toBeNull();
 
@@ -210,6 +211,7 @@ describe('Progression and Lockout Simulation Engine', () => {
     expect(lvl3.currentLevel).toBe(3);
     expect(lvl3.archetypePoints).toEqual({ fighter: 2, rogue: 1, mage: 0 });
     expect(lvl3.constellation).toEqual(['warrior', 'cavalier']);
+    expect(lvl3.offNodeMilestones).toEqual(['1,1,0']);
   });
 
   it('advances sequentially through multiple levels', () => {

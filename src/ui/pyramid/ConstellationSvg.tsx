@@ -3,7 +3,9 @@ import {
   isClassEligibleNextLevel,
   isClassLockedOut
 } from '../../core/progression/pyramid';
-import { ProjectionMode, STAR_POINTS } from './geometry';
+import { toCoordKey } from '../../core/progression/registry';
+import { isOffNodeCoordinate } from '../../core/progression/harmonization';
+import { ProjectionMode, STAR_POINTS, getOffNodeWaypoint } from './geometry';
 import './ConstellationSvg.css';
 
 export interface ConstellationSvgProps {
@@ -16,6 +18,8 @@ export interface ConstellationSvgProps {
   readonly selectedClassId?: string | null;
   readonly onClickNode?: (classId: string) => void;
   readonly viewBox?: string;
+  readonly hoveredWaypointKey?: string | null;
+  readonly onHoverWaypoint?: (coordKey: string | null) => void;
 }
 
 export function ConstellationSvg({
@@ -27,8 +31,53 @@ export function ConstellationSvg({
   onHoverNode,
   selectedClassId,
   onClickNode,
-  viewBox = '-390 -455 920 730'
+  viewBox = '-390 -455 920 730',
+  hoveredWaypointKey,
+  onHoverWaypoint
 }: ConstellationSvgProps) {
+  // Off-Node Starlight Waypoints: unlocked and eligible
+  const unlockedOffNodes = progression.offNodeMilestones ?? [];
+  const visibleWaypoints: {
+    coordKey: string;
+    points: { fighter: number; rogue: number; mage: number };
+    x: number;
+    y: number;
+    isUnlocked: boolean;
+    isEligible: boolean;
+  }[] = [];
+  const addedWaypointKeys = new Set<string>();
+
+  for (const key of unlockedOffNodes) {
+    const wp = getOffNodeWaypoint(key);
+    addedWaypointKeys.add(key);
+    visibleWaypoints.push({
+      ...wp,
+      isUnlocked: true,
+      isEligible: false
+    });
+  }
+
+  // Next level eligible off-node waypoints
+  const archKeys: readonly ('fighter' | 'rogue' | 'mage')[] = ['fighter', 'rogue', 'mage'];
+  for (const arch of archKeys) {
+    const nextPoints = {
+      ...progression.archetypePoints,
+      [arch]: progression.archetypePoints[arch] + 1
+    };
+    if (isOffNodeCoordinate(nextPoints)) {
+      const key = toCoordKey(nextPoints);
+      if (!addedWaypointKeys.has(key)) {
+        addedWaypointKeys.add(key);
+        const wp = getOffNodeWaypoint(key);
+        visibleWaypoints.push({
+          ...wp,
+          isUnlocked: false,
+          isEligible: true
+        });
+      }
+    }
+  }
+
   return (
     <svg
       className="chart-svg"
@@ -249,6 +298,63 @@ export function ConstellationSvg({
         <g className="pointer-events-none">
           <path d={constellationPathD} fill="none" className="constellation-path-glow" />
           <path d={constellationPathD} fill="none" className="constellation-path-core" />
+        </g>
+      )}
+
+      {/* Luminous Starlight Waypoints (unlocked & eligible off-nodes) */}
+      {visibleWaypoints.length > 0 && (
+        <g className="starlight-waypoints-layer">
+          {visibleWaypoints.map((wp) => {
+            const isHovered = hoveredWaypointKey === wp.coordKey;
+            return (
+              <g
+                key={`waypoint-${wp.coordKey}`}
+                className={`starlight-waypoint ${wp.isUnlocked ? 'unlocked' : 'eligible'} ${isHovered ? 'hovered' : ''}`}
+                transform={`translate(${wp.x}, ${wp.y})`}
+                onMouseEnter={() => onHoverWaypoint?.(wp.coordKey)}
+                onMouseLeave={() => onHoverWaypoint?.(null)}
+                data-testid={`waypoint-${wp.coordKey}`}
+              >
+                {/* Hit area */}
+                <circle r="16" fill="transparent" className="pointer-events-all" />
+
+                {/* Glow Halo */}
+                <circle
+                  r={wp.isUnlocked ? 12 : 9}
+                  fill="none"
+                  stroke={wp.isUnlocked ? '#38bdf8' : '#a78bfa'}
+                  strokeWidth={wp.isUnlocked ? 1.6 : 1.2}
+                  strokeDasharray={wp.isUnlocked ? undefined : '3 2'}
+                  filter="url(#star-glow)"
+                  opacity={wp.isUnlocked ? 0.95 : 0.8}
+                />
+
+                {/* Diamond Starlight Glyph */}
+                <polygon
+                  points="0,-7 7,0 0,7 -7,0"
+                  fill={wp.isUnlocked ? '#f8fafc' : '#c084fc'}
+                  stroke={wp.isUnlocked ? '#38bdf8' : '#8b5cf6'}
+                  strokeWidth="1.2"
+                  filter="url(#star-glow)"
+                />
+
+                {/* Centroid Pip */}
+                <circle r="2.5" fill="#fff" className="pointer-events-none" />
+
+                {/* Waypoint Label */}
+                <text
+                  y={-12}
+                  fill={wp.isUnlocked ? '#38bdf8' : '#cbd5e1'}
+                  fontSize="8.5"
+                  fontWeight="700"
+                  textAnchor="middle"
+                  className="pointer-events-none font-mono"
+                >
+                  ✦ {wp.coordKey}
+                </text>
+              </g>
+            );
+          })}
         </g>
       )}
 

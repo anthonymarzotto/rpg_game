@@ -270,4 +270,119 @@ describe('Unit Loadout Validation Rules', () => {
     expect(result.valid).toBe(false);
     expect(result.reason).toContain('has not been unlocked by this unit');
   });
+
+  it('permits abilities unlocked via off-node progression (unlockedAbilityIds)', () => {
+    const heroWithDraftedSkill: Unit = {
+      ...baseWarrior,
+      progression: {
+        ...baseWarrior.progression,
+        unlockedAbilityIds: ['sneak_attack']
+      }
+    };
+
+    const result = validateUnitLoadout(
+      heroWithDraftedSkill,
+      {
+        activeClassId: 'warrior',
+        wildcardAbilityIds: ['sneak_attack'],
+        wildcardPassiveIds: []
+      },
+      providers
+    );
+
+    expect(result.valid).toBe(true);
+  });
+
+  it('validates slotAugments against earned shards and slot capacity', () => {
+    const heroWithShards: Unit = {
+      ...baseWarrior,
+      loadout: {
+        ...baseWarrior.loadout,
+        earnedShards: ['starlight_lens', 'astral_reach', 'impact_shard']
+      }
+    };
+
+    // Valid socketing
+    const validResult = validateUnitLoadout(
+      heroWithShards,
+      {
+        ...heroWithShards.loadout,
+        slotAugments: {
+          0: ['starlight_lens', 'impact_shard'],
+          3: ['astral_reach']
+        }
+      },
+      providers
+    );
+    expect(validResult.valid).toBe(true);
+
+    // Reject unearned shard
+    const unearnedResult = validateUnitLoadout(
+      heroWithShards,
+      {
+        ...heroWithShards.loadout,
+        slotAugments: {
+          0: ['venom_shard'] // not in earnedShards
+        }
+      },
+      providers
+    );
+    expect(unearnedResult.valid).toBe(false);
+    expect(unearnedResult.reason).toContain('has not been earned');
+
+    // Reject > 2 shards in one slot
+    const overCapacityResult = validateUnitLoadout(
+      heroWithShards,
+      {
+        ...heroWithShards.loadout,
+        earnedShards: ['starlight_lens', 'astral_reach', 'impact_shard', 'venom_shard'],
+        slotAugments: {
+          0: ['starlight_lens', 'astral_reach', 'impact_shard'] // 3 shards!
+        }
+      },
+      providers
+    );
+    expect(overCapacityResult.valid).toBe(false);
+    expect(overCapacityResult.reason).toContain('cannot hold more than 2 augment shards');
+
+    // Reject duplicate socketing of same shard in multiple slots
+    const duplicateShardResult = validateUnitLoadout(
+      heroWithShards,
+      {
+        ...heroWithShards.loadout,
+        slotAugments: {
+          0: ['starlight_lens'],
+          1: ['starlight_lens']
+        }
+      },
+      providers
+    );
+    expect(duplicateShardResult.valid).toBe(false);
+    expect(duplicateShardResult.reason).toContain('socketed in multiple slots');
+  });
+
+  it('resolves slotAugments into effective abilities during resolveUnitLoadout', () => {
+    const heroWithSocketedShards: Unit = {
+      ...baseWarrior,
+      loadout: {
+        activeClassId: 'warrior',
+        wildcardAbilityIds: ['quick_thrust'], // Starter ability in slot 3
+        wildcardPassiveIds: [],
+        earnedShards: ['starlight_lens', 'astral_reach'],
+        slotAugments: {
+          0: ['starlight_lens'], // upgrades Lead the Charge or core ability 0
+          3: ['astral_reach']    // adds +1 range to quick_thrust in slot 3
+        }
+      }
+    };
+
+    const resolved = resolveUnitLoadout(heroWithSocketedShards, providers);
+    // Core ability 0 in slot 0 should have Starlight Lens applied
+    const core0 = resolved.coreAbilities[0];
+    expect(core0.effects?.some((e) => e.damageProfile?.sides !== undefined)).toBe(true);
+
+    // Wildcard ability in slot 3 (index 0 of wildcardAbilities) should have +1 range
+    const wildcard0 = resolved.wildcardAbilities[0];
+    expect(wildcard0.range).toBe(2); // base Slash is 1, with astral_reach it's 2!
+  });
 });

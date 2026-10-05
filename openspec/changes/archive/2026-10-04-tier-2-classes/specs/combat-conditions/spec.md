@@ -67,17 +67,17 @@ The system SHALL evaluate the `aoeRadius` of support and buff abilities (`damage
 - **WHEN** an ability with `targetType: 'SELF'`, `damageType: 'NONE'`, and `aoeRadius: 3` is executed
 - **THEN** the ability's effects are applied to the actor and all friendly units within 3 hexes
 
-### Requirement: Pending Ability Modifiers
-The system SHALL support ephemeral `PendingAbilityModifier` entries on combat units that enhance the range, blast radius, or damage of eligible subsequent abilities and automatically expire at the end of the turn.
+### Requirement: In-Combat Ability Modifiers
+The system SHALL support ephemeral `AbilityModifier` entries on combat units that enhance the range, blast radius, or damage of eligible subsequent abilities, consuming on use or automatically expiring at the end of the turn.
 
-#### Scenario: Pending modifier enhances next matching ability
-- **WHEN** a unit with an active `PendingAbilityModifier` executes an eligible ability matching the allowed archetype
+#### Scenario: Modifier enhances next matching ability
+- **WHEN** a unit with an active `AbilityModifier` configured with `consumesOnUse: true` executes an eligible ability matching the allowed archetype
 - **THEN** the ability resolves with the extra range and extra AoE radius applied
-- **THEN** the pending modifier is cleared upon completion
+- **THEN** the modifier is cleared upon completion
 
-#### Scenario: Pending modifier expires at turn end
-- **WHEN** a unit with an active `PendingAbilityModifier` concludes their turn without executing a matching ability
-- **THEN** the pending modifier is purged from the combat unit
+#### Scenario: Modifier expires at turn end
+- **WHEN** a unit with an active ephemeral `AbilityModifier` concludes their turn without executing a matching ability
+- **THEN** the modifier is purged from the combat unit
 
 ### Requirement: Event-Driven Passive Trigger Dispatch
 The system SHALL dispatch combat lifecycle events to registered passive handlers when specific triggers occur, including critical attack hits.

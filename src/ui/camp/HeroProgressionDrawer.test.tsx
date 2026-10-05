@@ -55,13 +55,87 @@ describe('HeroProgressionDrawer Component', () => {
     );
 
     expect(html).toContain('Valerius');
-    expect(html).toContain('Level 0 novice');
+    expect(html).toContain('Level 0 Novice');
     expect(html).toContain('Force: 2');
     expect(html).toContain('Finesse: 1');
     expect(html).toContain('Focus: 0');
     expect(html).toContain('The Constellation');
     expect(html).toContain('drawer-svg-viewport');
     expect(html).toContain('chart-svg');
+  });
+
+  it('renders slot socket pips for ability slots', () => {
+    const hero = makeMockUnit({
+      loadout: {
+        activeClassId: 'novice',
+        wildcardAbilityIds: [],
+        wildcardPassiveIds: [],
+        earnedShards: ['starlight_lens'],
+        slotAugments: { 0: ['starlight_lens'] }
+      }
+    });
+    const campaign = makeMockCampaign(hero);
+    const html = renderToStaticMarkup(
+      <HeroProgressionDrawer
+        hero={hero}
+        campaign={campaign}
+        onClose={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('data-testid="slot-sockets-0"');
+    expect(html).toContain('data-testid="slot-sockets-3"');
+    expect(html).toContain('Starlight Lens');
+    expect(html).toContain('Empty Socket');
+  });
+
+  it('renders Wayfarer rank in header when hero has reached off-node milestones', () => {
+    const hero = makeMockUnit({
+      progression: {
+        unitId: 'hero-1',
+        currentLevel: 2,
+        constellation: ['warrior'],
+        accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+        archetypePoints: { fighter: 1, rogue: 1, mage: 0 },
+        offNodeMilestones: ['(1,1,0)']
+      }
+    });
+    const campaign = makeMockCampaign(hero);
+    const html = renderToStaticMarkup(
+      <HeroProgressionDrawer
+        hero={hero}
+        campaign={campaign}
+        onClose={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('Level 2 Novice • Wayfarer I');
+  });
+
+  it('previews Wayfarer Milestone on advancement CTA when target point is off-node', () => {
+    const hero = makeMockUnit({
+      progression: {
+        unitId: 'hero-1',
+        currentLevel: 1,
+        constellation: ['warrior'],
+        accumulatedXp: { fighter: 0, rogue: 10, mage: 0 },
+        archetypePoints: { fighter: 1, rogue: 0, mage: 0 }
+      }
+    });
+    const campaign = makeMockCampaign(hero);
+    const html = renderToStaticMarkup(
+      <HeroProgressionDrawer
+        hero={hero}
+        campaign={campaign}
+        onClose={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('Ascend: Rogue (+1 Finesse)');
+    expect(html).toContain('✦ Wayfarer Milestone');
   });
 
   it('renders Level Ready allocation CTA when hero has qualifying XP', () => {

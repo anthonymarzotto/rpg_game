@@ -35,7 +35,9 @@ export function createRecruit(
   const loadout: UnitLoadout = options?.loadout ?? {
     activeClassId: NOVICE_CLASS_ID,
     wildcardAbilityIds: [],
-    wildcardPassiveIds: []
+    wildcardPassiveIds: [],
+    earnedShards: [],
+    slotAugments: {}
   };
 
   return {

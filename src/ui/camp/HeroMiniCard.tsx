@@ -1,6 +1,6 @@
 import { Unit } from '../../core/types/unit';
 import { resolveTokenAssetPath } from '../combat/tokenAssets';
-import { checkHeroLevelReady } from './heroUtils';
+import { checkHeroLevelReady, getHeroDisplayTitle } from './heroUtils';
 import './HeroMiniCard.css';
 
 export interface HeroMiniCardProps {
@@ -39,7 +39,7 @@ export function HeroMiniCard({
         <div className="mini-card-info">
           <h4 className="mini-card-name font-ui">{unit.name}</h4>
           <span className="mini-card-class font-mono">
-            Lv {unit.progression.currentLevel} {unit.loadout.activeClassId}
+            Lv {unit.progression.currentLevel} {getHeroDisplayTitle(unit)}
           </span>
         </div>
       </div>

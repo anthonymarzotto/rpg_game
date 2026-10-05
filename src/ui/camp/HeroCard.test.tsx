@@ -39,11 +39,34 @@ describe('HeroCard Component', () => {
     );
 
     expect(html).toContain('Roland');
-    expect(html).toContain('Lv 0 novice');
+    expect(html).toContain('Lv 0 Novice');
     expect(html).toContain('20 / 20');
     expect(html).toContain('FRC: 1');
     expect(html).toContain('Inspect');
     expect(html).not.toContain('✦ ASCENSION READY!');
+  });
+
+  it('renders Wayfarer title on hero card when off-node milestones are achieved', () => {
+    const unit = makeMockUnit({
+      progression: {
+        unitId: 'hero-1',
+        currentLevel: 1,
+        constellation: ['warrior'],
+        accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+        archetypePoints: { fighter: 1, rogue: 0, mage: 0 },
+        offNodeMilestones: ['1,1,0']
+      },
+      loadout: {
+        activeClassId: 'warrior',
+        wildcardAbilityIds: [],
+        wildcardPassiveIds: []
+      }
+    });
+    const html = renderToStaticMarkup(
+      <HeroCard unit={unit} onInspect={vi.fn()} />
+    );
+
+    expect(html).toContain('Lv 1 Warrior • Wayfarer I');
   });
 
   it('renders ASCENSION READY banner and Ascend CTA when archetype threshold is reached', () => {

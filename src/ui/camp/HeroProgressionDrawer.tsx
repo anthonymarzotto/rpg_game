@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { CampaignState } from '../../core/campaign/types';
 import { Unit } from '../../core/types/unit';
-import { Archetype, ClassDefinition } from '../../core/types/class';
+import { Archetype, ArchetypePoints, ClassDefinition } from '../../core/types/class';
 import { Ability } from '../../core/types/ability';
 import { UnitLoadout } from '../../core/types/loadout';
 import {
@@ -10,13 +10,22 @@ import {
 } from '../../core/campaign/transitions';
 import {
   isClassEligibleNextLevel,
-  isClassLockedOut
+  isClassLockedOut,
+  getEligibleClassAtLevel
 } from '../../core/progression/pyramid';
-import { checkHeroLevelReady } from './heroUtils';
+import { checkHeroLevelReady, getHeroDisplayTitle } from './heroUtils';
 import { resolveTokenAssetPath } from '../combat/tokenAssets';
 import { ConstellationSvg } from '../pyramid/ConstellationSvg';
-import { POINTS_BY_ID } from '../pyramid/geometry';
-import { getClassPackage, getAbilityById, MOMENTUM } from '../../data/packages';
+import { POINTS_BY_ID, getOffNodeWaypoint, parseCoordKey } from '../pyramid/geometry';
+import {
+  getShardById,
+  getAvailableAttunements,
+  WayfarerAttunementId
+} from '../../core/progression/harmonization';
+import { resolveUnitLoadout } from '../../core/units/loadout';
+import { CLASS_REGISTRY } from '../../data/classes';
+import { getClassPackage, getAbilityById, getPassiveById, MOMENTUM } from '../../data/packages';
+import { OffNodeChoiceModal } from './OffNodeChoiceModal';
 import './HeroProgressionDrawer.css';
 
 export interface HeroProgressionDrawerProps {
@@ -46,7 +55,12 @@ export function HeroProgressionDrawer({
   onUpdateCampaign
 }: HeroProgressionDrawerProps) {
   const [hoveredClassId, setHoveredClassId] = useState<string | null>(null);
+  const [hoveredWaypointKey, setHoveredWaypointKey] = useState<string | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string>(hero.loadout.activeClassId);
+  const [pendingOffNode, setPendingOffNode] = useState<{
+    readonly archetype: Archetype;
+    readonly targetPoints: ArchetypePoints;
+  } | null>(null);
 
   const tokenSrc = resolveTokenAssetPath(hero);
   const levelStatus = checkHeroLevelReady(hero);
@@ -60,18 +74,37 @@ export function HeroProgressionDrawer({
 
   const unlockedClasses = useMemo(() => ['novice', ...constellation], [constellation]);
 
-  // Polyline for constellation paths
+  // Polyline for constellation paths including Starlight Waypoints
   const constellationPathD = useMemo(() => {
-    if (constellation.length === 0) return '';
-    return constellation
-      .map((id, index) => {
-        const pt = POINTS_BY_ID.get(id);
-        if (!pt) return '';
-        return `${index === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`;
-      })
-      .filter(Boolean)
+    const pathSteps: { level: number; x: number; y: number }[] = [];
+
+    for (const classId of constellation) {
+      const pt = POINTS_BY_ID.get(classId);
+      if (pt) {
+        pathSteps.push({
+          level: pt.cls.totalPoints,
+          x: pt.x,
+          y: pt.y
+        });
+      }
+    }
+
+    for (const coordKey of hero.progression.offNodeMilestones ?? []) {
+      const wp = getOffNodeWaypoint(coordKey);
+      const lvl = wp.points.fighter + wp.points.rogue + wp.points.mage;
+      pathSteps.push({
+        level: lvl,
+        x: wp.x,
+        y: wp.y
+      });
+    }
+
+    pathSteps.sort((a, b) => a.level - b.level);
+
+    return pathSteps
+      .map((step, idx) => `${idx === 0 ? 'M' : 'L'} ${step.x.toFixed(1)} ${step.y.toFixed(1)}`)
       .join(' ');
-  }, [constellation]);
+  }, [constellation, hero.progression.offNodeMilestones]);
 
   // Core abilities and innate passive of current active class
   const activeClassId = hero.loadout.activeClassId;
@@ -97,7 +130,7 @@ export function HeroProgressionDrawer({
     [coreAbilities]
   );
 
-  // Pool of all unlocked abilities across starter kit and unlocked classes
+  // Pool of all unlocked abilities across starter kit, unlocked classes, and off-node domain unlocks
   const eligibleWildcardAbilities = useMemo(() => {
     const list: Ability[] = [];
     const seen = new Set<string>();
@@ -107,6 +140,16 @@ export function HeroProgressionDrawer({
       if (a && !seen.has(a.id) && !coreAbilityIds.has(a.id)) {
         seen.add(a.id);
         list.push(a);
+      }
+    }
+
+    if (hero.progression.unlockedAbilityIds) {
+      for (const aid of hero.progression.unlockedAbilityIds) {
+        const a = getAbilityById(aid);
+        if (a && !seen.has(a.id) && !coreAbilityIds.has(a.id)) {
+          seen.add(a.id);
+          list.push(a);
+        }
       }
     }
 
@@ -127,7 +170,7 @@ export function HeroProgressionDrawer({
     }
 
     return list;
-  }, [hero.starterAbilityIds, constellation, coreAbilityIds]);
+  }, [hero.starterAbilityIds, hero.progression.unlockedAbilityIds, constellation, coreAbilityIds]);
 
   // Pool of eligible wildcard passives
   const eligibleWildcardPassives = useMemo(() => {
@@ -137,7 +180,20 @@ export function HeroProgressionDrawer({
     return [MOMENTUM, ...classPassives].filter((p) => p.id !== innatePassive?.id);
   }, [constellation, innatePassive]);
 
-  // Handle Level-up archetype spend
+  // Resolve effective unit loadout with slot augment modifiers
+  const resolvedLoadout = useMemo(() => {
+    try {
+      return resolveUnitLoadout(hero, {
+        getPackage: getClassPackage,
+        getAbility: getAbilityById,
+        getPassive: getPassiveById
+      });
+    } catch {
+      return undefined;
+    }
+  }, [hero]);
+
+  // Handle Level-up archetype spend (canonical class coordinate)
   const handleLevelUp = useCallback(
     (archetype: Archetype) => {
       try {
@@ -150,13 +206,72 @@ export function HeroProgressionDrawer({
     [campaign, hero.id, onUpdateCampaign]
   );
 
+  // Evaluate impending level-up preview (Off-Node Milestone vs. Class Unlock)
+  const getArchetypeSpendPreview = useCallback(
+    (arch: Archetype): { isOffNode: boolean; targetPoints: ArchetypePoints; label: string } => {
+      const currentPts = hero.progression.archetypePoints;
+      const key = arch.toLowerCase() as keyof ArchetypePoints;
+      const nextPoints: ArchetypePoints = {
+        ...currentPts,
+        [key]: currentPts[key] + 1
+      };
+      const nextLvl = hero.progression.currentLevel + 1;
+      const eligibleClass = getEligibleClassAtLevel(nextPoints, nextLvl, CLASS_REGISTRY);
+      if (!eligibleClass) {
+        return { isOffNode: true, targetPoints: nextPoints, label: '✦ Wayfarer Milestone' };
+      }
+      return { isOffNode: false, targetPoints: nextPoints, label: `Unlock: ${eligibleClass.name}` };
+    },
+    [hero.progression]
+  );
+
+  // Handle click on level-up spend button
+  const handleArchetypeSpendClick = useCallback(
+    (arch: Archetype) => {
+      const preview = getArchetypeSpendPreview(arch);
+      if (preview.isOffNode) {
+        setPendingOffNode({ archetype: arch, targetPoints: preview.targetPoints });
+      } else {
+        handleLevelUp(arch);
+      }
+    },
+    [getArchetypeSpendPreview, handleLevelUp]
+  );
+
+  // Handle confirming off-node modal selection
+  const handleConfirmOffNode = useCallback(
+    (choice: {
+      readonly attunementId: WayfarerAttunementId;
+      readonly unlockedAbilityId?: string;
+      readonly earnedShardId?: string;
+    }) => {
+      if (!pendingOffNode) return;
+      try {
+        const nextState = allocateCampArchetypePoint(
+          campaign,
+          hero.id,
+          pendingOffNode.archetype,
+          choice
+        );
+        onUpdateCampaign(nextState);
+        setPendingOffNode(null);
+      } catch (err) {
+        console.warn('Off-node level up rejected', err);
+      }
+    },
+    [campaign, hero.id, pendingOffNode, onUpdateCampaign]
+  );
+
   // Handle loadout updates
   const handleUpdateLoadout = useCallback(
     (changed: Partial<UnitLoadout>) => {
       const nextLoadout: UnitLoadout = {
         activeClassId: changed.activeClassId ?? hero.loadout.activeClassId,
+        coreAbilityIds: changed.coreAbilityIds ?? hero.loadout.coreAbilityIds,
         wildcardAbilityIds: changed.wildcardAbilityIds ?? hero.loadout.wildcardAbilityIds,
-        wildcardPassiveIds: changed.wildcardPassiveIds ?? hero.loadout.wildcardPassiveIds
+        wildcardPassiveIds: changed.wildcardPassiveIds ?? hero.loadout.wildcardPassiveIds,
+        earnedShards: changed.earnedShards ?? hero.loadout.earnedShards,
+        slotAugments: changed.slotAugments ?? hero.loadout.slotAugments
       };
 
       try {
@@ -170,6 +285,33 @@ export function HeroProgressionDrawer({
       }
     },
     [campaign, hero.id, hero.loadout, onUpdateCampaign]
+  );
+
+  // Socket a shard into an ability slot (0..4)
+  const handleSocketShard = useCallback(
+    (slotIdx: number, shardId: string) => {
+      const currentSlotShards = hero.loadout.slotAugments?.[slotIdx] ?? [];
+      if (currentSlotShards.length >= 2) return;
+      const nextSlotAugments = {
+        ...hero.loadout.slotAugments,
+        [slotIdx]: [...currentSlotShards, shardId]
+      };
+      handleUpdateLoadout({ slotAugments: nextSlotAugments });
+    },
+    [hero.loadout.slotAugments, handleUpdateLoadout]
+  );
+
+  // Unsocket a shard from an ability slot
+  const handleUnsocketShard = useCallback(
+    (slotIdx: number, shardId: string) => {
+      const currentSlotShards = hero.loadout.slotAugments?.[slotIdx] ?? [];
+      const nextSlotAugments = {
+        ...hero.loadout.slotAugments,
+        [slotIdx]: currentSlotShards.filter((id) => id !== shardId)
+      };
+      handleUpdateLoadout({ slotAugments: nextSlotAugments });
+    },
+    [hero.loadout.slotAugments, handleUpdateLoadout]
   );
 
   const currentWildcard1 = hero.loadout.wildcardAbilityIds[0] ?? '';
@@ -226,6 +368,87 @@ export function HeroProgressionDrawer({
 
   const handleMouseLeaveViewport = () => {
     setHoveredClassId(null);
+    setHoveredWaypointKey(null);
+  };
+
+  const hoveredWaypointInfo = useMemo(() => {
+    if (!hoveredWaypointKey) return null;
+    const points = parseCoordKey(hoveredWaypointKey);
+    const isUnlocked = (hero.progression.offNodeMilestones ?? []).includes(hoveredWaypointKey);
+    const attunements = getAvailableAttunements(points);
+    return {
+      coordKey: hoveredWaypointKey,
+      points,
+      isUnlocked,
+      attunements
+    };
+  }, [hoveredWaypointKey, hero.progression.offNodeMilestones]);
+
+  const renderSlotSockets = (slotIdx: number) => {
+    const slotShards = hero.loadout.slotAugments?.[slotIdx] ?? [];
+    const allSocketed = new Set(Object.values(hero.loadout.slotAugments ?? {}).flat());
+    const availableToSocket = (hero.loadout.earnedShards ?? []).filter((sid) => !allSocketed.has(sid));
+
+    return (
+      <div className="slot-sockets-container font-mono" data-testid={`slot-sockets-${slotIdx}`}>
+        {slotShards.map((sid) => {
+          const shard = getShardById(sid);
+          return (
+            <span
+              key={sid}
+              className="socket-pip filled font-mono"
+              title={`${shard?.name}: ${shard?.description}`}
+            >
+              ✦ {shard?.icon} {shard?.name}
+              <button
+                type="button"
+                className="btn-unsocket"
+                onClick={() => handleUnsocketShard(slotIdx, sid)}
+                data-testid={`unsocket-shard-${slotIdx}-${sid}`}
+                title="Remove shard"
+              >
+                ✕
+              </button>
+            </span>
+          );
+        })}
+        {slotShards.length < 2 && availableToSocket.length > 0 && (
+          <select
+            className="socket-select font-mono"
+            value=""
+            onChange={(e) => {
+              if (e.target.value) handleSocketShard(slotIdx, e.target.value);
+            }}
+            data-testid={`select-socket-shard-${slotIdx}`}
+          >
+            <option value="">◇ Socket Shard ({availableToSocket.length} avail)</option>
+            {availableToSocket.map((sid) => {
+              const s = getShardById(sid);
+              return (
+                <option key={sid} value={sid}>
+                  {s?.icon} {s?.name}
+                </option>
+              );
+            })}
+          </select>
+        )}
+        {slotShards.length === 0 && availableToSocket.length === 0 && (
+          <>
+            <span className="socket-pip empty font-mono" title="No unassigned astral shards in inventory">
+              ◇ Empty Socket
+            </span>
+            <span className="socket-pip empty font-mono" title="No unassigned astral shards in inventory">
+              ◇ Empty Socket
+            </span>
+          </>
+        )}
+        {slotShards.length === 1 && availableToSocket.length === 0 && (
+          <span className="socket-pip empty font-mono" title="No unassigned astral shards in inventory">
+            ◇ Empty Socket
+          </span>
+        )}
+      </div>
+    );
   };
 
   const handleDevGrantXp = useCallback(() => {
@@ -264,7 +487,7 @@ export function HeroProgressionDrawer({
             </div>
             <div className="drawer-header-titles">
               <div className="drawer-overview-class font-ui">
-                <span className="drawer-overview-name">{hero.name}</span> — Level {hero.progression.currentLevel} {hero.loadout.activeClassId}
+                <span className="drawer-overview-name">{hero.name}</span> — Level {hero.progression.currentLevel} {getHeroDisplayTitle(hero)}
               </div>
             </div>
           </div>
@@ -312,39 +535,57 @@ export function HeroProgressionDrawer({
                   ✦ Ascension Ready: Channel 1 Astral Discipline Point ({levelStatus.threshold} XP)
                 </h4>
                 <div className="level-up-archetype-options">
-                  {levelStatus.qualifyingArchetypes.includes('FIGHTER') && (
-                    <button
-                      type="button"
-                      className="btn-archetype-spend fighter font-ui"
-                      onClick={() => handleLevelUp('FIGHTER')}
-                      data-testid="spend-fighter-btn"
-                    >
-                      <span>⚔️ Ascend: Fighter (+1 Force)</span>
-                      <span className="font-mono">Current: {xp.fighter} XP</span>
-                    </button>
-                  )}
-                  {levelStatus.qualifyingArchetypes.includes('ROGUE') && (
-                    <button
-                      type="button"
-                      className="btn-archetype-spend rogue font-ui"
-                      onClick={() => handleLevelUp('ROGUE')}
-                      data-testid="spend-rogue-btn"
-                    >
-                      <span>🗡️ Ascend: Rogue (+1 Finesse)</span>
-                      <span className="font-mono">Current: {xp.rogue} XP</span>
-                    </button>
-                  )}
-                  {levelStatus.qualifyingArchetypes.includes('MAGE') && (
-                    <button
-                      type="button"
-                      className="btn-archetype-spend mage font-ui"
-                      onClick={() => handleLevelUp('MAGE')}
-                      data-testid="spend-mage-btn"
-                    >
-                      <span>🔮 Ascend: Mage (+1 Focus)</span>
-                      <span className="font-mono">Current: {xp.mage} XP</span>
-                    </button>
-                  )}
+                  {levelStatus.qualifyingArchetypes.includes('FIGHTER') && (() => {
+                    const preview = getArchetypeSpendPreview('FIGHTER');
+                    return (
+                      <button
+                        type="button"
+                        className="btn-archetype-spend fighter font-ui"
+                        onClick={() => handleArchetypeSpendClick('FIGHTER')}
+                        data-testid="spend-fighter-btn"
+                      >
+                        <div className="btn-spend-main">
+                          <span>⚔️ Ascend: Fighter (+1 Force)</span>
+                          <span className="btn-spend-preview font-mono">{preview.label}</span>
+                        </div>
+                        <span className="font-mono">Current: {xp.fighter} XP</span>
+                      </button>
+                    );
+                  })()}
+                  {levelStatus.qualifyingArchetypes.includes('ROGUE') && (() => {
+                    const preview = getArchetypeSpendPreview('ROGUE');
+                    return (
+                      <button
+                        type="button"
+                        className="btn-archetype-spend rogue font-ui"
+                        onClick={() => handleArchetypeSpendClick('ROGUE')}
+                        data-testid="spend-rogue-btn"
+                      >
+                        <div className="btn-spend-main">
+                          <span>🗡️ Ascend: Rogue (+1 Finesse)</span>
+                          <span className="btn-spend-preview font-mono">{preview.label}</span>
+                        </div>
+                        <span className="font-mono">Current: {xp.rogue} XP</span>
+                      </button>
+                    );
+                  })()}
+                  {levelStatus.qualifyingArchetypes.includes('MAGE') && (() => {
+                    const preview = getArchetypeSpendPreview('MAGE');
+                    return (
+                      <button
+                        type="button"
+                        className="btn-archetype-spend mage font-ui"
+                        onClick={() => handleArchetypeSpendClick('MAGE')}
+                        data-testid="spend-mage-btn"
+                      >
+                        <div className="btn-spend-main">
+                          <span>🔮 Ascend: Mage (+1 Focus)</span>
+                          <span className="btn-spend-preview font-mono">{preview.label}</span>
+                        </div>
+                        <span className="font-mono">Current: {xp.mage} XP</span>
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             )}
@@ -367,9 +608,11 @@ export function HeroProgressionDrawer({
                   progression={hero.progression}
                   unlockedSet={unlockedSet}
                   hoveredClassId={hoveredClassId}
+                  hoveredWaypointKey={hoveredWaypointKey}
                   selectedClassId={selectedClassId}
                   constellationPathD={constellationPathD}
                   onHoverNode={setHoveredClassId}
+                  onHoverWaypoint={setHoveredWaypointKey}
                   onClickNode={setSelectedClassId}
                 />
 
@@ -378,7 +621,29 @@ export function HeroProgressionDrawer({
                   className="constellation-scanner-hud glass-panel-elevated"
                   data-testid="constellation-hover-tooltip"
                 >
-                  {hoveredClassDef ? (
+                  {hoveredWaypointInfo ? (
+                    <div className="scanner-body active">
+                      <div className="scanner-header">
+                        <span className="scanner-name font-display">✦ Starlight Waypoint</span>
+                        <span className="scanner-tier font-mono">({hoveredWaypointInfo.coordKey})</span>
+                      </div>
+                      <div className="scanner-reqs font-mono">
+                        Harmonization: <span className="req-fighter font-mono">{hoveredWaypointInfo.points.fighter}F</span> /{' '}
+                        <span className="req-rogue font-mono">{hoveredWaypointInfo.points.rogue}R</span> /{' '}
+                        <span className="req-mage font-mono">{hoveredWaypointInfo.points.mage}M</span>
+                      </div>
+                      <div className="scanner-status font-ui">
+                        {hoveredWaypointInfo.isUnlocked ? (
+                          <span className="status-unlocked">★ Milestone Attuned</span>
+                        ) : (
+                          <span className="status-eligible">✦ Wayfarer Milestone</span>
+                        )}
+                      </div>
+                      <div className="scanner-hint font-mono">
+                        Attunements: {hoveredWaypointInfo.attunements.map((a) => a.name.replace("Wayfarer's ", '')).join(' • ')}
+                      </div>
+                    </div>
+                  ) : hoveredClassDef ? (
                     <div className="scanner-body active">
                       <div className="scanner-header">
                         <span className="scanner-name font-display">{hoveredClassDef.name}</span>
@@ -580,15 +845,19 @@ export function HeroProgressionDrawer({
 
                 {/* Core Abilities for Active Class */}
                 <div className="drawer-core-abilities-summary font-ui">
-                  {coreAbilities.map((a) => (
-                    <div key={a.id} className="drawer-ability-mini-card">
-                      <div className="mini-card-head font-ui">
-                        <span className="mini-card-name font-display">{a.name}</span>
-                        <span className="mini-card-ap font-mono">{a.apCost} AP</span>
+                  {coreAbilities.map((a, idx) => {
+                    const effectiveAbility = resolvedLoadout?.coreAbilities[idx] ?? a;
+                    return (
+                      <div key={a.id} className="drawer-ability-mini-card">
+                        <div className="mini-card-head font-ui">
+                          <span className="mini-card-name font-display">{effectiveAbility.name}</span>
+                          <span className="mini-card-ap font-mono">{effectiveAbility.apCost} AP</span>
+                        </div>
+                        <span className="mini-card-desc">{effectiveAbility.description}</span>
+                        {renderSlotSockets(idx)}
                       </div>
-                      <span className="mini-card-desc">{a.description}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {innatePassive && (
                     <div className="drawer-passive-mini-card font-ui">
                       <div className="mini-card-head">
@@ -624,20 +893,25 @@ export function HeroProgressionDrawer({
                     ))}
                 </select>
 
-                {equippedWildcard1Ability ? (
-                  <div className="drawer-tactical-slot-card">
-                    <div className="slot-card-header font-ui">
-                      <span className={`slot-tag ${equippedWildcard1Ability.archetypeTag?.toLowerCase() ?? 'fighter'} font-mono`}>
-                        {equippedWildcard1Ability.archetypeTag ?? 'RESONANT'}
-                      </span>
-                      <span className="slot-name font-display">{equippedWildcard1Ability.name}</span>
-                      <span className="slot-ap font-mono">{equippedWildcard1Ability.apCost} AP</span>
+                {equippedWildcard1Ability ? (() => {
+                  const effectiveAbility = resolvedLoadout?.wildcardAbilities[0] ?? equippedWildcard1Ability;
+                  return (
+                    <div className="drawer-tactical-slot-card">
+                      <div className="slot-card-header font-ui">
+                        <span className={`slot-tag ${effectiveAbility.archetypeTag?.toLowerCase() ?? 'fighter'} font-mono`}>
+                          {effectiveAbility.archetypeTag ?? 'RESONANT'}
+                        </span>
+                        <span className="slot-name font-display">{effectiveAbility.name}</span>
+                        <span className="slot-ap font-mono">{effectiveAbility.apCost} AP</span>
+                      </div>
+                      <p className="slot-desc font-ui">{effectiveAbility.description}</p>
+                      {renderSlotSockets(3)}
                     </div>
-                    <p className="slot-desc font-ui">{equippedWildcard1Ability.description}</p>
-                  </div>
-                ) : (
+                  );
+                })() : (
                   <div className="drawer-tactical-empty-slot font-mono">
                     (No resonant ability slotted)
+                    {renderSlotSockets(3)}
                   </div>
                 )}
               </div>
@@ -665,20 +939,25 @@ export function HeroProgressionDrawer({
                     ))}
                 </select>
 
-                {equippedWildcard2Ability ? (
-                  <div className="drawer-tactical-slot-card">
-                    <div className="slot-card-header font-ui">
-                      <span className={`slot-tag ${equippedWildcard2Ability.archetypeTag?.toLowerCase() ?? 'fighter'} font-mono`}>
-                        {equippedWildcard2Ability.archetypeTag ?? 'RESONANT'}
-                      </span>
-                      <span className="slot-name font-display">{equippedWildcard2Ability.name}</span>
-                      <span className="slot-ap font-mono">{equippedWildcard2Ability.apCost} AP</span>
+                {equippedWildcard2Ability ? (() => {
+                  const effectiveAbility = resolvedLoadout?.wildcardAbilities[1] ?? equippedWildcard2Ability;
+                  return (
+                    <div className="drawer-tactical-slot-card">
+                      <div className="slot-card-header font-ui">
+                        <span className={`slot-tag ${effectiveAbility.archetypeTag?.toLowerCase() ?? 'fighter'} font-mono`}>
+                          {effectiveAbility.archetypeTag ?? 'RESONANT'}
+                        </span>
+                        <span className="slot-name font-display">{effectiveAbility.name}</span>
+                        <span className="slot-ap font-mono">{effectiveAbility.apCost} AP</span>
+                      </div>
+                      <p className="slot-desc font-ui">{effectiveAbility.description}</p>
+                      {renderSlotSockets(4)}
                     </div>
-                    <p className="slot-desc font-ui">{equippedWildcard2Ability.description}</p>
-                  </div>
-                ) : (
+                  );
+                })() : (
                   <div className="drawer-tactical-empty-slot font-mono">
                     (No resonant ability slotted)
+                    {renderSlotSockets(4)}
                   </div>
                 )}
               </div>
@@ -721,6 +1000,17 @@ export function HeroProgressionDrawer({
           </div>
         </div>
       </div>
+
+      {pendingOffNode && (
+        <OffNodeChoiceModal
+          isOpen={Boolean(pendingOffNode)}
+          hero={hero}
+          archetype={pendingOffNode.archetype}
+          targetPoints={pendingOffNode.targetPoints}
+          onConfirm={handleConfirmOffNode}
+          onCancel={() => setPendingOffNode(null)}
+        />
+      )}
     </div>
   );
 }

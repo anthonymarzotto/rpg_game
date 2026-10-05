@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkHeroLevelReady, getArchetypeProgress } from './heroUtils';
+import { checkHeroLevelReady, getArchetypeProgress, getHeroDisplayTitle } from './heroUtils';
 import { Unit } from '../../core/types/unit';
 
 function makeMockUnit(overrides: Partial<Unit> = {}): Unit {
@@ -69,4 +69,66 @@ describe('heroUtils', () => {
     expect(getArchetypeProgress(7, 5)).toBe(100);
     expect(getArchetypeProgress(0, 0)).toBe(0);
   });
+
+  describe('getHeroDisplayTitle', () => {
+    it('returns base class name when unit has 0 off-node milestones', () => {
+      const unit = makeMockUnit({
+        loadout: {
+          activeClassId: 'warrior',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        },
+        progression: {
+          unitId: 'hero-1',
+          currentLevel: 1,
+          constellation: ['warrior'],
+          accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+          archetypePoints: { fighter: 1, rogue: 0, mage: 0 }
+        }
+      });
+
+      expect(getHeroDisplayTitle(unit)).toBe('Warrior');
+    });
+
+    it('appends Wayfarer I when unit has 1 off-node milestone', () => {
+      const unit = makeMockUnit({
+        loadout: {
+          activeClassId: 'warrior',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        },
+        progression: {
+          unitId: 'hero-1',
+          currentLevel: 2,
+          constellation: ['warrior'],
+          offNodeMilestones: ['1,1,0'],
+          accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+          archetypePoints: { fighter: 1, rogue: 1, mage: 0 }
+        }
+      });
+
+      expect(getHeroDisplayTitle(unit)).toBe('Warrior • Wayfarer I');
+    });
+
+    it('appends Wayfarer II when unit has 2 off-node milestones', () => {
+      const unit = makeMockUnit({
+        loadout: {
+          activeClassId: 'thief',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        },
+        progression: {
+          unitId: 'hero-1',
+          currentLevel: 3,
+          constellation: ['thief'],
+          offNodeMilestones: ['1,1,0', '1,1,1'],
+          accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+          archetypePoints: { fighter: 1, rogue: 1, mage: 1 }
+        }
+      });
+
+      expect(getHeroDisplayTitle(unit)).toBe('Thief • Wayfarer II');
+    });
+  });
 });
+

@@ -3,6 +3,9 @@ import { Ability } from '../types/ability';
 import { PassiveTrait } from '../types/passive';
 import { ClassPackage } from '../types/classPackage';
 import { UnitLoadout, ResolvedUnitLoadout } from '../types/loadout';
+import { AbilityModifier } from '../types/modifier';
+import { getEffectiveAbility } from '../combat/modifiers';
+import { getShardById } from '../progression/harmonization';
 
 export const MAX_WILDCARD_ABILITIES = 2;
 export const MAX_WILDCARD_PASSIVES = 1;
@@ -54,9 +57,29 @@ export function resolveUnitLoadout(
   }
 
   // Resolve wildcard abilities
-  const wildcardAbilities = loadout.wildcardAbilityIds
+  let wildcardAbilities = loadout.wildcardAbilityIds
     .map((id) => getAbility(id))
     .filter((a): a is Ability => a !== undefined);
+
+  // Apply slot augments if present (slots 0..2 = core, slots 3..4 = wildcard)
+  if (loadout.slotAugments) {
+    coreAbilities = coreAbilities.map((ability, idx) => {
+      const shardIds = loadout.slotAugments?.[idx] ?? [];
+      const mods = shardIds
+        .map((id) => getShardById(id)?.modifier)
+        .filter((m): m is AbilityModifier => m !== undefined);
+      return mods.length > 0 ? getEffectiveAbility(ability, mods) : ability;
+    });
+
+    wildcardAbilities = wildcardAbilities.map((ability, idx) => {
+      const slotIdx = 3 + idx;
+      const shardIds = loadout.slotAugments?.[slotIdx] ?? [];
+      const mods = shardIds
+        .map((id) => getShardById(id)?.modifier)
+        .filter((m): m is AbilityModifier => m !== undefined);
+      return mods.length > 0 ? getEffectiveAbility(ability, mods) : ability;
+    });
+  }
 
   // Resolve wildcard passives
   const wildcardPassives = loadout.wildcardPassiveIds
@@ -156,6 +179,12 @@ export function validateUnitLoadout(
   const allowedAbilityIds = new Set<string>(unit.starterAbilityIds);
   const allowedPassiveIds = new Set<string>([NOVICE_PASSIVE_ID]);
 
+  if (unit.progression.unlockedAbilityIds) {
+    for (const unlockedId of unit.progression.unlockedAbilityIds) {
+      allowedAbilityIds.add(unlockedId);
+    }
+  }
+
   for (const unlockedClassId of unit.progression.constellation) {
     const pkg = getPackage(unlockedClassId);
     if (pkg) {
@@ -182,6 +211,43 @@ export function validateUnitLoadout(
         valid: false,
         reason: `Passive '${passiveId}' has not been unlocked by this unit.`
       };
+    }
+  }
+
+  // 6. Validate slot augments (sockets)
+  if (newLoadout.slotAugments) {
+    const earnedSet = new Set(newLoadout.earnedShards ?? []);
+    const socketedShards = new Set<string>();
+
+    for (const [slotKey, shardIds] of Object.entries(newLoadout.slotAugments)) {
+      const slotNum = Number(slotKey);
+      if (isNaN(slotNum) || slotNum < 0 || slotNum > 4) {
+        return {
+          valid: false,
+          reason: `Invalid slot index '${slotKey}'. Must be an integer between 0 and 4.`
+        };
+      }
+      if (shardIds.length > 2) {
+        return {
+          valid: false,
+          reason: `Slot ${slotKey} cannot hold more than 2 augment shards.`
+        };
+      }
+      for (const shardId of shardIds) {
+        if (!earnedSet.has(shardId)) {
+          return {
+            valid: false,
+            reason: `Shard '${shardId}' in slot ${slotKey} has not been earned by this unit.`
+          };
+        }
+        if (socketedShards.has(shardId)) {
+          return {
+            valid: false,
+            reason: `Shard '${shardId}' is socketed in multiple slots.`
+          };
+        }
+        socketedShards.add(shardId);
+      }
     }
   }
 

@@ -1,6 +1,6 @@
 import { Unit } from '../../core/types/unit';
 import { resolveTokenAssetPath } from '../combat/tokenAssets';
-import { checkHeroLevelReady, getArchetypeProgress } from './heroUtils';
+import { checkHeroLevelReady, getArchetypeProgress, getHeroDisplayTitle } from './heroUtils';
 import './HeroCard.css';
 
 export interface HeroCardProps {
@@ -44,7 +44,7 @@ export function HeroCard({
         <div className="hero-card-identity">
           <h3 className="hero-card-name font-display">{unit.name}</h3>
           <span className="hero-card-class-tag font-ui">
-            Lv {unit.progression.currentLevel} {unit.loadout.activeClassId}
+            Lv {unit.progression.currentLevel} {getHeroDisplayTitle(unit)}
           </span>
         </div>
       </div>

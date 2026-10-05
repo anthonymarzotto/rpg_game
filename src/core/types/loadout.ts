@@ -11,6 +11,10 @@ export interface UnitLoadout {
   readonly wildcardPassiveIds: readonly string[];
   /** Permanent ability modifiers (e.g. unlocked via progression or overclocks) */
   readonly abilityModifiers?: readonly AbilityModifier[];
+  /** Shard IDs earned and available in the hero's loadout inventory */
+  readonly earnedShards?: readonly string[];
+  /** Sockets per ability slot (0..4), up to 2 shard IDs per slot */
+  readonly slotAugments?: Readonly<Record<number, readonly string[]>>;
 }
 
 export interface ResolvedUnitLoadout {

@@ -219,4 +219,63 @@ describe('Campaign State Transitions & Lifecycle Reducers', () => {
     expect(recruited.effectiveVitals.maxHp).toBeGreaterThan(0);
     expect(recruited.id).toContain('unit-4');
   });
+
+  it('allocates off-node archetype point with Wayfarer Attunement, unlocked ability, and shard', () => {
+    const initial = createCampaign({ seed: 900 });
+    const hero1 = initial.roster[0];
+
+    // Give hero 1 Fighter level and enough Rogue XP to reach level 2 (off-node 1,1,0)
+    const stateL1 = allocateCampArchetypePoint(
+      {
+        ...initial,
+        roster: initial.roster.map((u) =>
+          u.id === hero1.id
+            ? {
+                ...u,
+                progression: {
+                  ...u.progression,
+                  accumulatedXp: { fighter: 5, rogue: 10, mage: 0 }
+                }
+              }
+            : u
+        )
+      },
+      hero1.id,
+      'FIGHTER'
+    );
+
+    const heroL1 = stateL1.roster.find((u) => u.id === hero1.id)!;
+    expect(heroL1.progression.currentLevel).toBe(1);
+    expect(heroL1.progression.archetypePoints).toEqual({ fighter: 1, rogue: 0, mage: 0 });
+
+    // Level up in Rogue to reach (1, 1, 0) - off-node coordinate
+    const baseArmorL1 = heroL1.effectiveVitals.armor;
+    const baseHpL1 = heroL1.effectiveVitals.maxHp;
+
+    const stateL2 = allocateCampArchetypePoint(stateL1, hero1.id, 'ROGUE', {
+      attunementId: 'wayfarer_bastion',
+      unlockedAbilityId: 'toxic_shiv',
+      earnedShardId: 'starlight_lens'
+    });
+
+    const heroL2 = stateL2.roster.find((u) => u.id === hero1.id)!;
+    expect(heroL2.progression.currentLevel).toBe(2);
+    expect(heroL2.progression.archetypePoints).toEqual({ fighter: 1, rogue: 1, mage: 0 });
+    // Off-node milestone recorded
+    expect(heroL2.progression.offNodeMilestones).toContain('1,1,0');
+    // Constellation did not add an off-node (still just warrior)
+    expect(heroL2.progression.constellation).toEqual(['warrior']);
+    // Attunement recorded
+    expect(heroL2.progression.earnedAttunements).toEqual(['wayfarer_bastion']);
+    // Ability unlocked
+    expect(heroL2.progression.unlockedAbilityIds).toEqual(['toxic_shiv']);
+    // Shard earned
+    expect(heroL2.loadout.earnedShards).toEqual(['starlight_lens']);
+
+    // Vitals gained +6 Max HP and +1 Armor from wayfarer_bastion (on top of level 2 base scaling)
+    // Level scaling: +5 HP from level 1 -> 2. So total HP increase = 5 + 6 = 11
+    expect(heroL2.effectiveVitals.maxHp).toBe(baseHpL1 + 5 + 6);
+    expect(heroL2.effectiveVitals.armor).toBe(baseArmorL1 + 1);
+  });
 });
+

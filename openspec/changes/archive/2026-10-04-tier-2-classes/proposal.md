@@ -10,7 +10,7 @@ This change introduces the three pure Tier 2 classes (**Knight**, **Infiltrator*
 
 * **Tier 2 Class Packages**:
   * **Knight** `(2, 0, 0)`: Leader & Controller.
-    * Signature: `Lead the Charge` (2 AP, 3-hex aura, grants +2 to hit and +1 Move to all allies within range).
+    * Signature: `Lead the Charge` (2 AP, 3-hex aura, grants +2 Move and +2 Speed for 2 turns to Knight and all allies within range).
     * Domain 1: `Challenging Shout` (1 AP, range 3, forces target to face the Knight and inflicts Challenged: Disadvantage on attacks against other targets).
     * Domain 2: `Pommel Strike` (1 AP, melee 1d4+Force, delays target CTB gauge by -20).
     * Passive: `Tactical Vanguard` (seeds +25 starting CTB initiative in pre-encounter setup).
