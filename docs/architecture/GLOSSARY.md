@@ -47,6 +47,13 @@ The world of Astral Tactics centers on celestial navigation, astral rifts, and s
 | **Combat Manifest** | Loadout, Deck, Action Bar | The complete set of abilities a wayfarer brings to battle (Core Kit + Resonant Wildcards). |
 | **Resonant Ability** | Wildcard Ability, Cross-class skill | Active abilities borrowed from previously unlocked classes (Slots I and II). |
 | **Resonant Passive** | Wildcard Passive, Sub-trait | A secondary passive trait equipped from any past class along the wayfarer's constellation path. |
+| **Off-Node Coordinate** | Empty node, Dead space, Sub-node | A coordinate in the 100-class lattice without a catalog class node, awarding Wayfarer milestones. |
+| **Starlight Waypoint** | Minor star, Waypoint, Sub-star | Illuminated barycentric waypoint rendered on the constellation star chart along facet edges. |
+| **Wayfarer Attunement** | Stat pick, Perk, Level bonus | Permanent defensive vital choice selected on off-node level-up (*Bastion*, *Stride*, *Ward*, *Zenith*). |
+| **Wayfarer Rank** | Sub-rank, Off-node level | Dynamic title appended to a hero based on completed off-node milestones (e.g. *Warrior • Wayfarer I*). |
+| **Astral Augment Shard** | Gem, Rune, Upgrade module, Materia | A socketable celestial module that permanently augments an ability slot in combat loadouts. |
+| **Slot Socketing** | Gem slotting, Skill enchantment | The mechanic where shards socket into an ability slot (0..4), persisting when abilities are swapped. |
+| **Harmonization Stat Surge** | Stat boost, Attribute surge | The derived vital gains awarded upon unlocking an off-node lattice coordinate. |
 | **Node Scanner** | Star Scanner, Tooltip | The HUD component inspecting requirements, passives, and active skills on constellation nodes. |
 
 ---
@@ -64,6 +71,10 @@ The world of Astral Tactics centers on celestial navigation, astral rifts, and s
 | **Combat Arcs** | Angles, Directions | The three tactical engagement angles: **Front Arc** (180°), **Flank Arc** (±120°), and **Rear Arc** (180°). |
 | **Reactive Facing** | Turn-to-hit | The tactical rule where a unit hit by an attack immediately rotates to face the attack vector. |
 | **Allied Pincer** | Flank Bonus | Flanking status granted to all attackers when an ally is engaged adjacent to the target. |
+| **Status Condition** | Debuff, Status effect, Buff | An attributed persistent state on a unit (`POISON`, `BURN`, `CHALLENGED`, `STEALTH`). |
+| **Metamagic Primer** | Buff, Spell charge | An in-combat modifier that enhances and is consumed by the next cast spell (e.g. *Spell Sculpt*). |
+| **Wild Surge** | Magic miscast, Wild magic | Spontaneous celestial surges triggered by spell critical hits from the Sorcerer's *Wild Surge*. |
+| **Wall-Slam Impact** | Knockback damage, Collision | Bonus physical damage suffered when forced kinetic displacement collides with walls or obstacles. |
 | **Threat Budget** | Difficulty Rating, Enemy Points | The numerical cap used by the procedural generator to budget hostile archetype quantities. |
 
 ---
@@ -101,8 +112,12 @@ Class names remain grounded and direct, while archetype accents maintain high-co
   * **Fighter / Force**: `--color-archetype-fighter` (`#ef4444` Crimson / Rust)
   * **Rogue / Finesse**: `--color-archetype-rogue` (`#10b981` Emerald / Jade)
   * **Mage / Focus**: `--color-archetype-mage` (`#8b5cf6` Starlight Violet)
-* **Foundation Classes**:
+* **Foundation Classes (Tier 1)**:
   * **Novice**: `--color-class-novice` (`#94a3b8` Silver Slate)
   * **Warrior**: `--color-class-warrior` (`#f97316` Tempered Bronze)
   * **Thief**: `--color-class-thief` (`#34d399` Shadow Emerald)
   * **Wizard**: `--color-class-wizard` (`#a78bfa` Starlight Lavender)
+* **Specialized Classes (Tier 2)**:
+  * **Knight**: `--color-class-knight` (`#f59e0b` Royal Amber Gold / Burnished Steel) — Token: `02_human_male`
+  * **Infiltrator**: `--color-class-infiltrator` (`#059669` Obsidian Shadow / Nightshade Jade) — Token: `82_human_male`
+  * **Sorcerer**: `--color-class-sorcerer` (`#7c3aed` Deep Starlight Indigo / Wild Arcane) — Token: `98_human_male`

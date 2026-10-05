@@ -22,6 +22,10 @@ The user interface uses a cohesive celestial and astral vocabulary to frame core
 | **Combat Encounter** | **Trial / Astral Trial** | Tactical skirmish on the hex grid (`Sector {stage} Trial`) |
 | **Battle Outcome** | **Triumph / Eclipse** | Victory (incursion banished, starlight harvested) or Defeat (astral severance back to The Nexus) |
 | **Turn Timeline** | **Turn Queue / Initiative** | Continuous timeline ribbon and unit initiative gauge ordering tactical turns |
+| **Off-Node Milestone** | **Starlight Waypoint** | Luminous barycentric waypoints along constellation facet edges representing off-node milestones |
+| **Vital Surge Selection** | **Wayfarer Attunement** | Two-step modal choices conferring permanent defensive vital enhancements (*Bastion*, *Stride*, *Ward*, *Zenith*) |
+| **Ability Augmentation** | **Astral Augment Shard** | Socketable celestial modules bound to ability slots (0..4) enhancing active skills |
+| **Milestone Distinction** | **Wayfarer Rank** | Dynamic hero title suffix reflecting completed off-node milestones (e.g. `Warrior • Wayfarer I`) |
 
 ---
 
@@ -43,12 +47,15 @@ The primary progression engine revolves around the three archetypes. Each archet
 
 Specific class nodes in the Constellation and combat arena have distinct thematic accents for currently implemented classes:
 
-* `--color-class-novice`: `#94a3b8` (Unformed Slate / Silver)
-* `--color-class-warrior`: `#f97316` (Tempered Bronze / Amber)
-* `--color-class-thief`: `#34d399` (Shadow Emerald)
-* `--color-class-wizard`: `#a78bfa` (Starlight Lavender)
-
-*(Future Tier 2+ classes will define their color signatures when their class packages are authored in Phase 4).*
+* **Foundation Classes (Tier 1)**:
+  * `--color-class-novice`: `#94a3b8` (Unformed Slate / Silver)
+  * `--color-class-warrior`: `#f97316` (Tempered Bronze / Amber)
+  * `--color-class-thief`: `#34d399` (Shadow Emerald)
+  * `--color-class-wizard`: `#a78bfa` (Starlight Lavender)
+* **Specialized Classes (Tier 2)**:
+  * `--color-class-knight`: `#f59e0b` (Royal Amber Gold / Burnished Steel) — Sprite `02_human_male`
+  * `--color-class-infiltrator`: `#059669` (Nightshade Jade / Obsidian Shadow) — Sprite `82_human_male`
+  * `--color-class-sorcerer`: `#7c3aed` (Deep Starlight Indigo / Wild Arcane) — Sprite `98_human_male`
 
 ### 2.3. Tactical Factions & UI States
 
@@ -87,6 +94,19 @@ Specific class nodes in the Constellation and combat arena have distinct themati
 * **Data & Numerics Font** (`--font-mono`): `'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace`
   * Used for: Combat log entries, HP/AP numerical values, Initiative / timeline ticks, dice roll breakdowns.
   * Ensures clean tabular alignment of numbers in tactical combat.
+
+### 2.6. Ability Modification & Attribution Styling
+
+* **Action Bar Augment Indicators**:
+  * Action buttons with active in-combat modifiers or socketed augment shards display an illuminated celestial glyph (`✦`) in the upper corner.
+  * Discounted AP costs render in vivid emerald green (`#10b981`).
+* **Hover Tooltip Attribution**:
+  * Modified stats display an inline pill badge attributing the modifier: e.g. `[✦ +1 Range from Spell Sculpt]`.
+  * Tooltips feature a dedicated "✦ Active Augments" footer detailing all active modifier patches and socketed shards.
+* **Constellation Starlight Waypoints**:
+  * Unlocked off-node waypoints render as small luminous stars ($r = 2.5–3.5$) with animated cyan glow filters along triangle facet polylines.
+* **Off-Node Choice Modal**:
+  * High-contrast glassmorphic modal with a progressive two-step decision card layout (Attunement selection $\rightarrow$ Specialization draft).
 
 ---
 

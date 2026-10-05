@@ -50,10 +50,10 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 4: CLASS & ABILITY EXPANSION (ON-DEMAND MECHANICS)    │
-│  - [ ] 4.1 Tier 2+ class ability kits & signature passives  │
-│  - [ ] 4.2 Status effects pipeline (as abilities demand)    │
-│  - [ ] 4.3 Elevation & verticality (as abilities demand)    │
-│  - [ ] 4.4 Off-node level compensatory perks / stat surges  │
+│  - [x] 4.1 Tier 2 pure archetype class kits & conditions    │
+│  - [x] 4.2 Composable ability & modifier pipeline refactor  │
+│  - [x] 4.3 Off-node progression & Astral Augment Shards     │
+│  - [ ] 4.4 Hybrid classes & verticality (DEFERRED TO NEXT)  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -251,33 +251,35 @@ Following our core architectural tenet (**Decoupled Simulation & Presentation**)
 * **Testing & Verification**:
   * Comprehensive test suites (`tier2Integration.test.ts`, `tier2ProgressionIntegration.test.ts`, `tier2Mechanics.test.ts`, `ctbDelayHandler.test.ts`, `conditionHandler.test.ts`) validating recruit promotion to Tier 2 in Camp, loadout validation, pre-encounter setups, and battle resolution with 100% test pass rate across 44 suites.
 
-### 4.2. Tier 2+ Hybrid Classes & Centroid Classes (Next)
-* Author hybrid classes (e.g. **Cavalier** `(2, 1, 0)`, **Berserker** `(2, 0, 1)`, **Witch** `(0, 1, 2)`) and mid-tier centroid classes (e.g. **Bard** `(3, 3, 3)`).
+### 4.2. Composable Ability Pipeline & Declarative Modifiers (`src/core/types/`, `src/core/combat/`) <── COMPLETED & TESTED
+* **Atomic Effect Architecture**:
+  * Refactored monolithic `Ability` contracts into an atomic `effects: readonly AbilityEffect[]` execution pipeline with delivery scopes (`TARGET`, `SELF`, `ALLIES`) and trigger conditions (`ALWAYS`, `HIT_OR_CRIT`, `CRIT_ONLY`).
+* **Universal Declarative Ability Modifiers**:
+  * Implemented `AbilityModifier` supporting numeric deltas, property overrides, effect appends/patches, and lifecycle scopes (`isPermanent`, `durationTurns`, `consumesOnUse`).
+  * Pure deterministic evaluation function `getEffectiveAbility(base, modifiers)` with `PropertyAttribution[]` provenance tracking.
+* **UI Provenance & Augment Badges**:
+  * Enhanced `ActionBar.tsx` with celestial glyph (`✦`) indicators on modified abilities and emerald green AP discount highlighting.
+  * Interactive hover tooltips displaying inline attribution pill badges and an active augments summary footer.
 
-### 4.2. Status Effects & Modifiers (Introduced on Demand)
-* *Architectural Principle*: Implement status conditions only when newly authored abilities require them.
-* **Pipeline Integration**:
-  * Status effect registry with defined durations, trigger hooks (turn start, on hit, on move, turn end), and stacking rules.
-  * Potential initial conditions as demanded by abilities:
-    * *Bleed / Poison*: Damage-over-time tick per CTB clock turn.
-    * *Stun / Daze*: AP reduction or CTB tick pause.
-    * *Fortify / Ward Barrier*: Temporary flat mitigation bonuses.
-    * *Root / Cripple*: Movement restriction.
-
-### 4.3. Dynamic Elevation & Verticality (Introduced on Demand)
-* *Architectural Principle*: Implement height rules when abilities interact with verticality.
-* **Potential Capabilities**:
-  * Discrete integer elevation levels (`0, 1, 2...`) on hex tiles.
-  * High-ground advantage (hit bonuses or range increases for ranged attacks).
-  * Cliff climbing abilities and knockback off ledges with fall impact damage.
-
-### 4.4. Off-Node Level Progression
-* Implement compensatory stat surges or perk selection for intermediate levels (e.g. `(1, 1, 0)` at Level 2) that do not possess a unique class node in the 100-class lattice.
+### 4.3. Off-Node Level Progression & Astral Augment Shards (`src/core/progression/`, `src/ui/`) <── COMPLETED & TESTED
+* **Lattice Waypoint Harmonization**:
+  * Mapped all 39 off-node coordinates across the 100-class lattice.
+  * Computed Harmonization stat surges and dynamic Wayfarer Hero Titles (`Warrior • Wayfarer I` through `VI`).
+* **Two-Step Off-Node Milestones & Camp Modal**:
+  * Interactive `OffNodeChoiceModal` presenting Step 1: Wayfarer Attunement (*Bastion*, *Stride*, *Ward*, or tri-centroid *Zenith*) and Step 2: Milestone Specialization (Tier-gated Domain Skill Unlock vs Astral Augment Shard).
+* **Astral Augment Shards (Slot Socketing)**:
+  * Full catalog of 17 socketable augment shards across Power, Geometry, and Infusion archetypes socketed into ability slots (0..4, max 2 per slot) persisting across ability swaps.
+* **Constellation Starlight Waypoints**:
+  * Rendered illuminated barycentric waypoints along facet polylines with laser routing in `ConstellationSvg.tsx`.
+* **Testing & Verification**:
+  * Complete headless integration and UI tests (`offNodeProgressionIntegration.test.ts`, `harmonization.test.ts`, `geometry.test.ts`, `OffNodeChoiceModal.test.tsx`, `HeroProgressionDrawer.test.tsx`) passing with 100% test pass rate across 52 test suites (369/369 tests).
 
 ---
 
-## 🧊 Deferred / Low-Priority Items
+## 🧊 Deferred Items (Moved to `DEVELOPMENT_PLAN_2026_10_04.md`)
 
-The following areas are intentionally deprioritized until tactical combat, persistence, and core content are fully established:
-* **Audio Engine & Sound FX**: Procedural Web Audio API sound effects, ability impact audio, and dice clatter.
-* **Visual Juice & 3D Dice**: 3D tumbling dice animations, screen-shake shaders, and particle flourishes.
+The following uncompleted Phase 4 milestones and low-priority enhancements have been deferred and transitioned to the new roadmap [`DEVELOPMENT_PLAN_2026_10_04.md`](file:///c:/Repos/rpg_game/docs/plans/DEVELOPMENT_PLAN_2026_10_04.md):
+* **Phase 4.2 / Next: Tier 2+ Hybrid Classes & Centroid Classes** *(Cavalier, Berserker, Witch, Bard, on-demand conditions)*.
+* **Phase 4.3 / Next: Dynamic Elevation & Verticality** *(Hex heights, high-ground advantages, fall impact damage)*.
+* **Audio Engine & Sound FX** *(Procedural Web Audio API sound effects, ability impact audio, and dice clatter)*.
+* **Visual Juice & 3D Dice** *(3D tumbling dice animations, screen-shake shaders, and particle flourishes)*.

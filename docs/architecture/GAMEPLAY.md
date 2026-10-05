@@ -54,6 +54,13 @@ These vitals are computed from a unit's base attributes and archetype points. *(
 * **Armor (`armor`)**: Flat physical damage reduction absorbing kinetic blows that connect. Derived innately from **Force** *(with equipped physical gear/shields contributing when itemization is introduced)*.
 * **Ward (`ward`)**: Flat magical/elemental damage reduction absorbing arcane damage that connects. Derived innately from **Focus** *(with equipped magical attire/talismans contributing when itemization is introduced)*.
 
+#### Harmonization & Wayfarer Attunements
+When a wayfarer advances into an off-node coordinate (a position on the 100-class lattice without a catalog class node), they receive a permanent defensive attunement added directly to their derived vitals:
+* **Wayfarer's Bastion**: $+6$ Max HP and $+1$ Armor (Force path).
+* **Wayfarer's Stride**: $+2$ Evasion and $+2$ Speed (Finesse path).
+* **Wayfarer's Ward**: $+2$ Resolve and $+1$ Ward (Focus path).
+* **Wayfarer's Zenith**: $+4$ Max HP, $+1$ Armor, $+1$ Ward, $+1$ Speed, $+1$ Evasion, and $+1$ Resolve (Tri-Centroid at Levels 3 and 6).
+
 > [!TIP]
 > **Items & Equipment Note**: Items (weapons, armor, shields, accessories) will plug directly into these stats (e.g., heavy breastplates adding to Armor, robes adding to Ward, bucklers boosting Evasion). Detailed itemization rules and equipment requirements are deferred until core stats and abilities are finalized.
 
@@ -186,6 +193,25 @@ Tactical positioning centers on true unit orientation on the hex grid. Every uni
   * If the destination hex is off-map, a cliff/wall (elevation rise $\ge 2$), or occupied by another unit, displacement halts immediately.
   * The target suffers **Wall-Slam Damage**: $\max(1, (1 + \text{Attacker Force}) - \text{Target Armor})$. If colliding with another unit, both take 1 point of collision impact.
 
+### 3.5. Status Conditions & Combat Lifecycles
+Tactical actions and passives can inflict persistent conditions, direct CTB manipulation, and event-driven reactions:
+* **Active Status Conditions (`ActiveCondition`)**:
+  * Conditions carry a duration in turns and a mandatory `sourceUnitId` for accurate combat logging, DoT attribution, and threat mechanics.
+  * **Turn-Start Condition Lifecycle**: At the beginning of a unit's active turn, condition durations decrement by 1 turn and turn-start damage-over-time is evaluated before Action Points are granted.
+* **Damage-over-Time (Poison & Burn)**:
+  * Units with `POISON` or `BURN` suffer 2 unmitigated damage directly to HP at the start of their turn.
+  * If a unit's HP drops to 0 or below from a turn-start DoT tick, they are marked defeated immediately and their turn terminates without granting AP.
+* **Tactical & Behavioral Conditions**:
+  * **Stealth**: Protects the unit from single-target hostile actions. Attacking from stealth rolls with Advantage and removes the condition upon action completion. Configured with a 1-turn duration, Stealth lasts across enemy turns and purges at the start of the unit's next turn.
+  * **Challenged (Taunt)**: Forces the target to immediately rotate to face the challenger. Inflicts Disadvantage on attack rolls made against any unit other than the challenger. Configured with a 2-turn duration so the debuff survives turn-start decrements and remains active through the target's entire turn.
+* **Instantaneous CTB Gauge Manipulation**:
+  * Abilities with `CTB_DELAY` directly deduct from the target's initiative gauge (floored at 0), pushing their turn back in the queue.
+  * Battle start hooks (e.g. *Tactical Vanguard*) seed starting initiative gauge (e.g. +25) during a pre-encounter setup pass.
+* **Friendly AoE Auras**:
+  * Non-damaging support and buff abilities (`damageType: 'NONE'`) equipped with an `aoeRadius` radiate their effects outward from the actor to all friendly allies within range.
+* **On-Critical Event Triggers**:
+  * Landing a Critical Hit dispatches an `ON_CRITICAL_HIT` event to active passive handlers, powering reactive abilities such as the Sorcerer's *Wild Surge*.
+
 ---
 
 ## 4. Dual-Layer Presentation: Logs & Visual Dice
@@ -206,14 +232,40 @@ To deliver maximum satisfaction and transparency:
 
 A unit's combat loadout balances core class identity with cross-class customization:
 
-1. **Active Class Core Kit**:
+1. **Composable Ability Pipeline**:
+   * Abilities are defined as an execution envelope containing an atomic `effects: readonly AbilityEffect[]` pipeline rather than monolithic scalar properties.
+   * Each effect defines its type (`DAMAGE`, `CONDITION`, `STAT_MODIFIER`, `DISPLACEMENT`, `CTB_DELAY`, `FORCE_FACING`), target scope (`'TARGET' | 'SELF' | 'ALLIES'`), and trigger conditions (`'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY'`).
+2. **Active Class Core Kit**:
    * Each unit designates one active class unlocked from their constellation.
    * The active class defines the unit's baseline combat deck: **1 Unique Signature Ability** + **2 Domain Pool Abilities** + **1 Innate Passive Trait**.
-2. **Cross-Class Wildcard Slots**:
-   * Units equip additional wildcard abilities and passives unlocked from any past class along their constellation path:
-     * **Active Wildcards** (2 slots): Expand active tactical options with abilities from past classes or recruit starters.
+   * **Tier 2 Pure Kits**:
+     * **Knight** `(2, 0, 0)`: Frontline leader & controller.
+       * *Lead the Charge* (Signature, 2 AP): 3-hex aura granting +2 Move and +2 Speed to the Knight and all allies within range for 2 turns.
+       * *Challenging Shout* (Domain, 1 AP): Forces a target within 3 hexes to rotate to face the Knight and inflicts `CHALLENGED` for 2 turns.
+       * *Pommel Strike* (Domain, 1 AP): Melee strike dealing 1d4 + Force physical damage and delaying target CTB initiative by -20 on hit/crit.
+       * *Tactical Vanguard* (Passive): Seeds +25 starting initiative gauge at battle start.
+     * **Infiltrator** `(0, 2, 0)`: Shadow stalker & saboteur.
+       * *Expose Weakness* (Signature, 1 AP): Target suffers -2 Armor and -2 Evasion for 2 turns.
+       * *Smoke Veil* (Domain, 1 AP): Self-stealth for 1 turn, rendering unit immune to single-target hostile attacks; attacking from stealth rolls with Advantage and breaks stealth.
+       * *Toxic Shiv* (Domain, 1 AP): Melee strike dealing 1d4 + Finesse physical damage and inflicting `POISON` for 2 turns (2 damage/turn).
+       * *Elusive Stride* (Passive): Moving during combat grants +2 Evasion lasting until the start of the unit's next turn.
+     * **Sorcerer** `(0, 0, 2)`: Metamagic sculptor & wild magic conduit.
+       * *Spell Sculpt* (Signature, 1 AP, once/turn): Primes an in-combat ability modifier granting +1 Range and +1 AoE splash radius to the next cast Mage spell.
+       * *Ignite* (Domain, 1 AP): Ranged spell dealing 1d4 + Focus fire damage and inflicting `BURN` for 2 turns (2 damage/turn).
+       * *Gust* (Domain, 1 AP): Pushes target 1 hex directly away from the caster, triggering wall-slam collision rules if obstructed.
+       * *Wild Surge* (Passive): Critical hits with magical spells trigger a spontaneous 1d3 surge (+1 AP refund, +25 CTB boost, or 2 magic damage to a random enemy in range 3).
+3. **Cross-Class Wildcard Slots**:
+   * Units equip additional wildcard abilities and passives unlocked from any past class or off-node milestone along their constellation path:
+     * **Active Wildcards** (2 slots): Expand active tactical options with abilities from past classes, recruits, or off-node domain skill unlocks.
      * **Passive Wildcard** (1 slot): Equips a secondary passive trait to create synergistic hybrid builds.
-3. **Alternative Delivery Mechanics (Specialized / Future)**:
+4. **Astral Augment Shards (Slot Socketing)**:
+   * Sockets up to **2 Astral Augment Shards** per **Ability Slot (0..4)**.
+   * Shards attach to the **ability slot**, not the individual ability. When a player swaps an equipped ability in Camp, socketed augment shards persist and immediately enhance the new ability.
+   * **Catalog (17 Shards)**:
+     * *Power Shards*: Force Shard (+2 flat damage), Keen Shard (+10% Crit Chance), Impact Shard (+1 Die Step), Astral Reach (+1 Range), Starlight Lens (-1 AP Cost).
+     * *Geometry Shards*: Supernova Flare (+1 AoE Radius), Recoil Shard (Retreat Step 1 on cast), Confrontation Shard (Forces target to face actor).
+     * *Infusion Shards*: Pyre Shard (inflicts Burn on hit/crit), Venom Shard (inflicts Poison on hit/crit), Mire Shard (inflicts Slow on hit/crit), Vanguard Shard (inflicts Challenged on hit/crit), Shadow Shard (grants Stealth on cast), Aegis Shard (+1 Armor buff on hit), Warding Shard (+1 Ward buff on hit), Static Shard (bonus damage vs shielded targets), Aether Shard (converts damage to Magical vs Resolve).
+5. **Alternative Delivery Mechanics (Specialized / Future)**:
    * **Action Dice / Dice-Face Crafting**: Specialized mechanic for luck/gambler classes where custom combat die faces trigger maneuvers.
    * **Tactical Cards / Battle Gambits**: Commander trick cards (e.g. *Bard*, *Strategist*, *Warlord*) drawn across battle rounds to augment standard turns.
 
@@ -251,5 +303,12 @@ At the conclusion of each combat trial, battle results are bridged back into the
 ### 6.4. Constellation Ascension & The 100-Class Lattice
 Wayfarers progress by channeling accumulated archetype experience into **Ascension Points**:
 * **Constellation Spend**: Players allocate earned Ascension points into the three archetype vertices (Force / Fighter, Finesse / Rogue, Focus / Mage).
-* **Tier Thresholds & Unlocks**: Reaching required archetype thresholds unlocks advanced classes along the 100-class celestial pyramid (advancing from Novice into Tier 1 foundations like *Warrior*, *Thief*, *Wizard*, and subsequently into deep hybrid specializations like *Battlemage*, *Spellblade*, *Shadow Dancer*, etc.).
+* **Tier Thresholds & Unlocks**: Reaching required archetype thresholds unlocks advanced classes along the 100-class celestial pyramid (advancing from Novice into Tier 1 foundations like *Warrior*, *Thief*, *Wizard*, and pure Tier 2 kits like *Knight*, *Infiltrator*, *Sorcerer*, and subsequently into deep hybrid specializations like *Cavalier*, *Spellblade*, *Shadow Dancer*, etc.).
+* **Off-Node Wayfarer Milestones**:
+  * The 100-class pyramid contains 39 intermediate coordinates without canonical catalog classes.
+  * Leveling into an off-node coordinate triggers the interactive **Off-Node Choice Modal** in Camp:
+    * **Step 1 (Wayfarer Attunement)**: Selection of a permanent defensive vital surge (*Bastion*, *Stride*, *Ward*, or tri-centroid *Zenith*).
+    * **Step 2 (Milestone Specialization)**: Strategic choice between an unlearned **Domain Skill Unlock** ($\text{Tier} \le \text{Current Level}$) added to the hero's permanent wildcard pool OR an **Astral Augment Shard** to socket into an ability slot.
+  * **Starlight Waypoints**: The Constellation Star Chart renders illuminated barycentric waypoints along facet edges, dynamically routing glowing laser polylines through unlocked coordinates.
+  * **Wayfarer Hero Titles**: Wayfarers append dynamic celestial ranks based on completed off-node milestones (e.g. `Warrior • Wayfarer I` through `Wayfarer VI`).
 * **Loadout Customization**: Once unlocked, Wayfarers can freely adopt that class as their Active Class or equip its abilities into their **Active Wildcard** and **Passive Wildcard** slots at The Nexus.

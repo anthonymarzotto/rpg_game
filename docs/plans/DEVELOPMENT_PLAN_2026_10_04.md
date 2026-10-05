@@ -1,0 +1,204 @@
+# Astral Tactics — Development Roadmap (October 2026)
+
+This document establishes the tactical development roadmap for **Astral Tactics**, succeeding the completed foundational phases archived in [`docs/plans/archived/DEVELOPMENT_PLAN.md`](file:///c:/Repos/rpg_game/docs/plans/archived/DEVELOPMENT_PLAN.md).
+
+Following our core architectural tenet (**Decoupled Simulation & Presentation**), every gameplay mechanic, AI decision model, and data pipeline is implemented and tested first as pure headless TypeScript logic in `src/core/` before integrating with the React + SVG + CSS presentation tier.
+
+---
+
+## 📌 Foundation & Verified Baseline
+
+All foundational systems through Phase 4 are fully implemented, verified, and backed by a comprehensive headless Vitest test suite (**52 test suites, 369/369 tests passing**):
+
+* **Headless Simulation Engine (`src/core/`)**: Axial hex math, pathfinding, Line-of-Sight raycasting, kinetic displacement, wall-slam collision damage, CTB accumulator clock with unspent AP recovery, and Triad Vector resolution ($d20$ attack rolls, Grazes, Crits, Armor/Ward damage mitigation).
+* **Directional Facing & Combat Arcs (`src/core/grid/`, `src/core/combat/`)**: Six-direction unit facing, tactical engagement arcs (`FRONT`, `FLANK`, `REAR`), on-hit reactive rotation, allied pincers, and directional sprite tokens.
+* **Composable Ability Pipeline & Universal Modifiers (`src/core/types/`, `src/core/combat/`)**: Atomic `effects: readonly AbilityEffect[]` execution pipeline, declarative `AbilityModifier` patches, pure `getEffectiveAbility` evaluation, provenance attribution tracking, and UI augment indicators (`✦`).
+* **Combat Conditions Engine (`src/core/combat/effects/`)**: `ActiveCondition` tracking with mandatory `sourceUnitId`, turn-start DoT processing (`POISON`, `BURN`), behavioral constraints (`STEALTH` single-target immunity, `CHALLENGED` disadvantage), instantaneous CTB manipulation (`CTB_DELAY`), and on-crit passive triggers (`Wild Surge`).
+* **Tactical Autonomous AI (`src/core/ai/`)**: Composite move-and-act evaluations across behavioral profiles (`BRAWLER`, `SKIRMISHER`, `SNIPER`, `SUPPORT`), tactical primer scoring (`Spell Sculpt`), and AP conservation.
+* **Expedition Camp Hub & Roster Loop (`src/core/campaign/`, `src/ui/camp/`)**: The Nexus hub, Active Vanguard dock (3 conduits), Reserve Barracks (The Enclave) with smart swapping & novice awakening, procedural encounter generator with dynamic threat budgeting, and persistent multi-slot save/export management.
+* **Pure Tier 2 Class Packages (`src/data/packages/`)**: Complete bespoke kits for **Knight** `(2, 0, 0)`, **Infiltrator** `(0, 2, 0)`, and **Sorcerer** `(0, 0, 2)`.
+* **Off-Node Harmonization & Augment Shards (`src/core/progression/`)**: 39 off-node waypoints in the 100-class lattice, Harmonization stat surges, Wayfarer Attunements (*Bastion*, *Stride*, *Ward*, *Zenith*), interactive two-step `OffNodeChoiceModal`, full catalog of 17 socketable `AstralAugmentShard` modules (Power, Geometry, Infusion) bound to ability slots 0..4, constellation Starlight Waypoints, and dynamic Wayfarer Hero Titles.
+
+---
+
+## 🧭 Prioritized Development Phases
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ PHASE 5: TIER 3 HYBRID CLASS EXPANSION                      │
+│  - [ ] 5.1 Tier 3 hybrid class kits (6 classes)             │
+│  - [ ] 5.2 Hybrid AI profiles & tactical primer heuristics  │
+│  - [ ] 5.3 Campaign encounter budget & Tier 3 token mapping │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│ PHASE 6: TACTICAL VERTICALITY & DYNAMIC ELEVATION           │
+│  - [ ] 6.1 Discrete hex elevation math & cliff boundaries   │
+│  - [ ] 6.2 High-ground tactical advantages (Range & Roll)   │
+│  - [ ] 6.3 Vertical movement, climbing & ledge drop-downs   │
+│  - [ ] 6.4 Plunging knockback & fall impact damage          │
+│  - [ ] 6.5 Isometric SVG height shading & elevation steps   │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│ PHASE 7: EXPEDITION SECTOR MAPS & NON-LINEAR BRANCHING      │
+│  - [ ] 7.1 Branching node-based sector navigation           │
+│  - [ ] 7.2 Celestial Shrines, Havens & Astral Anomalies     │
+│  - [ ] 7.3 Celestial Relics & passive squad artifacts       │
+│  - [ ] 7.4 Elite Trials & multi-hex boss entities           │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│ PHASE 8: TACTILE JUICE, VISUAL DICE & COMBAT POLISH         │
+│  - [ ] 8.1 Animated visual dice pop & clatter overlays      │
+│  - [ ] 8.2 Screen-shake shaders & tactical impact particles │
+│  - [ ] 8.3 Floating combat numbers & bezier animations      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Phase 5: Tier 3 Hybrid Class Expansion
+
+**Primary Goal**: Author the complete roster of 6 Tier 3 dual-archetype hybrid classes in the 100-class lattice (`CLASS_CATALOG`), leveraging our existing battle-tested mechanics (atomic effects, `POISON`, `BURN`, `STEALTH`, `CHALLENGED`, kinetic displacement, and CTB clock manipulation) without introducing unused or redundant status conditions.
+
+### 5.1. Tier 3 Dual-Archetype Hybrid Class Packages (`src/data/packages/`)
+Every Tier 3 package follows the established 1 Signature + 2 Domain Pool + 1 Passive trait architecture:
+
+* **Cavalier** `(2, 1, 0)` (Fighter/Rogue — Dominant Fighter): Mounted shock vanguard & line breaker.
+  * Signature: `Lance Charge` (2 AP, straight-line charge dealing physical damage and pushing the target 1 hex with wall-slam collision risk).
+  * Domain 1: `Trample` (1 AP, kinetic strike dealing physical damage and inflicting `CHALLENGED`).
+  * Domain 2: `Rallying Pennant` (1 AP, friendly aura granting nearby allies Move and Armor boosts).
+  * Passive: `Mounted Momentum` (moving 2+ hexes before attacking grants +2 to the Attack Roll).
+* **Highwayman** `(1, 2, 0)` (Rogue/Fighter — Dominant Rogue): Ambush enforcer & close-quarters skirmisher.
+  * Signature: `Point-Blank Buckshot` (2 AP, frontal blast dealing heavy physical damage and pushing targets back 1 hex).
+  * Domain 1: `Pistol Whip` (1 AP, close-range physical strike inflicting `CTB_DELAY` 30 gauge stagger).
+  * Domain 2: `Smoke Grenade` (1 AP, grants self `STEALTH` and breaks enemy facing lock).
+  * Passive: `Opportunist's Stride` (strikes executed from `FLANK` or `REAR` refund 1 Move).
+* **Berserker** `(2, 0, 1)` (Fighter/Mage — Dominant Fighter): Blood-rage juggernaut & arcane reckoning.
+  * Signature: `Blood Frenzy` (1 AP, self-empowerment primer boosting next attack's power and roll bonus).
+  * Domain 1: `Reckless Cleave` (2 AP, wide 3-hex frontal arc swing testing Evasion for heavy physical damage).
+  * Domain 2: `Ignite Rage` (1 AP, strike imbued with arcane flame, dealing physical damage and inflicting `BURN` DoT).
+  * Passive: `Deathbound Fury` (damage scales up when below 50% max HP).
+* **Warlock** `(1, 0, 2)` (Mage/Fighter — Dominant Mage): Eldritch battlemage & soul drainer.
+  * Signature: `Eldritch Blast` (2 AP, long-range beam dealing magical damage and pushing target 1 hex).
+  * Domain 1: `Life Tap` (1 AP, siphons vitality, dealing magical damage and healing self for half mitigated damage).
+  * Domain 2: `Hellfire Branding` (1 AP, marks target with demonic flames, inflicting `BURN` DoT).
+  * Passive: `Dark Pact` (defeating an enemy restores 1 AP or grants +20 CTB gauge).
+* **Cat-burglar** `(0, 2, 1)` (Rogue/Mage — Dominant Rogue): Shadow infiltrator & arcane trickster.
+  * Signature: `Shadow Meld` (1 AP, enters `STEALTH` and gains +1 Move).
+  * Domain 1: `Venomous Dagger` (1 AP, swift melee strike dealing physical damage and applying `POISON` DoT).
+  * Domain 2: `Flash Powder` (1 AP, bursts blinding dust, pushing adjacent enemies back 1 hex and resetting facing).
+  * Passive: `Quiet Hands` (strikes originating from `STEALTH` ignore target Armor).
+* **Witch** `(0, 1, 2)` (Mage/Rogue — Dominant Mage): Arcane saboteur & occult hexer.
+  * Signature: `Baleful Hex` (1 AP, curses target with `POISON` DoT and CTB gauge delay).
+  * Domain 1: `Blight Bolt` (2 AP, ranged arcane missile dealing magical damage with bonus power if target has an active condition).
+  * Domain 2: `Cackle & Fade` (1 AP, confuses target, forcing facing away and granting self `STEALTH`).
+  * Passive: `Misfortune Aura` (adjacent enemies roll with -2 to defensive contest rolls).
+
+### 5.2. Hybrid AI Profiles & Tactical Primer Heuristics (`src/core/ai/`)
+* **Behavioral Profile Mapping**:
+  * `cavalier` -> `BRAWLER` (charges frontline, initiates wall-slams).
+  * `highwayman` -> `SKIRMISHER` (seeks flank/rear positions, uses smoke repositioning).
+  * `berserker` -> `BRAWLER` (activates blood frenzy, engages high-density clusters).
+  * `warlock` -> `SNIPER` (maintains range, snipes with eldritch blast, drains threatened targets).
+  * `cat-burglar` -> `SKIRMISHER` (stealth infiltrates high-value targets, executes armor-piercing strikes).
+  * `witch` -> `SUPPORT` (debuffs priority targets with hexes, controls combat tempo).
+* **Tactical Primer Heuristics**: Teach composite move-and-act evaluation to value self-buff primers (`Blood Frenzy`, `Shadow Meld`, `Rallying Pennant`) when follow-up AP is available.
+
+### 5.3. Campaign Encounter Budget & Pixel Token Mapping (`src/core/campaign/`, `src/ui/combat/`)
+* **Dynamic Threat Budgeting**: Update `encounterGenerator.ts` to spawn Tier 3 hybrid enemies at Stage 5+ with higher threat budgets (60–80 points).
+* **Token Asset Whitelisting**: Map unique pixel sprites from `characters_packed.png` for all 6 Tier 3 classes in `tokenAssets.ts` with dedicated unit cards and color badges.
+
+---
+
+## Phase 6: Tactical Verticality & Dynamic Elevation
+
+**Primary Goal**: Elevate combat into three dimensions by introducing discrete terrain heights on the hex grid, granting high-ground tactical superiority and enabling kinetic vertical knockback over cliffs.
+
+### 6.1. Discrete Hex Elevation Model (`src/core/grid/`)
+* **Data Model**: Extend `HexCoord` or tile state with an integer `elevation: number` (defaults to `0`; hills at `1`, cliffs/peaks at `2`, plateaus at `3`).
+* **Line-of-Sight Occlusion**: Raycasting accounts for elevation:
+  * Targets at lower elevations behind a higher tile are obstructed.
+  * Units on high ground can shoot over intermediate obstacles of equal or lower height.
+
+### 6.2. High-Ground Tactical Advantages (`src/core/combat/`)
+* **Ranged Elevation Superiority**:
+  * Ranged attacks fired from higher elevation ($\Delta h \ge +1$) gain **+1 Effective Range** per elevation level.
+  * Firing downward onto a lower target grants **+2 to the Attack Roll** (or Advantage if $\Delta h \ge +2$).
+* **Low-Ground Vulnerability**:
+  * Ranged attacks fired upward into higher elevation suffer **-2 to the Attack Roll** (or Disadvantage).
+
+### 6.3. Vertical Movement & Traversal Rules (`src/core/combat/movement.ts`)
+* **Step Restrictions**: Moving up an elevation difference of $\Delta h = +1$ costs $+1$ additional AP (or reduces Move distance by 1).
+* **Cliff Barriers**: Ascending an elevation rise of $\Delta h \ge +2$ is impassable without specialized abilities (e.g. *Teleport*, *Shadow Step*, *Leap*).
+* **Ledge Drop-Down**: Walking off a ledge ($\Delta h \le -1$) is permitted, but dropping $\Delta h \le -2$ inflicts fall impact damage.
+
+### 6.4. Kinetic Plunging Knockback & Fall Damage (`src/core/combat/displacement.ts`)
+* **Falling Off Ledges**: When an ability with knockback (e.g. *Shield Bash*, *Gust*, *Lance Charge*) displaces a unit off a ledge:
+  * The unit drops to the lower hex's elevation.
+  * The unit suffers **Fall Impact Damage**: $\max(1, \Delta h \times 4 - \text{Armor})$.
+* **Pit / Chasm Hazards**: Units pushed off perimeter void tiles are immediately severed/routed from combat.
+
+### 6.5. Presentation & Rendering Tier (`src/ui/combat/HexGridSvg.tsx`)
+* **Layered Extrusions**: Render elevated hexes with faux-3D extruded prism side walls and darker drop shadows.
+* **Elevation Step Indicators**: Display subtle elevation contour badges (`+1`, `+2`) on hover and selection rings.
+
+---
+
+## Phase 7: Expedition Sector Maps & Non-Linear Branching
+
+**Primary Goal**: Transform the campaign between battles from a linear stage progression into a rich, strategic expedition navigation map with meaningful risk/reward choices.
+
+### 7.1. Node-Based Sector Navigation (`src/core/campaign/sectorMap.ts`)
+* **Branching Node Tree**: Each expedition sector generates a procedural directed acyclic graph (DAG) of nodes:
+  * **Combat Trials**: Standard skirmishes against hostile void incursions.
+  * **Elite Anomalies**: Higher threat budget encounters rewarding rare Astral Augment Shards or class unlocks.
+  * **Celestial Havens**: Safe rest nodes where wayfarers can heal HP, attune abilities, or remove afflictions without spending gold.
+  * **Astral Shrines**: Interactive altars offering dangerous gambits (e.g. sacrifice max HP for permanent stat surges).
+  * **Mystery Rifts**: Random celestial events with narrative choices and dice-check resolutions.
+
+### 7.2. Celestial Relics & Squad Artifacts (`src/core/items/`)
+* **Passive Relic Items**: Equippable squad charms found during expeditions that alter global rules:
+  * *Chrono Hourglass*: Unspent AP refund increased from 20 to 30 initiative gauge.
+  * *Sunstone Prism*: Friendly AoE aura radiuses increased by +1 hex.
+  * *Lodestone Shield*: Knockback impact damage increased by +2.
+
+### 7.3. Boss Encounters & Multi-Hex Behemoths
+* **Multi-Hex Units**: Large astral entities occupying 2–3 contiguous hexes with custom footprint masks.
+* **Multi-Action Boss Turns**: Elite adversaries possessing dynamic turn-phases or double CTB gauge ticks.
+
+---
+
+## Phase 8: Tactile Juice, Visual Dice & Combat Polish
+
+**Primary Goal**: Deliver visceral sensory polish, dynamic physical feedback, and tactile drama without sacrificing the game's lightweight headless web architecture.
+
+### 8.1. Visual Dice Tumbler & Animation Layer (`src/ui/combat/DiceTray.tsx`)
+* **Tactile Rolling Dice**: Visual tumbling dice modal/drawer that rolls when abilities execute, settling on values with screen-shake impact for Critical Hits.
+* **Dice Customization**: Celestial cosmetic dice skins reflecting vanguard attunements (Bastion gold, Stride emerald, Ward violet, Zenith starlight).
+
+### 8.2. Screen-Shake Shaders & Tactical Impact Particles (`src/ui/combat/`)
+* **Dynamic Impact Shaders**: Micro-directional screen shake on heavy kinetic impacts and wall-slam collisions.
+* **Particle Bursts**: SVG/Canvas particle flourishes on critical strikes, condition applications, and waypoint attunements.
+
+### 8.3. Floating Text & Status Animations
+* **Combat Floaters**: Polished bezier floating combat numbers with color coding (Physical: orange, Magic: violet, Healing: emerald, DoTs: crimson).
+* **Turn Notification Badges**: Dynamic turn-transition banner sliding across the CTB timeline ribbon.
+
+---
+
+## 🧊 Deferred Items (Future Strategic Horizons)
+
+* **Procedural Audio Engine & Sound FX**: Web Audio API synth architecture, chiptune humming, and dice clatter sounds (deferred until sound design and acoustic direction are determined).
+* **Tier 9+ Centroid Classes (e.g. Bard `3, 3, 3`)**: Will be authored alongside high-tier endgame progression when the tri-archetype class pyramid reaches those heights.
+
+---
+
+## 📅 Roadmap Maintenance & Archival Policy
+
+* When all tasks within a Phase or major milestone reach 100% completion and verification, update the milestone markers here.
+* Once this document's scope is fulfilled, archive it with its completion date to `docs/plans/archived/DEVELOPMENT_PLAN_YYYY_MM_DD.md` and initialize the subsequent horizon plan.
