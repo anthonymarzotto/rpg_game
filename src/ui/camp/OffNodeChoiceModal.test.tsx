@@ -28,9 +28,7 @@ const mockWarrior: Unit = {
     constellation: ['warrior']
   },
   loadout: {
-    unitId: 'unit-1',
     activeClassId: 'warrior',
-    coreAbilityIds: ['lead_the_charge', 'cleave', 'brace'],
     wildcardAbilityIds: [],
     wildcardPassiveIds: []
   }

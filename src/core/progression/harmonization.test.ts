@@ -4,10 +4,10 @@ import {
   isTriCentroidCoordinate,
   getAvailableAttunements,
   applyWayfarerAttunement,
-  WAYFARER_ATTUNEMENTS,
   ASTRAL_AUGMENT_SHARDS,
   getShardById,
-  getEligibleDomainUnlocks
+  getEligibleDomainUnlocks,
+  AstralShardId
 } from './harmonization';
 import { RECRUIT_BASE_VITALS } from '../config/balance';
 import { DerivedCombatVitals } from '../types/stats';
@@ -183,6 +183,8 @@ describe('harmonization domain engine', () => {
     const mockWarrior: Unit = {
       id: 'warrior-1',
       name: 'Test Warrior',
+      gender: 'male',
+      race: 'human',
       faction: 'PLAYER',
       baseAttributes: { force: 10, finesse: 10, focus: 10 },
       effectiveVitals: dummyVitals,
@@ -194,9 +196,7 @@ describe('harmonization domain engine', () => {
         constellation: ['warrior']
       },
       loadout: {
-        unitId: 'warrior-1',
         activeClassId: 'warrior',
-        coreAbilityIds: ['lead_the_charge', 'cleave', 'brace'],
         wildcardAbilityIds: [],
         wildcardPassiveIds: []
       }

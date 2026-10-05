@@ -2,16 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { createCampaign } from './campaignFactory';
 import {
   allocateCampArchetypePoint,
-  updateCampUnitLoadout,
-  setCampActiveSquad
+  updateCampUnitLoadout
 } from './transitions';
 import {
   isOffNodeCoordinate,
   isTriCentroidCoordinate,
   getAvailableAttunements,
-  getEligibleDomainUnlocks,
-  ASTRAL_AUGMENT_SHARDS
+  getEligibleDomainUnlocks
 } from '../progression/harmonization';
+import { EffectiveAbility } from '../types/modifier';
 import { resolveUnitLoadout } from '../units/loadout';
 import { getHeroDisplayTitle } from '../../ui/camp/heroUtils';
 import { getClassPackage, getAbilityById, getPassiveById } from '../../data/packages';
@@ -193,7 +192,7 @@ describe('Off-Node Progression Integration: Centroid Path & Slot Augments', () =
       getAbility: getAbilityById,
       getPassive: getPassiveById
     });
-    const resolvedShiv = resolvedLoadout.wildcardAbilities[0];
+    const resolvedShiv = resolvedLoadout.wildcardAbilities[0] as EffectiveAbility;
     expect(resolvedShiv).toBeDefined();
     expect(resolvedShiv.name).toBe('Toxic Shiv');
     // Base range of Toxic Shiv is 1, with Astral Reach it becomes 2!

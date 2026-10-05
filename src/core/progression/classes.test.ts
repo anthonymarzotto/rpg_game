@@ -276,6 +276,7 @@ describe('Decoupled ClassRegistry Dependency Injection', () => {
         no: '01',
         id: 'brawler',
         name: 'Brawler',
+        description: 'A frontline brawler relying on brute physical force.',
         requirements: { fighter: 1, rogue: 0, mage: 0 },
         totalPoints: 1
       },
@@ -283,6 +284,7 @@ describe('Decoupled ClassRegistry Dependency Injection', () => {
         no: '02',
         id: 'gladiator',
         name: 'Gladiator',
+        description: 'An arena champion mastering martial single combat.',
         requirements: { fighter: 2, rogue: 0, mage: 0 },
         totalPoints: 2
       }

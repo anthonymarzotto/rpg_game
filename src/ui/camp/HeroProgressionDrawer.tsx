@@ -39,6 +39,7 @@ const NOVICE_CLASS_DEF: ClassDefinition = {
   no: '--',
   id: 'novice',
   name: 'Novice',
+  description: 'An uninitiated recruit beginning their journey across the celestial lattice.',
   requirements: { fighter: 0, rogue: 0, mage: 0 },
   totalPoints: 0
 };
@@ -267,7 +268,6 @@ export function HeroProgressionDrawer({
     (changed: Partial<UnitLoadout>) => {
       const nextLoadout: UnitLoadout = {
         activeClassId: changed.activeClassId ?? hero.loadout.activeClassId,
-        coreAbilityIds: changed.coreAbilityIds ?? hero.loadout.coreAbilityIds,
         wildcardAbilityIds: changed.wildcardAbilityIds ?? hero.loadout.wildcardAbilityIds,
         wildcardPassiveIds: changed.wildcardPassiveIds ?? hero.loadout.wildcardPassiveIds,
         earnedShards: changed.earnedShards ?? hero.loadout.earnedShards,

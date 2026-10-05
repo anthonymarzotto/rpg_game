@@ -10,6 +10,7 @@ export interface ClassDefinition {
   readonly no: string;
   readonly id: string;
   readonly name: string;
+  readonly description: string;
   readonly requirements: ArchetypePoints;
   readonly totalPoints: number;
 }
