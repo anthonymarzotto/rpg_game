@@ -1,0 +1,36 @@
+{
+  "group_id": "fc2f52af-fcb2-418c-8e67-1e4107d7a38f",
+  "states": [
+    {
+      "character": {
+        "id": "44c4e4f7-ce28-4b8b-a1e5-ee38a2f56878",
+        "name": "Idle",
+        "prompt": "A chibi burglar in a low, nimble crouch, wearing sleek dark stealth leathers with a fitted cowl and utility belt. Featuring large, expressive anime eyes. The outfit is accented with vibrant emerald on the cowl lining, tunic trim, and soft boots, with violet details on the stiletto hilt, pouch ties, and a smoke vial. Holding a blackened grappling hook, selective outline.",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-06T00:27:50.689550+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-06T00:36:56.771203"
+}

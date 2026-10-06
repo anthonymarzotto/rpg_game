@@ -1,0 +1,36 @@
+{
+  "group_id": "7b376800-77c2-4263-895c-d644dd08184e",
+  "states": [
+    {
+      "character": {
+        "id": "939264f0-523f-4262-8869-26352e1d449f",
+        "name": "Idle",
+        "prompt": "Chibi male warlock, wide stance, wearing dark robes with vivid crimson trim and violet accessories, holding a glowing orb, large expressive anime-style eyes, crisp black outlines, low top-down perspective.",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-05T19:42:34.782351+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-06T00:20:16.508487"
+}
