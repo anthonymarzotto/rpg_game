@@ -15,6 +15,7 @@ export type ModifiableAbilityProperty =
   | 'targetType'
   | 'damageType'
   | 'damageProfile'
+  | 'attackRoll'
   | 'effects';
 
 /**
@@ -56,6 +57,7 @@ export interface AbilityModifierPatches {
     apCost?: number;
     range?: number;
     aoeRadius?: number;
+    attackRoll?: number;
   };
   /** Additional atomic effects appended to the ability's effect list */
   readonly appendEffects?: readonly AbilityEffect[];
@@ -99,4 +101,5 @@ export interface AbilityModifier extends AbilityModifierPatches, ModifierApplica
 export interface EffectiveAbility extends Ability {
   readonly attributions: readonly PropertyAttribution[];
   readonly appliedModifierIds: readonly string[];
+  readonly attackRollBonus?: number;
 }

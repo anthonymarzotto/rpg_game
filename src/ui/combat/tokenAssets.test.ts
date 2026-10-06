@@ -158,6 +158,21 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       );
     });
 
+    it('resolves berserker (03_human_male) to pixel idle rotation paths and badge palette', () => {
+      const berserker = createMockUnit({
+        loadout: {
+          activeClassId: 'berserker',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        }
+      });
+
+      expect(resolvePixelTokenBase(berserker)).toBe('03_human_male');
+      expect(resolveTokenAssetPath(berserker, HEX_DIRECTIONS.EAST)).toBe(
+        '/assets/tokens/pixel/03_human_male/Idle/rotations/east.png'
+      );
+    });
+
     it('defaults to front-facing south.png when facing is omitted (UI portraits)', () => {
       const novice = createMockUnit();
       expect(resolveTokenAssetPath(novice)).toBe(

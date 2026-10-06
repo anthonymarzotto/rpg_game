@@ -6,6 +6,8 @@ import {
   KNIGHT_PACKAGE,
   INFILTRATOR_PACKAGE,
   SORCERER_PACKAGE,
+  CAVALIER_PACKAGE,
+  BERSERKER_PACKAGE,
   MOMENTUM,
   getClassPackage,
   getAbilityById,
@@ -128,6 +130,25 @@ describe('Class Packages & Catalog Verification', () => {
     expect(getClassPackage('knight')).toBe(KNIGHT_PACKAGE);
     expect(getClassPackage('infiltrator')).toBe(INFILTRATOR_PACKAGE);
     expect(getClassPackage('sorcerer')).toBe(SORCERER_PACKAGE);
+    expect(getClassPackage('cavalier')).toBe(CAVALIER_PACKAGE);
+    expect(getClassPackage('berserker')).toBe(BERSERKER_PACKAGE);
     expect(getClassPackage('unknown')).toBeUndefined();
+  });
+
+  it('correctly maps Berserker abilities, passive, and profile', () => {
+    expect(BERSERKER_PACKAGE.classId).toBe('berserker');
+    expect(BERSERKER_PACKAGE.signatureAbility.id).toBe('blood_frenzy');
+    expect(BERSERKER_PACKAGE.signatureAbility.hpCost).toBe(3);
+    expect(BERSERKER_PACKAGE.domainAbilities.map((a) => a.id)).toEqual(['reckless_cleave', 'ignite_rage']);
+    expect(BERSERKER_PACKAGE.passive.id).toBe('deathbound_fury');
+    expect(BERSERKER_PACKAGE.passive.healthThreshold?.maxPercent).toBe(0.5);
+    expect(BERSERKER_PACKAGE.passive.healthThreshold?.flatDamageBonus).toBe(2);
+    expect(BERSERKER_PACKAGE.passive.healthThreshold?.critThreshold).toBe(19);
+    expect(BERSERKER_PACKAGE.aiProfile).toBe('BRAWLER');
+
+    expect(getAbilityById('blood_frenzy')).toBeDefined();
+    expect(getAbilityById('reckless_cleave')).toBeDefined();
+    expect(getAbilityById('ignite_rage')).toBeDefined();
+    expect(getPassiveById('deathbound_fury')).toBeDefined();
   });
 });

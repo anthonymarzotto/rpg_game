@@ -79,6 +79,11 @@ export function ActionBar({
             <span className="action-name">{effectiveAbility.name}</span>
             <span className={`action-cost ${isApDiscounted ? 'cost-discounted' : ''}`}>
               {effectiveAbility.apCost} AP
+              {effectiveAbility.hpCost && effectiveAbility.hpCost > 0 ? (
+                <span className={`action-cost-hp ${activeCu.currentHp <= effectiveAbility.hpCost ? 'cost-lethal' : ''}`}>
+                  {' '}+ {effectiveAbility.hpCost} HP{activeCu.currentHp <= effectiveAbility.hpCost ? ' ⚠️' : ''}
+                </span>
+              ) : null}
             </span>
           </div>
         </button>
@@ -125,6 +130,14 @@ export function ActionBar({
               <span>
                 Cost: <b>{effectiveAbility.apCost} AP</b>
                 {renderPropBadges('apCost')}
+              </span>
+            )}
+            {effectiveAbility.hpCost && effectiveAbility.hpCost > 0 && (
+              <span>
+                HP Cost:{' '}
+                <b className={activeCu.currentHp <= effectiveAbility.hpCost ? 'cost-lethal' : ''}>
+                  {effectiveAbility.hpCost} HP {activeCu.currentHp <= effectiveAbility.hpCost ? '(⚠️ LETHAL)' : ''}
+                </b>
               </span>
             )}
             {effectiveAbility.effects.map((eff, idx) => {

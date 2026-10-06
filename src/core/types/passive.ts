@@ -27,6 +27,17 @@ export interface PassiveRollModifier {
   readonly effect: PassiveRollEffect;
 }
 
+export interface HealthThresholdEffect {
+  /** Maximum HP percentage (0..1) below which this threshold is active (e.g. 0.5 for <= 50% max HP) */
+  readonly maxPercent: number;
+  /** Flat bonus damage added to attacks when threshold is active */
+  readonly flatDamageBonus?: number;
+  /** Natural d20 critical hit threshold when active (e.g. 19 for crits on 19-20) */
+  readonly critThreshold?: number;
+  /** Optional filter constraint for damage type (e.g. only PHYSICAL attacks) */
+  readonly damageTypeFilter?: DamageType;
+}
+
 export interface PassiveTrait {
   readonly id: string;
   readonly name: string;
@@ -40,6 +51,8 @@ export interface PassiveTrait {
   readonly collisionDamageBonus?: number;
   /** Pluggable effect payload executed when the trigger hook fires */
   readonly effect?: AbilityEffect;
+  /** Conditional modifiers active when unit HP is at or below a certain threshold */
+  readonly healthThreshold?: HealthThresholdEffect;
   /** Optional filter constraint for trigger (e.g. only on MAGICAL critical hits) */
   readonly triggerFilter?: {
     readonly damageType?: DamageType;

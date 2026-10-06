@@ -5,7 +5,7 @@ import { resolveDamage } from '../damageEngine';
 import { CombatEvent, CombatUnit } from '../types';
 
 export const cleaveHandler: EffectHandler = {
-  apply(_effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
+  apply(effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
     const { state, actorCu, targetCu, ability, diceRoller } = ctx;
     const actorPos = state.arena.getUnitPosition(actorCu.unit.id);
     const targetPos = targetCu ? state.arena.getUnitPosition(targetCu.unit.id) : undefined;
@@ -42,33 +42,39 @@ export const cleaveHandler: EffectHandler = {
 
     // Prioritize lowest current HP among frontal candidates
     candidates.sort((a, b) => a.currentHp - b.currentHp);
-    const secondaryTarget = candidates[0];
-
-    // Resolve collateral damage against the secondary target
-    const damageResult = resolveDamage(
-      'SOLID_HIT',
-      ability,
-      actorCu,
-      secondaryTarget,
-      diceRoller
-    );
+    const maxTargets = effect.magnitude && effect.magnitude > 0 ? effect.magnitude : 1;
+    const secondaryTargets = candidates.slice(0, maxTargets);
 
     const events: CombatEvent[] = [];
-    if (damageResult.damageDealt > 0) {
-      events.push({
-        type: 'DAMAGE',
-        targetUnitId: secondaryTarget.unit.id,
-        amount: damageResult.damageDealt,
-        damageType: ability.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL',
-        reason: 'COLLATERAL',
-        sourceUnitId: actorCu.unit.id,
-        isCrit: false
-      });
+    const logDetails: string[] = [];
+
+    for (const secondaryTarget of secondaryTargets) {
+      // Resolve collateral damage against the secondary target
+      const damageResult = resolveDamage(
+        'SOLID_HIT',
+        ability,
+        actorCu,
+        secondaryTarget,
+        diceRoller
+      );
+
+      if (damageResult.damageDealt > 0) {
+        events.push({
+          type: 'DAMAGE',
+          targetUnitId: secondaryTarget.unit.id,
+          amount: damageResult.damageDealt,
+          damageType: ability.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL',
+          reason: 'COLLATERAL',
+          sourceUnitId: actorCu.unit.id,
+          isCrit: false
+        });
+      }
+      logDetails.push(`${secondaryTarget.unit.name} for ${damageResult.damageDealt}`);
     }
 
     return {
       events,
-      logDetail: ` 🪓 [Cleave hit ${secondaryTarget.unit.name} for ${damageResult.damageDealt} collateral damage]`
+      logDetail: ` 🪓 [Cleave hit ${logDetails.join(', ')} collateral damage]`
     };
   }
 };

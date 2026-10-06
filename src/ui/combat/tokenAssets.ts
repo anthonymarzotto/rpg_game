@@ -16,7 +16,21 @@ export const AVAILABLE_PIXEL_TOKENS = new Set<string>([
   '02_human_male',  // Knight
   '82_human_male',  // Infiltrator
   '98_human_male',  // Sorcerer
+  '03_human_male',  // Berserker
 ]);
+
+/**
+ * Class badge colors / palette mapping.
+ */
+export const CLASS_BADGE_PALETTES: Record<string, { primary: string; border: string }> = {
+  berserker: { primary: '#b91c1c', border: '#ef4444' }, // Crimson
+  warrior: { primary: '#ea580c', border: '#f97316' },
+  cavalier: { primary: '#f59e0b', border: '#fbbf24' },
+  knight: { primary: '#3b82f6', border: '#60a5fa' },
+  thief: { primary: '#059669', border: '#10b981' },
+  wizard: { primary: '#7c3aed', border: '#8b5cf6' },
+  novice: { primary: '#64748b', border: '#94a3b8' }
+};
 
 /**
  * Maps the 6 pointy-topped hex directions to their corresponding 8-way pixel sprite rotation.

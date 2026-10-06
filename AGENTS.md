@@ -63,3 +63,11 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+## 5. Tooling & Command Execution in Windows Sandbox
+
+**Always run Node, npm, and OpenSpec tooling with `cmd.exe /c` and `BypassSandbox: true`.**
+
+- **Node/Tooling Path Visibility**: Node is installed outside the workspace (`C:\Program Files\nodejs\node.exe`). In sandboxed mode (`BypassSandbox: false`), `node` is inaccessible and commands fail with `'"node"' is not recognized`. Always set `BypassSandbox: true` when running Node, npm, npx, or OpenSpec commands. Git commands inside the workspace work fine sandboxed.
+- **PowerShell Script Policy vs Batch Files**: The default shell is PowerShell, which blocks unsigned npm `.ps1` wrappers (e.g. `openspec.ps1` fails with `AuthorizationManager check failed` / `PSSecurityException`). Always invoke via `cmd.exe /c <command>` (e.g., `cmd.exe /c openspec ...`, `cmd.exe /c npm test`), which executes the `.cmd` batch wrappers and sidesteps PowerShell execution policy restrictions.
+- **Directory & File Operations (`Move-Item` vs `cmd.exe /c move`)**: Moving directories (e.g., archiving OpenSpec changes) with `cmd.exe /c move` frequently fails in Windows with `Access is denied. 0 dir(s) moved.` when files or folders are open in editor tabs. Instead, invoke native PowerShell `Move-Item -Path "<src>" -Destination "<dest>"` (or `Copy-Item`), which handles path relocations cleanly even when files are active in editor buffers.

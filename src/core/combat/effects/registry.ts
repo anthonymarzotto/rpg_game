@@ -12,6 +12,7 @@ import { spellSculptHandler } from './spellSculptHandler';
 import { initiativeBoostHandler } from './initiativeBoostHandler';
 import { wildSurgeHandler } from './wildSurgeHandler';
 import { penetrateHandler } from './penetrateHandler';
+import { bloodFrenzyHandler } from './bloodFrenzyHandler';
 import { CombatEvent } from '../types';
 
 export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
@@ -31,7 +32,8 @@ export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
   CONDITION_APPLIED: conditionHandler,
   FORCE_FACING: conditionHandler,
   SPELL_SCULPT: spellSculptHandler,
-  WILD_SURGE: wildSurgeHandler
+  WILD_SURGE: wildSurgeHandler,
+  BLOOD_FRENZY: bloodFrenzyHandler
 };
 
 export const defaultEffectRegistry = {

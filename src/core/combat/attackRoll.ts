@@ -1,4 +1,5 @@
 import { Ability } from '../types/ability';
+import { EffectiveAbility } from '../types/modifier';
 import { CombatUnit, HitOutcome } from './types';
 import { getEffectiveEvasion, getEffectiveResolve } from './effectiveVitals';
 import { DiceRoller, RollAdvantage } from './dice';
@@ -30,7 +31,9 @@ export function getAbilityModifier(actorCu: CombatUnit, ability: Ability): numbe
  */
 export function getAttackRollModifier(actorCu: CombatUnit, ability: Ability): number {
   const attr = ability.attackModifierAttribute;
-  return attr ? actorCu.unit.baseAttributes[attr] : 0;
+  const baseAttr = attr ? actorCu.unit.baseAttributes[attr] : 0;
+  const attackRollBonus = (ability as EffectiveAbility).attackRollBonus ?? 0;
+  return baseAttr + attackRollBonus;
 }
 
 /**
@@ -75,7 +78,25 @@ export function resolveAttackRoll(
 
   const critMargin = COMBAT_RESOLUTION_CONFIG.critThresholdMargin;
   const isCritBoosted = ability.effects?.some((e) => e.type === 'CRIT_BOOST');
-  const naturalCritThreshold = isCritBoosted ? 19 : 20;
+  let naturalCritThreshold = isCritBoosted ? 19 : 20;
+
+  // Check health threshold passives (e.g. Deathbound Fury expanding natural crit to 19-20)
+  const maxHp = actorCu.unit.effectiveVitals.maxHp;
+  if (actorCu.passives && maxHp > 0) {
+    for (const passive of actorCu.passives) {
+      if (passive.healthThreshold?.critThreshold) {
+        const thresholdHp = Math.floor(maxHp * passive.healthThreshold.maxPercent);
+        if (actorCu.currentHp <= thresholdHp) {
+          if (
+            !passive.healthThreshold.damageTypeFilter ||
+            passive.healthThreshold.damageTypeFilter === ability.damageType
+          ) {
+            naturalCritThreshold = Math.min(naturalCritThreshold, passive.healthThreshold.critThreshold);
+          }
+        }
+      }
+    }
+  }
 
   let hitOutcome: HitOutcome = 'MISS';
   if (d20 >= naturalCritThreshold || totalScore >= targetDefense + critMargin) {

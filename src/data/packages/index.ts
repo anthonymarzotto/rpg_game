@@ -12,6 +12,7 @@ import { KNIGHT_PACKAGE } from './knight';
 import { INFILTRATOR_PACKAGE } from './infiltrator';
 import { SORCERER_PACKAGE } from './sorcerer';
 import { CAVALIER_PACKAGE } from './cavalier';
+import { BERSERKER_PACKAGE } from './berserker';
 
 export * from './novice';
 export * from './warrior';
@@ -21,6 +22,7 @@ export * from './knight';
 export * from './infiltrator';
 export * from './sorcerer';
 export * from './cavalier';
+export * from './berserker';
 
 export const CLASS_PACKAGES: Readonly<Record<string, ClassPackage>> = {
   warrior: WARRIOR_PACKAGE,
@@ -29,7 +31,8 @@ export const CLASS_PACKAGES: Readonly<Record<string, ClassPackage>> = {
   knight: KNIGHT_PACKAGE,
   infiltrator: INFILTRATOR_PACKAGE,
   sorcerer: SORCERER_PACKAGE,
-  cavalier: CAVALIER_PACKAGE
+  cavalier: CAVALIER_PACKAGE,
+  berserker: BERSERKER_PACKAGE
 };
 
 /**

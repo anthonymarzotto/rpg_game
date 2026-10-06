@@ -27,7 +27,7 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 5: TIER 3 HYBRID CLASS EXPANSION                      │
 │  - [x] 5.1 Cavalier (2, 1, 0) kit & shock charge mechanics  │
-│  - [ ] 5.2 Berserker (2, 0, 1) kit & blood frenzy primers   │
+│  - [x] 5.2 Berserker (2, 0, 1) kit & blood frenzy primers   │
 │  - [ ] 5.3 Highwayman (1, 2, 0) kit & skirmish ambush       │
 │  - [ ] 5.4 Warlock (1, 0, 2) kit & eldritch drain           │
 │  - [ ] 5.5 Cat-burglar (0, 2, 1) kit & stealth infiltration │
@@ -78,12 +78,12 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 * **Passive**: `Impact Velocity` (+2 flat collision and wall-slam damage bonus caused by this unit).
 * **AI Profile**: `BRAWLER` (charges frontline, initiates wall-slams).
 
-### 5.2. Berserker Class Package (`src/data/packages/berserker.ts`)
+### 5.2. Berserker Class Package (`src/data/packages/berserker.ts`) - [x] COMPLETED
 * **Archetype**: `(2, 0, 1)` (Fighter/Mage — Dominant Fighter) — Blood-rage juggernaut & arcane reckoning.
-* **Signature**: `Blood Frenzy` (1 AP, self-empowerment primer boosting next attack's power and roll bonus).
-* **Domain 1**: `Reckless Cleave` (2 AP, wide 3-hex frontal arc swing testing Evasion for heavy physical damage).
-* **Domain 2**: `Ignite Rage` (1 AP, strike imbued with arcane flame, dealing physical damage and inflicting `BURN` DoT).
-* **Passive**: `Deathbound Fury` (damage scales up when below 50% max HP).
+* **Signature**: `Blood Frenzy` (1 AP + 3 HP self-sacrifice, primes next physical attack with +1 Die Step and +2 Attack Roll bonus).
+* **Domain 1**: `Reckless Cleave` (2 AP, 2d4 + Force physical damage vs Evasion sweeping up to 2 adjacent frontal hexes for rolled collateral damage; inflicts -2 Evasion on self for 1 turn).
+* **Domain 2**: `Ignite Rage` (1 AP, 1d6 + Focus magical damage vs Resolve and inflicts `BURN` DoT [2 dmg/turn for 2 turns]).
+* **Passive**: `Deathbound Fury` (+2 flat damage to physical attacks and expands Critical Hit threshold to 19–20 when current HP <= 50% max HP).
 * **AI Profile**: `BRAWLER` (activates blood frenzy, engages high-density clusters).
 
 ### 5.3. Highwayman Class Package (`src/data/packages/highwayman.ts`)

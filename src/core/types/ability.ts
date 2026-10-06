@@ -34,7 +34,8 @@ export type AbilityEffectType =
   | 'WILD_SURGE'       // Spontaneous arcane surges on critical hits
   | 'STAT_MODIFIER'    // Applies stat modifier (e.g. Expose Weakness -2 Armor & -2 Evasion)
   | 'RUSH_CHARGE'      // Rushes along straight line into melee contact with target
-  | 'PENETRATE_STEP';  // Advances through target to the rear hex if open
+  | 'PENETRATE_STEP'   // Advances through target to the rear hex if open
+  | 'BLOOD_FRENZY';    // Primes pending ability modifier for next physical attack (+1 die step, +2 attack roll)
 
 export type EffectTargetScope = 'TARGET' | 'SELF' | 'ALLIES';
 export type EffectApplyCondition = 'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY';
@@ -72,6 +73,8 @@ export interface Ability {
   /** Archetype tag earning XP upon execution */
   readonly archetypeTag?: Archetype;
   readonly apCost: number;
+  /** Optional HP cost deducted from user upon execution (self-sacrifice) */
+  readonly hpCost?: number;
   /** Maximum targeting distance in hexes */
   readonly range: number;
   readonly targetType: AbilityTargetType;

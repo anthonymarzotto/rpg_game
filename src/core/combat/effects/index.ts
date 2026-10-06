@@ -12,3 +12,4 @@ export * from './wildSurgeHandler';
 export * from './initiativeBoostHandler';
 export * from './damageHandler';
 export * from './penetrateHandler';
+export * from './bloodFrenzyHandler';

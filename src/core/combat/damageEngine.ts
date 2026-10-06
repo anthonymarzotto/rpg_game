@@ -28,7 +28,25 @@ export function resolveDamage(
 ): DamageResult {
   const eff = damageEffect ?? ability.effects?.find((e) => e.type === 'DAMAGE');
   const damageProfile = eff?.damageProfile;
-  const flatBonus = eff?.flatDamage ?? 0;
+  let flatBonus = eff?.flatDamage ?? 0;
+
+  // Check health threshold passives (e.g. Deathbound Fury +2 flat physical damage when <= 50% HP)
+  const maxHp = actorCu.unit.effectiveVitals.maxHp;
+  if (actorCu.passives && maxHp > 0) {
+    for (const passive of actorCu.passives) {
+      if (passive.healthThreshold?.flatDamageBonus) {
+        const thresholdHp = Math.floor(maxHp * passive.healthThreshold.maxPercent);
+        if (actorCu.currentHp <= thresholdHp) {
+          if (
+            !passive.healthThreshold.damageTypeFilter ||
+            passive.healthThreshold.damageTypeFilter === ability.damageType
+          ) {
+            flatBonus += passive.healthThreshold.flatDamageBonus;
+          }
+        }
+      }
+    }
+  }
 
   if (hitOutcome === 'MISS' || (!damageProfile && flatBonus === 0)) {
     return {

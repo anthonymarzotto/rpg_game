@@ -382,6 +382,94 @@ describe('Headless AI Decision Engine', () => {
     expect(wizardCu.facing).toBe(HEX_DIRECTIONS.WEST);
   });
 
+  it('berserker brawler primes Blood Frenzy before executing Reckless Cleave when adjacent to healthy enemy', () => {
+    const arena = createRadialArena(3);
+    const berserkerEnemy = createMockUnit('berserker-enemy', 'Hostile Berserker', 'ENEMY', {
+      activeClassId: 'berserker'
+    });
+    const playerHero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+      maxHp: 60,
+      resolve: 10,
+      evasion: 10
+    });
+
+    arena.setUnitPosition(berserkerEnemy.id, { q: 0, r: 0 });
+    arena.setUnitPosition(playerHero.id, { q: 1, r: 0 });
+
+    const state = createCombatState(arena, [berserkerEnemy, playerHero], berserkerEnemy.id);
+    const nextAction = decideNextAction(state, berserkerEnemy.id);
+
+    expect(nextAction.type).toBe('ABILITY');
+    if (nextAction.type === 'ABILITY') {
+      expect(nextAction.ability.id).toBe('blood_frenzy');
+      expect(nextAction.reason).toContain('Blood Frenzy');
+    }
+  });
+
+  it('berserker brawler avoids Blood Frenzy when current HP is dangerously low (<= 5 HP)', () => {
+    const arena = createRadialArena(3);
+    const berserkerEnemy = createMockUnit('berserker-enemy', 'Hostile Berserker', 'ENEMY', {
+      activeClassId: 'berserker'
+    });
+    const playerHero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+      maxHp: 60,
+      resolve: 10,
+      evasion: 10
+    });
+
+    arena.setUnitPosition(berserkerEnemy.id, { q: 0, r: 0 });
+    arena.setUnitPosition(playerHero.id, { q: 1, r: 0 });
+
+    const state = createCombatState(arena, [berserkerEnemy, playerHero], berserkerEnemy.id);
+    const berserkerCu = state.units.get(berserkerEnemy.id)!;
+    berserkerCu.currentHp = 4; // dangerously low
+
+    const nextAction = decideNextAction(state, berserkerEnemy.id);
+
+    expect(nextAction.type).toBe('ABILITY');
+    if (nextAction.type === 'ABILITY') {
+      expect(nextAction.ability.id).not.toBe('blood_frenzy');
+    }
+  });
+
+  it('berserker brawler executes full turn: primes Blood Frenzy then hits with Reckless Cleave', () => {
+    const arena = createRadialArena(3);
+    const berserkerEnemy = createMockUnit('berserker-enemy', 'Hostile Berserker', 'ENEMY', {
+      activeClassId: 'berserker'
+    });
+    const playerHero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+      maxHp: 60,
+      resolve: 10,
+      evasion: 10,
+      armor: 1,
+      speed: 12
+    });
+
+    arena.setUnitPosition(berserkerEnemy.id, { q: 0, r: 0 });
+    arena.setUnitPosition(playerHero.id, { q: 1, r: 0 });
+
+    const state = createCombatState(arena, [berserkerEnemy, playerHero], berserkerEnemy.id);
+    const berserkerCu = state.units.get(berserkerEnemy.id)!;
+    const initialHp = berserkerCu.currentHp;
+
+    const roller = new SeededDiceRoller(42);
+    const actions = executeAiTurn(state, berserkerEnemy.id, { diceRoller: roller });
+
+    expect(actions.length).toBe(2);
+    expect(actions[0].type).toBe('ABILITY');
+    if (actions[0].type === 'ABILITY') {
+      expect(actions[0].ability.id).toBe('blood_frenzy');
+    }
+    expect(actions[1].type).toBe('ABILITY');
+    if (actions[1].type === 'ABILITY') {
+      expect(actions[1].ability.id).toBe('reckless_cleave');
+    }
+
+    // Berserker sacrificed 3 HP for Blood Frenzy
+    expect(berserkerCu.currentHp).toBe(initialHp - 3);
+    expect(berserkerCu.currentAp).toBe(0);
+  });
+
   describe('executeAiAction', () => {
     it('executes MOVE action and returns destination details', () => {
       const arena = createRadialArena(3);

@@ -80,6 +80,7 @@ export function getEffectiveAbility(
   let targetType = baseAbility.targetType;
   let damageType = baseAbility.damageType;
   let effects = [...baseAbility.effects];
+  let attackRollBonus = 0;
 
   const attributions: PropertyAttribution[] = [];
   const appliedModifierIds: string[] = [];
@@ -180,6 +181,18 @@ export function getEffectiveAbility(
           changeLabel: `${sign} AoE Radius`
         });
       }
+
+      if (mod.deltas.attackRoll !== undefined && mod.deltas.attackRoll !== 0) {
+        const delta = mod.deltas.attackRoll;
+        attackRollBonus += delta;
+        const sign = delta > 0 ? `+${delta}` : `${delta}`;
+        attributions.push({
+          property: 'attackRoll',
+          sourceName: mod.name,
+          sourceId: mod.id,
+          changeLabel: `${sign} Attack Roll`
+        });
+      }
     }
 
     // 3. Effect Patches
@@ -271,6 +284,7 @@ export function getEffectiveAbility(
     damageType,
     effects,
     attributions,
-    appliedModifierIds
+    appliedModifierIds,
+    attackRollBonus: attackRollBonus !== 0 ? attackRollBonus : undefined
   };
 }

@@ -200,12 +200,57 @@ export function scoreBuffAbility(
   actorCu: CombatUnit,
   targetCu: CombatUnit,
   ability: Ability,
-  _actorCoord: HexCoord,
+  actorCoord: HexCoord,
   targetCoord: HexCoord,
   hostileUnits: readonly CombatUnit[],
   state: CombatState,
   profile: AIProfile
 ): { score: number; reason?: string } {
+  // Blood Frenzy primer check: prioritize when actor has >= 2 AP, follow-up physical attack, safe HP, and an enemy in range
+  if (ability.effects?.some((e) => e.type === 'BLOOD_FRENZY')) {
+    if (actorCu.unit.id !== targetCu.unit.id) return { score: 0 };
+    if (actorCu.abilityModifiers?.some((m) => m.id === 'blood_frenzy')) return { score: 0 };
+    if (actorCu.currentHp <= 5) return { score: 0 }; // Zero out self-sacrifice when dangerously low on HP
+
+    const physicalAttacks = actorCu.abilities.filter(
+      (a) => a.id !== ability.id && a.damageType === 'PHYSICAL'
+    );
+    if (physicalAttacks.length === 0) return { score: 0 };
+
+    const minApNeeded = ability.apCost + Math.min(...physicalAttacks.map((a) => a.apCost));
+    if (actorCu.currentAp < minApNeeded) return { score: 0 };
+
+    // Find highest expected damage among affordable in-range physical attacks
+    let maxFollowUpDamage = 0;
+    for (const h of hostileUnits) {
+      const pos = state.arena.getUnitPosition(h.unit.id);
+      if (!pos) continue;
+      const dist = hexDistance(actorCoord, pos);
+      for (const atk of physicalAttacks) {
+        if (dist <= atk.range && actorCu.currentAp >= ability.apCost + atk.apCost) {
+          const dmgEffect = atk.effects?.find((e) => e.type === 'DAMAGE');
+          const diceCount = dmgEffect?.damageProfile?.count ?? 1;
+          const diceSides = dmgEffect?.damageProfile?.sides ?? 6;
+          const attr = atk.attackModifierAttribute ?? dmgEffect?.damageProfile?.modifierAttribute;
+          const attrVal = attr ? actorCu.unit.baseAttributes[attr] : 0;
+          const expDmg = diceCount * ((diceSides + 1) / 2) + attrVal;
+          if (expDmg > maxFollowUpDamage) {
+            maxFollowUpDamage = expDmg;
+          }
+        }
+      }
+    }
+    if (maxFollowUpDamage === 0) return { score: 0 };
+
+    const weights = getArchetypeWeights(profile);
+    const score = maxFollowUpDamage * weights.expectedDamageWeight + 15.0;
+
+    return {
+      score: Math.round(score * 10) / 10,
+      reason: 'Prime Blood Frenzy before unleashing physical attack'
+    };
+  }
+
   // Spell Sculpt primer check: prioritize when actor has >= 2 AP and a follow-up spell
   if (ability.effects?.some((e) => e.type === 'SPELL_SCULPT')) {
     if (actorCu.unit.id !== targetCu.unit.id) return { score: 0 };

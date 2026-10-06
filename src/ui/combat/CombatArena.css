@@ -1531,6 +1531,25 @@
   text-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
 }
 
+.action-cost-hp {
+  color: #f87171;
+  font-weight: 700;
+  margin-left: 0.25rem;
+}
+
+.action-cost-hp.cost-lethal,
+.cost-lethal {
+  color: #ef4444 !important;
+  font-weight: 800 !important;
+  text-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+  animation: pulseLethal 1.2s infinite alternate ease-in-out;
+}
+
+@keyframes pulseLethal {
+  from { opacity: 0.85; }
+  to { opacity: 1; text-shadow: 0 0 10px rgba(239, 68, 68, 0.9); }
+}
+
 .inline-attribution-badge {
   display: inline-block;
   margin-left: 0.35rem;

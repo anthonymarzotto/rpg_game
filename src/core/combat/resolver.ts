@@ -338,6 +338,15 @@ export function executeAbility(
   const effectiveAbility = getEffectiveAbility(ability, actorCu.abilityModifiers);
   actorCu.currentAp -= effectiveAbility.apCost;
 
+  // Deduct HP cost if specified (e.g. Blood Frenzy self-sacrifice); defeat unit if HP reaches 0
+  if (effectiveAbility.hpCost && effectiveAbility.hpCost > 0) {
+    actorCu.currentHp = Math.max(0, actorCu.currentHp - effectiveAbility.hpCost);
+    if (actorCu.currentHp === 0) {
+      actorCu.isDefeated = true;
+      state.arena.removeUnit(actorUnitId);
+    }
+  }
+
   // Track oncePerTurn
   if (effectiveAbility.oncePerTurn) {
     (actorCu.abilitiesUsedThisTurn ??= []).push(effectiveAbility.id);
