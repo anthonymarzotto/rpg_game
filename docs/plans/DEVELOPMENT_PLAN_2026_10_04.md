@@ -26,9 +26,14 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 5: TIER 3 HYBRID CLASS EXPANSION                      │
-│  - [ ] 5.1 Tier 3 hybrid class kits (6 classes)             │
-│  - [ ] 5.2 Hybrid AI profiles & tactical primer heuristics  │
-│  - [ ] 5.3 Campaign encounter budget & Tier 3 token mapping │
+│  - [ ] 5.1 Cavalier (2, 1, 0) kit & shock charge mechanics  │
+│  - [ ] 5.2 Berserker (2, 0, 1) kit & blood frenzy primers   │
+│  - [ ] 5.3 Highwayman (1, 2, 0) kit & skirmish ambush       │
+│  - [ ] 5.4 Warlock (1, 0, 2) kit & eldritch drain           │
+│  - [ ] 5.5 Cat-burglar (0, 2, 1) kit & stealth infiltration │
+│  - [ ] 5.6 Witch (0, 1, 2) kit & hex sabotage               │
+│  - [ ] 5.7 Hybrid AI profiles & primer heuristics           │
+│  - [ ] 5.8 Campaign encounter budget & token mapping        │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
@@ -63,53 +68,67 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 
 ## Phase 5: Tier 3 Hybrid Class Expansion
 
-**Primary Goal**: Author the complete roster of 6 Tier 3 dual-archetype hybrid classes in the 100-class lattice (`CLASS_CATALOG`), leveraging our existing battle-tested mechanics (atomic effects, `POISON`, `BURN`, `STEALTH`, `CHALLENGED`, kinetic displacement, and CTB clock manipulation) without introducing unused or redundant status conditions.
+**Primary Goal**: Author the complete roster of 6 Tier 3 dual-archetype hybrid classes in the 100-class lattice (`CLASS_CATALOG`), leveraging our existing battle-tested mechanics (atomic effects, `POISON`, `BURN`, `STEALTH`, `CHALLENGED`, kinetic displacement, and CTB clock manipulation) without introducing unused or redundant status conditions. Each class is authored one at a time with its own dedicated package, active loadout, and passive mastery trait.
 
-### 5.1. Tier 3 Dual-Archetype Hybrid Class Packages (`src/data/packages/`)
-Every Tier 3 package follows the established 1 Signature + 2 Domain Pool + 1 Passive trait architecture:
+### 5.1. Cavalier Class Package (`src/data/packages/cavalier.ts`)
+* **Archetype**: `(2, 1, 0)` (Fighter/Rogue — Dominant Fighter) — Mounted shock vanguard & line breaker.
+* **Signature**: `Lance Charge` (2 AP, straight-line charge dealing physical damage and pushing the target 1 hex with wall-slam collision risk).
+* **Domain 1**: `Trample` (1 AP, kinetic strike dealing physical damage and inflicting `CHALLENGED`).
+* **Domain 2**: `Rallying Pennant` (1 AP, friendly aura granting nearby allies Move and Armor boosts).
+* **Passive**: `Mounted Momentum` (moving 2+ hexes before attacking grants +2 to the Attack Roll).
+* **AI Profile**: `BRAWLER` (charges frontline, initiates wall-slams).
 
-* **Cavalier** `(2, 1, 0)` (Fighter/Rogue — Dominant Fighter): Mounted shock vanguard & line breaker.
-  * Signature: `Lance Charge` (2 AP, straight-line charge dealing physical damage and pushing the target 1 hex with wall-slam collision risk).
-  * Domain 1: `Trample` (1 AP, kinetic strike dealing physical damage and inflicting `CHALLENGED`).
-  * Domain 2: `Rallying Pennant` (1 AP, friendly aura granting nearby allies Move and Armor boosts).
-  * Passive: `Mounted Momentum` (moving 2+ hexes before attacking grants +2 to the Attack Roll).
-* **Highwayman** `(1, 2, 0)` (Rogue/Fighter — Dominant Rogue): Ambush enforcer & close-quarters skirmisher.
-  * Signature: `Point-Blank Buckshot` (2 AP, frontal blast dealing heavy physical damage and pushing targets back 1 hex).
-  * Domain 1: `Pistol Whip` (1 AP, close-range physical strike inflicting `CTB_DELAY` 30 gauge stagger).
-  * Domain 2: `Smoke Grenade` (1 AP, grants self `STEALTH` and breaks enemy facing lock).
-  * Passive: `Opportunist's Stride` (strikes executed from `FLANK` or `REAR` refund 1 Move).
-* **Berserker** `(2, 0, 1)` (Fighter/Mage — Dominant Fighter): Blood-rage juggernaut & arcane reckoning.
-  * Signature: `Blood Frenzy` (1 AP, self-empowerment primer boosting next attack's power and roll bonus).
-  * Domain 1: `Reckless Cleave` (2 AP, wide 3-hex frontal arc swing testing Evasion for heavy physical damage).
-  * Domain 2: `Ignite Rage` (1 AP, strike imbued with arcane flame, dealing physical damage and inflicting `BURN` DoT).
-  * Passive: `Deathbound Fury` (damage scales up when below 50% max HP).
-* **Warlock** `(1, 0, 2)` (Mage/Fighter — Dominant Mage): Eldritch battlemage & soul drainer.
-  * Signature: `Eldritch Blast` (2 AP, long-range beam dealing magical damage and pushing target 1 hex).
-  * Domain 1: `Life Tap` (1 AP, siphons vitality, dealing magical damage and healing self for half mitigated damage).
-  * Domain 2: `Hellfire Branding` (1 AP, marks target with demonic flames, inflicting `BURN` DoT).
-  * Passive: `Dark Pact` (defeating an enemy restores 1 AP or grants +20 CTB gauge).
-* **Cat-burglar** `(0, 2, 1)` (Rogue/Mage — Dominant Rogue): Shadow infiltrator & arcane trickster.
-  * Signature: `Shadow Meld` (1 AP, enters `STEALTH` and gains +1 Move).
-  * Domain 1: `Venomous Dagger` (1 AP, swift melee strike dealing physical damage and applying `POISON` DoT).
-  * Domain 2: `Flash Powder` (1 AP, bursts blinding dust, pushing adjacent enemies back 1 hex and resetting facing).
-  * Passive: `Quiet Hands` (strikes originating from `STEALTH` ignore target Armor).
-* **Witch** `(0, 1, 2)` (Mage/Rogue — Dominant Mage): Arcane saboteur & occult hexer.
-  * Signature: `Baleful Hex` (1 AP, curses target with `POISON` DoT and CTB gauge delay).
-  * Domain 1: `Blight Bolt` (2 AP, ranged arcane missile dealing magical damage with bonus power if target has an active condition).
-  * Domain 2: `Cackle & Fade` (1 AP, confuses target, forcing facing away and granting self `STEALTH`).
-  * Passive: `Misfortune Aura` (adjacent enemies roll with -2 to defensive contest rolls).
+### 5.2. Berserker Class Package (`src/data/packages/berserker.ts`)
+* **Archetype**: `(2, 0, 1)` (Fighter/Mage — Dominant Fighter) — Blood-rage juggernaut & arcane reckoning.
+* **Signature**: `Blood Frenzy` (1 AP, self-empowerment primer boosting next attack's power and roll bonus).
+* **Domain 1**: `Reckless Cleave` (2 AP, wide 3-hex frontal arc swing testing Evasion for heavy physical damage).
+* **Domain 2**: `Ignite Rage` (1 AP, strike imbued with arcane flame, dealing physical damage and inflicting `BURN` DoT).
+* **Passive**: `Deathbound Fury` (damage scales up when below 50% max HP).
+* **AI Profile**: `BRAWLER` (activates blood frenzy, engages high-density clusters).
 
-### 5.2. Hybrid AI Profiles & Tactical Primer Heuristics (`src/core/ai/`)
+### 5.3. Highwayman Class Package (`src/data/packages/highwayman.ts`)
+* **Archetype**: `(1, 2, 0)` (Rogue/Fighter — Dominant Rogue) — Ambush enforcer & close-quarters skirmisher.
+* **Signature**: `Point-Blank Buckshot` (2 AP, frontal blast dealing heavy physical damage and pushing targets back 1 hex).
+* **Domain 1**: `Pistol Whip` (1 AP, close-range physical strike inflicting `CTB_DELAY` 30 gauge stagger).
+* **Domain 2**: `Smoke Grenade` (1 AP, grants self `STEALTH` and breaks enemy facing lock).
+* **Passive**: `Opportunist's Stride` (strikes executed from `FLANK` or `REAR` refund 1 Move).
+* **AI Profile**: `SKIRMISHER` (seeks flank/rear positions, uses smoke repositioning).
+
+### 5.4. Warlock Class Package (`src/data/packages/warlock.ts`)
+* **Archetype**: `(1, 0, 2)` (Mage/Fighter — Dominant Mage) — Eldritch battlemage & soul drainer.
+* **Signature**: `Eldritch Blast` (2 AP, long-range beam dealing magical damage and pushing target 1 hex).
+* **Domain 1**: `Life Tap` (1 AP, siphons vitality, dealing magical damage and healing self for half mitigated damage).
+* **Domain 2**: `Hellfire Branding` (1 AP, marks target with demonic flames, inflicting `BURN` DoT).
+* **Passive**: `Dark Pact` (defeating an enemy restores 1 AP or grants +20 CTB gauge).
+* **AI Profile**: `SNIPER` (maintains range, snipes with eldritch blast, drains threatened targets).
+
+### 5.5. Cat-burglar Class Package (`src/data/packages/catBurglar.ts`)
+* **Archetype**: `(0, 2, 1)` (Rogue/Mage — Dominant Rogue) — Shadow infiltrator & arcane trickster.
+* **Signature**: `Shadow Meld` (1 AP, enters `STEALTH` and gains +1 Move).
+* **Domain 1**: `Venomous Dagger` (1 AP, swift melee strike dealing physical damage and applying `POISON` DoT).
+* **Domain 2**: `Flash Powder` (1 AP, bursts blinding dust, pushing adjacent enemies back 1 hex and resetting facing).
+* **Passive**: `Quiet Hands` (strikes originating from `STEALTH` ignore target Armor).
+* **AI Profile**: `SKIRMISHER` (stealth infiltrates high-value targets, executes armor-piercing strikes).
+
+### 5.6. Witch Class Package (`src/data/packages/witch.ts`)
+* **Archetype**: `(0, 1, 2)` (Mage/Rogue — Dominant Mage) — Arcane saboteur & occult hexer.
+* **Signature**: `Baleful Hex` (1 AP, curses target with `POISON` DoT and CTB gauge delay).
+* **Domain 1**: `Blight Bolt` (2 AP, ranged arcane missile dealing magical damage with bonus power if target has an active condition).
+* **Domain 2**: `Cackle & Fade` (1 AP, confuses target, forcing facing away and granting self `STEALTH`).
+* **Passive**: `Misfortune Aura` (adjacent enemies roll with -2 to defensive contest rolls).
+* **AI Profile**: `SUPPORT` (debuffs priority targets with hexes, controls combat tempo).
+
+### 5.7. Hybrid AI Profiles & Tactical Primer Heuristics (`src/core/ai/`)
 * **Behavioral Profile Mapping**:
   * `cavalier` -> `BRAWLER` (charges frontline, initiates wall-slams).
-  * `highwayman` -> `SKIRMISHER` (seeks flank/rear positions, uses smoke repositioning).
   * `berserker` -> `BRAWLER` (activates blood frenzy, engages high-density clusters).
+  * `highwayman` -> `SKIRMISHER` (seeks flank/rear positions, uses smoke repositioning).
   * `warlock` -> `SNIPER` (maintains range, snipes with eldritch blast, drains threatened targets).
   * `cat-burglar` -> `SKIRMISHER` (stealth infiltrates high-value targets, executes armor-piercing strikes).
   * `witch` -> `SUPPORT` (debuffs priority targets with hexes, controls combat tempo).
 * **Tactical Primer Heuristics**: Teach composite move-and-act evaluation to value self-buff primers (`Blood Frenzy`, `Shadow Meld`, `Rallying Pennant`) when follow-up AP is available.
 
-### 5.3. Campaign Encounter Budget & Pixel Token Mapping (`src/core/campaign/`, `src/ui/combat/`)
+### 5.8. Campaign Encounter Budget & Pixel Token Mapping (`src/core/campaign/`, `src/ui/combat/`)
 * **Dynamic Threat Budgeting**: Update `encounterGenerator.ts` to spawn Tier 3 hybrid enemies at Stage 5+ with higher threat budgets (60–80 points).
 * **Token Asset Whitelisting**: Map unique pixel sprites from `characters_packed.png` for all 6 Tier 3 classes in `tokenAssets.ts` with dedicated unit cards and color badges.
 
