@@ -5,6 +5,7 @@ import { createCombatState, executeAbility, executeMove } from './resolver';
 import { advanceTurnClock, endActiveTurn } from './turnClock';
 import { getEffectiveSpeed, getEffectiveArmor, getEffectiveWard } from './effectiveVitals';
 import { MockDiceRoller } from './dice';
+import { resolveDamage } from './damageEngine';
 import {
   MOMENTUM,
   UNYIELDING,
@@ -258,4 +259,68 @@ describe('Phase 1.3: Passive Trait Evaluation Pipeline', () => {
       expect(heroCu.hexesMovedThisTurn).toBe(0);
     });
   });
+
+  describe('Target Armor Passive Evaluation', () => {
+    const HIGHWAY_TOLL_MOCK = {
+      id: 'highway_toll_mock',
+      name: 'Highway Toll Mock',
+      description: '+2 flat physical damage vs targets with Armor >= 1',
+      hook: 'ALWAYS' as const,
+      targetArmorBonus: {
+        minArmor: 1,
+        flatDamageBonus: 2,
+        damageTypeFilter: 'PHYSICAL' as const
+      }
+    };
+
+    it('adds flat damage bonus when target effective armor is at or above minArmor', () => {
+      const actorCu = createTestCombatUnit([HIGHWAY_TOLL_MOCK]);
+      const targetCu = createTestCombatUnit();
+      // Give target 1 Armor
+      targetCu.activeModifiers.push({ stat: 'armor', value: 1, durationTurns: 2 });
+
+      const mockDice = new MockDiceRoller({ damageRolls: [4] });
+      // STRIKE: 1d6 + Force (0 Force). Rolled 4 + 2 (Highway Toll) = 6 raw.
+      // Mitigation: 1 Armor. Damage dealt: 6 - 1 = 5.
+      const result = resolveDamage('SOLID_HIT', STRIKE, actorCu, targetCu, mockDice);
+
+      expect(result.rawDamage).toBe(6);
+      expect(result.mitigation).toBe(1);
+      expect(result.damageDealt).toBe(5);
+      expect(result.damageBreakdown).toContain('+2');
+    });
+
+    it('does not add bonus damage when target effective armor is below minArmor', () => {
+      const actorCu = createTestCombatUnit([HIGHWAY_TOLL_MOCK]);
+      const targetCu = createTestCombatUnit(); // 0 Armor
+
+      const mockDice = new MockDiceRoller({ damageRolls: [4] });
+      // STRIKE: 1d6 + Force (0 Force). Rolled 4. 0 Armor.
+      // Damage dealt: 4.
+      const result = resolveDamage('SOLID_HIT', STRIKE, actorCu, targetCu, mockDice);
+
+      expect(result.rawDamage).toBe(4);
+      expect(result.mitigation).toBe(0);
+      expect(result.damageDealt).toBe(4);
+    });
+
+    it('respects damageTypeFilter when specified', () => {
+      const actorCu = createTestCombatUnit([HIGHWAY_TOLL_MOCK]);
+      const targetCu = createTestCombatUnit();
+      targetCu.activeModifiers.push({ stat: 'armor', value: 2, durationTurns: 2 });
+
+      const magicalAbility = {
+        ...STRIKE,
+        id: 'magic_test',
+        damageType: 'MAGICAL' as const
+      };
+
+      const mockDice = new MockDiceRoller({ damageRolls: [4] });
+      const result = resolveDamage('SOLID_HIT', magicalAbility, actorCu, targetCu, mockDice);
+
+      // HIGHWAY_TOLL_MOCK filters to PHYSICAL, so magical ability should not gain bonus
+      expect(result.rawDamage).toBe(4);
+    });
+  });
 });
+

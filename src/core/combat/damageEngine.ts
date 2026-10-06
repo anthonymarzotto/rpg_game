@@ -48,6 +48,23 @@ export function resolveDamage(
     }
   }
 
+  // Check target armor threshold passives (e.g. Highway Toll +2 flat damage against armored targets)
+  if (actorCu.passives) {
+    const targetArmor = getEffectiveArmor(targetCu);
+    for (const passive of actorCu.passives) {
+      if (passive.targetArmorBonus) {
+        if (targetArmor >= passive.targetArmorBonus.minArmor) {
+          if (
+            !passive.targetArmorBonus.damageTypeFilter ||
+            passive.targetArmorBonus.damageTypeFilter === ability.damageType
+          ) {
+            flatBonus += passive.targetArmorBonus.flatDamageBonus;
+          }
+        }
+      }
+    }
+  }
+
   if (hitOutcome === 'MISS' || (!damageProfile && flatBonus === 0)) {
     return {
       rawDamage: 0,

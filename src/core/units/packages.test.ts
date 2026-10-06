@@ -8,6 +8,7 @@ import {
   SORCERER_PACKAGE,
   CAVALIER_PACKAGE,
   BERSERKER_PACKAGE,
+  HIGHWAYMAN_PACKAGE,
   MOMENTUM,
   getClassPackage,
   getAbilityById,
@@ -132,6 +133,7 @@ describe('Class Packages & Catalog Verification', () => {
     expect(getClassPackage('sorcerer')).toBe(SORCERER_PACKAGE);
     expect(getClassPackage('cavalier')).toBe(CAVALIER_PACKAGE);
     expect(getClassPackage('berserker')).toBe(BERSERKER_PACKAGE);
+    expect(getClassPackage('highwayman')).toBe(HIGHWAYMAN_PACKAGE);
     expect(getClassPackage('unknown')).toBeUndefined();
   });
 
@@ -150,5 +152,22 @@ describe('Class Packages & Catalog Verification', () => {
     expect(getAbilityById('reckless_cleave')).toBeDefined();
     expect(getAbilityById('ignite_rage')).toBeDefined();
     expect(getPassiveById('deathbound_fury')).toBeDefined();
+  });
+
+  it('correctly maps Highwayman abilities, passive, and profile', () => {
+    expect(HIGHWAYMAN_PACKAGE.classId).toBe('highwayman');
+    expect(HIGHWAYMAN_PACKAGE.signatureAbility.id).toBe('point_blank_buckshot');
+    expect(HIGHWAYMAN_PACKAGE.signatureAbility.apCost).toBe(2);
+    expect(HIGHWAYMAN_PACKAGE.signatureAbility.range).toBe(2);
+    expect(HIGHWAYMAN_PACKAGE.domainAbilities.map((a) => a.id)).toEqual(['stand_and_deliver', 'gallant_flourish']);
+    expect(HIGHWAYMAN_PACKAGE.passive.id).toBe('highway_toll');
+    expect(HIGHWAYMAN_PACKAGE.passive.targetArmorBonus?.minArmor).toBe(1);
+    expect(HIGHWAYMAN_PACKAGE.passive.targetArmorBonus?.flatDamageBonus).toBe(2);
+    expect(HIGHWAYMAN_PACKAGE.aiProfile).toBe('SKIRMISHER');
+
+    expect(getAbilityById('point_blank_buckshot')).toBeDefined();
+    expect(getAbilityById('stand_and_deliver')).toBeDefined();
+    expect(getAbilityById('gallant_flourish')).toBeDefined();
+    expect(getPassiveById('highway_toll')).toBeDefined();
   });
 });

@@ -38,6 +38,15 @@ export interface HealthThresholdEffect {
   readonly damageTypeFilter?: DamageType;
 }
 
+export interface TargetArmorBonusEffect {
+  /** Minimum target effective armor required to activate the bonus (e.g. 1) */
+  readonly minArmor: number;
+  /** Flat bonus damage added to attacks when target meets armor threshold */
+  readonly flatDamageBonus: number;
+  /** Optional filter constraint for damage type (e.g. only PHYSICAL attacks) */
+  readonly damageTypeFilter?: DamageType;
+}
+
 export interface PassiveTrait {
   readonly id: string;
   readonly name: string;
@@ -53,6 +62,8 @@ export interface PassiveTrait {
   readonly effect?: AbilityEffect;
   /** Conditional modifiers active when unit HP is at or below a certain threshold */
   readonly healthThreshold?: HealthThresholdEffect;
+  /** Conditional damage bonus active when target effective armor meets threshold */
+  readonly targetArmorBonus?: TargetArmorBonusEffect;
   /** Optional filter constraint for trigger (e.g. only on MAGICAL critical hits) */
   readonly triggerFilter?: {
     readonly damageType?: DamageType;

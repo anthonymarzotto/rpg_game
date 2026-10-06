@@ -86,13 +86,13 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 * **Passive**: `Deathbound Fury` (+2 flat damage to physical attacks and expands Critical Hit threshold to 19–20 when current HP <= 50% max HP).
 * **AI Profile**: `BRAWLER` (activates blood frenzy, engages high-density clusters).
 
-### 5.3. Highwayman Class Package (`src/data/packages/highwayman.ts`)
-* **Archetype**: `(1, 2, 0)` (Rogue/Fighter — Dominant Rogue) — Ambush enforcer & close-quarters skirmisher.
-* **Signature**: `Point-Blank Buckshot` (2 AP, frontal blast dealing heavy physical damage and pushing targets back 1 hex).
-* **Domain 1**: `Pistol Whip` (1 AP, close-range physical strike inflicting `CTB_DELAY` 30 gauge stagger).
-* **Domain 2**: `Smoke Grenade` (1 AP, grants self `STEALTH` and breaks enemy facing lock).
-* **Passive**: `Opportunist's Stride` (strikes executed from `FLANK` or `REAR` refund 1 Move).
-* **AI Profile**: `SKIRMISHER` (seeks flank/rear positions, uses smoke repositioning).
+### 5.3. Highwayman Class Package (`src/data/packages/highwayman.ts`) - [x] COMPLETED
+* **Archetype**: `(1, 2, 0)` (Rogue/Fighter — Dominant Rogue) — Debonair gentleman ambusher & range-controlling skirmisher.
+* **Signature**: `Point-Blank Buckshot` (2 AP, range 1–2, 1d8 + Finesse physical damage vs Evasion and knocks target back 1 hex with wall-slam collision risk).
+* **Domain 1**: `Stand and Deliver!` (1 AP, range 1–2 utility hold-up, inflicts 30 CTB initiative delay and -2 Armor on target for 2 turns).
+* **Domain 2**: `Gallant Flourish` (1 AP, range 1, 1d4 + Finesse physical damage vs Evasion and grants self +2 Evasion for 1 turn).
+* **Passive**: `Highway Toll` (+2 flat physical damage against targets with positive Armor > 0).
+* **AI Profile**: `SKIRMISHER` (proactively seeks Range 1–2, targets armored foes, creates spacing with Buckshot).
 
 ### 5.4. Warlock Class Package (`src/data/packages/warlock.ts`)
 * **Archetype**: `(1, 0, 2)` (Mage/Fighter — Dominant Mage) — Eldritch battlemage & soul drainer.

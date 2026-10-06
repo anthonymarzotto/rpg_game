@@ -308,10 +308,7 @@ function applyCombatEvents(state: CombatState, events: readonly CombatEvent[]): 
         }
       }
     } else if (event.type === 'CTB_DELAY') {
-      const cu = state.units.get(event.targetUnitId);
-      if (cu && !cu.isDefeated) {
-        cu.initiativeGauge = Math.max(0, cu.initiativeGauge - event.amount);
-      }
+      // Initiative gauge deduction is applied to targetCu in ctbDelayHandler during effect execution
     }
   }
 }
