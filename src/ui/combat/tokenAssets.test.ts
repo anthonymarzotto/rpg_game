@@ -126,6 +126,38 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       );
     });
 
+    it('resolves cavalier (01_human_male) to pixel idle rotation paths across all hex directions', () => {
+      const cavalier = createMockUnit({
+        gender: 'male',
+        race: 'human',
+        loadout: {
+          activeClassId: 'cavalier',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        }
+      });
+
+      expect(resolvePixelTokenBase(cavalier)).toBe('01_human_male');
+      expect(resolveTokenAssetPath(cavalier, HEX_DIRECTIONS.EAST)).toBe(
+        '/assets/tokens/pixel/01_human_male/Idle/rotations/east.png'
+      );
+      expect(resolveTokenAssetPath(cavalier, HEX_DIRECTIONS.NORTHEAST)).toBe(
+        '/assets/tokens/pixel/01_human_male/Idle/rotations/north-east.png'
+      );
+      expect(resolveTokenAssetPath(cavalier, HEX_DIRECTIONS.NORTHWEST)).toBe(
+        '/assets/tokens/pixel/01_human_male/Idle/rotations/north-west.png'
+      );
+      expect(resolveTokenAssetPath(cavalier, HEX_DIRECTIONS.WEST)).toBe(
+        '/assets/tokens/pixel/01_human_male/Idle/rotations/west.png'
+      );
+      expect(resolveTokenAssetPath(cavalier, HEX_DIRECTIONS.SOUTHWEST)).toBe(
+        '/assets/tokens/pixel/01_human_male/Idle/rotations/south-west.png'
+      );
+      expect(resolveTokenAssetPath(cavalier, HEX_DIRECTIONS.SOUTHEAST)).toBe(
+        '/assets/tokens/pixel/01_human_male/Idle/rotations/south-east.png'
+      );
+    });
+
     it('defaults to front-facing south.png when facing is omitted (UI portraits)', () => {
       const novice = createMockUnit();
       expect(resolveTokenAssetPath(novice)).toBe(

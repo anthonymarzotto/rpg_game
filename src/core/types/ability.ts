@@ -32,7 +32,9 @@ export type AbilityEffectType =
   | 'CONDITION'        // Applies a status condition (Poison, Burn, Challenged, Stealth)
   | 'SPELL_SCULPT'     // Primes pending ability modifier for next Mage spell
   | 'WILD_SURGE'       // Spontaneous arcane surges on critical hits
-  | 'STAT_MODIFIER';   // Applies stat modifier (e.g. Expose Weakness -2 Armor & -2 Evasion)
+  | 'STAT_MODIFIER'    // Applies stat modifier (e.g. Expose Weakness -2 Armor & -2 Evasion)
+  | 'RUSH_CHARGE'      // Rushes along straight line into melee contact with target
+  | 'PENETRATE_STEP';  // Advances through target to the rear hex if open
 
 export type EffectTargetScope = 'TARGET' | 'SELF' | 'ALLIES';
 export type EffectApplyCondition = 'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY';

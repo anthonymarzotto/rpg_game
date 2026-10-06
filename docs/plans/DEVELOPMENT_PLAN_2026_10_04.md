@@ -26,7 +26,7 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 5: TIER 3 HYBRID CLASS EXPANSION                      │
-│  - [ ] 5.1 Cavalier (2, 1, 0) kit & shock charge mechanics  │
+│  - [x] 5.1 Cavalier (2, 1, 0) kit & shock charge mechanics  │
 │  - [ ] 5.2 Berserker (2, 0, 1) kit & blood frenzy primers   │
 │  - [ ] 5.3 Highwayman (1, 2, 0) kit & skirmish ambush       │
 │  - [ ] 5.4 Warlock (1, 0, 2) kit & eldritch drain           │
@@ -70,12 +70,12 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 
 **Primary Goal**: Author the complete roster of 6 Tier 3 dual-archetype hybrid classes in the 100-class lattice (`CLASS_CATALOG`), leveraging our existing battle-tested mechanics (atomic effects, `POISON`, `BURN`, `STEALTH`, `CHALLENGED`, kinetic displacement, and CTB clock manipulation) without introducing unused or redundant status conditions. Each class is authored one at a time with its own dedicated package, active loadout, and passive mastery trait.
 
-### 5.1. Cavalier Class Package (`src/data/packages/cavalier.ts`)
-* **Archetype**: `(2, 1, 0)` (Fighter/Rogue — Dominant Fighter) — Mounted shock vanguard & line breaker.
-* **Signature**: `Lance Charge` (2 AP, straight-line charge dealing physical damage and pushing the target 1 hex with wall-slam collision risk).
-* **Domain 1**: `Trample` (1 AP, kinetic strike dealing physical damage and inflicting `CHALLENGED`).
-* **Domain 2**: `Rallying Pennant` (1 AP, friendly aura granting nearby allies Move and Armor boosts).
-* **Passive**: `Mounted Momentum` (moving 2+ hexes before attacking grants +2 to the Attack Roll).
+### 5.1. Cavalier Class Package (`src/data/packages/cavalier.ts`) - [x] COMPLETED
+* **Archetype**: `(2, 1, 0)` (Fighter/Rogue — Dominant Fighter) — Mounted shock vanguard, foppish duelist & line breaker.
+* **Signature**: `Lance Charge` (2 AP, straight-line 2–3 hex charge dealing 1d8 + Force physical damage and pushing the target 1 hex with wall-slam collision risk).
+* **Domain 1**: `Ride-Through` (1 AP, 1d4 + Finesse saber strike advancing through target into rear hex when clear).
+* **Domain 2**: `Flamboyant Flourish` (1 AP, aristocratic melee taunt inflicting `CHALLENGED` on target for 2 turns and granting self +2 Evasion for 1 turn).
+* **Passive**: `Impact Velocity` (+2 flat collision and wall-slam damage bonus caused by this unit).
 * **AI Profile**: `BRAWLER` (charges frontline, initiates wall-slams).
 
 ### 5.2. Berserker Class Package (`src/data/packages/berserker.ts`)

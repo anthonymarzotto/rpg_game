@@ -1,4 +1,4 @@
-import { HexCoord, hexDistance } from '../grid/hex';
+import { HexCoord, hexDistance, getHexLine } from '../grid/hex';
 import { Ability } from '../types/ability';
 import { CombatState, ValidationResult } from './types';
 import { getEffectiveMove } from './effectiveVitals';
@@ -156,6 +156,32 @@ export function canExecuteAbility(
     const dist = hexDistance(actorCoord, targetCoord);
     if (dist > effectiveRange) {
       return { valid: false, reason: `Target out of range (distance ${dist} > range ${effectiveRange}).` };
+    }
+
+    const isRush = effectiveAbility.effects?.some((e) => e.type === 'RUSH_CHARGE');
+    if (isRush) {
+      if (dist < 2) {
+        return { valid: false, reason: 'Lance Charge requires at least 2 hexes of charging distance.' };
+      }
+      const isStraightLine =
+        actorCoord.q === targetCoord.q ||
+        actorCoord.r === targetCoord.r ||
+        actorCoord.q + actorCoord.r === targetCoord.q + targetCoord.r;
+      if (!isStraightLine) {
+        return { valid: false, reason: 'Lance Charge must follow an unobstructed straight hex ray.' };
+      }
+      const line = getHexLine(actorCoord, targetCoord);
+      for (let i = 1; i < line.length - 1; i++) {
+        const hex = line[i];
+        const tile = state.arena.getTile(hex);
+        if (!tile || !tile.isWalkable) {
+          return { valid: false, reason: `Charge trajectory through (${hex.q}, ${hex.r}) is blocked.` };
+        }
+        const occupantId = state.arena.getUnitAt(hex);
+        if (occupantId && occupantId !== actorUnitId) {
+          return { valid: false, reason: `Charge trajectory is obstructed by a unit at (${hex.q}, ${hex.r}).` };
+        }
+      }
     }
 
     if (!state.arena.hasLineOfSight(actorCoord, targetCoord)) {

@@ -11,12 +11,14 @@ import { conditionHandler } from './conditionHandler';
 import { spellSculptHandler } from './spellSculptHandler';
 import { initiativeBoostHandler } from './initiativeBoostHandler';
 import { wildSurgeHandler } from './wildSurgeHandler';
+import { penetrateHandler } from './penetrateHandler';
 import { CombatEvent } from '../types';
 
 export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
   DAMAGE: damageHandler,
   KNOCKBACK: knockbackHandler,
   RETREAT_STEP: retreatHandler,
+  PENETRATE_STEP: penetrateHandler,
   SLOW: modifierHandler,
   ARMOR_BUFF: modifierHandler,
   WARD_BUFF: modifierHandler,

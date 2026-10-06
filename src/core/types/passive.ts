@@ -36,6 +36,8 @@ export interface PassiveTrait {
   readonly statModifiers?: Partial<DerivedCombatVitals>;
   /** Conditional roll modifiers (e.g. Momentum granting Advantage) */
   readonly rollModifier?: PassiveRollModifier;
+  /** Flat collision and wall-slam damage bonus applied when this unit causes a collision */
+  readonly collisionDamageBonus?: number;
   /** Pluggable effect payload executed when the trigger hook fires */
   readonly effect?: AbilityEffect;
   /** Optional filter constraint for trigger (e.g. only on MAGICAL critical hits) */

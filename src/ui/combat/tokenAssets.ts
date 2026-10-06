@@ -10,6 +10,7 @@ export type TokenAesthetic = 'pixel';
 export const AVAILABLE_PIXEL_TOKENS = new Set<string>([
   '000_human_male', // Novice
   '00_human_male',  // Warrior
+  '01_human_male',  // Cavalier
   '81_human_male',  // Thief
   '99_human_male',  // Wizard
   '02_human_male',  // Knight

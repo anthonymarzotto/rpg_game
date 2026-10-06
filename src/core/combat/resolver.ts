@@ -5,7 +5,8 @@ import {
   getHexesInRange,
   hexEquals,
   hexDistance,
-  getDirectionBetween
+  getDirectionBetween,
+  getHexLine
 } from '../grid/hex';
 import { Arena } from '../grid/arena';
 import { Ability } from '../types/ability';
@@ -488,6 +489,33 @@ export function executeAbility(
 
   // 2. Damaging Attack Resolution
   const targetCu = requireCombatUnit(state, target!.targetUnitId!);
+  const events: CombatEvent[] = [];
+  let attackOriginCoord = actorCoord;
+
+  // RUSH_CHARGE straight-line dash into contact
+  const rushEffect = effectiveAbility.effects?.find((e) => e.type === 'RUSH_CHARGE');
+  if (rushEffect) {
+    const actorPos = state.arena.getUnitPosition(actorUnitId);
+    const targetPos = state.arena.getUnitPosition(targetCu.unit.id);
+    if (actorPos && targetPos) {
+      const line = getHexLine(actorPos, targetPos);
+      if (line.length >= 3) {
+        const destHex = line[line.length - 2];
+        state.arena.setUnitPosition(actorUnitId, destHex);
+        attackOriginCoord = destHex;
+        const chargeDist = hexDistance(actorPos, destHex);
+        actorCu.hexesMovedThisTurn = (actorCu.hexesMovedThisTurn ?? 0) + chargeDist;
+        actorCu.facing = getDirectionBetween(destHex, targetPos);
+        events.push({
+          type: 'DISPLACEMENT',
+          unitId: actorUnitId,
+          fromCoord: actorPos,
+          toCoord: destHex,
+          kind: 'CHARGE'
+        });
+      }
+    }
+  }
 
   // Tactical condition evaluation (e.g. Sneak Attack)
   let rollAdvantage: RollAdvantage = 'NORMAL';
@@ -522,8 +550,6 @@ export function executeAbility(
     diceRoller,
     bonusDamageProfile
   );
-
-  const events: CombatEvent[] = [];
 
   // Primary Damage Event
   if (damageResult.damageDealt > 0) {
@@ -607,8 +633,8 @@ export function executeAbility(
   // When a unit is hit with an attack, their facing direction updates to face the attack
   if (rollResult.hitOutcome !== 'MISS' && !targetCu.isDefeated) {
     const finalTargetPos = state.arena.getUnitPosition(targetCu.unit.id);
-    if (finalTargetPos && actorCoord && !hexEquals(finalTargetPos, actorCoord)) {
-      targetCu.facing = getDirectionBetween(finalTargetPos, actorCoord);
+    if (finalTargetPos && attackOriginCoord && !hexEquals(finalTargetPos, attackOriginCoord)) {
+      targetCu.facing = getDirectionBetween(finalTargetPos, attackOriginCoord);
     }
   }
 
@@ -618,8 +644,8 @@ export function executeAbility(
       const secondaryCu = state.units.get(event.targetUnitId);
       if (secondaryCu && !secondaryCu.isDefeated) {
         const secPos = state.arena.getUnitPosition(secondaryCu.unit.id);
-        if (secPos && actorCoord && !hexEquals(secPos, actorCoord)) {
-          secondaryCu.facing = getDirectionBetween(secPos, actorCoord);
+        if (secPos && attackOriginCoord && !hexEquals(secPos, attackOriginCoord)) {
+          secondaryCu.facing = getDirectionBetween(secPos, attackOriginCoord);
         }
       }
     }

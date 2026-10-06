@@ -1,7 +1,7 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
 import { AbilityEffect } from '../../types/ability';
 import { CombatEvent } from '../types';
-import { getEffectiveArmor } from '../effectiveVitals';
+import { resolveCollisionDamage } from '../damageEngine';
 import { DISPLACEMENT_CONFIG } from '../../config/balance';
 import { hexEquals } from '../../grid/hex';
 
@@ -29,16 +29,7 @@ export const knockbackHandler: EffectHandler = {
     let wallSlamDamage: number | undefined;
 
     if (knockbackResult.isCollided) {
-      const targetArmor = getEffectiveArmor(targetCu);
-      const { ability } = ctx;
-      const attrKey: 'force' | 'finesse' | 'focus' =
-        ability?.attackModifierAttribute ??
-        (ability?.archetypeTag === 'MAGE' ? 'focus' : ability?.archetypeTag === 'ROGUE' ? 'finesse' : 'force');
-      const attrBonus = actorCu.unit.baseAttributes[attrKey] ?? 0;
-      wallSlamDamage = Math.max(
-        1,
-        DISPLACEMENT_CONFIG.wallSlamBaseDamage + attrBonus - targetArmor
-      );
+      wallSlamDamage = resolveCollisionDamage(actorCu, targetCu, ctx.ability);
 
       // If unit displaced at all before colliding, record displacement
       if (!hexEquals(targetCoord, knockbackResult.finalCoord)) {

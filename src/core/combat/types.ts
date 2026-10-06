@@ -14,7 +14,7 @@ export type CombatDamageReason =
   | 'STATUS_TICK'
   | 'ENVIRONMENT';
 
-export type DisplacementKind = 'KNOCKBACK' | 'RETREAT' | 'PULL' | 'TELEPORT';
+export type DisplacementKind = 'KNOCKBACK' | 'RETREAT' | 'PULL' | 'TELEPORT' | 'CHARGE';
 
 export type CollisionKind = 'WALL' | 'UNIT' | 'CLIFF' | 'VOID';
 

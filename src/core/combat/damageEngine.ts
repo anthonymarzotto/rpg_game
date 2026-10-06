@@ -3,7 +3,7 @@ import { CombatUnit, HitOutcome } from './types';
 import { getEffectiveArmor, getEffectiveWard } from './effectiveVitals';
 import { DiceRoller } from './dice';
 import { getAbilityModifier } from './attackRoll';
-import { COMBAT_RESOLUTION_CONFIG } from '../config/balance';
+import { COMBAT_RESOLUTION_CONFIG, DISPLACEMENT_CONFIG } from '../config/balance';
 
 export interface DamageResult {
   readonly rawDamage: number;
@@ -93,4 +93,30 @@ export function resolveDamage(
   const damageBreakdown = `${formulaPrefix || '0'}(${rollDetails})${modSign} - ${mitigation} ${mitigationType}${modifierSuffix} -> ${damageDealt}`;
 
   return { rawDamage, mitigation, damageDealt, damageBreakdown };
+}
+
+/**
+ * Calculates kinetic collision / wall-slam physical damage.
+ * Base wall slam damage + attribute bonus + passive collision bonus - target armor (minimum 1).
+ */
+export function resolveCollisionDamage(
+  actorCu: CombatUnit,
+  targetCu: CombatUnit,
+  ability?: Ability
+): number {
+  const targetArmor = getEffectiveArmor(targetCu);
+  const attrKey: 'force' | 'finesse' | 'focus' =
+    ability?.attackModifierAttribute ??
+    (ability?.archetypeTag === 'MAGE' ? 'focus' : ability?.archetypeTag === 'ROGUE' ? 'finesse' : 'force');
+  const attrBonus = actorCu.unit.baseAttributes[attrKey] ?? 0;
+
+  const passiveBonus = (actorCu.passives ?? []).reduce(
+    (sum, p) => sum + (p.collisionDamageBonus ?? 0),
+    0
+  );
+
+  return Math.max(
+    1,
+    DISPLACEMENT_CONFIG.wallSlamBaseDamage + attrBonus + passiveBonus - targetArmor
+  );
 }
