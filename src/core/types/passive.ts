@@ -5,7 +5,7 @@ import { AbilityEffect, DamageType } from './ability';
  * Trigger hook for passive traits. Kept minimal with 'ALWAYS' for now.
  * Can be expanded with conditional hooks (e.g. 'ON_HIT', 'ON_KILL') in future phases.
  */
-export type PassiveTriggerHook = 'ALWAYS' | 'BATTLE_START' | 'ON_MOVE' | 'ON_CRIT';
+export type PassiveTriggerHook = 'ALWAYS' | 'BATTLE_START' | 'ON_MOVE' | 'ON_CRIT' | 'ON_HIT';
 
 /**
  * Tactical conditions that can trigger passive roll modifiers during combat.

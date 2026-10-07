@@ -7,6 +7,7 @@ import { TriadAttributes } from './stats';
  */
 export type ModifiableAbilityProperty =
   | 'apCost'
+  | 'hpCost'
   | 'range'
   | 'aoeRadius'
   | 'archetypeTag'
@@ -55,6 +56,7 @@ export interface AbilityModifierPatches {
   /** Additive/subtractive numeric deltas */
   readonly deltas?: {
     apCost?: number;
+    hpCost?: number;
     range?: number;
     aoeRadius?: number;
     attackRoll?: number;

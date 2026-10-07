@@ -9,6 +9,8 @@ import {
   getEligibleDomainUnlocks,
   AstralShardId
 } from './harmonization';
+import { getEffectiveAbility } from '../combat/modifiers';
+import { STRIKE } from '../../data/packages';
 import { RECRUIT_BASE_VITALS } from '../config/balance';
 import { DerivedCombatVitals } from '../types/stats';
 import { Unit } from '../types/unit';
@@ -114,7 +116,7 @@ describe('harmonization domain engine', () => {
   });
 
   describe('ASTRAL_AUGMENT_SHARDS', () => {
-    it('registers all 17 canonical shards with expected categories and modifiers', () => {
+    it('registers all 26 canonical shards with expected categories and modifiers', () => {
       const shardIds: AstralShardId[] = [
         'starlight_lens',
         'force_shard',
@@ -132,8 +134,25 @@ describe('harmonization domain engine', () => {
         'confrontation_shard',
         'aegis_shard',
         'warding_shard',
-        'aether_shard'
+        'aether_shard',
+        // Cavalier shards
+        'trample_shard',
+        'flourish_shard',
+        'momentum_shard',
+        // Berserker shards
+        'cleave_shard',
+        'bloodbound_shard',
+        'fury_shard',
+        // Warlock shards
+        'carapace_shard',
+        'repelling_shard',
+        'hex_shard',
+        // Highwayman shards
+        'toll_shard',
+        'buckshot_shard',
+        'holdup_shard'
       ];
+      expect(shardIds).toHaveLength(29);
       for (const id of shardIds) {
         const shard = getShardById(id);
         expect(shard).toBeDefined();
@@ -176,6 +195,118 @@ describe('harmonization domain engine', () => {
       const shard = ASTRAL_AUGMENT_SHARDS.aether_shard;
       expect(shard.modifier.overrides?.damageType).toBe('MAGICAL');
       expect(shard.modifier.overrides?.defenseTarget).toBe('RESOLVE');
+    });
+
+    it('verifies Trample Shard (Cavalier) has PENETRATE_STEP effect', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.trample_shard;
+      expect(shard.category).toBe('GEOMETRY');
+      expect(shard.modifier.appendEffects?.[0].type).toBe('PENETRATE_STEP');
+      expect(shard.modifier.appendEffects?.[0].applyOn).toBe('HIT_OR_CRIT');
+    });
+
+    it('verifies Flourish Shard (Cavalier) has self Evasion buff', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.flourish_shard;
+      expect(shard.category).toBe('INFUSION');
+      expect(shard.modifier.appendEffects?.[0].type).toBe('STAT_MODIFIER');
+      expect(shard.modifier.appendEffects?.[0].targetScope).toBe('SELF');
+      expect(shard.modifier.appendEffects?.[0].statModifiers?.evasion).toBe(2);
+      expect(shard.modifier.appendEffects?.[0].durationTurns).toBe(1);
+    });
+
+    it('verifies Momentum Shard (Cavalier) has attackRoll delta and flatDamage patch', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.momentum_shard;
+      expect(shard.category).toBe('POWER');
+      expect(shard.modifier.deltas?.attackRoll).toBe(2);
+      expect(shard.modifier.effectPatches?.flatDamage).toBe(1);
+    });
+
+    it('verifies Cleave Shard (Berserker) has CLEAVE effect', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.cleave_shard;
+      expect(shard.category).toBe('GEOMETRY');
+      expect(shard.modifier.appendEffects?.[0].type).toBe('CLEAVE');
+      expect(shard.modifier.appendEffects?.[0].magnitude).toBe(1);
+    });
+
+    it('verifies Bloodbound Shard (Berserker) has hpCost delta, diceStep, and flatDamage patches', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.bloodbound_shard;
+      expect(shard.category).toBe('POWER');
+      expect(shard.modifier.deltas?.hpCost).toBe(2);
+      expect(shard.modifier.effectPatches?.diceStep).toBe(1);
+      expect(shard.modifier.effectPatches?.flatDamage).toBe(2);
+    });
+
+    it('verifies Fury Shard (Berserker) has diceCount patch and self Evasion penalty', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.fury_shard;
+      expect(shard.category).toBe('POWER');
+      expect(shard.modifier.effectPatches?.diceCount).toBe(1);
+      expect(shard.modifier.appendEffects?.[0].type).toBe('STAT_MODIFIER');
+      expect(shard.modifier.appendEffects?.[0].targetScope).toBe('SELF');
+      expect(shard.modifier.appendEffects?.[0].statModifiers?.evasion).toBe(-2);
+    });
+
+    it('verifies Carapace Shard (Warlock) has self Armor and Ward buffs', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.carapace_shard;
+      expect(shard.category).toBe('INFUSION');
+      expect(shard.modifier.appendEffects?.[0].type).toBe('STAT_MODIFIER');
+      expect(shard.modifier.appendEffects?.[0].targetScope).toBe('SELF');
+      expect(shard.modifier.appendEffects?.[0].statModifiers?.armor).toBe(1);
+      expect(shard.modifier.appendEffects?.[0].statModifiers?.ward).toBe(1);
+    });
+
+    it('verifies Repelling Shard (Warlock) has KNOCKBACK and CTB_DELAY effects', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.repelling_shard;
+      expect(shard.category).toBe('INFUSION');
+      expect(shard.modifier.appendEffects?.[0].type).toBe('KNOCKBACK');
+      expect(shard.modifier.appendEffects?.[1].type).toBe('CTB_DELAY');
+      expect(shard.modifier.appendEffects?.[1].magnitude).toBe(15);
+    });
+
+    it('verifies Hex Shard (Warlock) has target Ward and Resolve debuff', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.hex_shard;
+      expect(shard.category).toBe('INFUSION');
+      expect(shard.modifier.appendEffects?.[0].type).toBe('STAT_MODIFIER');
+      expect(shard.modifier.appendEffects?.[0].statModifiers?.ward).toBe(-2);
+      expect(shard.modifier.appendEffects?.[0].statModifiers?.resolve).toBe(-1);
+      expect(shard.modifier.appendEffects?.[0].durationTurns).toBe(2);
+    });
+
+    it('verifies socketing Bloodbound Shard and Momentum Shard modifies ability vitals correctly', () => {
+      const effective = getEffectiveAbility(STRIKE, [
+        ASTRAL_AUGMENT_SHARDS.bloodbound_shard.modifier,
+        ASTRAL_AUGMENT_SHARDS.momentum_shard.modifier
+      ]);
+      expect(effective.hpCost).toBe(2);
+      expect(effective.attackRollBonus).toBe(2);
+      const dmgEffect = effective.effects.find((e) => e.type === 'DAMAGE');
+      expect(dmgEffect).toBeDefined();
+      expect(dmgEffect?.damageProfile?.sides).toBe(8);
+      expect(dmgEffect?.flatDamage).toBe(3);
+    });
+
+    it('verifies Toll Shard (Highwayman) has target Armor debuff', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.toll_shard;
+      expect(shard.category).toBe('INFUSION');
+      expect(shard.modifier.appendEffects?.[0].type).toBe('STAT_MODIFIER');
+      expect(shard.modifier.appendEffects?.[0].statModifiers?.armor).toBe(-2);
+      expect(shard.modifier.appendEffects?.[0].durationTurns).toBe(2);
+    });
+
+    it('verifies Buckshot Shard (Highwayman) has KNOCKBACK and RETREAT_STEP recoil effects', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.buckshot_shard;
+      expect(shard.category).toBe('GEOMETRY');
+      expect(shard.modifier.appendEffects?.[0].type).toBe('KNOCKBACK');
+      expect(shard.modifier.appendEffects?.[0].magnitude).toBe(1);
+      expect(shard.modifier.appendEffects?.[1].type).toBe('RETREAT_STEP');
+    });
+
+    it('verifies Hold-Up Shard (Highwayman) has target CTB_DELAY and self INITIATIVE_BOOST tempo theft effects', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.holdup_shard;
+      expect(shard.category).toBe('INFUSION');
+      expect(shard.modifier.appendEffects?.[0].type).toBe('CTB_DELAY');
+      expect(shard.modifier.appendEffects?.[0].magnitude).toBe(15);
+      expect(shard.modifier.appendEffects?.[1].type).toBe('INITIATIVE_BOOST');
+      expect(shard.modifier.appendEffects?.[1].magnitude).toBe(10);
+      expect(shard.modifier.appendEffects?.[1].targetScope).toBe('SELF');
     });
   });
 

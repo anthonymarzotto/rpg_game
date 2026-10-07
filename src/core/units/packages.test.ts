@@ -9,6 +9,7 @@ import {
   CAVALIER_PACKAGE,
   BERSERKER_PACKAGE,
   HIGHWAYMAN_PACKAGE,
+  WARLOCK_PACKAGE,
   MOMENTUM,
   getClassPackage,
   getAbilityById,
@@ -169,5 +170,25 @@ describe('Class Packages & Catalog Verification', () => {
     expect(getAbilityById('stand_and_deliver')).toBeDefined();
     expect(getAbilityById('gallant_flourish')).toBeDefined();
     expect(getPassiveById('highway_toll')).toBeDefined();
+  });
+
+  it('correctly maps Warlock abilities, passive, and profile', () => {
+    expect(WARLOCK_PACKAGE.classId).toBe('warlock');
+    expect(WARLOCK_PACKAGE.signatureAbility.id).toBe('eldritch_blast');
+    expect(WARLOCK_PACKAGE.signatureAbility.apCost).toBe(2);
+    expect(WARLOCK_PACKAGE.signatureAbility.range).toBe(3);
+    expect(WARLOCK_PACKAGE.domainAbilities.map((a) => a.id)).toEqual(['pact_blade', 'hellfire_brand']);
+    expect(WARLOCK_PACKAGE.passive.id).toBe('soul_carapace');
+    expect(WARLOCK_PACKAGE.passive.hook).toBe('ON_HIT');
+    expect(WARLOCK_PACKAGE.passive.triggerFilter?.damageType).toBe('MAGICAL');
+    expect(WARLOCK_PACKAGE.passive.effect?.type).toBe('STAT_MODIFIER');
+    expect(WARLOCK_PACKAGE.passive.effect?.targetScope).toBe('SELF');
+    expect(WARLOCK_PACKAGE.passive.effect?.statModifiers).toEqual({ armor: 1, ward: 1 });
+    expect(WARLOCK_PACKAGE.aiProfile).toBe('SNIPER');
+
+    expect(getAbilityById('eldritch_blast')).toBeDefined();
+    expect(getAbilityById('pact_blade')).toBeDefined();
+    expect(getAbilityById('hellfire_brand')).toBeDefined();
+    expect(getPassiveById('soul_carapace')).toBeDefined();
   });
 });

@@ -28,8 +28,8 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 │ PHASE 5: TIER 3 HYBRID CLASS EXPANSION                      │
 │  - [x] 5.1 Cavalier (2, 1, 0) kit & shock charge mechanics  │
 │  - [x] 5.2 Berserker (2, 0, 1) kit & blood frenzy primers   │
-│  - [ ] 5.3 Highwayman (1, 2, 0) kit & skirmish ambush       │
-│  - [ ] 5.4 Warlock (1, 0, 2) kit & eldritch drain           │
+│  - [x] 5.3 Highwayman (1, 2, 0) kit & skirmish ambush       │
+│  - [x] 5.4 Warlock (1, 0, 2) kit & eldritch drain           │
 │  - [ ] 5.5 Cat-burglar (0, 2, 1) kit & stealth infiltration │
 │  - [ ] 5.6 Witch (0, 1, 2) kit & hex sabotage               │
 │  - [ ] 5.7 Hybrid AI profiles & primer heuristics           │
@@ -94,13 +94,13 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 * **Passive**: `Highway Toll` (+2 flat physical damage against targets with positive Armor > 0).
 * **AI Profile**: `SKIRMISHER` (proactively seeks Range 1–2, targets armored foes, creates spacing with Buckshot).
 
-### 5.4. Warlock Class Package (`src/data/packages/warlock.ts`)
-* **Archetype**: `(1, 0, 2)` (Mage/Fighter — Dominant Mage) — Eldritch battlemage & soul drainer.
-* **Signature**: `Eldritch Blast` (2 AP, long-range beam dealing magical damage and pushing target 1 hex).
-* **Domain 1**: `Life Tap` (1 AP, siphons vitality, dealing magical damage and healing self for half mitigated damage).
-* **Domain 2**: `Hellfire Branding` (1 AP, marks target with demonic flames, inflicting `BURN` DoT).
-* **Passive**: `Dark Pact` (defeating an enemy restores 1 AP or grants +20 CTB gauge).
-* **AI Profile**: `SNIPER` (maintains range, snipes with eldritch blast, drains threatened targets).
+### 5.4. Warlock Class Package (`src/data/packages/warlock.ts`) - [x] COMPLETED
+* **Archetype**: `(1, 0, 2)` (Mage/Fighter — Dominant Mage) — Eldritch battlemage & soul brander.
+* **Signature**: `Eldritch Blast` (2 AP, range 3, 1d8 + Focus magical damage vs Resolve and knocks target back 1 hex with wall-slam collision risk).
+* **Domain 1**: `Pact Blade` (1 AP, range 1, 1d6 + Focus magical damage vs Resolve, bypassing physical Armor).
+* **Domain 2**: `Hellfire Brand` (1 AP, range 2, 1d4 + Focus magical damage vs Resolve and inflicts `BURN` DoT [2 dmg/turn for 2 turns]).
+* **Passive**: `Soul Carapace` (landing a magical attack grants self +1 Armor and +1 Ward for 1 turn).
+* **AI Profile**: `SNIPER` (hovers at range 2–3, repels with eldritch blast, punishes close combat with pact blade).
 
 ### 5.5. Cat-burglar Class Package (`src/data/packages/catBurglar.ts`)
 * **Archetype**: `(0, 2, 1)` (Rogue/Mage — Dominant Rogue) — Shadow infiltrator & arcane trickster.

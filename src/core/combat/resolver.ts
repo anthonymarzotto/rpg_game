@@ -15,7 +15,8 @@ import {
   CombatUnit,
   AbilityResolution,
   CombatEvent,
-  EncounterObjective
+  EncounterObjective,
+  HitOutcome
 } from './types';
 import { canMove, canExecuteAbility } from './validator';
 import { getEffectiveAbility } from './modifiers';
@@ -70,6 +71,7 @@ export interface PassiveTriggerContext {
   targetCoord?: HexCoord;
   ability?: Ability;
   diceRoller?: DiceRoller;
+  hitOutcome?: HitOutcome;
 }
 
 /**
@@ -99,10 +101,15 @@ export function triggerPassiveHook(
     if (passive.effect) {
       const handler = defaultEffectRegistry.get(passive.effect.type);
       if (handler) {
+        let effectTargetCu = extra?.targetCu ?? actorCu;
+        if (passive.effect.targetScope === 'SELF') {
+          effectTargetCu = actorCu;
+        }
+
         const ctx: EffectContext = {
           state,
           actorCu,
-          targetCu: extra?.targetCu ?? actorCu,
+          targetCu: effectTargetCu,
           targetCoord: extra?.targetCoord,
           ability: extra?.ability ?? ({
             id: passive.id,
@@ -115,7 +122,7 @@ export function triggerPassiveHook(
             defenseTarget: 'NONE',
             damageType: 'NONE'
           } as Ability),
-          hitOutcome: 'SOLID_HIT',
+          hitOutcome: extra?.hitOutcome ?? 'SOLID_HIT',
           diceRoller
         };
 
@@ -623,12 +630,24 @@ export function executeAbility(
 
   events.push(...effectResult.events);
 
+  // Trigger ON_HIT passives (e.g. Soul Carapace) on successful hits
+  if (rollResult.hitOutcome !== 'MISS') {
+    const hitEvents = triggerPassiveHook(state, actorCu, 'ON_HIT', {
+      targetCu,
+      ability: effectiveAbility,
+      diceRoller,
+      hitOutcome: rollResult.hitOutcome
+    });
+    events.push(...hitEvents);
+  }
+
   // Trigger ON_CRIT passives (e.g. Wild Surge) on critical hits
   if (rollResult.hitOutcome === 'CRITICAL_HIT') {
     const critEvents = triggerPassiveHook(state, actorCu, 'ON_CRIT', {
       targetCu,
       ability: effectiveAbility,
-      diceRoller
+      diceRoller,
+      hitOutcome: rollResult.hitOutcome
     });
     events.push(...critEvents);
   }

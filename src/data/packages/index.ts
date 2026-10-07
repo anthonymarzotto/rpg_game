@@ -14,6 +14,7 @@ import { SORCERER_PACKAGE } from './sorcerer';
 import { CAVALIER_PACKAGE } from './cavalier';
 import { BERSERKER_PACKAGE } from './berserker';
 import { HIGHWAYMAN_PACKAGE } from './highwayman';
+import { WARLOCK_PACKAGE } from './warlock';
 
 export * from './novice';
 export * from './warrior';
@@ -25,6 +26,7 @@ export * from './sorcerer';
 export * from './cavalier';
 export * from './berserker';
 export * from './highwayman';
+export * from './warlock';
 
 export const CLASS_PACKAGES: Readonly<Record<string, ClassPackage>> = {
   warrior: WARRIOR_PACKAGE,
@@ -35,7 +37,8 @@ export const CLASS_PACKAGES: Readonly<Record<string, ClassPackage>> = {
   sorcerer: SORCERER_PACKAGE,
   cavalier: CAVALIER_PACKAGE,
   berserker: BERSERKER_PACKAGE,
-  highwayman: HIGHWAYMAN_PACKAGE
+  highwayman: HIGHWAYMAN_PACKAGE,
+  warlock: WARLOCK_PACKAGE
 };
 
 /**

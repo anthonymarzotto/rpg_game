@@ -139,7 +139,19 @@ export type AstralShardId =
   | 'mire_shard'
   | 'confrontation_shard'
   | 'aegis_shard'
-  | 'warding_shard';
+  | 'warding_shard'
+  | 'trample_shard'
+  | 'flourish_shard'
+  | 'momentum_shard'
+  | 'cleave_shard'
+  | 'bloodbound_shard'
+  | 'fury_shard'
+  | 'carapace_shard'
+  | 'repelling_shard'
+  | 'hex_shard'
+  | 'toll_shard'
+  | 'buckshot_shard'
+  | 'holdup_shard';
 
 export interface AstralAugmentShard {
   readonly id: AstralShardId;
@@ -460,6 +472,275 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
         damageType: 'MAGICAL',
         defenseTarget: 'RESOLVE'
       }
+    }
+  },
+  trample_shard: {
+    id: 'trample_shard',
+    name: 'Trample Shard',
+    category: 'GEOMETRY',
+    description: 'Grants penetrating charge (advances through target to the rear hex on hit/crit)',
+    icon: '🏇',
+    modifier: {
+      id: 'shard_trample_shard',
+      name: 'Trample Shard',
+      isPermanent: true,
+      appendEffects: [
+        {
+          type: 'PENETRATE_STEP',
+          applyOn: 'HIT_OR_CRIT'
+        }
+      ]
+    }
+  },
+  flourish_shard: {
+    id: 'flourish_shard',
+    name: 'Flourish Shard',
+    category: 'INFUSION',
+    description: 'Grants evasive flair (+2 Evasion to self for 1 turn on hit/crit)',
+    icon: '🪶',
+    modifier: {
+      id: 'shard_flourish_shard',
+      name: 'Flourish Shard',
+      isPermanent: true,
+      appendEffects: [
+        {
+          type: 'STAT_MODIFIER',
+          magnitude: 2,
+          durationTurns: 1,
+          targetScope: 'SELF',
+          statModifiers: {
+            evasion: 2
+          },
+          applyOn: 'HIT_OR_CRIT'
+        }
+      ]
+    }
+  },
+  momentum_shard: {
+    id: 'momentum_shard',
+    name: 'Momentum Shard',
+    category: 'POWER',
+    description: 'Builds aggressive momentum (+2 Attack Roll and +1 flat damage to damage effects)',
+    icon: '⚡',
+    modifier: {
+      id: 'shard_momentum_shard',
+      name: 'Momentum Shard',
+      isPermanent: true,
+      deltas: {
+        attackRoll: 2
+      },
+      effectPatches: {
+        flatDamage: 1
+      }
+    }
+  },
+  cleave_shard: {
+    id: 'cleave_shard',
+    name: 'Cleave Shard',
+    category: 'GEOMETRY',
+    description: 'Infuses sweeping fury (deals 1 splash damage to adjacent frontal foes on hit/crit)',
+    icon: '🪓',
+    modifier: {
+      id: 'shard_cleave_shard',
+      name: 'Cleave Shard',
+      isPermanent: true,
+      appendEffects: [
+        {
+          type: 'CLEAVE',
+          magnitude: 1,
+          applyOn: 'HIT_OR_CRIT'
+        }
+      ]
+    }
+  },
+  bloodbound_shard: {
+    id: 'bloodbound_shard',
+    name: 'Bloodbound Shard',
+    category: 'POWER',
+    description: 'Sacrifices vitality for brutality (+2 HP cost for +1 damage die tier and +2 flat damage)',
+    icon: '🩸',
+    modifier: {
+      id: 'shard_bloodbound_shard',
+      name: 'Bloodbound Shard',
+      isPermanent: true,
+      deltas: {
+        hpCost: 2
+      },
+      effectPatches: {
+        diceStep: 1,
+        flatDamage: 2
+      }
+    }
+  },
+  fury_shard: {
+    id: 'fury_shard',
+    name: 'Fury Shard',
+    category: 'POWER',
+    description: 'Reckless onslaught (+1 damage die count, but reduces self Evasion by -2 for 1 turn on hit/crit)',
+    icon: '💀',
+    modifier: {
+      id: 'shard_fury_shard',
+      name: 'Fury Shard',
+      isPermanent: true,
+      effectPatches: {
+        diceCount: 1
+      },
+      appendEffects: [
+        {
+          type: 'STAT_MODIFIER',
+          magnitude: 2,
+          durationTurns: 1,
+          targetScope: 'SELF',
+          statModifiers: {
+            evasion: -2
+          },
+          applyOn: 'HIT_OR_CRIT'
+        }
+      ]
+    }
+  },
+  carapace_shard: {
+    id: 'carapace_shard',
+    name: 'Carapace Shard',
+    category: 'INFUSION',
+    description: 'Absorbs residual soul energy (+1 Armor and +1 Ward to self for 1 turn on hit/crit)',
+    icon: '🛡️',
+    modifier: {
+      id: 'shard_carapace_shard',
+      name: 'Carapace Shard',
+      isPermanent: true,
+      appendEffects: [
+        {
+          type: 'STAT_MODIFIER',
+          magnitude: 1,
+          durationTurns: 1,
+          targetScope: 'SELF',
+          statModifiers: {
+            armor: 1,
+            ward: 1
+          },
+          applyOn: 'HIT_OR_CRIT'
+        }
+      ]
+    }
+  },
+  repelling_shard: {
+    id: 'repelling_shard',
+    name: 'Repelling Shard',
+    category: 'INFUSION',
+    description: 'Infuses repelling force (pushes target 1 hex and delays CTB by 15 ticks on hit/crit)',
+    icon: '🌀',
+    modifier: {
+      id: 'shard_repelling_shard',
+      name: 'Repelling Shard',
+      isPermanent: true,
+      appendEffects: [
+        {
+          type: 'KNOCKBACK',
+          magnitude: 1,
+          applyOn: 'HIT_OR_CRIT'
+        },
+        {
+          type: 'CTB_DELAY',
+          magnitude: 15,
+          applyOn: 'HIT_OR_CRIT'
+        }
+      ]
+    }
+  },
+  hex_shard: {
+    id: 'hex_shard',
+    name: 'Hex Shard',
+    category: 'INFUSION',
+    description: 'Afflicts target defenses (-2 Ward and -1 Resolve for 2 turns on hit/crit)',
+    icon: '👁️',
+    modifier: {
+      id: 'shard_hex_shard',
+      name: 'Hex Shard',
+      isPermanent: true,
+      appendEffects: [
+        {
+          type: 'STAT_MODIFIER',
+          magnitude: 2,
+          durationTurns: 2,
+          statModifiers: {
+            ward: -2,
+            resolve: -1
+          },
+          applyOn: 'HIT_OR_CRIT'
+        }
+      ]
+    }
+  },
+  toll_shard: {
+    id: 'toll_shard',
+    name: 'Toll Shard',
+    category: 'INFUSION',
+    description: 'Extorts target protection (-2 Armor for 2 turns on hit/crit)',
+    icon: '🪙',
+    modifier: {
+      id: 'shard_toll_shard',
+      name: 'Toll Shard',
+      isPermanent: true,
+      appendEffects: [
+        {
+          type: 'STAT_MODIFIER',
+          magnitude: 2,
+          durationTurns: 2,
+          statModifiers: {
+            armor: -2
+          },
+          applyOn: 'HIT_OR_CRIT'
+        }
+      ]
+    }
+  },
+  buckshot_shard: {
+    id: 'buckshot_shard',
+    name: 'Buckshot Shard',
+    category: 'GEOMETRY',
+    description: 'Point-blank blast recoil (pushes target 1 hex and user steps back 1 hex on hit/crit)',
+    icon: '💥',
+    modifier: {
+      id: 'shard_buckshot_shard',
+      name: 'Buckshot Shard',
+      isPermanent: true,
+      appendEffects: [
+        {
+          type: 'KNOCKBACK',
+          magnitude: 1,
+          applyOn: 'HIT_OR_CRIT'
+        },
+        {
+          type: 'RETREAT_STEP',
+          applyOn: 'HIT_OR_CRIT'
+        }
+      ]
+    }
+  },
+  holdup_shard: {
+    id: 'holdup_shard',
+    name: 'Hold-Up Shard',
+    category: 'INFUSION',
+    description: 'Hijacks tempo (delays target CTB by 15 ticks and boosts user CTB by 10 ticks on hit/crit)',
+    icon: '🎭',
+    modifier: {
+      id: 'shard_holdup_shard',
+      name: 'Hold-Up Shard',
+      isPermanent: true,
+      appendEffects: [
+        {
+          type: 'CTB_DELAY',
+          magnitude: 15,
+          applyOn: 'HIT_OR_CRIT'
+        },
+        {
+          type: 'INITIATIVE_BOOST',
+          magnitude: 10,
+          targetScope: 'SELF',
+          applyOn: 'HIT_OR_CRIT'
+        }
+      ]
     }
   }
 };

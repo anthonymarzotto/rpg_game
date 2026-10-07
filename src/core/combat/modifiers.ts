@@ -72,6 +72,7 @@ export function getEffectiveAbility(
   }
 
   let apCost = baseAbility.apCost;
+  let hpCost = baseAbility.hpCost;
   let range = baseAbility.range;
   let aoeRadius = baseAbility.aoeRadius ?? 0;
   let archetypeTag = baseAbility.archetypeTag;
@@ -155,6 +156,18 @@ export function getEffectiveAbility(
           sourceName: mod.name,
           sourceId: mod.id,
           changeLabel: `${sign} AP`
+        });
+      }
+
+      if (mod.deltas.hpCost !== undefined && mod.deltas.hpCost !== 0) {
+        const delta = mod.deltas.hpCost;
+        hpCost = Math.max(0, (hpCost ?? 0) + delta);
+        const sign = delta > 0 ? `+${delta}` : `${delta}`;
+        attributions.push({
+          property: 'hpCost',
+          sourceName: mod.name,
+          sourceId: mod.id,
+          changeLabel: `${sign} HP Cost`
         });
       }
 
@@ -275,6 +288,7 @@ export function getEffectiveAbility(
   return {
     ...baseAbility,
     apCost,
+    hpCost: hpCost !== undefined && hpCost > 0 ? hpCost : undefined,
     range,
     aoeRadius: aoeRadius > 0 ? aoeRadius : undefined,
     archetypeTag,

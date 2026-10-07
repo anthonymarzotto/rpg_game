@@ -40,7 +40,7 @@ export const modifierHandler: EffectHandler = {
       };
       logDetail = ` 🔮 [Ward Buff: +${mag} Ward for ${effect.durationTurns ?? 1} turn(s)]`;
     } else if (effect.type === 'STAT_MODIFIER' && effect.statModifiers) {
-      targetUnitId = targetCu?.unit.id ?? actorCu.unit.id;
+      targetUnitId = effect.targetScope === 'SELF' ? actorCu.unit.id : (targetCu?.unit.id ?? actorCu.unit.id);
       const durationTurns = effect.durationTurns ?? 1;
       const events: CombatEvent[] = [];
       const parts: string[] = [];
