@@ -30,10 +30,10 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 │  - [x] 5.2 Berserker (2, 0, 1) kit & blood frenzy primers   │
 │  - [x] 5.3 Highwayman (1, 2, 0) kit & skirmish ambush       │
 │  - [x] 5.4 Warlock (1, 0, 2) kit & eldritch drain           │
-│  - [ ] 5.5 Cat-burglar (0, 2, 1) kit & stealth infiltration │
-│  - [ ] 5.6 Witch (0, 1, 2) kit & hex sabotage               │
-│  - [ ] 5.7 Hybrid AI profiles & primer heuristics           │
-│  - [ ] 5.8 Campaign encounter budget & token mapping        │
+│  - [ ] 5.5 Witch (0, 1, 2) kit & hex sabotage               │
+│  - [ ] 5.6 Hybrid AI profiles & primer heuristics           │
+│  - [ ] 5.7 Campaign encounter budget & token mapping        │
+│  - [*] (Cat-burglar moved to Phase 6b for elevation)        │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
@@ -44,6 +44,13 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 │  - [ ] 6.3 Vertical movement, climbing & ledge drop-downs   │
 │  - [ ] 6.4 Plunging knockback & fall impact damage          │
 │  - [ ] 6.5 Isometric SVG height shading & elevation steps   │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│ PHASE 6b: CAT-BURGLAR & ELEVATION INFILTRATION              │
+│  - [ ] 6b.1 Cat-burglar (0, 2, 1) kit & second-story vault  │
+│  - [ ] 6b.2 Vertical infiltration AI heuristics             │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
@@ -102,15 +109,8 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 * **Passive**: `Soul Carapace` (landing a magical attack grants self +1 Armor and +1 Ward for 1 turn).
 * **AI Profile**: `SNIPER` (hovers at range 2–3, repels with eldritch blast, punishes close combat with pact blade).
 
-### 5.5. Cat-burglar Class Package (`src/data/packages/catBurglar.ts`)
-* **Archetype**: `(0, 2, 1)` (Rogue/Mage — Dominant Rogue) — Shadow infiltrator & arcane trickster.
-* **Signature**: `Shadow Meld` (1 AP, enters `STEALTH` and gains +1 Move).
-* **Domain 1**: `Venomous Dagger` (1 AP, swift melee strike dealing physical damage and applying `POISON` DoT).
-* **Domain 2**: `Flash Powder` (1 AP, bursts blinding dust, pushing adjacent enemies back 1 hex and resetting facing).
-* **Passive**: `Quiet Hands` (strikes originating from `STEALTH` ignore target Armor).
-* **AI Profile**: `SKIRMISHER` (stealth infiltrates high-value targets, executes armor-piercing strikes).
-
-### 5.6. Witch Class Package (`src/data/packages/witch.ts`)
+### 5.5. Witch Class Package (`src/data/packages/witch.ts`)
+*(Note: Cat-burglar class package deferred to Phase 6b to leverage verticality & dynamic elevation mechanics).*
 * **Archetype**: `(0, 1, 2)` (Mage/Rogue — Dominant Mage) — Arcane saboteur & occult hexer.
 * **Signature**: `Baleful Hex` (1 AP, curses target with `POISON` DoT and CTB gauge delay).
 * **Domain 1**: `Blight Bolt` (2 AP, ranged arcane missile dealing magical damage with bonus power if target has an active condition).
@@ -118,19 +118,18 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 * **Passive**: `Misfortune Aura` (adjacent enemies roll with -2 to defensive contest rolls).
 * **AI Profile**: `SUPPORT` (debuffs priority targets with hexes, controls combat tempo).
 
-### 5.7. Hybrid AI Profiles & Tactical Primer Heuristics (`src/core/ai/`)
+### 5.6. Hybrid AI Profiles & Tactical Primer Heuristics (`src/core/ai/`)
 * **Behavioral Profile Mapping**:
   * `cavalier` -> `BRAWLER` (charges frontline, initiates wall-slams).
   * `berserker` -> `BRAWLER` (activates blood frenzy, engages high-density clusters).
   * `highwayman` -> `SKIRMISHER` (seeks flank/rear positions, uses smoke repositioning).
   * `warlock` -> `SNIPER` (maintains range, snipes with eldritch blast, drains threatened targets).
-  * `cat-burglar` -> `SKIRMISHER` (stealth infiltrates high-value targets, executes armor-piercing strikes).
   * `witch` -> `SUPPORT` (debuffs priority targets with hexes, controls combat tempo).
-* **Tactical Primer Heuristics**: Teach composite move-and-act evaluation to value self-buff primers (`Blood Frenzy`, `Shadow Meld`, `Rallying Pennant`) when follow-up AP is available.
+* **Tactical Primer Heuristics**: Teach composite move-and-act evaluation to value self-buff primers (`Blood Frenzy`, `Rallying Pennant`) when follow-up AP is available.
 
-### 5.8. Campaign Encounter Budget & Pixel Token Mapping (`src/core/campaign/`, `src/ui/combat/`)
+### 5.7. Campaign Encounter Budget & Pixel Token Mapping (`src/core/campaign/`, `src/ui/combat/`)
 * **Dynamic Threat Budgeting**: Update `encounterGenerator.ts` to spawn Tier 3 hybrid enemies at Stage 5+ with higher threat budgets (60–80 points).
-* **Token Asset Whitelisting**: Map unique pixel sprites from `characters_packed.png` for all 6 Tier 3 classes in `tokenAssets.ts` with dedicated unit cards and color badges.
+* **Token Asset Whitelisting**: Map unique pixel sprites from `characters_packed.png` for all active Tier 3 classes in `tokenAssets.ts` with dedicated unit cards and color badges.
 
 ---
 
@@ -165,6 +164,33 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 ### 6.5. Presentation & Rendering Tier (`src/ui/combat/HexGridSvg.tsx`)
 * **Layered Extrusions**: Render elevated hexes with faux-3D extruded prism side walls and darker drop shadows.
 * **Elevation Step Indicators**: Display subtle elevation contour badges (`+1`, `+2`) on hover and selection rings.
+
+---
+
+## Phase 6b: Cat-Burglar Class Package & Elevation Infiltration
+
+**Primary Goal**: Author the Tier 3 **Cat-burglar** `(0, 2, 1)` (Rogue/Mage — Dominant Rogue) class package (`src/data/packages/catBurglar.ts`), specifically designed to leverage Phase 6's verticality mechanics (wall climbing, ledge drop-downs, obstacle vaulting, and immunity to fall damage).
+
+* **Motivation for Phase 6b Timing**: The core fantasy of a second-story cat-burglar is an agile acrobat who scales heights, escapes being cornered, and steals tempo rather than dealing brute damage. Implementing this class after discrete elevation is in place allows the kit to naturally interact with cliffs ($\Delta h \ge +2$), rooftops, and wall boundaries.
+
+### Explored Kit Candidates:
+
+#### Option 1: "The Second-Story Acrobat" (Focus: Vaulting & Spatial Elusiveness)
+* **Signature**: `Rooftop Vault` (1 AP, Range 2 hex leap to an unoccupied walkable hex, ignoring intervening enemies, obstacles, and up to $\Delta h = +2$ elevation cliffs; grants self +2 Evasion for 1 turn).
+* **Domain 1**: `Pilfer` (1 AP, range 1, 1d4 + Finesse physical damage vs Evasion; siphons 20 CTB initiative ticks from target directly into the Burglar).
+* **Domain 2**: `Flash Powder` (1 AP, range 1 adjacent burst; forces targets to face away and inflicts -2 Attack Roll or -20 CTB Delay for 1 turn).
+* **Passive**: `Feline Grace` (Immune to Wall-Slam collision damage and Fall Impact Damage; grants +2 Evasion when adjacent to walls, obstacles, or when occupying higher elevation).
+* **AI Profile**: `SKIRMISHER` (seeks high-ground infiltration routes, siphons tempo from priority targets, and vaults away from frontline pressure).
+
+#### Option 2: "The Master Thief" (Focus: Audacious Heist & Slippery Getaways)
+* **Signature**: `Purloin` (1 AP, range 1, 1d4 + Finesse physical damage vs Evasion; siphons -2 Armor from target for 2 turns and grants +2 Evasion to Burglar for 1 turn).
+* **Domain 1**: `Slip the Net` (1 AP, range 2; drops decoy smoke, teleports 2 hexes, and grants `STEALTH` for 1 turn).
+* **Domain 2**: `Flash Powder` (1 AP, range 1; disorients adjacent foes, resetting facing and delaying CTB).
+* **Passive**: `Slippery Paws` (Immune to collision/fall damage; whenever an enemy attack results in a MISS or GRAZE against the Burglar, Burglar immediately gains +15 CTB ticks).
+* **AI Profile**: `SKIRMISHER`.
+
+### 6b.2. Vertical Infiltration AI Heuristics (`src/core/ai/`)
+* Teach skirmisher profile to seek rooftop perches, vault over frontline guards to reach isolated squishy targets, and deploy flash powder when threatened in melee.
 
 ---
 
