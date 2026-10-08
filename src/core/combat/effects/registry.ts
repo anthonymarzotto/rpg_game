@@ -31,6 +31,7 @@ export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
   CONDITION: conditionHandler,
   CONDITION_APPLIED: conditionHandler,
   FORCE_FACING: conditionHandler,
+  FORCE_FACING_AWAY: conditionHandler,
   SPELL_SCULPT: spellSculptHandler,
   WILD_SURGE: wildSurgeHandler,
   BLOOD_FRENZY: bloodFrenzyHandler

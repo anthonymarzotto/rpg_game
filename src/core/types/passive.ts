@@ -47,6 +47,15 @@ export interface TargetArmorBonusEffect {
   readonly damageTypeFilter?: DamageType;
 }
 
+export interface PassiveAuraEffect {
+  /** Effective radius in hexes for the aura */
+  readonly radius: number;
+  /** Whether the aura protects allies (and self) or affects enemies */
+  readonly targetScope: 'ALLIES' | 'ENEMIES';
+  /** Flat penalty applied to attack rolls made against units protected by this aura */
+  readonly attackRollPenalty?: number;
+}
+
 export interface PassiveTrait {
   readonly id: string;
   readonly name: string;
@@ -64,6 +73,8 @@ export interface PassiveTrait {
   readonly healthThreshold?: HealthThresholdEffect;
   /** Conditional damage bonus active when target effective armor meets threshold */
   readonly targetArmorBonus?: TargetArmorBonusEffect;
+  /** Target-centric or proximity-based aura active on the battlefield */
+  readonly aura?: PassiveAuraEffect;
   /** Optional filter constraint for trigger (e.g. only on MAGICAL critical hits) */
   readonly triggerFilter?: {
     readonly damageType?: DamageType;

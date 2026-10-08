@@ -30,7 +30,7 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 │  - [x] 5.2 Berserker (2, 0, 1) kit & blood frenzy primers   │
 │  - [x] 5.3 Highwayman (1, 2, 0) kit & skirmish ambush       │
 │  - [x] 5.4 Warlock (1, 0, 2) kit & eldritch drain           │
-│  - [ ] 5.5 Witch (0, 1, 2) kit & hex sabotage               │
+│  - [x] 5.5 Witch (0, 1, 2) kit & misfortune ward            │
 │  - [ ] 5.6 Hybrid AI profiles & primer heuristics           │
 │  - [ ] 5.7 Campaign encounter budget & token mapping        │
 │  - [*] (Cat-burglar moved to Phase 6b for elevation)        │
@@ -111,12 +111,12 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 
 ### 5.5. Witch Class Package (`src/data/packages/witch.ts`)
 *(Note: Cat-burglar class package deferred to Phase 6b to leverage verticality & dynamic elevation mechanics).*
-* **Archetype**: `(0, 1, 2)` (Mage/Rogue — Dominant Mage) — Arcane saboteur & occult hexer.
-* **Signature**: `Baleful Hex` (1 AP, curses target with `POISON` DoT and CTB gauge delay).
-* **Domain 1**: `Blight Bolt` (2 AP, ranged arcane missile dealing magical damage with bonus power if target has an active condition).
-* **Domain 2**: `Cackle & Fade` (1 AP, confuses target, forcing facing away and granting self `STEALTH`).
-* **Passive**: `Misfortune Aura` (adjacent enemies roll with -2 to defensive contest rolls).
-* **AI Profile**: `SUPPORT` (debuffs priority targets with hexes, controls combat tempo).
+* **Archetype**: `(0, 1, 2)` (Mage/Rogue — Dominant Mage) — Occult hexer, sympathetic saboteur & tempo controller.
+* **Signature**: `Baleful Hex` (1 AP, range 3, 1d4 + Focus magical damage vs Resolve; inflicts `POISON` DoT [2 dmg/turn for 2 turns] and 20 CTB gauge delay).
+* **Domain 1**: `Poppet Needle` (1 AP, range 3, 1d6 + Focus magical damage vs Resolve; pierces the effigy, forcing target facing 180° away and inflicting -2 Resolve for 2 turns).
+* **Domain 2**: `Witch's Talisman` (1 AP, range 2 on ally; grants target ally +25 CTB ticks and +2 Speed for 1 turn).
+* **Passive**: `Misfortune Ward` (Target-centric protective aura: attacks targeting allies or self within 2 hexes of the Witch suffer -2 to their Attack Roll; establishes the reusable target-proximity aura architecture for Shield Bearer and Cleric).
+* **AI Profile**: `SUPPORT` (prioritizes debuffing high-threat targets, controlling combat tempo, and buffing frontline allies with talisman).
 
 ### 5.6. Hybrid AI Profiles & Tactical Primer Heuristics (`src/core/ai/`)
 * **Behavioral Profile Mapping**:
@@ -124,7 +124,7 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
   * `berserker` -> `BRAWLER` (activates blood frenzy, engages high-density clusters).
   * `highwayman` -> `SKIRMISHER` (seeks flank/rear positions, uses smoke repositioning).
   * `warlock` -> `SNIPER` (maintains range, snipes with eldritch blast, drains threatened targets).
-  * `witch` -> `SUPPORT` (debuffs priority targets with hexes, controls combat tempo).
+  * `witch` -> `SUPPORT` (debuffs priority targets with hexes, controls combat tempo, and buffs frontline allies with talisman).
 * **Tactical Primer Heuristics**: Teach composite move-and-act evaluation to value self-buff primers (`Blood Frenzy`, `Rallying Pennant`) when follow-up AP is available.
 
 ### 5.7. Campaign Encounter Budget & Pixel Token Mapping (`src/core/campaign/`, `src/ui/combat/`)

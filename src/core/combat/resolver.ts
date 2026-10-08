@@ -35,6 +35,7 @@ import { evaluateEncounterOutcome } from './objectives';
 import { resolveUnitLoadout, LoadoutLookupProviders } from '../units/loadout';
 import { getClassPackage, getAbilityById, getPassiveById } from '../../data/packages';
 import { PassiveTriggerHook } from '../types/passive';
+import { evaluateTargetAuras } from './auras';
 
 const defaultDiceRoller = new SeededDiceRoller();
 
@@ -551,8 +552,12 @@ export function executeAbility(
     rollAdvantage = 'ADVANTAGE';
   }
 
+  // Evaluate target-centric protective auras (e.g. Misfortune Ward)
+  const auraEval = evaluateTargetAuras(targetCu, actorCu, state);
+
   const rollResult = resolveAttackRoll(actorCu, targetCu, effectiveAbility, diceRoller, {
-    advantage: rollAdvantage
+    advantage: rollAdvantage,
+    rollPenalty: auraEval.attackRollPenalty
   });
 
   const damageResult = resolveDamage(
@@ -655,11 +660,15 @@ export function executeAbility(
   // Apply all events to state
   applyCombatEvents(state, events);
 
-  // When a unit is hit with an attack, their facing direction updates to face the attack
+  // When a unit is hit with an attack, their facing direction updates to face the attack (or away if FORCE_FACING_AWAY)
   if (rollResult.hitOutcome !== 'MISS' && !targetCu.isDefeated) {
     const finalTargetPos = state.arena.getUnitPosition(targetCu.unit.id);
     if (finalTargetPos && attackOriginCoord && !hexEquals(finalTargetPos, attackOriginCoord)) {
-      targetCu.facing = getDirectionBetween(finalTargetPos, attackOriginCoord);
+      const dirToOrigin = getDirectionBetween(finalTargetPos, attackOriginCoord);
+      const forcesFacingAway = effectiveAbility.effects?.some((e) => e.type === 'FORCE_FACING_AWAY');
+      targetCu.facing = forcesFacingAway
+        ? (((dirToOrigin + 3) % 6) as any)
+        : dirToOrigin;
     }
   }
 
@@ -684,11 +693,12 @@ export function executeAbility(
 
   // Combat Log
   const secondaryDetail = effectResult.logDetail ?? '';
+  const auraDetail = auraEval.attackRollPenalty > 0 ? ` [Aura Penalty: -${auraEval.attackRollPenalty} (${auraEval.sourceAuraNames.join(', ')})]` : '';
   state.combatLog.push({
     turnNumber: state.turnNumber,
     actorUnitId,
     actionId: ability.id,
-    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${rollResult.d20}+${rollResult.modifier} vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}] [Damage: ${damageResult.damageBreakdown}] (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})${secondaryDetail}`
+    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${rollResult.d20}+${rollResult.modifier} vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}]${auraDetail} [Damage: ${damageResult.damageBreakdown}] (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})${secondaryDetail}`
   });
 
   return {

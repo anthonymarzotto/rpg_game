@@ -7,6 +7,7 @@ import { COMBAT_RESOLUTION_CONFIG } from '../config/balance';
 
 export interface AttackRollOptions {
   readonly advantage?: RollAdvantage;
+  readonly rollPenalty?: number;
 }
 
 export interface AttackRollResult {
@@ -47,7 +48,8 @@ export function resolveAttackRoll(
   diceRoller: DiceRoller,
   options?: AttackRollOptions
 ): AttackRollResult {
-  const modifier = getAttackRollModifier(actorCu, ability);
+  const baseModifier = getAttackRollModifier(actorCu, ability);
+  const modifier = baseModifier - (options?.rollPenalty ?? 0);
   const targetDefense =
     ability.defenseTarget === 'EVASION'
       ? getEffectiveEvasion(targetCu)

@@ -73,6 +73,14 @@ export const conditionHandler: EffectHandler = {
         targetUnit.facing = getDirectionBetween(targetPos, actorPos);
         logDetail += ` 🔄 [Forced facing towards ${actorCu.unit.name}]`;
       }
+    } else if (effect.type === 'FORCE_FACING_AWAY') {
+      const actorPos = state.arena.getUnitPosition(actorCu.unit.id);
+      const targetPos = state.arena.getUnitPosition(targetUnit.unit.id);
+      if (actorPos && targetPos && targetUnit.unit.id !== actorCu.unit.id) {
+        const dirToActor = getDirectionBetween(targetPos, actorPos);
+        targetUnit.facing = ((dirToActor + 3) % 6) as any;
+        logDetail += ` 🔄 [Forced facing away from ${actorCu.unit.name}]`;
+      }
     }
 
     return {

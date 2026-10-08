@@ -29,6 +29,7 @@ export type AbilityEffectType =
   | 'CTB_DELAY'        // Delays target CTB initiative gauge
   | 'INITIATIVE_BOOST' // Boosts target CTB initiative gauge (e.g. Tactical Vanguard)
   | 'FORCE_FACING'     // Forces target to face actor
+  | 'FORCE_FACING_AWAY'// Forces target to face 180 degrees away from actor
   | 'CONDITION'        // Applies a status condition (Poison, Burn, Challenged, Stealth)
   | 'SPELL_SCULPT'     // Primes pending ability modifier for next Mage spell
   | 'WILD_SURGE'       // Spontaneous arcane surges on critical hits
