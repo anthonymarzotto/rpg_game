@@ -1,0 +1,36 @@
+{
+  "group_id": "d3df64ed-60cd-47df-be92-c6a62fd544fa",
+  "states": [
+    {
+      "character": {
+        "id": "7c04a8ec-3b55-49b7-b851-9a4c49f90b19",
+        "name": "Idle",
+        "prompt": "A chibi gentleman thief mounted on a small horse, wearing a vivid emerald tailcoat with crisp red trim, holding a flintlock pistol, large expressive eyes, wide stance, low top-down perspective.",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-05T17:52:01.480835+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-06T00:20:02.375290"
+}

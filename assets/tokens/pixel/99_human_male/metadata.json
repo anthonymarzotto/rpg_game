@@ -1,0 +1,36 @@
+{
+  "group_id": "8cc864b7-d325-4237-bb8c-1e63649241a0",
+  "states": [
+    {
+      "character": {
+        "id": "86e7ad7a-55c8-43fa-a0fa-5f2685cbadb8",
+        "name": "Idle",
+        "prompt": "A chibi male wizard in an oversized, tattered robe and a slouchy pointed hat, holding a gnarled wooden wand, standing in a wide, grounded stance with expressive anime-style eyes, featuring crisp black outlines and violet #8b5cf6 accents on the hat trim and robe embroidery.",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-09-30T16:02:03.249972+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-01T02:41:08.424865"
+}

@@ -1,0 +1,36 @@
+{
+  "group_id": "e1506507-842d-4979-b2a9-338cd82278cd",
+  "states": [
+    {
+      "character": {
+        "id": "e67542b3-fc77-4005-902a-3f8d96a061ab",
+        "name": "Idle",
+        "prompt": "A chibi male witch standing in a wide, confident stance, holding a small bubbling potion vial, wearing robes with vibrant emerald trim and violet accessories, large expressive anime-style eyes, crisp black outlines.",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-05T19:29:39.720584+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-06T00:20:13.827737"
+}
