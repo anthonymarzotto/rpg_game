@@ -173,6 +173,56 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       );
     });
 
+    it('resolves highwayman (64_human_male) to pixel idle rotation paths across all hex directions', () => {
+      const highwayman = createMockUnit({
+        loadout: {
+          activeClassId: 'highwayman',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        }
+      });
+
+      expect(resolvePixelTokenBase(highwayman)).toBe('64_human_male');
+      expect(resolveTokenAssetPath(highwayman, HEX_DIRECTIONS.EAST)).toBe(
+        '/assets/tokens/pixel/64_human_male/Idle/rotations/east.png'
+      );
+      expect(resolveTokenAssetPath(highwayman, HEX_DIRECTIONS.NORTHEAST)).toBe(
+        '/assets/tokens/pixel/64_human_male/Idle/rotations/north-east.png'
+      );
+      expect(resolveTokenAssetPath(highwayman, HEX_DIRECTIONS.NORTHWEST)).toBe(
+        '/assets/tokens/pixel/64_human_male/Idle/rotations/north-west.png'
+      );
+      expect(resolveTokenAssetPath(highwayman, HEX_DIRECTIONS.WEST)).toBe(
+        '/assets/tokens/pixel/64_human_male/Idle/rotations/west.png'
+      );
+      expect(resolveTokenAssetPath(highwayman, HEX_DIRECTIONS.SOUTHWEST)).toBe(
+        '/assets/tokens/pixel/64_human_male/Idle/rotations/south-west.png'
+      );
+      expect(resolveTokenAssetPath(highwayman, HEX_DIRECTIONS.SOUTHEAST)).toBe(
+        '/assets/tokens/pixel/64_human_male/Idle/rotations/south-east.png'
+      );
+    });
+
+    it('resolves warlock (80_human_male) and witch (97_human_male) to pixel token bases', () => {
+      const warlock = createMockUnit({
+        loadout: {
+          activeClassId: 'warlock',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        }
+      });
+      const witch = createMockUnit({
+        loadout: {
+          activeClassId: 'witch',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        }
+      });
+
+      expect(resolvePixelTokenBase(warlock)).toBe('80_human_male');
+      expect(resolvePixelTokenBase(witch)).toBe('97_human_male');
+    });
+
     it('defaults to front-facing south.png when facing is omitted (UI portraits)', () => {
       const novice = createMockUnit();
       expect(resolveTokenAssetPath(novice)).toBe(

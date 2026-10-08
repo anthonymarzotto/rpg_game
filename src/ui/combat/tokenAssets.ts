@@ -11,12 +11,16 @@ export const AVAILABLE_PIXEL_TOKENS = new Set<string>([
   '000_human_male', // Novice
   '00_human_male',  // Warrior
   '01_human_male',  // Cavalier
-  '81_human_male',  // Thief
-  '99_human_male',  // Wizard
   '02_human_male',  // Knight
-  '82_human_male',  // Infiltrator
-  '98_human_male',  // Sorcerer
   '03_human_male',  // Berserker
+  '64_human_male',  // Highwayman
+  '80_human_male',  // Warlock
+  '81_human_male',  // Thief
+  '82_human_male',  // Infiltrator
+  '83_human_male',  // Cat-burglar
+  '97_human_male',  // Witch
+  '98_human_male',  // Sorcerer
+  '99_human_male',  // Wizard
 ]);
 
 /**
@@ -29,7 +33,10 @@ export const CLASS_BADGE_PALETTES: Record<string, { primary: string; border: str
   knight: { primary: '#3b82f6', border: '#60a5fa' },
   thief: { primary: '#059669', border: '#10b981' },
   wizard: { primary: '#7c3aed', border: '#8b5cf6' },
-  novice: { primary: '#64748b', border: '#94a3b8' }
+  novice: { primary: '#64748b', border: '#94a3b8' },
+  highwayman: { primary: '#d97706', border: '#f59e0b' },
+  warlock: { primary: '#4f46e5', border: '#6366f1' },
+  witch: { primary: '#9333ea', border: '#a855f7' }
 };
 
 /**

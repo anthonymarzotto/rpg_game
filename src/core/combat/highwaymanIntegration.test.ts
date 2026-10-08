@@ -12,6 +12,8 @@ import {
   HIGHWAYMAN_PACKAGE
 } from '../../data/packages/highwayman';
 import { getClassPackage, getAbilityById, getPassiveById } from '../../data/packages';
+import { resolveTokenAssetPath, resolvePixelTokenBase } from '../../ui/combat/tokenAssets';
+import { HEX_DIRECTIONS } from '../grid/hex';
 import { resolveUnitLoadout, LoadoutLookupProviders } from '../units/loadout';
 import { Unit } from '../types/unit';
 
@@ -98,6 +100,34 @@ describe('Tier 3 Highwayman Class Package Integration', () => {
       expect(resolved.combatAbilities.map((a) => a.id)).toContain('stand_and_deliver');
       expect(resolved.combatAbilities.map((a) => a.id)).toContain('gallant_flourish');
       expect(resolved.activePassives.map((p) => p.id)).toContain('highway_toll');
+    });
+  });
+
+  describe('Pixel Token Asset Resolution', () => {
+    it('resolves highwayman (64_human_male) to pixel idle rotation paths across all hex directions', () => {
+      const unit = createCustomUnit('highwayman_male', 'Swift Nick', {
+        activeClassId: 'highwayman'
+      });
+
+      expect(resolvePixelTokenBase(unit)).toBe('64_human_male');
+      expect(resolveTokenAssetPath(unit, HEX_DIRECTIONS.EAST)).toBe(
+        '/assets/tokens/pixel/64_human_male/Idle/rotations/east.png'
+      );
+      expect(resolveTokenAssetPath(unit, HEX_DIRECTIONS.NORTHEAST)).toBe(
+        '/assets/tokens/pixel/64_human_male/Idle/rotations/north-east.png'
+      );
+      expect(resolveTokenAssetPath(unit, HEX_DIRECTIONS.NORTHWEST)).toBe(
+        '/assets/tokens/pixel/64_human_male/Idle/rotations/north-west.png'
+      );
+      expect(resolveTokenAssetPath(unit, HEX_DIRECTIONS.WEST)).toBe(
+        '/assets/tokens/pixel/64_human_male/Idle/rotations/west.png'
+      );
+      expect(resolveTokenAssetPath(unit, HEX_DIRECTIONS.SOUTHWEST)).toBe(
+        '/assets/tokens/pixel/64_human_male/Idle/rotations/south-west.png'
+      );
+      expect(resolveTokenAssetPath(unit, HEX_DIRECTIONS.SOUTHEAST)).toBe(
+        '/assets/tokens/pixel/64_human_male/Idle/rotations/south-east.png'
+      );
     });
   });
 
