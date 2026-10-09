@@ -30,6 +30,13 @@ export interface SquadMemberVictorySummary {
   readonly earnedXp: InBattleXp;
 }
 
+export interface MovePathPreview {
+  readonly destination: HexCoord;
+  readonly cost: number;
+  readonly fallDamage: number;
+  readonly path: readonly HexCoord[];
+}
+
 export interface UseCombatSimulationOptions {
   readonly encounter: EncounterDefinition;
 }
@@ -126,6 +133,30 @@ export function useCombatSimulation({
       hoveredCoord
     );
   }, [phase, actionMode, selectedAbility, hoveredCoord, activeCu, state]);
+
+  // Live move path & fall hazard preview on hovered reachable tile during MOVE mode
+  const movePreview = useMemo<MovePathPreview | null>(() => {
+    if (
+      phase !== 'PLAYER_ACTION' ||
+      actionMode !== 'MOVE' ||
+      !activeCoord ||
+      !hoveredCoord ||
+      !activeCu ||
+      activeCu.currentAp < 1
+    ) {
+      return null;
+    }
+    const info = state.arena.findPath(activeCoord, hoveredCoord, activeCu.unit.effectiveVitals.move);
+    if (!info) {
+      return null;
+    }
+    return {
+      destination: info.coord,
+      cost: info.cost,
+      fallDamage: info.fallDamage,
+      path: info.path
+    };
+  }, [phase, actionMode, activeCoord, hoveredCoord, activeCu, state.arena]);
 
   // Check and trigger post-battle reconciliation for all player squad members on VICTORY / DEFEAT
   const checkEncounterProgression = useCallback(
@@ -397,6 +428,7 @@ export function useCombatSimulation({
     abilityRangeCoords,
     candidateTargetCoords,
     targetPreview,
+    movePreview,
     squadSummaries,
     activeSquadUnitId,
     handleSelectSquadUnit,

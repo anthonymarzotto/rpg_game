@@ -176,16 +176,32 @@ export function createNoviceSandboxEncounter(
   return {
     id: 'novice-sandbox',
     name: 'Novice Astral Trial',
-    arenaRadius: 3,
-    tileOverrides: [{ coord: { q: 0, r: 2 }, isWalkable: false, label: 'PILLAR' }],
+    arenaRadius: 4,
+    tileOverrides: [
+      // High Crest Ridge (h = 2)
+      { coord: { q: 0, r: -1 }, elevation: 2 },
+      { coord: { q: 1, r: -1 }, elevation: 2 },
+      // Surrounding Terraces (h = 1)
+      { coord: { q: -1, r: 0 }, elevation: 1 },
+      { coord: { q: 0, r: 0 }, elevation: 1 },
+      { coord: { q: 1, r: 0 }, elevation: 1 },
+      { coord: { q: 2, r: -1 }, elevation: 1 },
+      { coord: { q: 1, r: -2 }, elevation: 1 },
+      { coord: { q: 0, r: -2 }, elevation: 1 },
+      { coord: { q: -1, r: -1 }, elevation: 1 },
+      // Tactical Obstacles with Elevation
+      { coord: { q: 0, r: 2 }, isWalkable: false, elevation: 1, label: 'PILLAR' },
+      { coord: { q: -1, r: 2 }, isWalkable: false, elevation: 0, label: 'RUINS' },
+      { coord: { q: 2, r: 1 }, isWalkable: false, elevation: 0, label: 'RUINS' }
+    ],
     units: [
-      { unit: alden, coord: { q: 0, r: 0 } },
-      { unit: lyra, coord: { q: -1, r: 0 } },
-      { unit: vael, coord: { q: -1, r: 1 } },
+      { unit: alden, coord: { q: -2, r: 0 } },
+      { unit: lyra, coord: { q: -2, r: 1 } },
+      { unit: vael, coord: { q: -3, r: 1 } },
       { unit: enemyA, coord: { q: 1, r: 0 } },
-      { unit: enemyB, coord: { q: 2, r: 0 } },
+      { unit: enemyB, coord: { q: 1, r: -1 } },
       { unit: enemyC, coord: { q: 0, r: 3 } },
-      { unit: enemyD, coord: { q: -2, r: 1 } }
+      { unit: enemyD, coord: { q: 3, r: -2 } }
     ],
     objectives: [
       {

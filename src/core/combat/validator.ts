@@ -77,8 +77,6 @@ export function canExecuteAbility(
     return { valid: false, reason: 'Actor not placed on arena.' };
   }
 
-  const effectiveRange = effectiveAbility.range;
-
   if (effectiveAbility.targetType === 'SELF') {
     return { valid: true };
   }

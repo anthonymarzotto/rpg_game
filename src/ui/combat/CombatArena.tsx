@@ -55,6 +55,7 @@ export function CombatArena({
     abilityRangeCoords,
     candidateTargetCoords,
     targetPreview,
+    movePreview,
     squadSummaries,
     activeSquadUnitId,
     handleSelectSquadUnit,
@@ -222,6 +223,7 @@ export function CombatArena({
             hoveredCoord={hoveredCoord}
             floatingTexts={floatingTexts}
             targetPreview={targetPreview}
+            movePreview={movePreview}
             zoom={fieldZoom}
             onTileClick={handleTileClick}
             onTileHover={setHoveredCoord}

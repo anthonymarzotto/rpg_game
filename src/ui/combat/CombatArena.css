@@ -1606,3 +1606,35 @@
   font-weight: 600;
 }
 
+/* 2.5D Elevation & Tactical Verticality Styles */
+.prism-walls {
+  pointer-events: none;
+}
+
+.elevation-badge {
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+.fall-hazard-badge {
+  pointer-events: none;
+  animation: pulse-hazard 1s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-hazard {
+  from {
+    opacity: 0.9;
+    filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.6));
+  }
+  to {
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.95));
+  }
+}
+
+.hex-tile-group.cutaway-translucent {
+  opacity: 0.35;
+  transition: opacity 0.15s ease;
+}
+
+

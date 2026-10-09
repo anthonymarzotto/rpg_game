@@ -637,7 +637,7 @@ describe('Attack & Ability Resolution Outcomes', () => {
 
       const state = createCombatState(arena, [hero, goblin], 'hero');
       const heroCu = state.units.get('hero')!;
-      heroCu.passives = [
+      (heroCu as any).passives = [
         {
           id: 'eagle_eye',
           name: 'Eagle Eye',

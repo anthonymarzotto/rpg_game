@@ -133,7 +133,7 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
 
       const state = createCombatState(arena, [hero, acrobat], 'hero');
       const acrobatCu = state.units.get('acrobat')!;
-      acrobatCu.passives = [
+      (acrobatCu as any).passives = [
         {
           id: 'feline_grace',
           name: 'Feline Grace',

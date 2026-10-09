@@ -51,7 +51,7 @@ describe('Combat Movement & AP Deduction', () => {
 
     const hero = createRecruit('hero', 'Alden');
     // Give hero high armor to verify fall damage is unmitigated by armor
-    hero.effectiveVitals = { ...hero.effectiveVitals, armor: 10 };
+    (hero as any).effectiveVitals = { ...hero.effectiveVitals, armor: 10 };
     arena.setUnitPosition('hero', { q: 0, r: 0 });
 
     const state = createCombatState(arena, [hero], 'hero');

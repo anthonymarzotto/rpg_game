@@ -1,9 +1,17 @@
 import { useMemo } from 'react';
-import { HexCoord, toHexKey, getFacingAngleDegrees } from '../../core/grid/hex';
+import { HexCoord, toHexKey, getFacingAngleDegrees, hexDistance } from '../../core/grid/hex';
 import { CombatState } from '../../core/combat/types';
 import { TargetPreview } from '../../core/combat/targetPreview';
 import { FloatingText } from './useFloatingCombatText';
 import { resolveTokenAssetPath } from './tokenAssets';
+import {
+  hexToPixel,
+  projectElevationY,
+  getHexPolygonPoints,
+  getExtrudedPrismWalls,
+  DEFAULT_HEX_RADIUS
+} from './elevationGeometry';
+import { MovePathPreview } from './useCombatSimulation';
 
 export interface HexGridSvgProps {
   readonly state: CombatState;
@@ -13,29 +21,10 @@ export interface HexGridSvgProps {
   readonly hoveredCoord: HexCoord | null;
   readonly floatingTexts: readonly FloatingText[];
   readonly targetPreview: TargetPreview | null;
+  readonly movePreview?: MovePathPreview | null;
   readonly zoom?: number;
   readonly onTileClick: (coord: HexCoord) => void;
   readonly onTileHover: (coord: HexCoord | null) => void;
-}
-
-const HEX_RADIUS = 38;
-const SQRT3 = Math.sqrt(3);
-
-function hexToPixel(coord: HexCoord): { x: number; y: number } {
-  const x = HEX_RADIUS * (SQRT3 * coord.q + (SQRT3 / 2) * coord.r);
-  const y = HEX_RADIUS * (1.5 * coord.r);
-  return { x, y };
-}
-
-function getHexPolygonPoints(cx: number, cy: number, radius = HEX_RADIUS - 1.5): string {
-  const points: string[] = [];
-  for (let i = 0; i < 6; i++) {
-    const angleRad = ((60 * i - 30) * Math.PI) / 180;
-    const x = (cx + radius * Math.cos(angleRad)).toFixed(1);
-    const y = (cy + radius * Math.sin(angleRad)).toFixed(1);
-    points.push(`${x},${y}`);
-  }
-  return points.join(' ');
 }
 
 export function HexGridSvg({
@@ -46,6 +35,7 @@ export function HexGridSvg({
   hoveredCoord,
   floatingTexts,
   targetPreview,
+  movePreview,
   zoom = 1,
   onTileClick,
   onTileHover
@@ -68,7 +58,19 @@ export function HexGridSvg({
     return state.arena.getAllTiles();
   }, [state.arena]);
 
-  // Compute dynamic viewBox and backdrop radius based on arena bounds and zoom
+  // Painter's algorithm: sort North-to-South (base Y ascending, then X ascending)
+  const sortedTiles = useMemo(() => {
+    return [...allTiles].sort((a, b) => {
+      const posA = hexToPixel(a.coord);
+      const posB = hexToPixel(b.coord);
+      if (Math.abs(posA.y - posB.y) > 0.1) {
+        return posA.y - posB.y;
+      }
+      return posA.x - posB.x;
+    });
+  }, [allTiles]);
+
+  // Compute dynamic viewBox and backdrop radius based on arena bounds, elevation offsets, and zoom
   const { viewBox, backdropRadius } = useMemo(() => {
     if (allTiles.length === 0) {
       return { viewBox: '-320 -280 640 560', backdropRadius: 230 };
@@ -78,14 +80,16 @@ export function HexGridSvg({
     let minY = Infinity;
     let maxY = -Infinity;
     for (const tile of allTiles) {
-      const { x, y } = hexToPixel(tile.coord);
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
+      const base = hexToPixel(tile.coord);
+      const elev = tile.elevation ?? 0;
+      const projY = projectElevationY(base.y, elev);
+      if (base.x < minX) minX = base.x;
+      if (base.x > maxX) maxX = base.x;
+      if (projY < minY) minY = projY;
+      if (base.y > maxY) maxY = base.y;
     }
-    const paddingX = HEX_RADIUS + 35;
-    const paddingY = HEX_RADIUS + 45;
+    const paddingX = DEFAULT_HEX_RADIUS + 35;
+    const paddingY = DEFAULT_HEX_RADIUS + 55;
     const origWidth = Math.round(maxX - minX + paddingX * 2);
     const origHeight = Math.round(maxY - minY + paddingY * 2);
     const origX = Math.round(minX - paddingX);
@@ -98,7 +102,7 @@ export function HexGridSvg({
     const y = Math.round(origY + (origHeight - height) / 2);
 
     const maxDimension = Math.max(maxX - minX, maxY - minY);
-    const backdropRadius = Math.round(maxDimension / 2 + HEX_RADIUS * 0.7);
+    const backdropRadius = Math.round(maxDimension / 2 + DEFAULT_HEX_RADIUS * 0.7);
 
     return {
       viewBox: `${x} ${y} ${width} ${height}`,
@@ -132,18 +136,34 @@ export function HexGridSvg({
         <filter id="standee-drop-shadow" x="-40%" y="-40%" width="180%" height="180%">
           <feDropShadow dx="0" dy="3.5" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.8" />
         </filter>
+        {/* Occluded Standee High-Visibility Silhouettes */}
+        <filter id="standee-occlusion-glow-player" x="-40%" y="-40%" width="180%" height="180%">
+          <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#38bdf8" floodOpacity="0.9" />
+        </filter>
+        <filter id="standee-occlusion-glow-enemy" x="-40%" y="-40%" width="180%" height="180%">
+          <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#f87171" floodOpacity="0.9" />
+        </filter>
         {/* Pedestal Ground Blur Shadow */}
         <filter id="pedestal-ground-shadow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" />
         </filter>
+        {/* Extruded Prism Side Wall Directional Gradients */}
+        <linearGradient id="prism-wall-sw" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#1e293b" stopOpacity="0.95" />
+          <stop offset="100%" stopColor="#090d16" stopOpacity="0.98" />
+        </linearGradient>
+        <linearGradient id="prism-wall-se" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#334155" stopOpacity="0.96" />
+          <stop offset="100%" stopColor="#1e293b" stopOpacity="0.98" />
+        </linearGradient>
       </defs>
 
       {/* Grid Backdrop Grid Glow */}
       <circle cx="0" cy="0" r={backdropRadius} fill="rgba(30, 41, 59, 0.35)" />
 
-      {/* 1. Base Terrain Hexes */}
+      {/* 1. Base Terrain Hexes (Sorted North-to-South / Back-to-Front) */}
       <g className="tiles-layer">
-        {allTiles.map((tile) => {
+        {sortedTiles.map((tile) => {
           const coord = tile.coord;
           const key = toHexKey(coord);
           const isObstacle = !tile.isWalkable;
@@ -153,8 +173,26 @@ export function HexGridSvg({
           const isHovered =
             hoveredCoord && hoveredCoord.q === coord.q && hoveredCoord.r === coord.r;
 
-          const { x, y } = hexToPixel(coord);
-          const polyPoints = getHexPolygonPoints(x, y);
+          const elevation = tile.elevation ?? 0;
+          const basePixel = hexToPixel(coord);
+          const topY = projectElevationY(basePixel.y, elevation);
+          const polyPoints = getHexPolygonPoints(basePixel.x, topY);
+          const prismWalls = getExtrudedPrismWalls(basePixel.x, basePixel.y, elevation);
+
+          // Dynamic see-through cutaway: transparent if this tile is south of and occludes the hovered/active tile
+          const focusCoord =
+            hoveredCoord ??
+            (state.activeUnitId ? state.arena.getUnitPosition(state.activeUnitId) : null);
+          let isCutaway = false;
+          if (focusCoord && (coord.q !== focusCoord.q || coord.r !== focusCoord.r)) {
+            const focusBase = hexToPixel(focusCoord);
+            const focusElevation = state.arena.getElevation(focusCoord);
+            const isSouthOfFocus = basePixel.y > focusBase.y + 5;
+            const isNearFocus = hexDistance(coord, focusCoord) <= 2;
+            if (isSouthOfFocus && isNearFocus && elevation > focusElevation) {
+              isCutaway = true;
+            }
+          }
 
           // Tile Styling
           let fillColor = 'rgba(15, 23, 42, 0.75)';
@@ -162,16 +200,31 @@ export function HexGridSvg({
           let strokeWidth = 1;
           let filter: string | undefined;
 
+          // Distinct stepped terrace plateau styling based on elevation tier
+          if (elevation === 1) {
+            fillColor = 'rgba(30, 41, 59, 0.88)';
+            strokeColor = 'rgba(56, 189, 248, 0.35)';
+            strokeWidth = 1.3;
+          } else if (elevation >= 2) {
+            fillColor = 'rgba(51, 65, 85, 0.94)';
+            strokeColor = 'rgba(245, 158, 11, 0.55)';
+            strokeWidth = 1.6;
+          }
+
           if (isObstacle) {
-            fillColor = 'rgba(51, 65, 85, 0.9)';
-            strokeColor = '#64748b';
+            fillColor = elevation >= 2
+              ? 'rgba(71, 85, 105, 0.95)'
+              : elevation === 1
+              ? 'rgba(51, 65, 85, 0.92)'
+              : 'rgba(51, 65, 85, 0.9)';
+            strokeColor = elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#64748b';
             strokeWidth = 1.5;
           } else if (isReachable) {
             fillColor = isHovered
-              ? 'rgba(6, 182, 212, 0.35)'
-              : 'rgba(6, 182, 212, 0.18)';
+              ? 'rgba(6, 182, 212, 0.4)'
+              : 'rgba(6, 182, 212, 0.22)';
             strokeColor = '#06b6d4';
-            strokeWidth = isHovered ? 2.5 : 1.5;
+            strokeWidth = isHovered ? 2.5 : 1.8;
             filter = 'url(#tile-glow-cyan)';
           } else if (isCandidate) {
             const isBlocked = targetPreview && isHovered && targetPreview.isBlockedLoS;
@@ -180,8 +233,8 @@ export function HexGridSvg({
               strokeColor = '#ef4444';
             } else {
               fillColor = isHovered
-                ? 'rgba(245, 158, 11, 0.42)'
-                : 'rgba(245, 158, 11, 0.24)';
+                ? 'rgba(245, 158, 11, 0.45)'
+                : 'rgba(245, 158, 11, 0.28)';
               strokeColor = '#f59e0b';
               filter = 'url(#tile-glow-amber)';
             }
@@ -189,24 +242,52 @@ export function HexGridSvg({
           } else if (isRange) {
             // Soft ability range field highlighting tiles within the skill's reach
             fillColor = isHovered
-              ? 'rgba(245, 158, 11, 0.14)'
-              : 'rgba(245, 158, 11, 0.06)';
+              ? 'rgba(245, 158, 11, 0.16)'
+              : 'rgba(245, 158, 11, 0.08)';
             strokeColor = 'rgba(245, 158, 11, 0.45)';
             strokeWidth = 1.2;
           } else if (isHovered) {
-            fillColor = 'rgba(255, 255, 255, 0.08)';
-            strokeColor = 'rgba(255, 255, 255, 0.4)';
-            strokeWidth = 1.5;
+            fillColor = elevation >= 2
+              ? 'rgba(71, 85, 105, 0.95)'
+              : elevation === 1
+              ? 'rgba(51, 65, 85, 0.92)'
+              : 'rgba(255, 255, 255, 0.08)';
+            strokeColor = elevation >= 2
+              ? '#fbbf24'
+              : elevation === 1
+              ? '#38bdf8'
+              : 'rgba(255, 255, 255, 0.4)';
+            strokeWidth = 1.8;
           }
 
           return (
             <g
               key={key}
-              className={`hex-tile-group ${isReachable ? 'reachable' : ''} ${isRange ? 'in-range' : ''} ${isCandidate ? 'candidate' : ''}`}
+              className={`hex-tile-group ${isReachable ? 'reachable' : ''} ${isRange ? 'in-range' : ''} ${isCandidate ? 'candidate' : ''} ${isCutaway ? 'cutaway-translucent' : ''}`}
+              style={isCutaway ? { opacity: 0.35, transition: 'opacity 0.15s ease' } : undefined}
               onClick={() => onTileClick(coord)}
               onMouseEnter={() => onTileHover(coord)}
               onMouseLeave={() => onTileHover(null)}
             >
+              {/* Extruded Prism Side Walls (strictly pointer-events-none) */}
+              {prismWalls.length > 0 && (
+                <g className="prism-walls pointer-events-none">
+                  {prismWalls.map((wall) => {
+                    const isSw = wall.id === 'southwest';
+                    return (
+                      <polygon
+                        key={wall.id}
+                        points={wall.points}
+                        fill={isSw ? 'url(#prism-wall-sw)' : 'url(#prism-wall-se)'}
+                        stroke={isSw ? 'rgba(71, 85, 105, 0.75)' : 'rgba(100, 116, 139, 0.75)'}
+                        strokeWidth="1.2"
+                      />
+                    );
+                  })}
+                </g>
+              )}
+
+              {/* Top Surface Hex Polygon */}
               <polygon
                 points={polyPoints}
                 fill={fillColor}
@@ -215,13 +296,65 @@ export function HexGridSvg({
                 filter={filter}
               />
 
+              {/* Elevation Contour Badge */}
+              {elevation > 0 && (
+                <g className="pointer-events-none elevation-badge">
+                  <rect
+                    x={basePixel.x + 8}
+                    y={topY - 24}
+                    width={18}
+                    height={12}
+                    rx={4}
+                    fill="rgba(15, 23, 42, 0.88)"
+                    stroke={elevation >= 2 ? '#f59e0b' : '#38bdf8'}
+                    strokeWidth="1"
+                  />
+                  <text
+                    x={basePixel.x + 17}
+                    y={topY - 15}
+                    fill={elevation >= 2 ? '#fbbf24' : '#7dd3fc'}
+                    fontSize="8"
+                    fontWeight="800"
+                    textAnchor="middle"
+                  >
+                    {`+${elevation}`}
+                  </text>
+                </g>
+              )}
+
+              {/* Fall Hazard Warning on Hovered Reachable Tile */}
+              {movePreview && movePreview.fallDamage > 0 && isHovered && (
+                <g className="pointer-events-none fall-hazard-badge">
+                  <rect
+                    x={basePixel.x - 54}
+                    y={topY - 40}
+                    width={108}
+                    height={18}
+                    rx={9}
+                    fill="rgba(220, 38, 38, 0.95)"
+                    stroke="#fca5a5"
+                    strokeWidth="1.5"
+                  />
+                  <text
+                    x={basePixel.x}
+                    y={topY - 28}
+                    fill="#ffffff"
+                    fontSize="9.5"
+                    fontWeight="800"
+                    textAnchor="middle"
+                  >
+                    {`⚠️ Fall Hazard: -${movePreview.fallDamage} HP`}
+                  </text>
+                </g>
+              )}
+
               {/* Obstacle pattern with data-driven label */}
               {isObstacle && (
                 <g className="pointer-events-none">
-                  <circle cx={x} cy={y} r="12" fill="rgba(100, 116, 139, 0.4)" />
+                  <circle cx={basePixel.x} cy={topY} r="12" fill="rgba(100, 116, 139, 0.4)" />
                   <text
-                    x={x}
-                    y={y + 3}
+                    x={basePixel.x}
+                    y={topY + 3}
                     fill="#94a3b8"
                     fontSize="8.5"
                     fontWeight="700"
@@ -235,8 +368,8 @@ export function HexGridSvg({
               {/* Subtle coordinate labels */}
               {!isObstacle && (
                 <text
-                  x={x}
-                  y={y + 13}
+                  x={basePixel.x}
+                  y={topY + 13}
                   fill="rgba(255, 255, 255, 0.2)"
                   fontSize="7"
                   textAnchor="middle"
@@ -256,12 +389,33 @@ export function HexGridSvg({
           .filter(([_, cu]) => !cu.isDefeated)
           .map(([unitId, cu]) => {
             const pos = state.arena.getUnitPosition(unitId);
-            const pixel = pos ? hexToPixel(pos) : { x: 0, y: 0 };
-            return { unitId, cu, pos, pixel };
+            const basePixel = pos ? hexToPixel(pos) : { x: 0, y: 0 };
+            const elev = pos ? (state.arena.getElevation(pos) ?? 0) : 0;
+            const pixel = pos
+              ? { x: basePixel.x, y: projectElevationY(basePixel.y, elev) }
+              : { x: 0, y: 0 };
+
+            // Check if unit is behind higher terrain (adjacent tile to the south has higher elevation)
+            let isBehindCliff = false;
+            if (pos) {
+              const southNeighbors = [
+                { q: pos.q, r: pos.r + 1 },
+                { q: pos.q + 1, r: pos.r },
+                { q: pos.q - 1, r: pos.r + 1 }
+              ];
+              for (const n of southNeighbors) {
+                if (state.arena.getElevation(n) > elev) {
+                  isBehindCliff = true;
+                  break;
+                }
+              }
+            }
+
+            return { unitId, cu, pos, basePixel, pixel, isBehindCliff };
           })
           .filter((item): item is typeof item & { pos: HexCoord } => item.pos != null)
-          .sort((a, b) => a.pixel.y - b.pixel.y)
-          .map(({ unitId, cu, pos, pixel: { x, y } }) => {
+          .sort((a, b) => a.basePixel.y - b.basePixel.y)
+          .map(({ unitId, cu, pos, pixel: { x, y }, isBehindCliff }) => {
             const faction = cu.faction;
             const isPlayer = faction === 'PLAYER';
             const isEnemy = faction === 'ENEMY';
@@ -411,7 +565,13 @@ export function HexGridSvg({
                       width="60"
                       height="60"
                       preserveAspectRatio="xMidYMax meet"
-                      filter="url(#standee-drop-shadow)"
+                      filter={
+                        isBehindCliff
+                          ? isPlayer
+                            ? 'url(#standee-occlusion-glow-player)'
+                            : 'url(#standee-occlusion-glow-enemy)'
+                          : 'url(#standee-drop-shadow)'
+                      }
                       className="pixel-art"
                       opacity={isStealthed ? 0.52 : 1}
                     />
@@ -628,7 +788,10 @@ export function HexGridSvg({
       {/* 3. Floating Combat Feedback Numbers */}
       <g className="floating-text-layer pointer-events-none">
         {floatingTexts.map((ft) => {
-          const { x, y } = hexToPixel(ft.coord);
+          const base = hexToPixel(ft.coord);
+          const elev = state.arena.getElevation(ft.coord) ?? 0;
+          const x = base.x;
+          const y = projectElevationY(base.y, elev);
           let color = '#ffffff';
           let weight = '700';
           let size = '12';

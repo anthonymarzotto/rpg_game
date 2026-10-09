@@ -1,6 +1,6 @@
 import { Unit } from '../types/unit';
 import { Archetype } from '../types/class';
-import { HexCoord, HEX_DIRECTIONS } from '../grid/hex';
+import { HexCoord, HEX_DIRECTIONS, hexDistance, getHexNeighbors } from '../grid/hex';
 import { createRadialArena } from '../grid/templates';
 import {
   EncounterDefinition,
@@ -259,6 +259,143 @@ export function generateArenaObstacles(
 }
 
 /**
+ * Procedurally generates terraced elevation topography and obstacles ensuring
+ * guaranteed traversable path connectivity between player and enemy deployment zones.
+ */
+export function generateArenaTerrain(
+  radius: number,
+  playerSpawns: readonly HexCoord[],
+  enemySpawns: readonly HexCoord[],
+  rng: () => number
+): readonly EncounterTileOverride[] {
+  const spawnSet = new Set(
+    [...playerSpawns, ...enemySpawns].map((c) => `${c.q},${c.r}`)
+  );
+
+  // Collect all radial arena coordinates
+  const allCoords: HexCoord[] = [];
+  for (let q = -radius; q <= radius; q++) {
+    const r1 = Math.max(-radius, -q - radius);
+    const r2 = Math.min(radius, -q + radius);
+    for (let r = r1; r <= r2; r++) {
+      allCoords.push({ q, r });
+    }
+  }
+
+  // Eligible interior coordinates (strictly inside perimeter, excluding spawns)
+  const interiorCoords = allCoords.filter((c) => {
+    const dist = hexDistance(c, { q: 0, r: 0 });
+    return dist < radius && !spawnSet.has(`${c.q},${c.r}`);
+  });
+
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const elevationMap = new Map<string, number>();
+
+    // 1. Seed 1-2 peak foci (h = 2) in the interior
+    const numPeaks = radius >= 4 ? (rng() < 0.75 ? 2 : 1) : 1;
+    const peakCandidates = shuffle(
+      interiorCoords.filter((c) => hexDistance(c, { q: 0, r: 0 }) <= Math.max(1, radius - 2)),
+      rng
+    );
+    const peaks = peakCandidates.slice(0, numPeaks);
+    for (const p of peaks) {
+      elevationMap.set(`${p.q},${p.r}`, 2);
+    }
+
+    // 2. Flood-fill surrounding terraces (h = 1)
+    for (const p of peaks) {
+      const neighbors = getHexNeighbors(p);
+      for (const n of neighbors) {
+        const key = `${n.q},${n.r}`;
+        if (!spawnSet.has(key) && !elevationMap.has(key)) {
+          // Asymmetrical terrace contour: 75% chance for adjacent to be terrace, leaving some raw cliff edges (h=2 -> h=0)
+          if (rng() < 0.75) {
+            elevationMap.set(key, 1);
+          }
+        }
+      }
+    }
+
+    // Secondary terrace spreading for Radius 4
+    if (radius >= 4) {
+      for (const p of peaks) {
+        for (const c of interiorCoords) {
+          const key = `${c.q},${c.r}`;
+          if (!elevationMap.has(key) && !spawnSet.has(key)) {
+            const d = hexDistance(p, c);
+            if (d === 2 && rng() < 0.35) {
+              elevationMap.set(key, 1);
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Place 2 to 4 obstacles (RUINS)
+    const numObstacles = 2 + Math.floor(rng() * 3);
+    const obstacleCandidates = shuffle(
+      interiorCoords.filter((c) => !peaks.some((p) => p.q === c.q && p.r === c.r)),
+      rng
+    );
+    const obstacleCoords = obstacleCandidates.slice(0, numObstacles);
+    const obstacleSet = new Set(obstacleCoords.map((c) => `${c.q},${c.r}`));
+
+    // 4. Verify traversable path connectivity
+    const arena = createRadialArena(radius);
+    for (const c of allCoords) {
+      const key = `${c.q},${c.r}`;
+      const elev = elevationMap.get(key) ?? 0;
+      const isObstacle = obstacleSet.has(key);
+      const existing = arena.getTile(c);
+      if (existing) {
+        arena.setTile({
+          ...existing,
+          elevation: elev,
+          isWalkable: !isObstacle
+        });
+      }
+    }
+
+    // Check connectivity from first player spawn to first enemy spawn
+    const reachable = arena.getReachableHexes(playerSpawns[0], 99);
+    const connectsToEnemy = reachable.some(
+      (c) => c.q === enemySpawns[0].q && c.r === enemySpawns[0].r
+    );
+
+    if (connectsToEnemy) {
+      const overrides: EncounterTileOverride[] = [];
+
+      for (const c of allCoords) {
+        const key = `${c.q},${c.r}`;
+        const elev = elevationMap.get(key) ?? 0;
+        const isObstacle = obstacleSet.has(key);
+
+        if (isObstacle) {
+          overrides.push({
+            coord: c,
+            elevation: elev,
+            isWalkable: false,
+            terrainType: 'OBSTACLE',
+            label: 'RUINS'
+          });
+        } else if (elev > 0) {
+          overrides.push({
+            coord: c,
+            elevation: elev,
+            isWalkable: true
+          });
+        }
+      }
+
+      return overrides;
+    }
+  }
+
+  // Fallback: flat ground with obstacles if all attempts failed
+  return generateArenaObstacles(radius, playerSpawns, enemySpawns, rng);
+}
+
+/**
  * Procedurally generates a balanced combat encounter for the current stage and player squad.
  */
 export function generateStageEncounter(
@@ -273,10 +410,10 @@ export function generateStageEncounter(
   const baseBudget = computeStageThreatBudget(squadThreat, stage);
   const targetBudget = stage >= 5 ? Math.max(baseBudget, 60) : baseBudget;
 
-  const radius = stage <= 2 ? 3 : rng() < 0.6 ? 3 : 4;
+  const radius = stage <= 2 ? 3 : 4;
   const { playerCoords, enemyCoords } = getDeploymentZones(radius);
 
-  const obstacles = generateArenaObstacles(radius, playerCoords, enemyCoords, rng);
+  const tileOverrides = generateArenaTerrain(radius, playerCoords, enemyCoords, rng);
   const enemies = assembleEnemySquad(targetBudget, stage, rng);
 
   const placedUnits: PlacedUnit[] = [];
@@ -307,7 +444,7 @@ export function generateStageEncounter(
     id: `stage-${stage}-encounter-${effectiveSeed}`,
     name: `Sector ${stage} Trial`,
     arenaRadius: radius,
-    tileOverrides: obstacles,
+    tileOverrides,
     units: placedUnits,
     objectives: [
       {

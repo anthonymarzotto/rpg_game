@@ -162,4 +162,60 @@ describe('Procedural Encounter Generator', () => {
       expect(encounter.units.filter((u) => u.unit.faction === 'ENEMY').length).toBeGreaterThanOrEqual(2);
     });
   });
+
+  describe('Procedural Multi-Peak Terraced Arenas & Elevation', () => {
+    it('uses Radius 3 for Stages 1-2 and expands to Radius 4 for Stage 3+', () => {
+      const encStage1 = generateStageEncounter(1, recruitSquad, 100);
+      const encStage2 = generateStageEncounter(2, recruitSquad, 100);
+      const encStage3 = generateStageEncounter(3, recruitSquad, 100);
+      const encStage5 = generateStageEncounter(5, recruitSquad, 100);
+
+      expect(encStage1.arenaRadius).toBe(3);
+      expect(encStage2.arenaRadius).toBe(3);
+      expect(encStage3.arenaRadius).toBe(4);
+      expect(encStage5.arenaRadius).toBe(4);
+
+      // Verify Radius 4 arena has 61 tiles
+      const arenaRadius4 = createRadialArena(encStage3.arenaRadius!);
+      expect(arenaRadius4.getAllTiles()).toHaveLength(61);
+    });
+
+    it('generates multi-tier elevation with peaks, terraces, and valleys', () => {
+      const encounter = generateStageEncounter(3, recruitSquad, 1234);
+      const elevations = (encounter.tileOverrides ?? []).map((o) => o.elevation ?? 0);
+
+      // Contains peak tiles (h=2) and terrace tiles (h=1)
+      expect(elevations.some((e) => e === 2)).toBe(true);
+      expect(elevations.some((e) => e === 1)).toBe(true);
+    });
+
+    it('guarantees traversable path connectivity across elevation changes on Radius 4 arenas', () => {
+      for (let seed = 300; seed < 315; seed++) {
+        const encounter = generateStageEncounter(3, recruitSquad, seed);
+        const arena = createRadialArena(encounter.arenaRadius!);
+        for (const override of encounter.tileOverrides ?? []) {
+          const tile = arena.getTile(override.coord);
+          if (tile) {
+            arena.setTile({
+              ...tile,
+              elevation: override.elevation ?? tile.elevation,
+              isWalkable: override.isWalkable ?? tile.isWalkable
+            });
+          }
+        }
+
+        const playerPlaced = encounter.units.find((p) => p.unit.faction === 'PLAYER')!;
+        const enemyPlaced = encounter.units.find((p) => p.unit.faction === 'ENEMY')!;
+
+        // Reachable path verification across weighted elevation costs
+        const reachable = arena.getReachableHexes(playerPlaced.coord, 99);
+        const enemyCoordReached = reachable.some(
+          (c) => c.q === enemyPlaced.coord.q && c.r === enemyPlaced.coord.r
+        );
+
+        expect(enemyCoordReached).toBe(true);
+      }
+    });
+  });
 });
+

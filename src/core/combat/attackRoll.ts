@@ -27,7 +27,7 @@ export interface ElevationAttackModifierResult {
  */
 export function calculateElevationAttackModifier(
   actorCu: CombatUnit,
-  targetCu: CombatUnit,
+  _targetCu: CombatUnit,
   elevationDelta: number,
   ability: Ability
 ): ElevationAttackModifierResult {
