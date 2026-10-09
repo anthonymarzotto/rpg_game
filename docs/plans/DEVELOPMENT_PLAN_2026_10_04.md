@@ -39,11 +39,9 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 6: TACTICAL VERTICALITY & DYNAMIC ELEVATION           │
-│  - [ ] 6.1 Discrete hex elevation math & cliff boundaries   │
-│  - [ ] 6.2 High-ground tactical advantages (Range & Roll)   │
-│  - [ ] 6.3 Vertical movement, climbing & ledge drop-downs   │
-│  - [ ] 6.4 Plunging knockback & fall impact damage          │
-│  - [ ] 6.5 Isometric SVG height shading & elevation steps   │
+│  - [ ] 6.1 Core grid elevation, traversal & 3D raycasting   │
+│  - [ ] 6.2 Elevation combat modifiers & plunging knockback   │
+│  - [ ] 6.3 2.5D SVG prism rendering & terraced encounters   │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
@@ -137,33 +135,47 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 
 **Primary Goal**: Elevate combat into three dimensions by introducing discrete terrain heights on the hex grid, granting high-ground tactical superiority and enabling kinetic vertical knockback over cliffs.
 
-### 6.1. Discrete Hex Elevation Model (`src/core/grid/`)
-* **Data Model**: Extend `HexCoord` or tile state with an integer `elevation: number` (defaults to `0`; hills at `1`, cliffs/peaks at `2`, plateaus at `3`).
-* **Line-of-Sight Occlusion**: Raycasting accounts for elevation:
-  * Targets at lower elevations behind a higher tile are obstructed.
-  * Units on high ground can shoot over intermediate obstacles of equal or lower height.
+### 6.1. Core Grid Elevation, Traversal & 3D Raycasting (`src/core/grid/`, `src/core/combat/`)
+* **Discrete Hex Elevation Model**:
+  * Tile elevation levels $h \in [0, 3]$ on `HexTile` (`0`: low ground, `1`: hill/terrace, `2`: peak/cliff, `3`: high plateau).
+* **Movement & Traversal Rules**:
+  * Step cost formula: $1 + \max(0, \Delta h)$ Movement Points (MP). Flat: 1 MP; Step Up +1: 2 MP; Step Up +2: 3 MP (consumes full base recruit 3 Move pool); Step Down: 1 MP.
+  * Maximum single-step climb: $\Delta h \ge +3$ is strictly impassable without specialized abilities (e.g. Cat-Burglar *Rooftop Vault*, *Teleport*).
+* **Ledge Drops & Unmitigated Fall Damage**:
+  * Walking down $\Delta h = -1$ is free (1 MP, 0 damage).
+  * Dropping down a ledge $\Delta h \le -2$ is permitted, but inflicts **Fall Impact Damage**: $|\Delta h| \times 4$, **strictly unmitigated by Armor** (armor provides zero cushion against gravity, preventing tanks from recklessly jumping off cliffs).
+* **Safe-Route Pathfinding & UI Preview**:
+  * Dijkstra pathfinder weights prioritize zero-fall-damage routes (safest path first). Ledge drops are only routed if no safe path is within movement budget or target is directly under cliff.
+  * UI displays a prominent `⚠️ Fall Hazard: -X HP` preview badge when hovering destination tiles that incur fall damage.
+* **Continuous 3D Line-of-Sight Raycasting**:
+  * Ray slope equation: $h_{\text{ray}}(t) = h_{\text{from}} + t \times (h_{\text{to}} - h_{\text{from}})$ for $t \in [0, 1]$ along the hex line.
+  * Intermediate hex occludes LoS if $H_{\text{tile}} \ge h_{\text{ray}}(t)$, or if intermediate hex is occupied by another unit or impassable obstacle (`RUINS`).
+  * High-ground units naturally shoot over lower intermediate cover into low ground.
 
-### 6.2. High-Ground Tactical Advantages (`src/core/combat/`)
-* **Ranged Elevation Superiority**:
-  * Ranged attacks fired from higher elevation ($\Delta h \ge +1$) gain **+1 Effective Range** per elevation level.
-  * Firing downward onto a lower target grants **+2 to the Attack Roll** (or Advantage if $\Delta h \ge +2$).
-* **Low-Ground Vulnerability**:
-  * Ranged attacks fired upward into higher elevation suffer **-2 to the Attack Roll** (or Disadvantage).
+### 6.2. Elevation Combat Modifiers & Plunging Knockback (`src/core/combat/`, `src/core/config/balance.ts`)
+* **Ranged Elevation Advantages & Penalties**:
+  * High-ground vantage: Ranged attacks fired from higher elevation ($\Delta h \ge +1$) gain **+1 Effective Range** per elevation level.
+  * Downward targeting: Firing downward onto a lower target grants **+2 to the Attack Roll** ($\Delta h = 1$) or **Advantage** ($\Delta h \ge +2$).
+  * Upward low-ground penalty: Firing upward into higher elevation suffers **-2 to the Attack Roll** ($\Delta h = -1$) or **Disadvantage** ($\Delta h \le -2$).
+* **Melee Reach Constraints**:
+  * Melee strikes are permitted across $|\Delta h| \le 1$ (inheriting downward attack roll bonuses).
+  * Melee attacks are strictly out of reach across $|\Delta h| \ge 2$ (cannot strike over a 2-story cliff without reach weapons).
+* **Kinetic Plunging Knockback**:
+  * Falling off ledges: Knocking a unit off a ledge ($\Delta h \le -2$) drops them to the lower tile and inflicts Fall Impact Damage ($|\Delta h| \times 4$, unmitigated by Armor) in addition to displacement.
+  * Upward cliff slam: Configurable via `DISPLACEMENT_CONFIG.minCliffSlamElevationDelta` (default: `2`). Displacing a target into $\Delta h = 1$ pushes them up onto the step; displacing into $\Delta h \ge 2$ halts them against the cliff face and inflicts Cliff-Slam (Wall-Slam) collision damage.
+* **Enclosed Arena Boundaries**:
+  * Arena borders remain solid enclosing perimeter walls (wall-slam collision on boundary hit; no instant-death ring-outs).
+  * Impassable obstacles (`RUINS`, pillars) exist across any elevation tier, blocking pathfinding and LoS, and acting as wall-slam backboards.
 
-### 6.3. Vertical Movement & Traversal Rules (`src/core/combat/movement.ts`)
-* **Step Restrictions**: Moving up an elevation difference of $\Delta h = +1$ costs $+1$ additional AP (or reduces Move distance by 1).
-* **Cliff Barriers**: Ascending an elevation rise of $\Delta h \ge +2$ is impassable without specialized abilities (e.g. *Teleport*, *Shadow Step*, *Leap*).
-* **Ledge Drop-Down**: Walking off a ledge ($\Delta h \le -1$) is permitted, but dropping $\Delta h \le -2$ inflicts fall impact damage.
-
-### 6.4. Kinetic Plunging Knockback & Fall Damage (`src/core/combat/displacement.ts`)
-* **Falling Off Ledges**: When an ability with knockback (e.g. *Shield Bash*, *Gust*, *Lance Charge*) displaces a unit off a ledge:
-  * The unit drops to the lower hex's elevation.
-  * The unit suffers **Fall Impact Damage**: $\max(1, \Delta h \times 4 - \text{Armor})$.
-* **Pit / Chasm Hazards**: Units pushed off perimeter void tiles are immediately severed/routed from combat.
-
-### 6.5. Presentation & Rendering Tier (`src/ui/combat/HexGridSvg.tsx`)
-* **Layered Extrusions**: Render elevated hexes with faux-3D extruded prism side walls and darker drop shadows.
-* **Elevation Step Indicators**: Display subtle elevation contour badges (`+1`, `+2`) on hover and selection rings.
+### 6.3. Procedural 2.5D SVG Prism Rendering & Terraced Encounters (`src/ui/combat/`, `src/core/campaign/`)
+* **Faux-3D SVG Extruded Prisms**:
+  * Projected Y-offset: $y_{\text{projected}} = y_{\text{flat}} - (h \times 14\text{px})$.
+  * Procedural extruded prism side walls (South, Southeast, Southwest edges) rendered with darker CSS gradient shading for tactile 3D relief.
+  * Back-to-front depth sorting (Painter's algorithm) ensuring foreground elevated plateaus cleanly occlude background hexes and tokens.
+  * Elevation contour indicators and badge markers (`+1`, `+2`) on tile hover and selection rings.
+* **Radius 4 Multi-Peak Procedural Arenas**:
+  * Standard encounter arena expanded to **Radius 4** (61 hexes, ~9 hexes across) to support rich 3D topography.
+  * Procedural terrain generator in `encounterGenerator.ts` seeds 1–2 random peak foci ($h=2$), flood-filling surrounding terraces ($h=1$), low-ground valleys ($h=0$), sheer drop cliff edges, and scattered ruins.
 
 ---
 

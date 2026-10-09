@@ -13,3 +13,4 @@ Nemeses
 UI Refinements
   - Initiative bubbles should highlight the unit on the field and vice versa.
   - Enemy units need better names. Either numbed (Novice 1, Novice 2) or real names.
+  - Dev mode things should only be available on localhost.
