@@ -32,12 +32,24 @@ export const CLASS_BADGE_PALETTES: Record<string, { primary: string; border: str
   cavalier: { primary: '#f59e0b', border: '#fbbf24' },
   knight: { primary: '#3b82f6', border: '#60a5fa' },
   thief: { primary: '#059669', border: '#10b981' },
+  infiltrator: { primary: '#047857', border: '#34d399' },
   wizard: { primary: '#7c3aed', border: '#8b5cf6' },
+  sorcerer: { primary: '#6d28d9', border: '#a78bfa' },
   novice: { primary: '#64748b', border: '#94a3b8' },
   highwayman: { primary: '#d97706', border: '#f59e0b' },
   warlock: { primary: '#4f46e5', border: '#6366f1' },
   witch: { primary: '#9333ea', border: '#a855f7' }
 };
+
+/**
+ * Resolves the primary and border palette colors for a class badge.
+ * Defaults to the neutral Novice palette if the class is not recognized or undefined.
+ */
+export function getClassBadgePalette(classId?: string): { primary: string; border: string } {
+  if (!classId) return CLASS_BADGE_PALETTES.novice;
+  const key = classId.toLowerCase();
+  return CLASS_BADGE_PALETTES[key] ?? CLASS_BADGE_PALETTES.novice;
+}
 
 /**
  * Maps the 6 pointy-topped hex directions to their corresponding 8-way pixel sprite rotation.

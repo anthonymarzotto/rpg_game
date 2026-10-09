@@ -7,7 +7,9 @@ import {
   isPixelAsset,
   getUnitTokenUrls,
   preloadCombatUnitTokens,
-  clearImageCache
+  clearImageCache,
+  getClassBadgePalette,
+  CLASS_BADGE_PALETTES
 } from './tokenAssets';
 
 function createMockUnit(overrides: Partial<Unit> = {}): Unit {
@@ -346,6 +348,33 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       await expect(
         preloadCombatUnitTokens([novice1, novice2, warrior])
       ).resolves.toBeDefined();
+    });
+  });
+
+  describe('Class Badge Palettes & Helpers', () => {
+    it('returns dedicated palette colors for all Tier 3 classes', () => {
+      expect(getClassBadgePalette('cavalier')).toEqual(CLASS_BADGE_PALETTES.cavalier);
+      expect(getClassBadgePalette('berserker')).toEqual(CLASS_BADGE_PALETTES.berserker);
+      expect(getClassBadgePalette('highwayman')).toEqual(CLASS_BADGE_PALETTES.highwayman);
+      expect(getClassBadgePalette('warlock')).toEqual(CLASS_BADGE_PALETTES.warlock);
+      expect(getClassBadgePalette('witch')).toEqual(CLASS_BADGE_PALETTES.witch);
+    });
+
+    it('returns dedicated palette colors for Tier 2 and Tier 1 classes', () => {
+      expect(getClassBadgePalette('knight')).toEqual(CLASS_BADGE_PALETTES.knight);
+      expect(getClassBadgePalette('infiltrator')).toEqual({ primary: '#047857', border: '#34d399' });
+      expect(getClassBadgePalette('sorcerer')).toEqual({ primary: '#6d28d9', border: '#a78bfa' });
+      expect(getClassBadgePalette('warrior')).toEqual(CLASS_BADGE_PALETTES.warrior);
+      expect(getClassBadgePalette('thief')).toEqual(CLASS_BADGE_PALETTES.thief);
+      expect(getClassBadgePalette('wizard')).toEqual(CLASS_BADGE_PALETTES.wizard);
+      expect(getClassBadgePalette('novice')).toEqual(CLASS_BADGE_PALETTES.novice);
+    });
+
+    it('handles case-insensitivity and falls back to novice palette for unknown or undefined classes', () => {
+      expect(getClassBadgePalette('CAVALIER')).toEqual(CLASS_BADGE_PALETTES.cavalier);
+      expect(getClassBadgePalette('Witch')).toEqual(CLASS_BADGE_PALETTES.witch);
+      expect(getClassBadgePalette('unknown_class')).toEqual(CLASS_BADGE_PALETTES.novice);
+      expect(getClassBadgePalette(undefined)).toEqual(CLASS_BADGE_PALETTES.novice);
     });
   });
 });

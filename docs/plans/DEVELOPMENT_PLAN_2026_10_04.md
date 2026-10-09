@@ -32,7 +32,7 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 │  - [x] 5.4 Warlock (1, 0, 2) kit & eldritch drain           │
 │  - [x] 5.5 Witch (0, 1, 2) kit & misfortune ward            │
 │  - [x] 5.6 Hybrid AI profiles & primer heuristics           │
-│  - [ ] 5.7 Campaign encounter budget & token mapping        │
+│  - [x] 5.7 Campaign encounter budget & token mapping        │
 │  - [*] (Cat-burglar moved to Phase 6b for elevation)        │
 └──────────────────────────────┬──────────────────────────────┘
                                │
@@ -127,7 +127,7 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
   * `witch` -> `SUPPORT` (debuffs priority targets with hexes, controls combat tempo, and buffs frontline allies with talisman).
 * **Tactical Primer Heuristics**: Teach composite move-and-act evaluation to value self-buff primers (`Blood Frenzy`, `Rallying Pennant`) when follow-up AP is available.
 
-### 5.7. Campaign Encounter Budget & Pixel Token Mapping (`src/core/campaign/`, `src/ui/combat/`)
+### 5.7. Campaign Encounter Budget & Pixel Token Mapping (`src/core/campaign/`, `src/ui/combat/`) - [x] COMPLETED
 * **Dynamic Threat Budgeting**: Update `encounterGenerator.ts` to spawn Tier 3 hybrid enemies at Stage 5+ with higher threat budgets (60–80 points).
 * **Token Asset Whitelisting**: Map unique pixel sprites from `characters_packed.png` for all active Tier 3 classes in `tokenAssets.ts` with dedicated unit cards and color badges.
 

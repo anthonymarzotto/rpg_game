@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createRecruit } from '../units/unitFactory';
 import { createRadialArena } from '../grid/templates';
-import { generateStageEncounter } from './encounterGenerator';
+import { generateStageEncounter, createEnemyUnit, TIER3_CLASSES } from './encounterGenerator';
 
 describe('Procedural Encounter Generator', () => {
   const recruitSquad = [
@@ -102,5 +102,64 @@ describe('Procedural Encounter Generator', () => {
       }
     }
     expect(hasVeteranInAny).toBe(true);
+  });
+
+  describe('Tier 3 Hybrid Enemies & Stage 5+ Budget Scaling', () => {
+    it('creates properly configured Tier 3 hybrid enemy units with valid constellations', () => {
+      for (const classId of TIER3_CLASSES) {
+        const unit = createEnemyUnit(`enemy-${classId}`, classId);
+
+        expect(unit.faction).toBe('ENEMY');
+        expect(unit.loadout.activeClassId).toBe(classId);
+        expect(unit.progression.currentLevel).toBe(3);
+        expect(unit.progression.constellation).toContain(classId);
+
+        // Specific archetype constellation verifications
+        if (classId === 'cavalier') {
+          expect(unit.progression.archetypePoints).toEqual({ fighter: 2, rogue: 1, mage: 0 });
+          expect(unit.progression.constellation).toEqual(['warrior', 'knight', 'cavalier']);
+        } else if (classId === 'berserker') {
+          expect(unit.progression.archetypePoints).toEqual({ fighter: 2, rogue: 0, mage: 1 });
+          expect(unit.progression.constellation).toEqual(['warrior', 'knight', 'berserker']);
+        } else if (classId === 'highwayman') {
+          expect(unit.progression.archetypePoints).toEqual({ fighter: 1, rogue: 2, mage: 0 });
+          expect(unit.progression.constellation).toEqual(['thief', 'infiltrator', 'highwayman']);
+        } else if (classId === 'warlock') {
+          expect(unit.progression.archetypePoints).toEqual({ fighter: 1, rogue: 0, mage: 2 });
+          expect(unit.progression.constellation).toEqual(['wizard', 'sorcerer', 'warlock']);
+        } else if (classId === 'witch') {
+          expect(unit.progression.archetypePoints).toEqual({ fighter: 0, rogue: 1, mage: 2 });
+          expect(unit.progression.constellation).toEqual(['wizard', 'sorcerer', 'witch']);
+        }
+      }
+    });
+
+    it('spawns Tier 3 adversaries on Stage 5+ encounters within squad bounds (2-4 units)', () => {
+      let foundTier3InAny = false;
+
+      for (let seed = 700; seed < 720; seed++) {
+        const encounter = generateStageEncounter(5, recruitSquad, seed);
+        const enemies = encounter.units.filter((p) => p.unit.faction === 'ENEMY');
+
+        expect(enemies.length).toBeGreaterThanOrEqual(2);
+        expect(enemies.length).toBeLessThanOrEqual(4);
+
+        for (const e of enemies) {
+          if (TIER3_CLASSES.includes(e.unit.loadout.activeClassId as any)) {
+            foundTier3InAny = true;
+            expect(e.unit.progression.currentLevel).toBe(3);
+          }
+        }
+      }
+
+      expect(foundTier3InAny).toBe(true);
+    });
+
+    it('enforces a minimum budget floor of 60 on Stage 5+ encounters', () => {
+      // Even with Level-0 novices (threat = 30), Stage 5 budget floor ensures >= 60 points
+      const encounter = generateStageEncounter(5, recruitSquad, 42);
+      expect(encounter.units.filter((u) => u.unit.faction === 'PLAYER')).toHaveLength(3);
+      expect(encounter.units.filter((u) => u.unit.faction === 'ENEMY').length).toBeGreaterThanOrEqual(2);
+    });
   });
 });

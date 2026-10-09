@@ -8,6 +8,7 @@ import {
   getEffectiveMove,
   getEffectiveSpeed
 } from '../../core/combat/effectiveVitals';
+import { getClassBadgePalette } from './tokenAssets';
 
 export interface UnitStatusCardProps {
   readonly activeCu: CombatUnit | undefined;
@@ -96,12 +97,23 @@ export function UnitStatusCard({
     (activeCu.hexesMovedThisTurn ?? 0) >= 2 &&
     (activeCu.passives ?? []).some((p) => p.id === 'momentum');
 
+  const activeBadgePalette = getClassBadgePalette(activeCu.unit.loadout?.activeClassId);
+
   return (
     <div className="combat-status-overlay">
       {/* 1. Active Unit Status Card */}
       <div className="unit-hud-card player-hud-card">
         <div className="unit-hud-header">
-          <span className="unit-role-badge">{formatRoleTitle(activeCu)}</span>
+          <span
+            className="unit-role-badge"
+            style={{
+              color: activeBadgePalette.border,
+              backgroundColor: `${activeBadgePalette.primary}26`,
+              borderColor: `${activeBadgePalette.border}66`
+            }}
+          >
+            {formatRoleTitle(activeCu)}
+          </span>
           <span className="unit-ctb-gauge">Gauge: {activeCu.initiativeGauge}/100</span>
         </div>
         <div className="unit-hud-name">{activeCu.unit.name}</div>
@@ -298,9 +310,21 @@ export function UnitStatusCard({
           </div>
           <div className="preview-target-name">
             {hoveredUnitCu.unit.name}{' '}
-            <span className="unit-role-badge">
-              {formatRoleTitle(hoveredUnitCu)}
-            </span>
+            {(() => {
+              const hoveredPalette = getClassBadgePalette(hoveredUnitCu.unit.loadout?.activeClassId);
+              return (
+                <span
+                  className="unit-role-badge"
+                  style={{
+                    color: hoveredPalette.border,
+                    backgroundColor: `${hoveredPalette.primary}26`,
+                    borderColor: `${hoveredPalette.border}66`
+                  }}
+                >
+                  {formatRoleTitle(hoveredUnitCu)}
+                </span>
+              );
+            })()}
           </div>
 
           {/* Active Passives on Inspected Unit */}

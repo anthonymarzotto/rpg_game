@@ -1,23 +1,6 @@
-# Encounter Generation Specification
+# Spec Delta: Encounter Generation
 
-## Purpose
-Generates procedural tactical combat encounters and hex arenas calibrated to composite squad threat and campaign stage index.
-
-## Requirements
-
-### Requirement: Squad Threat Evaluation
-The system SHALL compute an aggregate Threat Rating for the active player squad by summing the threat values of all deployed combatants based on their level and archetype progression.
-
-#### Scenario: Computing squad threat budget
-- **WHEN** an active squad consisting of 3 Level-0 Novices is evaluated
-- **THEN** the system calculates a base recruit squad threat value of 30 points
-
-### Requirement: Stage-Scaled Threat Budget
-The system SHALL compute the target encounter threat budget by multiplying the squad threat rating by a stage scaling factor derived from the campaign stage index.
-
-#### Scenario: Threat scaling across stages
-- **WHEN** an encounter is generated for Stage 1 versus a later Stage N
-- **THEN** the target threat budget increases monotonically with higher stage indices
+## MODIFIED Requirements
 
 ### Requirement: Procedural Enemy Composition
 The system SHALL assemble an enemy combatant roster whose total threat budget matches the target encounter budget, selecting from verified class packages across Novices (10 threat), Tier-1 classes (25 threat), Tier-2 classes (40 threat), and Tier-3 hybrid classes (55 threat). For Stage 5 and beyond, the system SHALL support spawning Tier-3 hybrid adversaries (Cavalier, Berserker, Highwayman, Warlock, Witch) calibrated to higher stage threat budgets (60–80+ points) while maintaining squad constraints of 2 to 4 combatants.
@@ -38,6 +21,8 @@ The system SHALL assemble an enemy combatant roster whose total threat budget ma
 - **WHEN** generating an encounter for Stage 5 or higher with a threat budget of at least 55 points
 - **THEN** the generated enemy squad can incorporate Tier-3 hybrid adversaries (Cavalier, Berserker, Highwayman, Warlock, or Witch) with archetype progression and active loadouts matching their hybrid class definition
 
+## ADDED Requirements
+
 ### Requirement: Hybrid Enemy Progression and Loadout
 The system SHALL initialize generated Tier-3 hybrid enemy units with archetype point advancement and constellations that satisfy the hybrid class requirements, assigning their signature abilities, domain abilities, and passive mastery traits.
 
@@ -48,21 +33,3 @@ The system SHALL initialize generated Tier-3 hybrid enemy units with archetype p
 #### Scenario: Initializing a Witch enemy
 - **WHEN** `createEnemyUnit` creates an enemy unit with class `witch`
 - **THEN** the unit progression receives 1 Rogue and 2 Mage archetype advancements, unlocks Witch in its constellation, and equips the Witch class package
-
-### Requirement: Procedural Arena and Obstacle Generation
-The system SHALL generate an arena of radius 3 or 4 with 2 to 4 non-walkable obstacle hexes, ensuring guaranteed walkable pathfinding connectivity between player deployment hexes in the West and enemy deployment hexes in the East.
-
-#### Scenario: Arena generation with traversable connectivity
-- **WHEN** `generateStageEncounter` constructs a new battle arena
-- **THEN** player spawn hexes and enemy spawn hexes have at least one unblocked path connecting them
-
-### Requirement: Deterministic Generation and Reroll
-The system SHALL construct encounters deterministically when provided with a random number generator seed, enabling identical encounter retries and distinct new battle generation.
-
-#### Scenario: Retrying an encounter
-- **WHEN** an encounter is generated using the same stage index and seed as a previous attempt
-- **THEN** the resulting arena layout, obstacle placements, and enemy units are identical
-
-#### Scenario: Generating a new encounter for the same stage
-- **WHEN** `regenerateCurrentStageEncounter` is called with a distinct seed
-- **THEN** a fresh encounter is produced with different enemy compositions or obstacle layouts at the same stage threat budget

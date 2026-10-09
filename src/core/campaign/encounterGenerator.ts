@@ -16,29 +16,24 @@ import { computeDerivedVitals } from '../units/vitals';
 
 export type EnemyTier1Class = 'warrior' | 'thief' | 'wizard';
 export type EnemyTier2Class = 'knight' | 'infiltrator' | 'sorcerer';
+export type EnemyTier3Class = 'cavalier' | 'berserker' | 'highwayman' | 'warlock' | 'witch';
 
 export const TIER1_CLASSES: readonly EnemyTier1Class[] = ['warrior', 'thief', 'wizard'];
 export const TIER2_CLASSES: readonly EnemyTier2Class[] = ['knight', 'infiltrator', 'sorcerer'];
-
-function getPrimaryArchetype(requirements: { fighter: number; rogue: number; mage: number }): {
-  archetype: Archetype;
-  attr: 'force' | 'finesse' | 'focus';
-} {
-  if (requirements.fighter >= requirements.rogue && requirements.fighter >= requirements.mage) {
-    return { archetype: 'FIGHTER', attr: 'force' };
-  }
-  if (requirements.rogue >= requirements.mage) {
-    return { archetype: 'ROGUE', attr: 'finesse' };
-  }
-  return { archetype: 'MAGE', attr: 'focus' };
-}
+export const TIER3_CLASSES: readonly EnemyTier3Class[] = [
+  'cavalier',
+  'berserker',
+  'highwayman',
+  'warlock',
+  'witch'
+];
 
 /**
- * Creates an enemy combatant using core class archetypes (Novice, Tier 1, or Tier 2).
+ * Creates an enemy combatant using core class archetypes (Novice, Tier 1, Tier 2, or Tier 3).
  */
 export function createEnemyUnit(
   id: string,
-  classId: 'novice' | EnemyTier1Class | EnemyTier2Class,
+  classId: 'novice' | EnemyTier1Class | EnemyTier2Class | EnemyTier3Class,
   rng?: () => number
 ): Unit {
   if (classId === 'novice') {
@@ -53,7 +48,7 @@ export function createEnemyUnit(
     throw new Error(`Unknown enemy class: ${classId}`);
   }
 
-  const { archetype, attr } = getPrimaryArchetype(classDef.requirements);
+  const req = classDef.requirements;
   const level = classDef.totalPoints;
 
   const recruit = createRecruit(id, classDef.name, {
@@ -62,14 +57,30 @@ export function createEnemyUnit(
   });
 
   let progression = recruit.progression;
-  for (let i = 0; i < level; i++) {
-    progression = advanceArchetypeLevel(progression, archetype, CLASS_REGISTRY);
+
+  // Advance progression matching class requirements.
+  // Advance dominant archetype first so intermediate pure nodes are unlocked
+  // before branching into hybrid classes (e.g. warrior->knight for cavalier/berserker).
+  const archetypes: Archetype[] = ['FIGHTER', 'ROGUE', 'MAGE'];
+  archetypes.sort((a, b) => {
+    const keyA = a.toLowerCase() as keyof typeof req;
+    const keyB = b.toLowerCase() as keyof typeof req;
+    return req[keyB] - req[keyA];
+  });
+
+  for (const arch of archetypes) {
+    const key = arch.toLowerCase() as keyof typeof req;
+    const count = req[key];
+    for (let i = 0; i < count; i++) {
+      progression = advanceArchetypeLevel(progression, arch, CLASS_REGISTRY);
+    }
   }
 
-  const attrBonus = level;
   const baseAttributes = {
     ...recruit.baseAttributes,
-    [attr]: recruit.baseAttributes[attr] + attrBonus
+    force: recruit.baseAttributes.force + req.fighter,
+    finesse: recruit.baseAttributes.finesse + req.rogue,
+    focus: recruit.baseAttributes.focus + req.mage
   };
   const effectiveVitals = computeDerivedVitals(baseAttributes, level);
 
@@ -92,7 +103,8 @@ export function createEnemyUnit(
 
 /**
  * Assembles an enemy squad whose combined threat cost matches the target threat budget
- * using standard Novice (10 threat), Tier-1 classes (25 threat), and Tier-2 classes (40 threat).
+ * using standard Novice (10 threat), Tier-1 classes (25 threat), Tier-2 classes (40 threat),
+ * and Tier-3 hybrid classes (55 threat).
  */
 export function assembleEnemySquad(
   budget: number,
@@ -103,8 +115,16 @@ export function assembleEnemySquad(
   const squad: Unit[] = [];
   let unitIndex = 1;
 
+  // For Stage 5+, allow Tier-3 enemies (Cavalier, Berserker, Highwayman, Warlock, Witch) if budget allows (55 threat)
+  const canUseTier3 = stage >= 5 && remaining >= 55;
+  if (canUseTier3 && rng() < 0.6) {
+    const classPick = TIER3_CLASSES[Math.floor(rng() * TIER3_CLASSES.length)];
+    squad.push(createEnemyUnit(`enemy-${unitIndex++}`, classPick, rng));
+    remaining -= 55;
+  }
+
   // For Stage 3+, allow Tier-2 enemies (Knight, Infiltrator, Sorcerer) if budget allows (40 threat)
-  const canUseTier2 = stage >= 3 && remaining >= 40;
+  const canUseTier2 = stage >= 3 && remaining >= 40 && squad.length < 4;
   if (canUseTier2 && rng() < 0.5) {
     const classPick = TIER2_CLASSES[Math.floor(rng() * TIER2_CLASSES.length)];
     squad.push(createEnemyUnit(`enemy-${unitIndex++}`, classPick, rng));
@@ -112,7 +132,7 @@ export function assembleEnemySquad(
   }
 
   // For Stage 2+, allow Tier-1 enemies (Warrior, Thief, Wizard) if budget allows (25 threat)
-  const canUseTier1 = stage >= 2 && remaining >= 25;
+  const canUseTier1 = stage >= 2 && remaining >= 25 && squad.length < 4;
   if (canUseTier1 && rng() < 0.6) {
     const classPick = TIER1_CLASSES[Math.floor(rng() * TIER1_CLASSES.length)];
     squad.push(createEnemyUnit(`enemy-${unitIndex++}`, classPick, rng));
@@ -250,7 +270,8 @@ export function generateStageEncounter(
   const rng = createRng(effectiveSeed);
 
   const squadThreat = computeSquadThreat(playerSquad);
-  const targetBudget = computeStageThreatBudget(squadThreat, stage);
+  const baseBudget = computeStageThreatBudget(squadThreat, stage);
+  const targetBudget = stage >= 5 ? Math.max(baseBudget, 60) : baseBudget;
 
   const radius = stage <= 2 ? 3 : rng() < 0.6 ? 3 : 4;
   const { playerCoords, enemyCoords } = getDeploymentZones(radius);
