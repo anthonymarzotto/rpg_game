@@ -448,7 +448,7 @@ export function scoreDebuffAndUtility(
 
   // 5. CONDITION: CHALLENGED & Self-Evasion (e.g. Flamboyant Flourish)
   const inflictsChallenged = ability.effects?.some(
-    (e) => e.type === 'CONDITION' && (e.conditionType === 'CHALLENGED' || (e as any).condition === 'CHALLENGED')
+    (e) => e.type === 'CONDITION' && e.conditionType === 'CHALLENGED'
   );
   if (inflictsChallenged) {
     const isAlreadyChallenged = targetCu.activeConditions.some(
@@ -510,17 +510,14 @@ export function scoreDebuffAndUtility(
 
   // 9. Status condition DoT (e.g. POISON from Baleful Hex, BURN from Hellfire Brand / Ignite Rage)
   const conditionEffect = ability.effects?.find(
-    (e) => e.type === 'CONDITION' &&
-      (e.conditionType === 'POISON' || e.conditionType === 'BURN' || (e as any).condition === 'POISON' || (e as any).condition === 'BURN')
+    (e) => e.type === 'CONDITION' && (e.conditionType === 'POISON' || e.conditionType === 'BURN')
   );
-  if (conditionEffect) {
-    const cond = conditionEffect.conditionType ?? (conditionEffect as any).condition;
-    if (cond) {
-      const hasCondition = targetCu.activeConditions.some((c) => c.type === cond);
-      if (!hasCondition) {
-        score += 4.5;
-        reasons.push(`Apply ${cond} DoT`);
-      }
+  if (conditionEffect?.conditionType) {
+    const cond = conditionEffect.conditionType;
+    const hasCondition = targetCu.activeConditions.some((c) => c.type === cond);
+    if (!hasCondition) {
+      score += 4.5;
+      reasons.push(`Apply ${cond} DoT`);
     }
   }
 

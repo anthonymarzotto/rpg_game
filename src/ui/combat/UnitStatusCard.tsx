@@ -98,6 +98,7 @@ export function UnitStatusCard({
     (activeCu.passives ?? []).some((p) => p.id === 'momentum');
 
   const activeBadgePalette = getClassBadgePalette(activeCu.unit.loadout?.activeClassId);
+  const hoveredBadgePalette = getClassBadgePalette(hoveredUnitCu?.unit.loadout?.activeClassId);
 
   return (
     <div className="combat-status-overlay">
@@ -310,21 +311,16 @@ export function UnitStatusCard({
           </div>
           <div className="preview-target-name">
             {hoveredUnitCu.unit.name}{' '}
-            {(() => {
-              const hoveredPalette = getClassBadgePalette(hoveredUnitCu.unit.loadout?.activeClassId);
-              return (
-                <span
-                  className="unit-role-badge"
-                  style={{
-                    color: hoveredPalette.border,
-                    backgroundColor: `${hoveredPalette.primary}26`,
-                    borderColor: `${hoveredPalette.border}66`
-                  }}
-                >
-                  {formatRoleTitle(hoveredUnitCu)}
-                </span>
-              );
-            })()}
+            <span
+              className="unit-role-badge"
+              style={{
+                color: hoveredBadgePalette.border,
+                backgroundColor: `${hoveredBadgePalette.primary}26`,
+                borderColor: `${hoveredBadgePalette.border}66`
+              }}
+            >
+              {formatRoleTitle(hoveredUnitCu)}
+            </span>
           </div>
 
           {/* Active Passives on Inspected Unit */}

@@ -18,10 +18,7 @@ export const conditionHandler: EffectHandler = {
     }
 
     // Determine condition type
-    let conditionType: ConditionType | undefined = effect.conditionType;
-    if (!conditionType && effect.type === 'CONDITION') {
-      conditionType = effect.conditionType;
-    }
+    const conditionType: ConditionType | undefined = effect.conditionType;
 
     const events: CombatEvent[] = [];
     let logDetail = '';

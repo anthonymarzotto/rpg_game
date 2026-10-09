@@ -72,9 +72,11 @@ describe('elevationGeometry', () => {
     expect(swWall.points.split(' ')).toHaveLength(4);
     expect(seWall.points.split(' ')).toHaveLength(4);
 
-    // Verify top edge vs bottom edge vertical offset
+    // Verify top edge vs bottom edge vertical offset from quad points (point 3 is bottom, point 0 is top)
     const expectedDrop = elevation * ELEVATION_Y_OFFSET;
-    expect(swWall.bottomEdge[0].y - swWall.topEdge[0].y).toBeCloseTo(expectedDrop, 1);
-    expect(seWall.bottomEdge[0].y - seWall.topEdge[0].y).toBeCloseTo(expectedDrop, 1);
+    const swPoints = swWall.points.split(' ').map((p) => p.split(',').map(Number));
+    const sePoints = seWall.points.split(' ').map((p) => p.split(',').map(Number));
+    expect(swPoints[3][1] - swPoints[0][1]).toBeCloseTo(expectedDrop, 1);
+    expect(sePoints[2][1] - sePoints[1][1]).toBeCloseTo(expectedDrop, 1);
   });
 });

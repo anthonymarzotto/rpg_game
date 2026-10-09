@@ -269,8 +269,7 @@ export class Arena {
    */
   public getReachableHexes(
     origin: HexCoord,
-    moveBudget: number,
-    _maxJumpElevation: number = DISPLACEMENT_CONFIG.maxJumpElevation
+    moveBudget: number
   ): HexCoord[] {
     const reachableMap = this.getReachableHexInfo(origin, moveBudget);
     return Array.from(reachableMap.values()).map((info) => info.coord);

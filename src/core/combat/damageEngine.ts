@@ -166,9 +166,7 @@ export function resolveFallDamage(
 ): number {
   if (rawFallDamage <= 0) return 0;
 
-  const isImmune =
-    cu.passives?.some((p) => p.immuneToFallDamage) ||
-    cu.activeModifiers?.some((m) => (m as any).immuneToFallDamage);
+  const isImmune = cu.passives?.some((p) => p.immuneToFallDamage);
 
   if (isImmune) {
     return 0;

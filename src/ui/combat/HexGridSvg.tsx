@@ -58,16 +58,9 @@ export function HexGridSvg({
     return state.arena.getAllTiles();
   }, [state.arena]);
 
-  // Painter's algorithm: sort North-to-South (base Y ascending, then X ascending)
+  // Painter's algorithm: sort North-to-South (row r ascending, then column q ascending)
   const sortedTiles = useMemo(() => {
-    return [...allTiles].sort((a, b) => {
-      const posA = hexToPixel(a.coord);
-      const posB = hexToPixel(b.coord);
-      if (Math.abs(posA.y - posB.y) > 0.1) {
-        return posA.y - posB.y;
-      }
-      return posA.x - posB.x;
-    });
+    return [...allTiles].sort((a, b) => a.coord.r - b.coord.r || a.coord.q - b.coord.q);
   }, [allTiles]);
 
   // Compute dynamic viewBox and backdrop radius based on arena bounds, elevation offsets, and zoom

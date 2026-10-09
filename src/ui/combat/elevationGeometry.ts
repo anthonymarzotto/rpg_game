@@ -12,8 +12,6 @@ export interface Point2D {
 export interface ExtrudedWallFace {
   readonly id: 'southwest' | 'southeast';
   readonly points: string;
-  readonly topEdge: [Point2D, Point2D];
-  readonly bottomEdge: [Point2D, Point2D];
 }
 
 /**
@@ -76,8 +74,7 @@ export function getHexPolygonPoints(
   cy: number,
   radius = DEFAULT_HEX_RADIUS - 1.5
 ): string {
-  const vertices = getHexVertices(cx, cy, radius);
-  return pointsToSvgString(vertices);
+  return pointsToSvgString(getHexVertices(cx, cy, radius));
 }
 
 /**
@@ -116,17 +113,7 @@ export function getExtrudedPrismWalls(
   const seQuad: Point2D[] = [v2Top, v1Top, v1Bottom, v2Bottom];
 
   return [
-    {
-      id: 'southwest',
-      points: pointsToSvgString(swQuad),
-      topEdge: [v3Top, v2Top],
-      bottomEdge: [v3Bottom, v2Bottom]
-    },
-    {
-      id: 'southeast',
-      points: pointsToSvgString(seQuad),
-      topEdge: [v2Top, v1Top],
-      bottomEdge: [v2Bottom, v1Bottom]
-    }
+    { id: 'southwest', points: pointsToSvgString(swQuad) },
+    { id: 'southeast', points: pointsToSvgString(seQuad) }
   ];
 }

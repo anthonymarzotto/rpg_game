@@ -353,8 +353,6 @@ function applyCombatEvents(state: CombatState, events: readonly CombatEvent[]): 
           cu.activeConditions.push(event.condition);
         }
       }
-    } else if (event.type === 'CTB_DELAY') {
-      // Initiative gauge deduction is applied to targetCu in ctbDelayHandler during effect execution
     }
   }
 }
@@ -600,7 +598,6 @@ export function executeAbility(
   const elevationDelta = actorElevation - targetElevation;
   const elevMod = calculateElevationAttackModifier(
     actorCu,
-    targetCu,
     elevationDelta,
     effectiveAbility
   );

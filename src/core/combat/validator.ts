@@ -1,8 +1,38 @@
 import { HexCoord, hexDistance, getHexLine } from '../grid/hex';
 import { Ability } from '../types/ability';
-import { CombatState, ValidationResult } from './types';
+import { CombatState, CombatUnit, ValidationResult } from './types';
 import { getEffectiveMove } from './effectiveVitals';
 import { getEffectiveAbility } from './modifiers';
+
+function validateElevationReachAndRange(
+  actorElevation: number,
+  targetElevation: number,
+  effectiveAbility: Ability,
+  cu: CombatUnit,
+  dist: number
+): ValidationResult | undefined {
+  const elevationDelta = actorElevation - targetElevation;
+  if (effectiveAbility.range <= 1) {
+    const maxReach = effectiveAbility.reachElevationDelta ?? 1;
+    const ignoresReach = cu.passives?.some((p) => p.ignoresElevationPenalty);
+    if (!ignoresReach && Math.abs(elevationDelta) > maxReach) {
+      return {
+        valid: false,
+        reason: `Target is vertically out of reach (elevation difference ${Math.abs(elevationDelta)} > reach ${maxReach}).`
+      };
+    }
+  }
+
+  const effectiveRange =
+    effectiveAbility.range >= 2
+      ? effectiveAbility.range + Math.max(0, elevationDelta)
+      : effectiveAbility.range;
+
+  if (dist > effectiveRange) {
+    return { valid: false, reason: `Target out of range (distance ${dist} > range ${effectiveRange}).` };
+  }
+  return undefined;
+}
 
 /**
  * Checks if the active unit can legally move to destination.
@@ -87,31 +117,15 @@ export function canExecuteAbility(
     if (!target?.coord) {
       return { valid: false, reason: 'Missing destination coordinate for hex-targeted ability.' };
     }
-    const targetElevation = state.arena.getElevation(target.coord);
-    const elevationDelta = actorElevation - targetElevation;
-
-    // Melee vertical reach constraint
-    if (effectiveAbility.range <= 1) {
-      const maxReach = effectiveAbility.reachElevationDelta ?? 1;
-      const ignoresReach = cu.passives?.some((p) => p.ignoresElevationPenalty);
-      if (!ignoresReach && Math.abs(elevationDelta) > maxReach) {
-        return {
-          valid: false,
-          reason: `Target is vertically out of reach (elevation difference ${Math.abs(elevationDelta)} > reach ${maxReach}).`
-        };
-      }
-    }
-
-    // High-ground ranged vantage extension
-    const effectiveRange =
-      effectiveAbility.range >= 2
-        ? effectiveAbility.range + Math.max(0, elevationDelta)
-        : effectiveAbility.range;
-
     const dist = hexDistance(actorCoord, target.coord);
-    if (dist > effectiveRange) {
-      return { valid: false, reason: `Target out of range (distance ${dist} > range ${effectiveRange}).` };
-    }
+    const rangeError = validateElevationReachAndRange(
+      actorElevation,
+      state.arena.getElevation(target.coord),
+      effectiveAbility,
+      cu,
+      dist
+    );
+    if (rangeError) return rangeError;
     const destTile = state.arena.getTile(target.coord);
     if (!destTile) {
       return { valid: false, reason: `Destination (${target.coord.q}, ${target.coord.r}) does not exist in arena.` };
@@ -174,31 +188,15 @@ export function canExecuteAbility(
       }
     }
 
-    const targetElevation = state.arena.getElevation(targetCoord);
-    const elevationDelta = actorElevation - targetElevation;
-
-    // Melee vertical reach constraint (|dh| <= reach)
-    if (effectiveAbility.range <= 1) {
-      const maxReach = effectiveAbility.reachElevationDelta ?? 1;
-      const ignoresReach = cu.passives?.some((p) => p.ignoresElevationPenalty);
-      if (!ignoresReach && Math.abs(elevationDelta) > maxReach) {
-        return {
-          valid: false,
-          reason: `Target is vertically out of reach (elevation difference ${Math.abs(elevationDelta)} > reach ${maxReach}).`
-        };
-      }
-    }
-
-    // High-ground ranged vantage extension
-    const effectiveRange =
-      effectiveAbility.range >= 2
-        ? effectiveAbility.range + Math.max(0, elevationDelta)
-        : effectiveAbility.range;
-
     const dist = hexDistance(actorCoord, targetCoord);
-    if (dist > effectiveRange) {
-      return { valid: false, reason: `Target out of range (distance ${dist} > range ${effectiveRange}).` };
-    }
+    const rangeError = validateElevationReachAndRange(
+      actorElevation,
+      state.arena.getElevation(targetCoord),
+      effectiveAbility,
+      cu,
+      dist
+    );
+    if (rangeError) return rangeError;
 
     const isRush = effectiveAbility.effects?.some((e) => e.type === 'RUSH_CHARGE');
     if (isRush) {

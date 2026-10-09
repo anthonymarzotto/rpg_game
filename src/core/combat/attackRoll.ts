@@ -27,78 +27,38 @@ export interface ElevationAttackModifierResult {
  */
 export function calculateElevationAttackModifier(
   actorCu: CombatUnit,
-  _targetCu: CombatUnit,
   elevationDelta: number,
   ability: Ability
 ): ElevationAttackModifierResult {
-  const ignoresPenalty =
-    ability.ignoresElevationPenalty ||
-    actorCu.passives?.some((p) => p.ignoresElevationPenalty);
-
-  // Downward targeting
-  if (elevationDelta === 1) {
-    return {
-      rollBonus: 2,
-      rollPenalty: 0,
-      grantsAdvantage: false,
-      grantsDisadvantage: false,
-      description: 'High Ground (+2)'
-    };
-  }
-  if (elevationDelta >= 2) {
-    return {
-      rollBonus: 0,
-      rollPenalty: 0,
-      grantsAdvantage: true,
-      grantsDisadvantage: false,
-      description: 'High Ground (Advantage)'
-    };
-  }
-
-  // Upward targeting
-  if (elevationDelta === -1) {
-    if (ignoresPenalty) {
-      return {
-        rollBonus: 0,
-        rollPenalty: 0,
-        grantsAdvantage: false,
-        grantsDisadvantage: false,
-        description: 'Low Ground Penalty Negated'
-      };
-    }
-    return {
-      rollBonus: 0,
-      rollPenalty: 2,
-      grantsAdvantage: false,
-      grantsDisadvantage: false,
-      description: 'Low Ground (-2)'
-    };
-  }
-  if (elevationDelta <= -2) {
-    if (ignoresPenalty) {
-      return {
-        rollBonus: 0,
-        rollPenalty: 0,
-        grantsAdvantage: false,
-        grantsDisadvantage: false,
-        description: 'Low Ground Disadvantage Negated'
-      };
-    }
-    return {
-      rollBonus: 0,
-      rollPenalty: 0,
-      grantsAdvantage: false,
-      grantsDisadvantage: true,
-      description: 'Low Ground (Disadvantage)'
-    };
-  }
-
-  return {
+  const base: ElevationAttackModifierResult = {
     rollBonus: 0,
     rollPenalty: 0,
     grantsAdvantage: false,
     grantsDisadvantage: false
   };
+
+  const ignoresPenalty =
+    ability.ignoresElevationPenalty ||
+    actorCu.passives?.some((p) => p.ignoresElevationPenalty);
+
+  if (elevationDelta === 1) {
+    return { ...base, rollBonus: 2, description: 'High Ground (+2)' };
+  }
+  if (elevationDelta >= 2) {
+    return { ...base, grantsAdvantage: true, description: 'High Ground (Advantage)' };
+  }
+  if (elevationDelta === -1) {
+    return ignoresPenalty
+      ? { ...base, description: 'Low Ground Penalty Negated' }
+      : { ...base, rollPenalty: 2, description: 'Low Ground (-2)' };
+  }
+  if (elevationDelta <= -2) {
+    return ignoresPenalty
+      ? { ...base, description: 'Low Ground Disadvantage Negated' }
+      : { ...base, grantsDisadvantage: true, description: 'Low Ground (Disadvantage)' };
+  }
+
+  return base;
 }
 
 export interface AttackRollResult {
@@ -148,7 +108,6 @@ export function resolveAttackRoll(
   if (options?.elevationDelta !== undefined && options.elevationDelta !== 0) {
     const elevMod = calculateElevationAttackModifier(
       actorCu,
-      targetCu,
       options.elevationDelta,
       ability
     );

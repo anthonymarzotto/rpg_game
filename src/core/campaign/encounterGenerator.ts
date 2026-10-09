@@ -194,69 +194,6 @@ export function getDeploymentZones(radius: number): {
   };
 }
 
-/**
- * Procedurally generates obstacle tile overrides ensuring path connectivity between zones.
- */
-export function generateArenaObstacles(
-  radius: number,
-  playerSpawns: readonly HexCoord[],
-  enemySpawns: readonly HexCoord[],
-  rng: () => number
-): readonly EncounterTileOverride[] {
-  const spawnSet = new Set(
-    [...playerSpawns, ...enemySpawns].map((c) => `${c.q},${c.r}`)
-  );
-
-  const numObstacles = 2 + Math.floor(rng() * 3); // 2 to 4 obstacles
-
-  // Gather eligible interior tiles
-  const interiorCoords: HexCoord[] = [];
-  for (let q = -radius + 1; q <= radius - 1; q++) {
-    for (let r = -radius + 1; r <= radius - 1; r++) {
-      if (Math.abs(q + r) < radius) {
-        const key = `${q},${r}`;
-        if (!spawnSet.has(key)) {
-          interiorCoords.push({ q, r });
-        }
-      }
-    }
-  }
-
-  // Shuffle interior coords
-  const shuffled = shuffle(interiorCoords, rng);
-
-  // Try candidate obstacle subsets and verify connectivity
-  for (let attempt = 0; attempt < 10; attempt++) {
-    const candidateCoords = shuffled.slice(attempt * numObstacles, attempt * numObstacles + numObstacles);
-    if (candidateCoords.length < 2) break;
-
-    const arena = createRadialArena(radius);
-    for (const c of candidateCoords) {
-      const tile = arena.getTile(c);
-      if (tile) {
-        arena.setTile({ ...tile, isWalkable: false });
-      }
-    }
-
-    // Verify connectivity from first player spawn to first enemy spawn
-    const reachable = arena.getReachableHexes(playerSpawns[0], 99);
-    const connectsToEnemy = reachable.some(
-      (c) => c.q === enemySpawns[0].q && c.r === enemySpawns[0].r
-    );
-
-    if (connectsToEnemy) {
-      return candidateCoords.map((coord) => ({
-        coord,
-        isWalkable: false,
-        terrainType: 'OBSTACLE',
-        label: 'RUINS'
-      }));
-    }
-  }
-
-  // Fallback: 0 obstacles if connectivity verification failed
-  return [];
-}
 
 /**
  * Procedurally generates terraced elevation topography and obstacles ensuring
@@ -391,8 +328,8 @@ export function generateArenaTerrain(
     }
   }
 
-  // Fallback: flat ground with obstacles if all attempts failed
-  return generateArenaObstacles(radius, playerSpawns, enemySpawns, rng);
+  // Fallback: flat ground without overrides if all generation attempts failed
+  return [];
 }
 
 /**
