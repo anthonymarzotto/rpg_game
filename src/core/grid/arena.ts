@@ -20,6 +20,13 @@ export interface HexTile {
   occupiedByUnitId?: string;
 }
 
+export interface ReachableTileInfo {
+  readonly coord: HexCoord;
+  readonly cost: number;
+  readonly fallDamage: number;
+  readonly path: readonly HexCoord[];
+}
+
 export type CollisionType = 'VOID' | 'WALL' | 'CLIFF' | 'UNIT';
 
 export interface KnockbackResult {
@@ -39,12 +46,17 @@ export class Arena {
 
   constructor(initialTiles: readonly HexTile[] = []) {
     for (const tile of initialTiles) {
-      this.tiles.set(toHexKey(tile.coord), { ...tile });
+      const elevation = Math.max(0, Math.min(3, Math.floor(tile.elevation ?? 0)));
+      this.tiles.set(toHexKey(tile.coord), { ...tile, elevation });
     }
   }
 
   public getTile(coord: HexCoord): HexTile | undefined {
     return this.tiles.get(toHexKey(coord));
+  }
+
+  public getElevation(coord: HexCoord): number {
+    return this.getTile(coord)?.elevation ?? 0;
   }
 
   public getAllTiles(): HexTile[] {
@@ -56,7 +68,8 @@ export class Arena {
   }
 
   public setTile(tile: HexTile): void {
-    this.tiles.set(toHexKey(tile.coord), { ...tile });
+    const elevation = Math.max(0, Math.min(3, Math.floor(tile.elevation ?? 0)));
+    this.tiles.set(toHexKey(tile.coord), { ...tile, elevation });
   }
 
   public getUnitPosition(unitId: string): HexCoord | undefined {
@@ -107,70 +120,171 @@ export class Arena {
   }
 
   /**
-   * Returns all hexes reachable from origin within the given movement budget,
-   * respecting walkability, max jump elevation, and strict single-unit occupancy.
+   * Computes all reachable tiles and optimal paths within a movement budget (MP)
+   * using Dijkstra search over discrete elevation terrain.
+   * - Step cost: 1 + Math.max(0, dh) MP.
+   * - Impassable rise: dh > maxClimbElevation (dh >= 3).
+   * - Safe-route prioritization: chooses zero-fall-damage routes when within budget.
+   * - Fall damage: |dh| * 4 when plunging dh <= -2.
    */
-  public getReachableHexes(
+  public getReachableHexInfo(
     origin: HexCoord,
-    moveBudget: number,
-    maxJumpElevation: number = DISPLACEMENT_CONFIG.maxJumpElevation
-  ): HexCoord[] {
+    moveBudget: number
+  ): Map<string, ReachableTileInfo> {
     const startTile = this.getTile(origin);
     if (!startTile || moveBudget <= 0) {
-      return [];
+      return new Map();
     }
 
-    const reachable: HexCoord[] = [];
-    const distances: Map<string, number> = new Map();
-    const queue: HexCoord[] = [origin];
-    distances.set(toHexKey(origin), 0);
+    interface SearchNode {
+      coord: HexCoord;
+      cost: number;
+      fallDamage: number;
+      path: HexCoord[];
+    }
+
+    // Best destination outcomes for stopping at a tile (keyed by hexKey)
+    const bestDestinations = new Map<string, ReachableTileInfo>();
+
+    // Pareto frontier of non-dominated states per tile: array of { cost, fallDamage }
+    const frontiers = new Map<string, Array<{ cost: number; fallDamage: number }>>();
+
+    const queue: SearchNode[] = [
+      {
+        coord: origin,
+        cost: 0,
+        fallDamage: 0,
+        path: [origin]
+      }
+    ];
+
+    frontiers.set(toHexKey(origin), [{ cost: 0, fallDamage: 0 }]);
 
     while (queue.length > 0) {
+      // Sort to pop the lowest (fallDamage, cost) state
+      queue.sort((a, b) => {
+        if (a.fallDamage !== b.fallDamage) {
+          return a.fallDamage - b.fallDamage;
+        }
+        return a.cost - b.cost;
+      });
+
       const current = queue.shift()!;
-      const currentDist = distances.get(toHexKey(current))!;
-      const currentTile = this.getTile(current)!;
+      const currentTile = this.getTile(current.coord)!;
 
-      if (currentDist >= moveBudget) {
-        continue;
-      }
-
-      for (const neighbor of getHexNeighbors(current)) {
+      for (const neighbor of getHexNeighbors(current.coord)) {
         const neighborKey = toHexKey(neighbor);
         const neighborTile = this.getTile(neighbor);
 
-        // Cannot move into non-existent or unwalkable tiles
+        // 1. Cannot move into non-existent or unwalkable tiles
         if (!neighborTile || !neighborTile.isWalkable) {
           continue;
         }
 
-        // Strict single occupancy: cannot move through occupied tiles
+        // 2. Strict single occupancy: cannot move through or land on occupied tiles
         if (neighborTile.occupiedByUnitId) {
           continue;
         }
 
-        // Elevation jump check
-        if (Math.abs(neighborTile.elevation - currentTile.elevation) > maxJumpElevation) {
+        // 3. Elevation difference
+        const dh = neighborTile.elevation - currentTile.elevation;
+
+        // Impassable climb limit (dh >= 3)
+        if (dh > DISPLACEMENT_CONFIG.maxClimbElevation) {
           continue;
         }
 
-        const newDist = currentDist + 1;
-        if (!distances.has(neighborKey) || newDist < distances.get(neighborKey)!) {
-          distances.set(neighborKey, newDist);
-          reachable.push(neighbor);
-          queue.push(neighbor);
+        // 4. Step cost: 1 + max(0, dh)
+        const stepCost = 1 + Math.max(0, dh);
+        const nextCost = current.cost + stepCost;
+
+        if (nextCost > moveBudget) {
+          continue;
         }
+
+        // 5. Fall damage: |dh| * 4 if plunging dh <= -2
+        const stepFallDamage =
+          dh <= -2 ? Math.abs(dh) * DISPLACEMENT_CONFIG.fallDamagePerElevation : 0;
+        const nextFallDamage = current.fallDamage + stepFallDamage;
+        const nextPath = [...current.path, neighbor];
+
+        // 6. Pareto dominance check:
+        // A state (c, d) is dominated if an existing frontier state has c' <= c AND d' <= d
+        const frontier = frontiers.get(neighborKey) ?? [];
+        const isDominated = frontier.some(
+          (f) => f.cost <= nextCost && f.fallDamage <= nextFallDamage
+        );
+        if (isDominated) {
+          continue;
+        }
+
+        // Add to frontier and filter out any existing states that next dominates
+        const newFrontier = frontier.filter(
+          (f) => !(nextCost <= f.cost && nextFallDamage <= f.fallDamage)
+        );
+        newFrontier.push({ cost: nextCost, fallDamage: nextFallDamage });
+        frontiers.set(neighborKey, newFrontier);
+
+        // 7. Update best destination if next is better for landing:
+        // Priority: strictly lower fallDamage, or equal fallDamage with lower cost
+        const existingBest = bestDestinations.get(neighborKey);
+        if (
+          !existingBest ||
+          nextFallDamage < existingBest.fallDamage ||
+          (nextFallDamage === existingBest.fallDamage && nextCost < existingBest.cost)
+        ) {
+          bestDestinations.set(neighborKey, {
+            coord: neighbor,
+            cost: nextCost,
+            fallDamage: nextFallDamage,
+            path: nextPath
+          });
+        }
+
+        queue.push({
+          coord: neighbor,
+          cost: nextCost,
+          fallDamage: nextFallDamage,
+          path: nextPath
+        });
       }
     }
 
-    return reachable;
+    return bestDestinations;
   }
 
   /**
-   * Evaluates Line-of-Sight (LoS) between two hexes.
+   * Returns all hexes reachable from origin within the given movement budget.
+   */
+  public getReachableHexes(
+    origin: HexCoord,
+    moveBudget: number,
+    _maxJumpElevation: number = DISPLACEMENT_CONFIG.maxJumpElevation
+  ): HexCoord[] {
+    const reachableMap = this.getReachableHexInfo(origin, moveBudget);
+    return Array.from(reachableMap.values()).map((info) => info.coord);
+  }
+
+  /**
+   * Finds the optimal path from origin to destination within the movement budget,
+   * returning total MP cost, anticipated fall damage, and reconstructed coordinates.
+   */
+  public findPath(
+    origin: HexCoord,
+    destination: HexCoord,
+    moveBudget: number
+  ): ReachableTileInfo | undefined {
+    return this.getReachableHexInfo(origin, moveBudget).get(toHexKey(destination));
+  }
+
+  /**
+   * Evaluates Line-of-Sight (LoS) between two hexes using continuous 3D slope raycasting.
+   * Ray equation: h_ray(t) = fromElevation + t * (toElevation - fromElevation)
    * LoS is blocked if any intermediate hex:
    * 1. Does not exist in the arena (void), OR
-   * 2. Has an elevation strictly higher than both source and target (terrain obstacle), OR
-   * 3. Is occupied by any unit (physical body-blocking).
+   * 2. Has an elevation strictly higher than h_ray(t) (terrain hill), OR
+   * 3. Has an elevation >= h_ray(t) along an intersecting slope, OR
+   * 4. Is occupied by another unit or is an obstacle at or above the ray elevation.
    */
   public hasLineOfSight(from: HexCoord, to: HexCoord): boolean {
     const fromTile = this.getTile(from);
@@ -185,10 +299,13 @@ export class Arena {
       return true;
     }
 
-    const maxElevation = Math.max(fromTile.elevation, toTile.elevation);
+    const n = line.length - 1;
+    const hFrom = fromTile.elevation;
+    const hTo = toTile.elevation;
+    const EPSILON = 1e-5;
 
     // Check intermediate hexes (excluding source and target)
-    for (let i = 1; i < line.length - 1; i++) {
+    for (let i = 1; i < n; i++) {
       const stepCoord = line[i];
       const stepTile = this.getTile(stepCoord);
 
@@ -197,14 +314,24 @@ export class Arena {
         return false;
       }
 
-      // Intervening unit blocks LoS (screening)
-      if (stepTile.occupiedByUnitId) {
+      const t = i / n;
+      const hRay = hFrom + t * (hTo - hFrom);
+
+      // 1. Higher terrain blocks
+      if (stepTile.elevation > hRay + EPSILON) {
         return false;
       }
 
-      // Higher terrain obstacle blocks LoS
-      if (stepTile.elevation > maxElevation) {
+      // 2. Terrain at ray level blocks if slope intersects it
+      if (hFrom !== hTo && stepTile.elevation >= hRay - EPSILON) {
         return false;
+      }
+
+      // 3. Obstacle or intervening unit blocks if its tile is at or above ray level
+      if (stepTile.occupiedByUnitId || !stepTile.isWalkable) {
+        if (stepTile.elevation >= hRay - EPSILON) {
+          return false;
+        }
       }
     }
 

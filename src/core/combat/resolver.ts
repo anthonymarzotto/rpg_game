@@ -19,6 +19,7 @@ import {
   HitOutcome
 } from './types';
 import { canMove, canExecuteAbility } from './validator';
+import { getEffectiveMove } from './effectiveVitals';
 import { getEffectiveAbility } from './modifiers';
 import { isFlankOrRear } from './flanking';
 import { DiceRoller, SeededDiceRoller, RollAdvantage } from './dice';
@@ -239,14 +240,41 @@ export function executeMove(
 
   const cu = requireCombatUnit(state, actorUnitId);
   const prevPos = state.arena.getUnitPosition(actorUnitId);
-  const dist = prevPos ? hexDistance(prevPos, destination) : 1;
-  cu.hexesMovedThisTurn = (cu.hexesMovedThisTurn ?? 0) + dist;
-  if (prevPos) {
+  const effectiveMove = getEffectiveMove(cu);
+  const pathInfo = prevPos ? state.arena.findPath(prevPos, destination, effectiveMove) : undefined;
+
+  const stepsMoved = pathInfo && pathInfo.path.length > 1
+    ? pathInfo.path.length - 1
+    : (prevPos ? hexDistance(prevPos, destination) : 1);
+  cu.hexesMovedThisTurn = (cu.hexesMovedThisTurn ?? 0) + stepsMoved;
+
+  if (pathInfo && pathInfo.path.length >= 2) {
+    cu.facing = getDirectionBetween(pathInfo.path[pathInfo.path.length - 2], destination);
+  } else if (prevPos) {
     cu.facing = getDirectionBetween(prevPos, destination);
   }
 
   cu.currentAp -= 1;
   state.arena.setUnitPosition(actorUnitId, destination);
+
+  // If the path included a plunging ledge drop, apply direct unmitigated fall damage
+  if (pathInfo && pathInfo.fallDamage > 0) {
+    const fallEvent: CombatEvent = {
+      type: 'DAMAGE',
+      targetUnitId: actorUnitId,
+      amount: pathInfo.fallDamage,
+      damageType: 'PHYSICAL',
+      reason: 'FALL'
+    };
+    applyCombatEvents(state, [fallEvent]);
+
+    state.combatLog.push({
+      turnNumber: state.turnNumber,
+      actorUnitId,
+      actionId: 'move',
+      message: `💥 ${cu.unit.name} plunged from a ledge and suffered ${pathInfo.fallDamage} direct Fall Impact Damage! (HP: ${cu.currentHp}/${cu.unit.effectiveVitals.maxHp})`
+    });
+  }
 
   // Trigger ON_MOVE passives (e.g. Elusive Stride) generically
   const moveEvents = triggerPassiveHook(state, cu, 'ON_MOVE');

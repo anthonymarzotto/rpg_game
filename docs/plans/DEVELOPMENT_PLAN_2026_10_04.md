@@ -39,7 +39,7 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 6: TACTICAL VERTICALITY & DYNAMIC ELEVATION           │
-│  - [ ] 6.1 Core grid elevation, traversal & 3D raycasting   │
+│  - [x] 6.1 Core grid elevation, traversal & 3D raycasting   │
 │  - [ ] 6.2 Elevation combat modifiers & plunging knockback   │
 │  - [ ] 6.3 2.5D SVG prism rendering & terraced encounters   │
 └──────────────────────────────┬──────────────────────────────┘
@@ -135,7 +135,7 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 
 **Primary Goal**: Elevate combat into three dimensions by introducing discrete terrain heights on the hex grid, granting high-ground tactical superiority and enabling kinetic vertical knockback over cliffs.
 
-### 6.1. Core Grid Elevation, Traversal & 3D Raycasting (`src/core/grid/`, `src/core/combat/`)
+### 6.1. Core Grid Elevation, Traversal & 3D Raycasting (`src/core/grid/`, `src/core/combat/`) - [x] COMPLETED
 * **Discrete Hex Elevation Model**:
   * Tile elevation levels $h \in [0, 3]$ on `HexTile` (`0`: low ground, `1`: hill/terrace, `2`: peak/cliff, `3`: high plateau).
 * **Movement & Traversal Rules**:

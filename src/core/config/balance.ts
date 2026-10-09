@@ -50,7 +50,11 @@ export const DISPLACEMENT_CONFIG = {
   /** Colliding unit secondary impact damage */
   unitCollisionSecondaryDamage: 1,
   /** Maximum elevation difference traversable without climbing skills */
-  maxJumpElevation: 1
+  maxJumpElevation: 1,
+  /** Maximum single-step elevation rise traversable for standard movement */
+  maxClimbElevation: 2,
+  /** Fall damage multiplier per level when plunging (dh <= -2) */
+  fallDamagePerElevation: 4
 } as const;
 
 /**

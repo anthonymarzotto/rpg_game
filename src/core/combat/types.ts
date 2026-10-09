@@ -12,7 +12,8 @@ export type CombatDamageReason =
   | 'COLLISION'
   | 'COLLATERAL'
   | 'STATUS_TICK'
-  | 'ENVIRONMENT';
+  | 'ENVIRONMENT'
+  | 'FALL';
 
 export type DisplacementKind = 'KNOCKBACK' | 'RETREAT' | 'PULL' | 'TELEPORT' | 'CHARGE';
 
