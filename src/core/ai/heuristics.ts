@@ -1,5 +1,5 @@
 import { CombatUnit, CombatState } from '../combat/types';
-import { CombatArc, HexCoord, hexDistance } from '../grid/hex';
+import { CombatArc, HexCoord, hexDistance, getDirectionBetween, POINTY_HEX_DIRECTIONS } from '../grid/hex';
 import { AbilityMetrics } from '../combat/targetPreview';
 import { Ability } from '../types/ability';
 import { AIProfile, AIArchetypeWeights } from './types';
@@ -261,7 +261,7 @@ export function scoreBuffAbility(
     );
     if (!hasFollowUpSpell) return { score: 0 };
     return {
-      score: 25.0,
+      score: 35.0,
       reason: 'Prime Spell Sculpt before casting Mage spell'
     };
   }
@@ -281,10 +281,17 @@ export function scoreBuffAbility(
     return { score: 0 };
   }
 
+  // Guard against re-applying positive stat modifiers from STAT_MODIFIER effects
+  const statModEffect = ability.effects?.find((e) => e.type === 'STAT_MODIFIER');
+  if (statModEffect?.statModifiers) {
+    for (const [statKey, val] of Object.entries(statModEffect.statModifiers)) {
+      if ((val ?? 0) > 0 && targetCu.activeModifiers.some((m) => m.stat === statKey && m.value > 0)) {
+        return { score: 0 };
+      }
+    }
+  }
+
   const isSelf = actorCu.unit.id === targetCu.unit.id;
-  const maxHp = targetCu.unit.effectiveVitals.maxHp;
-  const missingHp = Math.max(0, maxHp - targetCu.currentHp);
-  const healthDeficitRatio = maxHp > 0 ? missingHp / maxHp : 0;
 
   // Find distance to closest living hostile unit
   let minHostileDist = Infinity;
@@ -295,6 +302,42 @@ export function scoreBuffAbility(
       if (d < minHostileDist) minHostileDist = d;
     }
   }
+
+  // 2. INITIATIVE_BOOST evaluation (e.g. Witch's Talisman)
+  const initiativeEffect = ability.effects?.find((e) => e.type === 'INITIATIVE_BOOST');
+  if (initiativeEffect) {
+    if (isSelf) return { score: 0 };
+    if (targetCu.initiativeGauge >= 100) return { score: 0 };
+
+    let initScore = 20.0;
+    const reasons: string[] = ['Initiative acceleration'];
+
+    if (minHostileDist <= 1) {
+      initScore += 12.0;
+      reasons.push('Frontline ally engaged in melee');
+    } else if (minHostileDist <= 2) {
+      initScore += 6.0;
+      reasons.push('Ally in combat proximity');
+    }
+
+    if (targetCu.initiativeGauge < 50) {
+      initScore += 8.0;
+      reasons.push('Boost lagging CTB gauge');
+    }
+
+    if (profile === 'SUPPORT') {
+      initScore += 12.0;
+    }
+
+    return {
+      score: Math.round(initScore * 10) / 10,
+      reason: reasons.join('; ')
+    };
+  }
+
+  const maxHp = targetCu.unit.effectiveVitals.maxHp;
+  const missingHp = Math.max(0, maxHp - targetCu.currentHp);
+  const healthDeficitRatio = maxHp > 0 ? missingHp / maxHp : 0;
 
   // Baseline utility for support/defense
   let score = 2.5;
@@ -326,5 +369,163 @@ export function scoreBuffAbility(
   return {
     score: Math.round(score * 10) / 10,
     reason: reasons.length > 0 ? reasons.join('; ') : `Defensive ${ability.name}`
+  };
+}
+
+/**
+ * Evaluates tactical utility and primer value for debuffs, displacement, and special mechanics
+ * on single-target hostile abilities (e.g. Stand and Deliver, Flamboyant Flourish, Poppet Needle,
+ * Eldritch Blast knockback, Pact Blade armor bypass, Lance Charge).
+ */
+export function scoreDebuffAndUtility(
+  actorCu: CombatUnit,
+  targetCu: CombatUnit,
+  ability: Ability,
+  actorCoord: HexCoord,
+  targetCoord: HexCoord,
+  state: CombatState,
+  profile: AIProfile
+): { score: number; reason?: string } {
+  let score = 0;
+  const reasons: string[] = [];
+  const dist = hexDistance(actorCoord, targetCoord);
+
+  // 1. CTB_DELAY (e.g. Stand and Deliver!, Baleful Hex)
+  const ctbDelay = ability.effects?.find((e) => e.type === 'CTB_DELAY');
+  if (ctbDelay && typeof ctbDelay.magnitude === 'number') {
+    const delayScore = (ctbDelay.magnitude / 10) * 2.5;
+    score += delayScore;
+    if (targetCu.initiativeGauge >= 50) {
+      score += 4.0;
+      reasons.push(`Delay impending turn (-${ctbDelay.magnitude} CTB)`);
+    } else {
+      reasons.push(`CTB delay (-${ctbDelay.magnitude} ticks)`);
+    }
+  }
+
+  // 2. Armor shred (e.g. Stand and Deliver! -2 Armor)
+  const statMod = ability.effects?.find((e) => e.type === 'STAT_MODIFIER');
+  if (statMod?.statModifiers?.armor && statMod.statModifiers.armor < 0) {
+    const armorShred = Math.abs(statMod.statModifiers.armor);
+    const targetArmor = targetCu.unit.effectiveVitals.armor;
+    const hasExistingArmorDebuff = targetCu.activeModifiers.some(
+      (m) => m.stat === 'armor' && m.value < 0
+    );
+
+    if (targetArmor > 0 && !hasExistingArmorDebuff) {
+      score += 8.0;
+      reasons.push(`Shred target Armor (-${armorShred})`);
+
+      // SKIRMISHER primer bonus if actor has follow-up physical attack
+      const hasFollowUpPhysical = actorCu.abilities.some(
+        (a) => a.id !== ability.id && a.damageType === 'PHYSICAL' && actorCu.currentAp >= ability.apCost + a.apCost
+      );
+      if (hasFollowUpPhysical) {
+        score += 30.0;
+        reasons.push('Prime armor shred before physical strike');
+      }
+    }
+  }
+
+  // 3. Resolve shred (e.g. Poppet Needle -2 Resolve)
+  if (statMod?.statModifiers?.resolve && statMod.statModifiers.resolve < 0) {
+    const resolveShred = Math.abs(statMod.statModifiers.resolve);
+    const hasExistingResolveDebuff = targetCu.activeModifiers.some(
+      (m) => m.stat === 'resolve' && m.value < 0
+    );
+    if (!hasExistingResolveDebuff) {
+      score += 4.0;
+      reasons.push(`Shred target Resolve (-${resolveShred})`);
+    }
+  }
+
+  // 4. FORCE_FACING_AWAY (e.g. Poppet Needle)
+  const forcesFacingAway = ability.effects?.some((e) => e.type === 'FORCE_FACING_AWAY');
+  if (forcesFacingAway) {
+    score += 7.0;
+    reasons.push('Force target facing 180° away');
+  }
+
+  // 5. CONDITION: CHALLENGED & Self-Evasion (e.g. Flamboyant Flourish)
+  const inflictsChallenged = ability.effects?.some(
+    (e) => e.type === 'CONDITION' && (e.conditionType === 'CHALLENGED' || (e as any).condition === 'CHALLENGED')
+  );
+  if (inflictsChallenged) {
+    const isAlreadyChallenged = targetCu.activeConditions.some(
+      (c) => c.type === 'CHALLENGED'
+    );
+    if (!isAlreadyChallenged) {
+      score += 18.0;
+      reasons.push('Taunt target with Challenged');
+
+      // Check if ability also grants self defensive buffs (e.g. Flamboyant Flourish +2 Evasion)
+      const selfBuff = ability.effects?.find((e) => e.type === 'STAT_MODIFIER' && e.targetScope === 'SELF');
+      if (selfBuff) {
+        score += 8.0;
+        reasons.push('Self defensive evasion boost');
+      }
+
+      if (profile === 'BRAWLER') {
+        score += 8.0;
+        reasons.push('Brawler frontline engagement control');
+      }
+    }
+  }
+
+  // 6. KNOCKBACK spacing for SNIPER and SKIRMISHER (e.g. Eldritch Blast, Point-Blank Buckshot)
+  const hasKnockback = ability.effects?.some((e) => e.type === 'KNOCKBACK');
+  if (hasKnockback) {
+    if ((profile === 'SNIPER' || profile === 'SKIRMISHER') && dist === 1) {
+      score += 8.0;
+      reasons.push('Kinetic knockback spacing');
+    }
+    // Check if target would collide with obstacle or map boundary behind them
+    const dirToTarget = getDirectionBetween(actorCoord, targetCoord);
+    const behindTarget = {
+      q: targetCoord.q + POINTY_HEX_DIRECTIONS[dirToTarget].q,
+      r: targetCoord.r + POINTY_HEX_DIRECTIONS[dirToTarget].r
+    };
+    const behindTile = state.arena.getTile(behindTarget);
+    if (!behindTile || !behindTile.isWalkable) {
+      score += 5.0;
+      reasons.push('Wall-slam collision hazard');
+    }
+  }
+
+  // 7. Armor-bypassing melee (e.g. Pact Blade)
+  if (ability.id === 'pact_blade' && dist === 1) {
+    const targetArmor = targetCu.unit.effectiveVitals.armor;
+    if (targetArmor >= 2) {
+      score += 6.0;
+      reasons.push(`Pact Blade bypasses ${targetArmor} Armor`);
+    }
+  }
+
+  // 8. Straight-line charge initiation (e.g. Lance Charge)
+  const isRushCharge = ability.effects?.some((e) => e.type === 'RUSH_CHARGE');
+  if (isRushCharge && dist >= 2) {
+    score += 6.0;
+    reasons.push('Shock charge line breaker');
+  }
+
+  // 9. Status condition DoT (e.g. POISON from Baleful Hex, BURN from Hellfire Brand / Ignite Rage)
+  const conditionEffect = ability.effects?.find(
+    (e) => e.type === 'CONDITION' &&
+      (e.conditionType === 'POISON' || e.conditionType === 'BURN' || (e as any).condition === 'POISON' || (e as any).condition === 'BURN')
+  );
+  if (conditionEffect) {
+    const cond = conditionEffect.conditionType ?? (conditionEffect as any).condition;
+    if (cond) {
+      const hasCondition = targetCu.activeConditions.some((c) => c.type === cond);
+      if (!hasCondition) {
+        score += 4.5;
+        reasons.push(`Apply ${cond} DoT`);
+      }
+    }
+  }
+
+  return {
+    score: Math.round(score * 10) / 10,
+    reason: reasons.length > 0 ? reasons.join('; ') : undefined
   };
 }

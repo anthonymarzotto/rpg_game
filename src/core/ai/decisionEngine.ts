@@ -15,7 +15,8 @@ import {
   scoreFlankOpportunity,
   scoreStandoffDistance,
   scoreFocusFire,
-  scoreBuffAbility
+  scoreBuffAbility,
+  scoreDebuffAndUtility
 } from './heuristics';
 
 const defaultDiceRoller = new SeededDiceRoller();
@@ -90,10 +91,20 @@ export function decideNextAction(
           weights.preferredStandoffRange,
           weights.standoffWeight
         );
+        const utility = scoreDebuffAndUtility(
+          cu,
+          targetCu,
+          ability,
+          currentCoord,
+          targetCoord,
+          state,
+          profile
+        );
 
-        const totalScore = kill.score + damageScore + vulnScore + flank.score + focusScore + standoff;
+        const totalScore = kill.score + damageScore + vulnScore + flank.score + focusScore + standoff + utility.score;
 
         const reasons: string[] = [];
+        if (utility.reason) reasons.push(utility.reason);
         if (kill.reason) reasons.push(kill.reason);
         if (flank.reason) reasons.push(flank.reason);
         if (reasons.length === 0) {
@@ -184,12 +195,22 @@ export function decideNextAction(
             weights.preferredStandoffRange,
             weights.standoffWeight
           );
+          const utility = scoreDebuffAndUtility(
+            cu,
+            targetCu,
+            ability,
+            candCoord,
+            targetCoord,
+            state,
+            profile
+          );
 
           // Deduct 1 AP movement cost from utility
-          const moveNetScore = kill.score + damageScore + vulnScore + flank.score + focusScore + standoff - 2;
+          const moveNetScore = kill.score + damageScore + vulnScore + flank.score + focusScore + standoff + utility.score - 2;
 
           if (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score) {
             const reasons: string[] = [];
+            if (utility.reason) reasons.push(utility.reason);
             if (flank.reason) reasons.push(flank.reason);
             if (kill.reason) reasons.push(kill.reason);
             if (weights.standoffWeight > 0) {
@@ -206,6 +227,51 @@ export function decideNextAction(
               ability,
               targetCu,
               reason: reasons.join('; ')
+            };
+          }
+        }
+      }
+
+      // Check if moving here enables a follow-up buff on an ally this turn
+      for (const ability of cu.abilities) {
+        if (remainingAp < ability.apCost) continue;
+        if (ability.targetType !== 'ALLY' && ability.damageType !== 'NONE') continue;
+
+        for (const allyCu of alliedUnits) {
+          const allyCoord = state.arena.getUnitPosition(allyCu.unit.id);
+          if (!allyCoord) continue;
+
+          const metrics = computeAbilityMetrics(
+            state,
+            actorUnitId,
+            ability,
+            allyCoord,
+            candCoord
+          );
+          if (!metrics || !metrics.hasLoS) continue;
+
+          const buff = scoreBuffAbility(
+            cu,
+            allyCu,
+            ability,
+            candCoord,
+            allyCoord,
+            hostileUnits,
+            state,
+            profile
+          );
+
+          if (buff.score <= 0) continue;
+
+          // Deduct 1 AP movement cost from utility
+          const moveNetScore = buff.score - 2;
+
+          if (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score) {
+            bestAttackFromCand = {
+              score: moveNetScore,
+              ability,
+              targetCu: allyCu,
+              reason: `Enables ${ability.name} on ally ${allyCu.unit.name} (${buff.reason ?? 'Support'})`
             };
           }
         }

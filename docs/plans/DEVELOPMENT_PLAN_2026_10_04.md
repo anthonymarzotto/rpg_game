@@ -31,7 +31,7 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 │  - [x] 5.3 Highwayman (1, 2, 0) kit & skirmish ambush       │
 │  - [x] 5.4 Warlock (1, 0, 2) kit & eldritch drain           │
 │  - [x] 5.5 Witch (0, 1, 2) kit & misfortune ward            │
-│  - [ ] 5.6 Hybrid AI profiles & primer heuristics           │
+│  - [x] 5.6 Hybrid AI profiles & primer heuristics           │
 │  - [ ] 5.7 Campaign encounter budget & token mapping        │
 │  - [*] (Cat-burglar moved to Phase 6b for elevation)        │
 └──────────────────────────────┬──────────────────────────────┘
@@ -109,7 +109,7 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 * **Passive**: `Soul Carapace` (landing a magical attack grants self +1 Armor and +1 Ward for 1 turn).
 * **AI Profile**: `SNIPER` (hovers at range 2–3, repels with eldritch blast, punishes close combat with pact blade).
 
-### 5.5. Witch Class Package (`src/data/packages/witch.ts`)
+### 5.5. Witch Class Package (`src/data/packages/witch.ts`) - [x] COMPLETED
 *(Note: Cat-burglar class package deferred to Phase 6b to leverage verticality & dynamic elevation mechanics).*
 * **Archetype**: `(0, 1, 2)` (Mage/Rogue — Dominant Mage) — Occult hexer, sympathetic saboteur & tempo controller.
 * **Signature**: `Baleful Hex` (1 AP, range 3, 1d4 + Focus magical damage vs Resolve; inflicts `POISON` DoT [2 dmg/turn for 2 turns] and 20 CTB gauge delay).
@@ -118,7 +118,7 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 * **Passive**: `Misfortune Ward` (Target-centric protective aura: attacks targeting allies or self within 2 hexes of the Witch suffer -2 to their Attack Roll; establishes the reusable target-proximity aura architecture for Shield Bearer and Cleric).
 * **AI Profile**: `SUPPORT` (prioritizes debuffing high-threat targets, controlling combat tempo, and buffing frontline allies with talisman).
 
-### 5.6. Hybrid AI Profiles & Tactical Primer Heuristics (`src/core/ai/`)
+### 5.6. Hybrid AI Profiles & Tactical Primer Heuristics (`src/core/ai/`) - [x] COMPLETED
 * **Behavioral Profile Mapping**:
   * `cavalier` -> `BRAWLER` (charges frontline, initiates wall-slams).
   * `berserker` -> `BRAWLER` (activates blood frenzy, engages high-density clusters).

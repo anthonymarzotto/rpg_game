@@ -543,4 +543,219 @@ describe('Headless AI Decision Engine', () => {
       expect(state.units.get(enemy.id)!.currentAp).toBe(3);
     });
   });
+
+  describe('Tier 3 Hybrid AI Profiles & Tactical Primer Heuristics', () => {
+    it('cavalier brawler initiates straight-line Lance Charge into melee contact', () => {
+      const arena = createRadialArena(3);
+      const cavalier = createMockUnit('cav-enemy', 'Hostile Cavalier', 'ENEMY', {
+        activeClassId: 'cavalier',
+        baseAttributes: { force: 14, finesse: 10, focus: 10 }
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50,
+        armor: 1
+      });
+
+      arena.setUnitPosition(cavalier.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [cavalier, hero], cavalier.id);
+      const action = decideNextAction(state, cavalier.id);
+
+      expect(action.type).toBe('ABILITY');
+      if (action.type === 'ABILITY') {
+        expect(action.ability.id).toBe('lance_charge');
+      }
+
+      const roller = new SeededDiceRoller(42);
+      const result = executeAiAction(state, cavalier.id, action, roller);
+      expect(result.type).toBe('ABILITY');
+      expect(state.arena.getUnitPosition(cavalier.id)).toEqual({ q: 1, r: 0 });
+      expect(state.arena.getUnitPosition(hero.id)).toEqual({ q: 3, r: 0 });
+    });
+
+    it('cavalier brawler taunts adjacent enemy with Flamboyant Flourish when engaged', () => {
+      const arena = createRadialArena(3);
+      const cavalier = createMockUnit('cav-enemy', 'Hostile Cavalier', 'ENEMY', {
+        activeClassId: 'cavalier'
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50,
+        armor: 1
+      });
+
+      arena.setUnitPosition(cavalier.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [cavalier, hero], cavalier.id);
+      state.units.get(cavalier.id)!.currentAp = 1;
+      state.units.get(hero.id)!.facing = HEX_DIRECTIONS.WEST;
+
+      const action = decideNextAction(state, cavalier.id);
+      expect(action.type).toBe('ABILITY');
+      if (action.type === 'ABILITY') {
+        expect(action.ability.id).toBe('flamboyant_flourish');
+      }
+
+      const roller = new SeededDiceRoller(42);
+      const result = executeAiAction(state, cavalier.id, action, roller);
+      expect(result.type).toBe('ABILITY');
+
+      const heroCu = state.units.get(hero.id)!;
+      const cavCu = state.units.get(cavalier.id)!;
+      expect(heroCu.activeConditions.some((c) => c.type === 'CHALLENGED')).toBe(true);
+      expect(cavCu.activeModifiers.some((m) => m.stat === 'evasion' && m.value > 0)).toBe(true);
+    });
+
+    it('highwayman skirmisher primes Stand and Deliver! before Point-Blank Buckshot on armored foe', () => {
+      const arena = createRadialArena(3);
+      const highwayman = createMockUnit('hw-enemy', 'Hostile Highwayman', 'ENEMY', {
+        activeClassId: 'highwayman',
+        baseAttributes: { force: 10, finesse: 14, focus: 10 }
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50,
+        armor: 2,
+        resolve: 10,
+        evasion: 10
+      });
+
+      arena.setUnitPosition(highwayman.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [highwayman, hero], highwayman.id);
+      const roller = new SeededDiceRoller(42);
+      const actions = executeAiTurn(state, highwayman.id, { diceRoller: roller });
+
+      expect(actions.length).toBe(2);
+      expect(actions[0].type).toBe('ABILITY');
+      if (actions[0].type === 'ABILITY') {
+        expect(actions[0].ability.id).toBe('stand_and_deliver');
+      }
+      expect(actions[1].type).toBe('ABILITY');
+      if (actions[1].type === 'ABILITY') {
+        expect(actions[1].ability.id).toBe('point_blank_buckshot');
+      }
+    });
+
+    it('warlock sniper repels adjacent enemy with Eldritch Blast knockback spacing', () => {
+      const arena = createRadialArena(3);
+      const warlock = createMockUnit('warlock-enemy', 'Hostile Warlock', 'ENEMY', {
+        activeClassId: 'warlock',
+        baseAttributes: { force: 10, finesse: 10, focus: 14 }
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50,
+        armor: 0,
+        resolve: 10,
+        evasion: 10
+      });
+
+      arena.setUnitPosition(warlock.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [warlock, hero], warlock.id);
+      state.units.get(warlock.id)!.currentAp = 2;
+
+      const action = decideNextAction(state, warlock.id);
+      expect(action.type).toBe('ABILITY');
+      if (action.type === 'ABILITY') {
+        expect(action.ability.id).toBe('eldritch_blast');
+      }
+
+      const roller = new SeededDiceRoller(42);
+      const result = executeAiAction(state, warlock.id, action, roller);
+      expect(result.type).toBe('ABILITY');
+      expect(state.arena.getUnitPosition(hero.id)).toEqual({ q: 2, r: 0 });
+    });
+
+    it('warlock sniper uses Pact Blade melee contingency against armored target with 1 AP', () => {
+      const arena = createRadialArena(3);
+      const warlock = createMockUnit('warlock-enemy', 'Hostile Warlock', 'ENEMY', {
+        activeClassId: 'warlock',
+        baseAttributes: { force: 10, finesse: 10, focus: 14 }
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50,
+        armor: 3,
+        resolve: 10,
+        evasion: 10
+      });
+
+      arena.setUnitPosition(warlock.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [warlock, hero], warlock.id);
+      state.units.get(warlock.id)!.currentAp = 1;
+
+      const action = decideNextAction(state, warlock.id);
+      expect(action.type).toBe('ABILITY');
+      if (action.type === 'ABILITY') {
+        expect(action.ability.id).toBe('pact_blade');
+      }
+    });
+
+    it('witch support executes composite move-and-buff to reach frontline ally with Witchs Talisman', () => {
+      const arena = createRadialArena(3);
+      const witch = createMockUnit('witch-enemy', 'Hostile Witch', 'ENEMY', {
+        activeClassId: 'witch'
+      });
+      const ally = createMockUnit('ally-enemy', 'Allied Bruiser', 'ENEMY', {
+        activeClassId: 'warrior',
+        maxHp: 40
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50
+      });
+
+      arena.setUnitPosition(witch.id, { q: -2, r: 0 });
+      arena.setUnitPosition(ally.id, { q: 1, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [witch, ally, hero], witch.id);
+      state.units.get(witch.id)!.currentAp = 2;
+      state.units.get(ally.id)!.initiativeGauge = 10;
+
+      const action = decideNextAction(state, witch.id);
+      expect(action.type).toBe('MOVE');
+      if (action.type === 'MOVE') {
+        expect(action.reason).toContain("Enables Witch's Talisman on ally Allied Bruiser");
+      }
+    });
+
+    it('witch support forces target facing reversal with Poppet Needle when enemy threatens frontline', () => {
+      const arena = createRadialArena(3);
+      const witch = createMockUnit('witch-enemy', 'Hostile Witch', 'ENEMY', {
+        activeClassId: 'witch'
+      });
+      const ally = createMockUnit('ally-enemy', 'Allied Bruiser', 'ENEMY', {
+        activeClassId: 'warrior'
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50
+      });
+
+      arena.setUnitPosition(witch.id, { q: 0, r: 2 });
+      arena.setUnitPosition(hero.id, { q: 0, r: 1 });
+      arena.setUnitPosition(ally.id, { q: 0, r: 0 });
+
+      const state = createCombatState(arena, [witch, ally, hero], witch.id);
+      state.units.get(witch.id)!.currentAp = 1;
+
+      const action = decideNextAction(state, witch.id);
+      expect(action.type).toBe('ABILITY');
+      if (action.type === 'ABILITY') {
+        expect(action.ability.id).toBe('poppet_needle');
+      }
+
+      const roller = new SeededDiceRoller(42);
+      const result = executeAiAction(state, witch.id, action, roller);
+      expect(result.type).toBe('ABILITY');
+
+      const heroCu = state.units.get(hero.id)!;
+      const expectedOppositeFacing = ((getDirectionBetween({ q: 0, r: 1 }, { q: 0, r: 2 }) + 3) % 6);
+      expect(heroCu.facing).toBe(expectedOppositeFacing);
+      expect(heroCu.activeModifiers.some((m) => m.stat === 'resolve' && m.value < 0)).toBe(true);
+    });
+  });
 });
