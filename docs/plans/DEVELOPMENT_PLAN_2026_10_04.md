@@ -152,7 +152,7 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
   * Intermediate hex occludes LoS if $H_{\text{tile}} \ge h_{\text{ray}}(t)$, or if intermediate hex is occupied by another unit or impassable obstacle (`RUINS`).
   * High-ground units naturally shoot over lower intermediate cover into low ground.
 
-### 6.2. Elevation Combat Modifiers & Plunging Knockback (`src/core/combat/`, `src/core/config/balance.ts`)
+### 6.2. Elevation Combat Modifiers & Plunging Knockback (`src/core/combat/`, `src/core/config/balance.ts`) - [x] COMPLETED
 * **Ranged Elevation Advantages & Penalties**:
   * High-ground vantage: Ranged attacks fired from higher elevation ($\Delta h \ge +1$) gain **+1 Effective Range** per elevation level.
   * Downward targeting: Firing downward onto a lower target grants **+2 to the Attack Roll** ($\Delta h = 1$) or **Advantage** ($\Delta h \ge +2$).

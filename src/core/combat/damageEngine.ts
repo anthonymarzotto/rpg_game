@@ -155,3 +155,25 @@ export function resolveCollisionDamage(
     DISPLACEMENT_CONFIG.wallSlamBaseDamage + attrBonus + passiveBonus - targetArmor
   );
 }
+
+/**
+ * Calculates direct unmitigated fall impact damage.
+ * Inspects passive traits or active modifiers for fall damage immunity.
+ */
+export function resolveFallDamage(
+  cu: CombatUnit,
+  rawFallDamage: number
+): number {
+  if (rawFallDamage <= 0) return 0;
+
+  const isImmune =
+    cu.passives?.some((p) => p.immuneToFallDamage) ||
+    cu.activeModifiers?.some((m) => (m as any).immuneToFallDamage);
+
+  if (isImmune) {
+    return 0;
+  }
+
+  return rawFallDamage;
+}
+

@@ -53,6 +53,8 @@ export const DISPLACEMENT_CONFIG = {
   maxJumpElevation: 1,
   /** Maximum single-step elevation rise traversable for standard movement */
   maxClimbElevation: 2,
+  /** Minimum elevation delta required to trigger a cliff-slam collision during displacement */
+  minCliffSlamElevationDelta: 2,
   /** Fall damage multiplier per level when plunging (dh <= -2) */
   fallDamagePerElevation: 4
 } as const;

@@ -89,4 +89,8 @@ export interface Ability {
   readonly aoeRadius?: number;
   /** Whether the ability can only be executed at most once per turn */
   readonly oncePerTurn?: boolean;
+  /** Whether the ability ignores upward low-ground attack roll penalties and disadvantage */
+  readonly ignoresElevationPenalty?: boolean;
+  /** Maximum vertical elevation delta allowed for melee reach (defaults to 1) */
+  readonly reachElevationDelta?: number;
 }

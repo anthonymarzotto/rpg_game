@@ -77,8 +77,16 @@ export function computeAbilityMetrics(
 
   const effectiveAbility = getEffectiveAbility(ability, actorCu.abilityModifiers);
 
+  const actorElevation = state.arena.getElevation(effectiveOrigin);
+  const targetElevation = state.arena.getElevation(targetCoord);
+  const elevationDelta = actorElevation - targetElevation;
+  const maxRange =
+    effectiveAbility.range >= 2
+      ? effectiveAbility.range + Math.max(0, elevationDelta)
+      : effectiveAbility.range;
+
   const dist = hexDistance(effectiveOrigin, targetCoord);
-  if (dist > effectiveAbility.range && effectiveAbility.targetType !== 'SELF') {
+  if (dist > maxRange && effectiveAbility.targetType !== 'SELF') {
     return null;
   }
 

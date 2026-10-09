@@ -341,6 +341,76 @@ describe('Combat Validator', () => {
         expect(result.reason).toContain('Cannot target a stealthed unit');
       }
     });
+
+    it('permits melee attack across 1-level elevation difference (|dh| <= 1)', () => {
+      const arena = createRadialArena(2);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 1, isWalkable: true });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, enemy], 'hero');
+      const result = canExecuteAbility(state, 'hero', STRIKE, { targetUnitId: 'enemy' });
+      expect(result.valid).toBe(true);
+    });
+
+    it('rejects melee attack across 2-level elevation difference (|dh| >= 2) as out of reach', () => {
+      const arena = createRadialArena(2);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, enemy], 'hero');
+      const result = canExecuteAbility(state, 'hero', STRIKE, { targetUnitId: 'enemy' });
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.reason).toContain('Target is vertically out of reach');
+      }
+    });
+
+    it('extends effective range for ranged attack fired from high ground (+1 range per positive elevation delta)', () => {
+      const arena = createRadialArena(4);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+
+      // Range 2 ability (HEAL_ALLY or custom ranged attack)
+      const RANGED_DART: Ability = {
+        ...STRIKE,
+        id: 'ranged_dart',
+        range: 2
+      };
+
+      // Hero at (0, 0) on plateau (h=2), enemy at (4, 0) in valley (h=0) - distance is 4 hexes
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 1, isWalkable: true });
+      arena.setTile({ coord: { q: 2, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 3, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 4, r: 0 }, elevation: 0, isWalkable: true });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 4, r: 0 });
+
+      const state = createCombatState(arena, [hero, enemy], 'hero');
+
+      // Base range 2 + elevation delta (2 - 0 = 2) = effective range 4!
+      const highGroundResult = canExecuteAbility(state, 'hero', RANGED_DART, { targetUnitId: 'enemy' });
+      expect(highGroundResult.valid).toBe(true);
+
+      // Now flatten hero elevation to 0: distance 4 > range 2, so it should be rejected!
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+      const flatGroundResult = canExecuteAbility(state, 'hero', RANGED_DART, { targetUnitId: 'enemy' });
+      expect(flatGroundResult.valid).toBe(false);
+      if (!flatGroundResult.valid) {
+        expect(flatGroundResult.reason).toContain('Target out of range');
+      }
+    });
   });
 });
 

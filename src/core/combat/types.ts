@@ -78,6 +78,7 @@ export interface AttackResolution {
   readonly effectsApplied: readonly AbilityEffect[];
   readonly knockbackResult?: KnockbackResult;
   readonly wallSlamDamage?: number;
+  readonly fallDamage?: number;
   readonly events: readonly CombatEvent[];
 }
 

@@ -64,6 +64,7 @@ export function executeAbilityEffects(
   const logDetails: string[] = [];
   let knockbackResult: any = undefined;
   let wallSlamDamage: number | undefined = undefined;
+  let fallDamage: number | undefined = undefined;
 
   for (const effect of ability.effects) {
     if (filter && !filter(effect)) {
@@ -116,12 +117,16 @@ export function executeAbilityEffects(
     if (res.wallSlamDamage !== undefined) {
       wallSlamDamage = res.wallSlamDamage;
     }
+    if (res.fallDamage !== undefined) {
+      fallDamage = res.fallDamage;
+    }
   }
 
   return {
     events: allEvents,
     logDetail: logDetails.join(''),
     knockbackResult,
-    wallSlamDamage
+    wallSlamDamage,
+    fallDamage
   };
 }

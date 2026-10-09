@@ -28,8 +28,8 @@ import {
   ACTION_ECONOMY_CONFIG
 } from '../config/balance';
 import { advanceTurnClock } from './turnClock';
-import { resolveAttackRoll } from './attackRoll';
-import { resolveDamage } from './damageEngine';
+import { resolveAttackRoll, calculateElevationAttackModifier } from './attackRoll';
+import { resolveDamage, resolveFallDamage } from './damageEngine';
 import { executeAbilityEffects, defaultEffectRegistry, EffectContext } from './effects';
 import { evaluateRollPassives, onTurnStartPassives } from './passives';
 import { evaluateEncounterOutcome } from './objectives';
@@ -259,21 +259,31 @@ export function executeMove(
 
   // If the path included a plunging ledge drop, apply direct unmitigated fall damage
   if (pathInfo && pathInfo.fallDamage > 0) {
-    const fallEvent: CombatEvent = {
-      type: 'DAMAGE',
-      targetUnitId: actorUnitId,
-      amount: pathInfo.fallDamage,
-      damageType: 'PHYSICAL',
-      reason: 'FALL'
-    };
-    applyCombatEvents(state, [fallEvent]);
+    const actualFallDamage = resolveFallDamage(cu, pathInfo.fallDamage);
+    if (actualFallDamage > 0) {
+      const fallEvent: CombatEvent = {
+        type: 'DAMAGE',
+        targetUnitId: actorUnitId,
+        amount: actualFallDamage,
+        damageType: 'PHYSICAL',
+        reason: 'FALL'
+      };
+      applyCombatEvents(state, [fallEvent]);
 
-    state.combatLog.push({
-      turnNumber: state.turnNumber,
-      actorUnitId,
-      actionId: 'move',
-      message: `💥 ${cu.unit.name} plunged from a ledge and suffered ${pathInfo.fallDamage} direct Fall Impact Damage! (HP: ${cu.currentHp}/${cu.unit.effectiveVitals.maxHp})`
-    });
+      state.combatLog.push({
+        turnNumber: state.turnNumber,
+        actorUnitId,
+        actionId: 'move',
+        message: `💥 ${cu.unit.name} plunged from a ledge and suffered ${actualFallDamage} direct Fall Impact Damage! (HP: ${cu.currentHp}/${cu.unit.effectiveVitals.maxHp})`
+      });
+    } else {
+      state.combatLog.push({
+        turnNumber: state.turnNumber,
+        actorUnitId,
+        actionId: 'move',
+        message: `🐾 ${cu.unit.name} plunged from a ledge safely with Fall Damage Immunity!`
+      });
+    }
   }
 
   // Trigger ON_MOVE passives (e.g. Elusive Stride) generically
@@ -583,9 +593,22 @@ export function executeAbility(
   // Evaluate target-centric protective auras (e.g. Misfortune Ward)
   const auraEval = evaluateTargetAuras(targetCu, actorCu, state);
 
+  // Evaluate elevation difference between attack origin and target position
+  const targetPos = state.arena.getUnitPosition(targetCu.unit.id);
+  const actorElevation = attackOriginCoord ? state.arena.getElevation(attackOriginCoord) : 0;
+  const targetElevation = targetPos ? state.arena.getElevation(targetPos) : 0;
+  const elevationDelta = actorElevation - targetElevation;
+  const elevMod = calculateElevationAttackModifier(
+    actorCu,
+    targetCu,
+    elevationDelta,
+    effectiveAbility
+  );
+
   const rollResult = resolveAttackRoll(actorCu, targetCu, effectiveAbility, diceRoller, {
     advantage: rollAdvantage,
-    rollPenalty: auraEval.attackRollPenalty
+    rollPenalty: auraEval.attackRollPenalty,
+    elevationDelta
   });
 
   const damageResult = resolveDamage(
@@ -722,11 +745,12 @@ export function executeAbility(
   // Combat Log
   const secondaryDetail = effectResult.logDetail ?? '';
   const auraDetail = auraEval.attackRollPenalty > 0 ? ` [Aura Penalty: -${auraEval.attackRollPenalty} (${auraEval.sourceAuraNames.join(', ')})]` : '';
+  const elevDetail = elevMod.description ? ` [Elevation: ${elevMod.description}]` : '';
   state.combatLog.push({
     turnNumber: state.turnNumber,
     actorUnitId,
     actionId: ability.id,
-    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${rollResult.d20}+${rollResult.modifier} vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}]${auraDetail} [Damage: ${damageResult.damageBreakdown}] (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})${secondaryDetail}`
+    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${rollResult.d20}+${rollResult.modifier} vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}]${elevDetail}${auraDetail} [Damage: ${damageResult.damageBreakdown}] (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})${secondaryDetail}`
   });
 
   return {
@@ -744,6 +768,7 @@ export function executeAbility(
       effectsApplied: effectiveAbility.effects,
       knockbackResult: effectResult.knockbackResult,
       wallSlamDamage: effectResult.wallSlamDamage,
+      fallDamage: effectResult.fallDamage,
       events
     }
   };

@@ -275,6 +275,71 @@ describe('Arena Spatial Engine', () => {
       expect(result.collidingUnitId).toBe('bystander');
       expect(result.finalCoord).toEqual(target);
     });
+
+    it('halts displacement and inflicts CLIFF collision when pushed into elevation difference >= minCliffSlamElevationDelta', () => {
+      const arena = createRadialArena(3);
+      const attacker: HexCoord = { q: 0, r: 0 };
+      const target: HexCoord = { q: 1, r: 0 };
+      const cliff: HexCoord = { q: 2, r: 0 };
+
+      // Attacker at 0, target at 0, cliff at 2 (delta = +2 >= 2)
+      arena.setTile({ coord: cliff, elevation: 2, isWalkable: true });
+
+      const result = arena.calculateKnockback(attacker, target, 1);
+      expect(result.isCollided).toBe(true);
+      expect(result.collisionType).toBe('CLIFF');
+      expect(result.finalCoord).toEqual(target);
+    });
+
+    it('ascends terrace cleanly without collision when pushed onto delta h = 1', () => {
+      const arena = createRadialArena(3);
+      const attacker: HexCoord = { q: 0, r: 0 };
+      const target: HexCoord = { q: 1, r: 0 };
+      const terrace: HexCoord = { q: 2, r: 0 };
+
+      // Target at 0, terrace at 1 (delta = +1 < 2)
+      arena.setTile({ coord: terrace, elevation: 1, isWalkable: true });
+
+      const result = arena.calculateKnockback(attacker, target, 1);
+      expect(result.isCollided).toBe(false);
+      expect(result.finalCoord).toEqual(terrace);
+      expect(result.fallDamage).toBeUndefined();
+    });
+
+    it('inflicts unmitigated fall damage when knocked over a ledge (delta h <= -2)', () => {
+      const arena = createRadialArena(3);
+      const attacker: HexCoord = { q: 0, r: 0 };
+      const target: HexCoord = { q: 1, r: 0 };
+      const valley: HexCoord = { q: 2, r: 0 };
+
+      // Attacker at 2, target at 2, valley at 0 (delta = -2)
+      arena.setTile({ coord: attacker, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: target, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: valley, elevation: 0, isWalkable: true });
+
+      const result = arena.calculateKnockback(attacker, target, 1);
+      expect(result.isCollided).toBe(false);
+      expect(result.finalCoord).toEqual(valley);
+      // Fall damage: |-2| * 4 = 8
+      expect(result.fallDamage).toBe(8);
+      expect(result.plungedElevationDelta).toBe(2);
+    });
+
+    it('causes no fall damage when knocked down a 1-level step (delta h = -1)', () => {
+      const arena = createRadialArena(3);
+      const attacker: HexCoord = { q: 0, r: 0 };
+      const target: HexCoord = { q: 1, r: 0 };
+      const low: HexCoord = { q: 2, r: 0 };
+
+      arena.setTile({ coord: attacker, elevation: 1, isWalkable: true });
+      arena.setTile({ coord: target, elevation: 1, isWalkable: true });
+      arena.setTile({ coord: low, elevation: 0, isWalkable: true });
+
+      const result = arena.calculateKnockback(attacker, target, 1);
+      expect(result.isCollided).toBe(false);
+      expect(result.finalCoord).toEqual(low);
+      expect(result.fallDamage).toBeUndefined();
+    });
   });
 
   describe('Tile Collection & Metadata', () => {

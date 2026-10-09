@@ -7,7 +7,98 @@ import { COMBAT_RESOLUTION_CONFIG } from '../config/balance';
 
 export interface AttackRollOptions {
   readonly advantage?: RollAdvantage;
+  readonly rollBonus?: number;
   readonly rollPenalty?: number;
+  readonly elevationDelta?: number;
+}
+
+export interface ElevationAttackModifierResult {
+  readonly rollBonus: number;
+  readonly rollPenalty: number;
+  readonly grantsAdvantage: boolean;
+  readonly grantsDisadvantage: boolean;
+  readonly description?: string;
+}
+
+/**
+ * Calculates vertical attack roll bonuses, penalties, Advantage, or Disadvantage
+ * based on the elevation difference (actorElevation - targetElevation).
+ * Supports traits and ability properties that suppress upward penalties.
+ */
+export function calculateElevationAttackModifier(
+  actorCu: CombatUnit,
+  targetCu: CombatUnit,
+  elevationDelta: number,
+  ability: Ability
+): ElevationAttackModifierResult {
+  const ignoresPenalty =
+    ability.ignoresElevationPenalty ||
+    actorCu.passives?.some((p) => p.ignoresElevationPenalty);
+
+  // Downward targeting
+  if (elevationDelta === 1) {
+    return {
+      rollBonus: 2,
+      rollPenalty: 0,
+      grantsAdvantage: false,
+      grantsDisadvantage: false,
+      description: 'High Ground (+2)'
+    };
+  }
+  if (elevationDelta >= 2) {
+    return {
+      rollBonus: 0,
+      rollPenalty: 0,
+      grantsAdvantage: true,
+      grantsDisadvantage: false,
+      description: 'High Ground (Advantage)'
+    };
+  }
+
+  // Upward targeting
+  if (elevationDelta === -1) {
+    if (ignoresPenalty) {
+      return {
+        rollBonus: 0,
+        rollPenalty: 0,
+        grantsAdvantage: false,
+        grantsDisadvantage: false,
+        description: 'Low Ground Penalty Negated'
+      };
+    }
+    return {
+      rollBonus: 0,
+      rollPenalty: 2,
+      grantsAdvantage: false,
+      grantsDisadvantage: false,
+      description: 'Low Ground (-2)'
+    };
+  }
+  if (elevationDelta <= -2) {
+    if (ignoresPenalty) {
+      return {
+        rollBonus: 0,
+        rollPenalty: 0,
+        grantsAdvantage: false,
+        grantsDisadvantage: false,
+        description: 'Low Ground Disadvantage Negated'
+      };
+    }
+    return {
+      rollBonus: 0,
+      rollPenalty: 0,
+      grantsAdvantage: false,
+      grantsDisadvantage: true,
+      description: 'Low Ground (Disadvantage)'
+    };
+  }
+
+  return {
+    rollBonus: 0,
+    rollPenalty: 0,
+    grantsAdvantage: false,
+    grantsDisadvantage: false
+  };
 }
 
 export interface AttackRollResult {
@@ -39,7 +130,7 @@ export function getAttackRollModifier(actorCu: CombatUnit, ability: Ability): nu
 
 /**
  * Resolves an attack roll comparing d20 + modifier against the target defense score,
- * supporting first-class Advantage/Disadvantage and custom critical thresholds.
+ * supporting first-class Advantage/Disadvantage, elevation modifiers, and custom critical thresholds.
  */
 export function resolveAttackRoll(
   actorCu: CombatUnit,
@@ -49,14 +140,29 @@ export function resolveAttackRoll(
   options?: AttackRollOptions
 ): AttackRollResult {
   const baseModifier = getAttackRollModifier(actorCu, ability);
-  const modifier = baseModifier - (options?.rollPenalty ?? 0);
+  let totalBonus = options?.rollBonus ?? 0;
+  let totalPenalty = options?.rollPenalty ?? 0;
+  let hasAdvantage = options?.advantage === 'ADVANTAGE';
+  let hasDisadvantage = options?.advantage === 'DISADVANTAGE';
+
+  if (options?.elevationDelta !== undefined && options.elevationDelta !== 0) {
+    const elevMod = calculateElevationAttackModifier(
+      actorCu,
+      targetCu,
+      options.elevationDelta,
+      ability
+    );
+    totalBonus += elevMod.rollBonus;
+    totalPenalty += elevMod.rollPenalty;
+    if (elevMod.grantsAdvantage) hasAdvantage = true;
+    if (elevMod.grantsDisadvantage) hasDisadvantage = true;
+  }
+
+  const modifier = baseModifier + totalBonus - totalPenalty;
   const targetDefense =
     ability.defenseTarget === 'EVASION'
       ? getEffectiveEvasion(targetCu)
       : getEffectiveResolve(targetCu);
-
-  let hasAdvantage = options?.advantage === 'ADVANTAGE';
-  let hasDisadvantage = options?.advantage === 'DISADVANTAGE';
 
   // Attacking from STEALTH grants Advantage
   if (actorCu.activeConditions?.some((c) => c.type === 'STEALTH')) {

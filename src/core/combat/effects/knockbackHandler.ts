@@ -1,7 +1,7 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
 import { AbilityEffect } from '../../types/ability';
 import { CombatEvent } from '../types';
-import { resolveCollisionDamage } from '../damageEngine';
+import { resolveCollisionDamage, resolveFallDamage } from '../damageEngine';
 import { DISPLACEMENT_CONFIG } from '../../config/balance';
 import { hexEquals } from '../../grid/hex';
 
@@ -100,11 +100,31 @@ export const knockbackHandler: EffectHandler = {
       logDetail = ` 💨 [Knockback: Pushed to (${knockbackResult.finalCoord.q}, ${knockbackResult.finalCoord.r})]`;
     }
 
+    // Process plunging fall impact damage if knockback plunged down a ledge (dh <= -2)
+    let fallImpactDamage: number | undefined;
+    if (knockbackResult.fallDamage && knockbackResult.fallDamage > 0) {
+      fallImpactDamage = resolveFallDamage(targetCu, knockbackResult.fallDamage);
+      if (fallImpactDamage > 0) {
+        events.push({
+          type: 'DAMAGE',
+          targetUnitId: targetCu.unit.id,
+          amount: fallImpactDamage,
+          damageType: 'PHYSICAL',
+          reason: 'FALL',
+          sourceUnitId: actorCu.unit.id
+        });
+        logDetail += ` 💥 [Plunged from ledge: Took +${fallImpactDamage} Fall Impact Damage!]`;
+      } else {
+        logDetail += ` 🐾 [Plunged from ledge: Fall Damage Negated!]`;
+      }
+    }
+
     return {
       events,
       logDetail,
       knockbackResult,
-      wallSlamDamage
+      wallSlamDamage,
+      fallDamage: fallImpactDamage
     };
   }
 };

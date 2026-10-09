@@ -498,5 +498,167 @@ describe('Attack & Ability Resolution Outcomes', () => {
       }
     });
   });
+
+  describe('Vertical Elevation Attack Modifiers', () => {
+    it('grants +2 attack roll bonus when attacking downward across 1 elevation level (dh = 1)', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const goblin = createRecruit('goblin', 'Goblin');
+
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 1, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('goblin', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, goblin], 'hero');
+      // d20 = 10, Finesse = 0. With +2 high ground: total score = 12 vs 10 Evasion -> SOLID_HIT
+      const dice = new MockDiceRoller({ d20Rolls: [10], damageRolls: [4] });
+      const result = executeAbility(state, 'hero', STRIKE, { targetUnitId: 'goblin' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.modifier).toBe(2);
+        expect(result.details.totalAttackScore).toBe(12);
+        expect(result.details.hitOutcome).toBe('SOLID_HIT');
+        expect(state.combatLog[0].message).toContain('[Elevation: High Ground (+2)]');
+      }
+    });
+
+    it('grants Advantage on attack roll when attacking downward across 2+ elevation levels (dh >= 2)', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const goblin = createRecruit('goblin', 'Goblin');
+
+      // Range 2 dart from plateau (h=2) down to valley (h=0)
+      const DART = { ...STRIKE, id: 'dart', range: 2 };
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: { q: 2, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('goblin', { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [hero, goblin], 'hero');
+      // Rolls [6, 17] with Advantage -> takes 17!
+      const dice = new MockDiceRoller({ d20Rolls: [6, 17], damageRolls: [4] });
+      const result = executeAbility(state, 'hero', DART, { targetUnitId: 'goblin' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.d20Roll).toBe(17);
+        expect(state.combatLog[0].message).toContain('[Elevation: High Ground (Advantage)]');
+      }
+    });
+
+    it('inflicts -2 attack roll penalty when attacking upward across 1 elevation level (dh = -1)', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const goblin = createRecruit('goblin', 'Goblin');
+
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 1, isWalkable: true });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('goblin', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, goblin], 'hero');
+      // d20 = 11, base modifier = 0. With -2 low ground penalty: total score = 9 vs 10 Evasion -> GRAZE
+      const dice = new MockDiceRoller({ d20Rolls: [11], damageRolls: [4] });
+      const result = executeAbility(state, 'hero', STRIKE, { targetUnitId: 'goblin' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.modifier).toBe(-2);
+        expect(result.details.totalAttackScore).toBe(9);
+        expect(result.details.hitOutcome).toBe('GRAZE');
+        expect(state.combatLog[0].message).toContain('[Elevation: Low Ground (-2)]');
+      }
+    });
+
+    it('inflicts Disadvantage when attacking upward across 2+ elevation levels (dh <= -2)', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const sniper = createRecruit('sniper', 'Sniper');
+
+      const DART = { ...STRIKE, id: 'dart', range: 2 };
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 2, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('sniper', { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [hero, sniper], 'hero');
+      // Disadvantage takes lowest of [18, 5] -> 5
+      const dice = new MockDiceRoller({ d20Rolls: [18, 5], damageRolls: [4] });
+      const result = executeAbility(state, 'hero', DART, { targetUnitId: 'sniper' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.d20Roll).toBe(5);
+        expect(state.combatLog[0].message).toContain('[Elevation: Low Ground (Disadvantage)]');
+      }
+    });
+
+    it('cancels High Ground Advantage with Challenged Disadvantage to a normal roll', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const knight = createRecruit('knight', 'Knight', { faction: 'ENEMY' });
+      const goblin = createRecruit('goblin', 'Goblin', { faction: 'ENEMY' });
+
+      const DART = { ...STRIKE, id: 'dart', range: 2 };
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: { q: 2, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 1 }, elevation: 2, isWalkable: true });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('goblin', { q: 2, r: 0 });
+      arena.setUnitPosition('knight', { q: 1, r: 1 });
+
+      const state = createCombatState(arena, [hero, knight, goblin], 'hero');
+      const heroCu = state.units.get('hero')!;
+      // Challenged by Knight, but attacking Goblin
+      heroCu.activeConditions.push({ type: 'CHALLENGED', durationTurns: 2, sourceUnitId: 'knight' });
+
+      // High Ground (dh=2) grants Advantage, Challenged imposes Disadvantage -> Cancels to Normal! Single d20 roll: 14
+      const dice = new MockDiceRoller({ d20Rolls: [14], damageRolls: [4] });
+      const result = executeAbility(state, 'hero', DART, { targetUnitId: 'goblin' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.d20Roll).toBe(14);
+      }
+    });
+
+    it('suppresses upward attack penalty when attacker has ignoresElevationPenalty trait', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const goblin = createRecruit('goblin', 'Goblin');
+
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 1, isWalkable: true });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('goblin', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, goblin], 'hero');
+      const heroCu = state.units.get('hero')!;
+      heroCu.passives = [
+        {
+          id: 'eagle_eye',
+          name: 'Eagle Eye',
+          description: 'Ignores elevation attack penalty',
+          hook: 'ALWAYS',
+          ignoresElevationPenalty: true
+        }
+      ];
+
+      // d20 = 10. Without penalty: total score = 10 vs 10 Evasion -> SOLID_HIT (not Graze)
+      const dice = new MockDiceRoller({ d20Rolls: [10], damageRolls: [4] });
+      const result = executeAbility(state, 'hero', STRIKE, { targetUnitId: 'goblin' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.modifier).toBe(0);
+        expect(result.details.totalAttackScore).toBe(10);
+        expect(result.details.hitOutcome).toBe('SOLID_HIT');
+        expect(state.combatLog[0].message).toContain('[Elevation: Low Ground Penalty Negated]');
+      }
+    });
+  });
 });
 

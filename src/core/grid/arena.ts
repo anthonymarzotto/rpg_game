@@ -34,6 +34,18 @@ export interface KnockbackResult {
   readonly isCollided: boolean;
   readonly collisionType?: CollisionType;
   readonly collidingUnitId?: string;
+  readonly fallDamage?: number;
+  readonly plungedElevationDelta?: number;
+}
+
+/**
+ * Calculates raw unmitigated fall impact damage for an elevation delta (from -> to).
+ * Drops of dh <= -2 inflict |dh| * fallDamagePerElevation. Drops of dh >= -1 inflict 0.
+ */
+export function calculateRawFallDamage(elevationDelta: number): number {
+  return elevationDelta <= -2
+    ? Math.abs(elevationDelta) * DISPLACEMENT_CONFIG.fallDamagePerElevation
+    : 0;
 }
 
 /**
@@ -203,8 +215,7 @@ export class Arena {
         }
 
         // 5. Fall damage: |dh| * 4 if plunging dh <= -2
-        const stepFallDamage =
-          dh <= -2 ? Math.abs(dh) * DISPLACEMENT_CONFIG.fallDamagePerElevation : 0;
+        const stepFallDamage = calculateRawFallDamage(dh);
         const nextFallDamage = current.fallDamage + stepFallDamage;
         const nextPath = [...current.path, neighbor];
 
@@ -340,14 +351,15 @@ export class Arena {
 
   /**
    * Calculates knockback displacement along the attacker -> target vector.
-   * If the destination is off-map, unwalkable, blocked by high elevation,
-   * or occupied by another unit, displacement halts and a wall-slam collision is registered.
+   * If the destination is off-map, unwalkable, blocked by high elevation (cliff >= minCliffSlamElevationDelta),
+   * or occupied by another unit, displacement halts and a wall/cliff-slam collision is registered.
+   * If the knockback plunges down a ledge (dh <= -2), unmitigated fall impact damage is accumulated.
    */
   public calculateKnockback(
     attackerCoord: HexCoord,
     targetCoord: HexCoord,
     distance = 1,
-    maxJumpElevation: number = DISPLACEMENT_CONFIG.maxJumpElevation
+    minCliffSlamElevationDelta: number = DISPLACEMENT_CONFIG.minCliffSlamElevationDelta
   ): KnockbackResult {
     const targetTile = this.getTile(targetCoord);
     if (!targetTile) {
@@ -363,6 +375,8 @@ export class Arena {
     const stepDir = POINTY_HEX_DIRECTIONS[dir];
 
     let current = targetCoord;
+    let totalFallDamage = 0;
+    let maxPlungedDelta = 0;
 
     for (let i = 0; i < distance; i++) {
       const nextCoord = hexAdd(current, stepDir);
@@ -373,7 +387,9 @@ export class Arena {
         return {
           finalCoord: current,
           isCollided: true,
-          collisionType: 'VOID'
+          collisionType: 'VOID',
+          fallDamage: totalFallDamage > 0 ? totalFallDamage : undefined,
+          plungedElevationDelta: maxPlungedDelta > 0 ? maxPlungedDelta : undefined
         };
       }
 
@@ -382,17 +398,22 @@ export class Arena {
         return {
           finalCoord: current,
           isCollided: true,
-          collisionType: 'WALL'
+          collisionType: 'WALL',
+          fallDamage: totalFallDamage > 0 ? totalFallDamage : undefined,
+          plungedElevationDelta: maxPlungedDelta > 0 ? maxPlungedDelta : undefined
         };
       }
 
       // 3. Cliff / High elevation collision
       const currentTile = this.getTile(current)!;
-      if (nextTile.elevation - currentTile.elevation > maxJumpElevation) {
+      const elevationDelta = nextTile.elevation - currentTile.elevation;
+      if (elevationDelta >= minCliffSlamElevationDelta) {
         return {
           finalCoord: current,
           isCollided: true,
-          collisionType: 'CLIFF'
+          collisionType: 'CLIFF',
+          fallDamage: totalFallDamage > 0 ? totalFallDamage : undefined,
+          plungedElevationDelta: maxPlungedDelta > 0 ? maxPlungedDelta : undefined
         };
       }
 
@@ -402,8 +423,17 @@ export class Arena {
           finalCoord: current,
           isCollided: true,
           collisionType: 'UNIT',
-          collidingUnitId: nextTile.occupiedByUnitId
+          collidingUnitId: nextTile.occupiedByUnitId,
+          fallDamage: totalFallDamage > 0 ? totalFallDamage : undefined,
+          plungedElevationDelta: maxPlungedDelta > 0 ? maxPlungedDelta : undefined
         };
+      }
+
+      // 5. Plunging ledge drop (dh <= -2)
+      const stepFallDamage = calculateRawFallDamage(elevationDelta);
+      if (stepFallDamage > 0) {
+        totalFallDamage += stepFallDamage;
+        maxPlungedDelta = Math.max(maxPlungedDelta, Math.abs(elevationDelta));
       }
 
       current = nextCoord;
@@ -411,7 +441,9 @@ export class Arena {
 
     return {
       finalCoord: current,
-      isCollided: false
+      isCollided: false,
+      fallDamage: totalFallDamage > 0 ? totalFallDamage : undefined,
+      plungedElevationDelta: maxPlungedDelta > 0 ? maxPlungedDelta : undefined
     };
   }
 }

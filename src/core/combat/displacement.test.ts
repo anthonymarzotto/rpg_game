@@ -82,6 +82,82 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
       expect(state.combatLog[0].message).toContain('Knockback Collision: Slammed into Dummy B');
       expect(state.combatLog[0].message).toContain('Dummy B took +1 collateral damage');
     });
+
+    it('inflicts unmitigated fall impact damage when knockback plunges target down a ledge (delta h <= -2)', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const target = createRecruit('target', 'Target');
+
+      // Hero and target on ridge (elevation 2), landing hex in valley (elevation 0)
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: { q: 2, r: 0 }, elevation: 0, isWalkable: true });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('target', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, target], 'hero');
+      const targetCu = state.units.get('target')!;
+      // Give target 2 Armor to verify fall damage is unmitigated
+      targetCu.activeModifiers.push({ stat: 'armor', value: 2, durationTurns: 2 });
+
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3] });
+      const result = executeAbility(state, 'hero', SHIELD_BASH, { targetUnitId: 'target' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(arena.getUnitPosition('target')).toEqual({ q: 2, r: 0 });
+        // Target took 3 - 2 = 1 attack damage, PLUS exactly 8 unmitigated fall damage (|-2| * 4)
+        expect(result.details.fallDamage).toBe(8);
+        const fallEvent = result.details.events.find((e) => e.type === 'DAMAGE' && (e as any).reason === 'FALL');
+        expect(fallEvent).toBeDefined();
+        expect((fallEvent as any).amount).toBe(8);
+
+        // Armor soaked 2 attack damage (3 - 2 = 1), but zero of the 8 fall damage
+        expect(targetCu.currentHp).toBe(target.effectiveVitals.maxHp - 1 - 8);
+        expect(state.combatLog[0].message).toContain('Plunged from ledge: Took +8 Fall Impact Damage!');
+      }
+    });
+
+    it('negates fall impact damage when target has immuneToFallDamage trait', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const acrobat = createRecruit('acrobat', 'Acrobat');
+
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: { q: 2, r: 0 }, elevation: 0, isWalkable: true });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('acrobat', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, acrobat], 'hero');
+      const acrobatCu = state.units.get('acrobat')!;
+      acrobatCu.passives = [
+        {
+          id: 'feline_grace',
+          name: 'Feline Grace',
+          description: 'Immune to fall damage',
+          hook: 'ALWAYS',
+          immuneToFallDamage: true
+        }
+      ];
+
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3] });
+      const result = executeAbility(state, 'hero', SHIELD_BASH, { targetUnitId: 'acrobat' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(arena.getUnitPosition('acrobat')).toEqual({ q: 2, r: 0 });
+        // Fall damage was negated (0)
+        expect(result.details.fallDamage).toBe(0);
+        const fallEvent = result.details.events.find((e) => e.type === 'DAMAGE' && (e as any).reason === 'FALL');
+        expect(fallEvent).toBeUndefined();
+        // Only attack damage (3) applied
+        expect(acrobatCu.currentHp).toBe(acrobat.effectiveVitals.maxHp - 3);
+        expect(state.combatLog[0].message).toContain('Plunged from ledge: Fall Damage Negated!');
+      }
+    });
   });
 
   describe('Extensible Effect Pipeline & Atomic Combat Events', () => {

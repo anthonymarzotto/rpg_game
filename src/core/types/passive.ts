@@ -67,6 +67,12 @@ export interface PassiveTrait {
   readonly rollModifier?: PassiveRollModifier;
   /** Flat collision and wall-slam damage bonus applied when this unit causes a collision */
   readonly collisionDamageBonus?: number;
+  /** Whether the unit is immune to unmitigated fall impact damage (e.g. Feline Grace) */
+  readonly immuneToFallDamage?: boolean;
+  /** Whether the unit is immune to wall-slam and collision damage */
+  readonly immuneToCollisionDamage?: boolean;
+  /** Whether the unit ignores upward low-ground attack roll penalties and disadvantage */
+  readonly ignoresElevationPenalty?: boolean;
   /** Pluggable effect payload executed when the trigger hook fires */
   readonly effect?: AbilityEffect;
   /** Conditional modifiers active when unit HP is at or below a certain threshold */

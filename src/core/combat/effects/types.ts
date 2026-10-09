@@ -19,6 +19,7 @@ export interface EffectExecutionResult {
   readonly logDetail?: string;
   readonly knockbackResult?: KnockbackResult;
   readonly wallSlamDamage?: number;
+  readonly fallDamage?: number;
 }
 
 export interface EffectHandler<T extends AbilityEffect = AbilityEffect> {

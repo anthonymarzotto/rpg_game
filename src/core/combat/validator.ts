@@ -83,10 +83,33 @@ export function canExecuteAbility(
     return { valid: true };
   }
 
+  const actorElevation = state.arena.getElevation(actorCoord);
+
   if (effectiveAbility.targetType === 'HEX') {
     if (!target?.coord) {
       return { valid: false, reason: 'Missing destination coordinate for hex-targeted ability.' };
     }
+    const targetElevation = state.arena.getElevation(target.coord);
+    const elevationDelta = actorElevation - targetElevation;
+
+    // Melee vertical reach constraint
+    if (effectiveAbility.range <= 1) {
+      const maxReach = effectiveAbility.reachElevationDelta ?? 1;
+      const ignoresReach = cu.passives?.some((p) => p.ignoresElevationPenalty);
+      if (!ignoresReach && Math.abs(elevationDelta) > maxReach) {
+        return {
+          valid: false,
+          reason: `Target is vertically out of reach (elevation difference ${Math.abs(elevationDelta)} > reach ${maxReach}).`
+        };
+      }
+    }
+
+    // High-ground ranged vantage extension
+    const effectiveRange =
+      effectiveAbility.range >= 2
+        ? effectiveAbility.range + Math.max(0, elevationDelta)
+        : effectiveAbility.range;
+
     const dist = hexDistance(actorCoord, target.coord);
     if (dist > effectiveRange) {
       return { valid: false, reason: `Target out of range (distance ${dist} > range ${effectiveRange}).` };
@@ -152,6 +175,27 @@ export function canExecuteAbility(
         return { valid: false, reason: 'Cannot cast an ally ability on an enemy unit.' };
       }
     }
+
+    const targetElevation = state.arena.getElevation(targetCoord);
+    const elevationDelta = actorElevation - targetElevation;
+
+    // Melee vertical reach constraint (|dh| <= reach)
+    if (effectiveAbility.range <= 1) {
+      const maxReach = effectiveAbility.reachElevationDelta ?? 1;
+      const ignoresReach = cu.passives?.some((p) => p.ignoresElevationPenalty);
+      if (!ignoresReach && Math.abs(elevationDelta) > maxReach) {
+        return {
+          valid: false,
+          reason: `Target is vertically out of reach (elevation difference ${Math.abs(elevationDelta)} > reach ${maxReach}).`
+        };
+      }
+    }
+
+    // High-ground ranged vantage extension
+    const effectiveRange =
+      effectiveAbility.range >= 2
+        ? effectiveAbility.range + Math.max(0, elevationDelta)
+        : effectiveAbility.range;
 
     const dist = hexDistance(actorCoord, targetCoord);
     if (dist > effectiveRange) {
