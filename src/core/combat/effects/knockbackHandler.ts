@@ -18,10 +18,13 @@ export const knockbackHandler: EffectHandler = {
       return { events: [] };
     }
 
+    const canVault = targetCu.passives?.some((p) => p.canVaultOnKnockback);
     const knockbackResult = state.arena.calculateKnockback(
       actorCoord,
       targetCoord,
-      effect.magnitude
+      effect.magnitude,
+      DISPLACEMENT_CONFIG.minCliffSlamElevationDelta,
+      { canVaultOnKnockback: canVault }
     );
 
     const events: CombatEvent[] = [];
@@ -49,14 +52,16 @@ export const knockbackHandler: EffectHandler = {
         collidingUnitId: knockbackResult.collidingUnitId
       });
 
-      events.push({
-        type: 'DAMAGE',
-        targetUnitId: targetCu.unit.id,
-        amount: wallSlamDamage,
-        damageType: 'PHYSICAL',
-        reason: 'COLLISION',
-        sourceUnitId: actorCu.unit.id
-      });
+      if (wallSlamDamage > 0) {
+        events.push({
+          type: 'DAMAGE',
+          targetUnitId: targetCu.unit.id,
+          amount: wallSlamDamage,
+          damageType: 'PHYSICAL',
+          reason: 'COLLISION',
+          sourceUnitId: actorCu.unit.id
+        });
+      }
 
       if (knockbackResult.collidingUnitId) {
         const bystander = state.units.get(knockbackResult.collidingUnitId);
@@ -86,7 +91,10 @@ export const knockbackHandler: EffectHandler = {
             : knockbackResult.collisionType === 'CLIFF'
             ? 'Cliff'
             : 'Map Boundary';
-        logDetail = ` 💥 [Knockback Collision: Slammed into ${obsType}! Took +${wallSlamDamage} collision damage.]`;
+        logDetail =
+          wallSlamDamage && wallSlamDamage > 0
+            ? ` 💥 [Knockback Collision: Slammed into ${obsType}! Took +${wallSlamDamage} collision damage.]`
+            : ` 🐾 [Knockback Collision: Stopped against ${obsType}! Collision Damage Negated.]`;
       }
     } else {
       events.push({

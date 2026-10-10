@@ -302,5 +302,112 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
         });
       }
     });
+
+    it('vaults onto cliff top instead of colliding when target has canVaultOnKnockback', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const acrobat = createRecruit('acrobat', 'Acrobat');
+
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 2, r: 0 }, elevation: 2, isWalkable: true });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('acrobat', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, acrobat], 'hero');
+      const acrobatCu = state.units.get('acrobat')!;
+      (acrobatCu as any).passives = [
+        {
+          id: 'feline_grace',
+          name: 'Feline Grace',
+          description: 'Rebounds onto cliff tops',
+          hook: 'ALWAYS',
+          canVaultOnKnockback: true,
+          immuneToCollisionDamage: true
+        }
+      ];
+
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3] });
+      const result = executeAbility(state, 'hero', SHIELD_BASH, { targetUnitId: 'acrobat' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(arena.getUnitPosition('acrobat')).toEqual({ q: 2, r: 0 });
+        expect(result.details.wallSlamDamage).toBeUndefined();
+        const collisionEvent = result.details.events.find((e) => e.type === 'COLLISION');
+        expect(collisionEvent).toBeUndefined();
+      }
+    });
+
+    it('vaults over 1-hex obstacle instead of colliding when target has canVaultOnKnockback', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const acrobat = createRecruit('acrobat', 'Acrobat');
+
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 2, r: 0 }, elevation: 0, isWalkable: false, terrainType: 'OBSTACLE' });
+      arena.setTile({ coord: { q: 3, r: 0 }, elevation: 0, isWalkable: true });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('acrobat', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, acrobat], 'hero');
+      const acrobatCu = state.units.get('acrobat')!;
+      (acrobatCu as any).passives = [
+        {
+          id: 'feline_grace',
+          name: 'Feline Grace',
+          description: 'Vaults over obstacles',
+          hook: 'ALWAYS',
+          canVaultOnKnockback: true
+        }
+      ];
+
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3] });
+      const result = executeAbility(state, 'hero', SHIELD_BASH, { targetUnitId: 'acrobat' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(arena.getUnitPosition('acrobat')).toEqual({ q: 3, r: 0 });
+        expect(result.details.wallSlamDamage).toBeUndefined();
+      }
+    });
+
+    it('negates collision damage when target has immuneToCollisionDamage and hits perimeter wall', () => {
+      const arena = createRadialArena(2);
+      const hero = createRecruit('hero', 'Alden');
+      const acrobat = createRecruit('acrobat', 'Acrobat');
+
+      arena.setUnitPosition('hero', { q: 1, r: 0 });
+      arena.setUnitPosition('acrobat', { q: 2, r: 0 }); // Boundary edge
+
+      const state = createCombatState(arena, [hero, acrobat], 'hero');
+      const acrobatCu = state.units.get('acrobat')!;
+      (acrobatCu as any).passives = [
+        {
+          id: 'feline_grace',
+          name: 'Feline Grace',
+          description: 'Immune to collision damage',
+          hook: 'ALWAYS',
+          immuneToCollisionDamage: true
+        }
+      ];
+
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3] });
+      const result = executeAbility(state, 'hero', SHIELD_BASH, { targetUnitId: 'acrobat' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(arena.getUnitPosition('acrobat')).toEqual({ q: 2, r: 0 });
+        expect(result.details.wallSlamDamage).toBe(0);
+        const collisionDmgEvent = result.details.events.find(
+          (e) => e.type === 'DAMAGE' && (e as any).reason === 'COLLISION'
+        );
+        expect(collisionDmgEvent).toBeUndefined();
+        expect(state.combatLog[0].message).toContain('Collision Damage Negated');
+      }
+    });
   });
 });

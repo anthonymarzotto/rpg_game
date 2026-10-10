@@ -16,6 +16,7 @@ import { BERSERKER_PACKAGE } from './berserker';
 import { HIGHWAYMAN_PACKAGE } from './highwayman';
 import { WARLOCK_PACKAGE } from './warlock';
 import { WITCH_PACKAGE } from './witch';
+import { CAT_BURGLAR_PACKAGE } from './catBurglar';
 
 export * from './novice';
 export * from './warrior';
@@ -29,6 +30,7 @@ export * from './berserker';
 export * from './highwayman';
 export * from './warlock';
 export * from './witch';
+export * from './catBurglar';
 
 export const CLASS_PACKAGES: Readonly<Record<string, ClassPackage>> = {
   warrior: WARRIOR_PACKAGE,
@@ -41,14 +43,17 @@ export const CLASS_PACKAGES: Readonly<Record<string, ClassPackage>> = {
   berserker: BERSERKER_PACKAGE,
   highwayman: HIGHWAYMAN_PACKAGE,
   warlock: WARLOCK_PACKAGE,
-  witch: WITCH_PACKAGE
+  witch: WITCH_PACKAGE,
+  'cat-burglar': CAT_BURGLAR_PACKAGE
 };
 
 /**
  * Returns the ClassPackage for a given class ID, or undefined if not authored yet.
  */
 export function getClassPackage(classId: string): ClassPackage | undefined {
-  return CLASS_PACKAGES[classId.toLowerCase()];
+  const normalized = classId.toLowerCase();
+  if (normalized === 'catburglar') return CLASS_PACKAGES['cat-burglar'];
+  return CLASS_PACKAGES[normalized];
 }
 
 /**

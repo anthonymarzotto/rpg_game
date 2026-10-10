@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Unit } from '../types/unit';
 import { createRadialArena } from '../grid/templates';
 import { createCombatState } from '../combat/resolver';
-import { HEX_DIRECTIONS, getDirectionBetween } from '../grid/hex';
+import { HEX_DIRECTIONS, getDirectionBetween, hexDistance } from '../grid/hex';
 import { decideNextAction, executeAiTurn, executeAiAction } from './decisionEngine';
 import { SeededDiceRoller } from '../combat/dice';
 import { STRIKE } from '../../data/packages/novice';
@@ -756,6 +756,110 @@ describe('Headless AI Decision Engine', () => {
       const expectedOppositeFacing = ((getDirectionBetween({ q: 0, r: 1 }, { q: 0, r: 2 }) + 3) % 6);
       expect(heroCu.facing).toBe(expectedOppositeFacing);
       expect(heroCu.activeModifiers.some((m) => m.stat === 'resolve' && m.value < 0)).toBe(true);
+    });
+
+    it('cat-burglar skirmisher executes the Solo Heist combo (Flash -> Vault -> Pilfer) in a single 3-AP turn', () => {
+      const arena = createRadialArena(3);
+      const catBurglar = createMockUnit('cat-burglar-enemy', 'Hostile Cat-Burglar', 'ENEMY', {
+        activeClassId: 'cat-burglar',
+        baseAttributes: { force: 10, finesse: 14, focus: 10 }
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50,
+        armor: 1,
+        evasion: 10,
+        resolve: 10
+      });
+
+      arena.setUnitPosition(catBurglar.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [catBurglar, hero], catBurglar.id);
+      state.units.get(hero.id)!.facing = HEX_DIRECTIONS.WEST;
+
+      const roller = new SeededDiceRoller(42);
+      const actions = executeAiTurn(state, catBurglar.id, { diceRoller: roller });
+
+      expect(actions.length).toBe(3);
+      expect(actions[0].type).toBe('ABILITY');
+      if (actions[0].type === 'ABILITY') {
+        expect(actions[0].ability.id).toBe('flash_powder');
+      }
+      expect(actions[1].type).toBe('ABILITY');
+      if (actions[1].type === 'ABILITY') {
+        expect(actions[1].ability.id).toBe('rooftop_vault');
+      }
+      expect(actions[2].type).toBe('ABILITY');
+      if (actions[2].type === 'ABILITY') {
+        expect(actions[2].ability.id).toBe('pilfer');
+      }
+
+      // Verify outcomes: Hero was rotated away and debuffed, Burglar closed into melee and dealt damage
+      const heroCu = state.units.get(hero.id)!;
+      expect(heroCu.activeModifiers.some((m) => m.stat === 'attackRoll' && m.value < 0)).toBe(true);
+      expect(heroCu.currentHp).toBeLessThan(50);
+      const finalBurglarPos = state.arena.getUnitPosition(catBurglar.id)!;
+      const finalHeroPos = state.arena.getUnitPosition(hero.id)!;
+      expect(hexDistance(finalBurglarPos, finalHeroPos)).toBe(1);
+    });
+
+    it('cat-burglar skirmisher evaluates high-ground leaping with Rooftop Vault when target is elevated on cliff', () => {
+      const arena = createRadialArena(3);
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: { q: 2, r: 0 }, elevation: 2, isWalkable: true });
+
+      const catBurglar = createMockUnit('cat-burglar-enemy', 'Hostile Cat-Burglar', 'ENEMY', {
+        activeClassId: 'cat-burglar',
+        baseAttributes: { force: 10, finesse: 14, focus: 10 }
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50
+      });
+
+      arena.setUnitPosition(catBurglar.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [catBurglar, hero], catBurglar.id);
+      state.units.get(catBurglar.id)!.currentAp = 2;
+
+      const action = decideNextAction(state, catBurglar.id);
+      expect(action.type).toBe('ABILITY');
+      if (action.type === 'ABILITY') {
+        expect(action.ability.id).toBe('rooftop_vault');
+        expect(action.reason).toContain('high ground');
+      }
+    });
+
+    it('cat-burglar does not spam Flash Powder when target already has -2 Attack Roll debuff', () => {
+      const arena = createRadialArena(3);
+      const catBurglar = createMockUnit('cat-burglar-enemy', 'Hostile Cat-Burglar', 'ENEMY', {
+        activeClassId: 'cat-burglar',
+        baseAttributes: { force: 10, finesse: 14, focus: 10 }
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50
+      });
+
+      arena.setUnitPosition(catBurglar.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [catBurglar, hero], catBurglar.id);
+      state.units.get(catBurglar.id)!.currentAp = 1;
+      state.units.get(hero.id)!.activeModifiers.push({
+        id: 'blinded',
+        name: 'Flash Powder Blind',
+        sourceAbilityId: 'flash_powder',
+        sourceUnitId: catBurglar.id,
+        stat: 'attackRoll',
+        value: -2,
+        durationTurns: 1
+      });
+
+      const action = decideNextAction(state, catBurglar.id);
+      expect(action.type).toBe('ABILITY');
+      if (action.type === 'ABILITY') {
+        expect(action.ability.id).toBe('pilfer');
+      }
     });
   });
 });

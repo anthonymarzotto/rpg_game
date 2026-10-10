@@ -133,7 +133,8 @@ export function canExecuteAbility(
     if (!destTile.isWalkable) {
       return { valid: false, reason: `Destination (${target.coord.q}, ${target.coord.r}) is not walkable.` };
     }
-    if (destTile.occupiedByUnitId) {
+    const isAoE = (effectiveAbility.aoeRadius ?? 0) > 0;
+    if (!isAoE && destTile.occupiedByUnitId) {
       return { valid: false, reason: `Destination (${target.coord.q}, ${target.coord.r}) is already occupied.` };
     }
     return { valid: true };

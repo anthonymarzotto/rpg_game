@@ -33,22 +33,22 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 │  - [x] 5.5 Witch (0, 1, 2) kit & misfortune ward            │
 │  - [x] 5.6 Hybrid AI profiles & primer heuristics           │
 │  - [x] 5.7 Campaign encounter budget & token mapping        │
-│  - [*] (Cat-burglar moved to Phase 6b for elevation)        │
+│  - [x] (Cat-burglar completed in Phase 6b)                  │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 6: TACTICAL VERTICALITY & DYNAMIC ELEVATION           │
 │  - [x] 6.1 Core grid elevation, traversal & 3D raycasting   │
-│  - [ ] 6.2 Elevation combat modifiers & plunging knockback   │
-│  - [ ] 6.3 2.5D SVG prism rendering & terraced encounters   │
+│  - [x] 6.2 Elevation combat modifiers & plunging knockback   │
+│  - [x] 6.3 2.5D SVG prism rendering & terraced encounters   │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 6b: CAT-BURGLAR & ELEVATION INFILTRATION              │
-│  - [ ] 6b.1 Cat-burglar (0, 2, 1) kit & second-story vault  │
-│  - [ ] 6b.2 Vertical infiltration AI heuristics             │
+│  - [x] 6b.1 Cat-burglar (0, 2, 1) kit & second-story vault  │
+│  - [x] 6b.2 Vertical infiltration AI heuristics             │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
@@ -185,24 +185,19 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
 
 * **Motivation for Phase 6b Timing**: The core fantasy of a second-story cat-burglar is an agile acrobat who scales heights, escapes being cornered, and steals tempo rather than dealing brute damage. Implementing this class after discrete elevation is in place allows the kit to naturally interact with cliffs ($\Delta h \ge +2$), rooftops, and wall boundaries.
 
-### Explored Kit Candidates:
+### Finalized Class Package Specifications:
 
-#### Option 1: "The Second-Story Acrobat" (Focus: Vaulting & Spatial Elusiveness)
-* **Signature**: `Rooftop Vault` (1 AP, Range 2 hex leap to an unoccupied walkable hex, ignoring intervening enemies, obstacles, and up to $\Delta h = +2$ elevation cliffs; grants self +2 Evasion for 1 turn).
-* **Domain 1**: `Pilfer` (1 AP, range 1, 1d4 + Finesse physical damage vs Evasion; siphons 20 CTB initiative ticks from target directly into the Burglar).
-* **Domain 2**: `Flash Powder` (1 AP, range 1 adjacent burst; forces targets to face away and inflicts -2 Attack Roll or -20 CTB Delay for 1 turn).
-* **Passive**: `Feline Grace` (Immune to Wall-Slam collision damage and Fall Impact Damage; grants +2 Evasion when adjacent to walls, obstacles, or when occupying higher elevation).
-* **AI Profile**: `SKIRMISHER` (seeks high-ground infiltration routes, siphons tempo from priority targets, and vaults away from frontline pressure).
+* **Class Package**: `cat-burglar` `(0 Fighter, 2 Rogue, 1 Mage)` (`src/data/packages/catBurglar.ts`)
+* **Signature Ability**: `Rooftop Vault` (1 AP, range 2 hex leap to an unoccupied walkable hex, ignoring intervening units, obstacles, and up to $\Delta h = 2$ elevation cliffs; grants self +2 Evasion for 1 turn upon landing).
+* **Domain Ability 1**: `Pilfer` (1 AP, range 1, 1d4 + Finesse physical damage vs Evasion; siphons 20 CTB initiative ticks from target directly into the Burglar on solid hit or critical hit).
+* **Domain Ability 2**: `Flash Powder` (1 AP, range 2 thrown hex AoE with radius 1; forces all affected enemies to face 180° away from blast center/actor and inflicts -2 Attack Roll for 1 turn).
+* **Innate Passive**: `Feline Grace` (Immune to Fall Impact Damage, rebounds safely over 1-hex obstacles and onto cliff tops $\Delta h \ge 2$ during knockback without suffering wall-slam collision damage, and grants flat +2 Evasion).
+* **AI Profile**: `SKIRMISHER` (prioritizes the 3-AP Solo Heist combo: Flash Powder disorientation -> Rooftop Vault leap to rear arc -> Pilfer backstab with Flank Advantage; evaluates high-ground cliff leaps).
 
-#### Option 2: "The Master Thief" (Focus: Audacious Heist & Slippery Getaways)
-* **Signature**: `Purloin` (1 AP, range 1, 1d4 + Finesse physical damage vs Evasion; siphons -2 Armor from target for 2 turns and grants +2 Evasion to Burglar for 1 turn).
-* **Domain 1**: `Slip the Net` (1 AP, range 2; drops decoy smoke, teleports 2 hexes, and grants `STEALTH` for 1 turn).
-* **Domain 2**: `Flash Powder` (1 AP, range 1; disorients adjacent foes, resetting facing and delaying CTB).
-* **Passive**: `Slippery Paws` (Immune to collision/fall damage; whenever an enemy attack results in a MISS or GRAZE against the Burglar, Burglar immediately gains +15 CTB ticks).
-* **AI Profile**: `SKIRMISHER`.
-
-### 6b.2. Vertical Infiltration AI Heuristics (`src/core/ai/`)
-* Teach skirmisher profile to seek rooftop perches, vault over frontline guards to reach isolated squishy targets, and deploy flash powder when threatened in melee.
+### 6b.2. Vertical Infiltration & Campaign Integration (`src/core/ai/`, `src/core/campaign/`, `src/ui/combat/`)
+* **Skirmisher Heuristics**: `scoreDebuffAndUtility` and `decisionEngine.ts` evaluate AoE hex debuffs and mobility leaps, priming disorienting flash powder before backstabs and vaulting onto high-ground vantage points.
+* **Campaign Encounters**: Added `cat-burglar` to `TIER3_CLASSES` in `encounterGenerator.ts` (55 threat budget, stage 5+ encounters) with valid constellation `['thief', 'infiltrator', 'cat-burglar']`.
+* **Visual Palette**: Configured token badge palette `{ primary: '#0f766e', border: '#14b8a6' }` mapped to `83_human_male` in `tokenAssets.ts`.
 
 ---
 

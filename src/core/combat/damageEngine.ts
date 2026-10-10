@@ -139,6 +139,10 @@ export function resolveCollisionDamage(
   targetCu: CombatUnit,
   ability?: Ability
 ): number {
+  if (targetCu.passives?.some((p) => p.immuneToCollisionDamage)) {
+    return 0;
+  }
+
   const targetArmor = getEffectiveArmor(targetCu);
   const attrKey: 'force' | 'finesse' | 'focus' =
     ability?.attackModifierAttribute ??

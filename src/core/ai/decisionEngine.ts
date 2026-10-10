@@ -1,7 +1,8 @@
 import { CombatState, CombatUnit, AbilityResolution } from '../combat/types';
-import { HexCoord, hexDistance, hexEquals, getCombatArc } from '../grid/hex';
+import { HexCoord, hexDistance, hexEquals, getCombatArc, getHexesInRange } from '../grid/hex';
 import { getEffectiveMove } from '../combat/effectiveVitals';
 import { computeAbilityMetrics } from '../combat/targetPreview';
+import { canExecuteAbility } from '../combat/validator';
 import { executeMove, executeAbility } from '../combat/resolver';
 import { endActiveTurn } from '../combat/turnClock';
 import { SeededDiceRoller, DiceRoller } from '../combat/dice';
@@ -119,7 +120,223 @@ export function decideNextAction(
           reason: reasons.join('; ')
         });
       }
-    } else if (ability.targetType === 'ALLY' || ability.damageType === 'NONE') {
+    } else if (ability.targetType === 'HEX') {
+      if ((ability.aoeRadius ?? 0) > 0) {
+        // AoE hex ability (e.g. Flash Powder)
+        const rangeHexes = getHexesInRange(currentCoord, ability.range);
+        for (const candHex of rangeHexes) {
+          const val = canExecuteAbility(state, actorUnitId, ability, { coord: candHex });
+          if (!val.valid) continue;
+
+          // Find hostiles within AoE radius
+          const affectedHostiles: { cu: CombatUnit; pos: HexCoord }[] = [];
+          for (const h of hostileUnits) {
+            const hPos = state.arena.getUnitPosition(h.unit.id);
+            if (hPos && hexDistance(candHex, hPos) <= ability.aoeRadius!) {
+              affectedHostiles.push({ cu: h, pos: hPos });
+            }
+          }
+
+          if (affectedHostiles.length === 0) continue;
+
+          let totalScore = 0;
+          const reasons: string[] = [];
+
+          for (const { cu: targetCu, pos: targetPos } of affectedHostiles) {
+            const utility = scoreDebuffAndUtility(
+              cu,
+              targetCu,
+              ability,
+              currentCoord,
+              targetPos,
+              state,
+              profile
+            );
+            if (utility.score > 0) {
+              totalScore += utility.score;
+              if (utility.reason) reasons.push(utility.reason);
+            }
+          }
+
+          if (affectedHostiles.length > 1) {
+            totalScore += (affectedHostiles.length - 1) * 8.0;
+            reasons.push(`Catch ${affectedHostiles.length} targets in blast`);
+          }
+
+          if (totalScore > 0) {
+            candidateActions.push({
+              type: 'ABILITY',
+              ability,
+              target: { coord: candHex },
+              score: Math.round(totalScore * 10) / 10,
+              reason: reasons.length > 0 ? reasons.join('; ') : `AoE ${ability.name}`
+            });
+          }
+        }
+      } else if (ability.effects?.some((e) => e.type === 'TELEPORT')) {
+        // Mobility leap ability (e.g. Rooftop Vault, Shadow Step)
+        const rangeHexes = getHexesInRange(currentCoord, ability.range);
+        const remainingAp = cu.currentAp - ability.apCost;
+
+        // Identify follow-up single target attacks affordable with remaining AP
+        const followUpAttacks = cu.abilities.filter(
+          (a) => a.id !== ability.id && a.apCost <= remainingAp && a.targetType === 'SINGLE_TARGET'
+        );
+
+        for (const candHex of rangeHexes) {
+          if (hexEquals(candHex, currentCoord)) continue;
+          const val = canExecuteAbility(state, actorUnitId, ability, { coord: candHex });
+          if (!val.valid) continue;
+
+          const candElevation = state.arena.getElevation(candHex);
+          const currentElevation = state.arena.getElevation(currentCoord);
+          const selfBuff = ability.effects?.find((e) => e.type === 'STAT_MODIFIER' && e.targetScope === 'SELF');
+          const selfBuffScore = selfBuff ? 4.0 : 0;
+
+          const isReachableByWalk = state.arena
+            .getReachableHexes(currentCoord, getEffectiveMove(cu))
+            .some((h) => hexEquals(h, candHex));
+
+          // If destination is already reachable by walk and ability offers no self-buff or elevation climb, prefer standard move
+          if (isReachableByWalk && !selfBuff && candElevation <= currentElevation) {
+            continue;
+          }
+
+          let bestAttackFromCand: { score: number; reason: string } | null = null;
+
+          if (followUpAttacks.length > 0) {
+            for (const targetCu of hostileUnits) {
+              const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);
+              if (!targetCoord) continue;
+
+              for (const atk of followUpAttacks) {
+                const metrics = computeAbilityMetrics(
+                  state,
+                  actorUnitId,
+                  atk,
+                  targetCoord,
+                  candHex
+                );
+                if (!metrics || !metrics.hasLoS) continue;
+
+                const kill = scoreFinishingBlow(targetCu, metrics.expectedDamage, weights.killBonus);
+                const damageScore = metrics.expectedDamage * weights.expectedDamageWeight;
+                const vulnScore = scoreVulnerability(metrics, weights.vulnerabilityWeight);
+                const flank = scoreFlankOpportunity(metrics.combatArc, metrics.isFlankAdvantage, weights.flankWeight);
+                const focusScore = scoreFocusFire(targetCu, weights.focusFireWeight);
+                const utility = scoreDebuffAndUtility(
+                  cu,
+                  targetCu,
+                  atk,
+                  candHex,
+                  targetCoord,
+                  state,
+                  profile
+                );
+
+                let leapTacticalBonus = 0;
+                const reasons: string[] = [];
+
+                if (metrics.combatArc === 'REAR') {
+                  reasons.push('Infiltrate into rear combat arc');
+                } else if (metrics.combatArc === 'FLANK' || metrics.isFlankAdvantage) {
+                  reasons.push('Infiltrate into flank arc');
+                }
+
+                if (candElevation > currentElevation) {
+                  leapTacticalBonus += 8.0;
+                  reasons.push(`Leap up cliff to high ground (elev ${candElevation})`);
+                }
+                if (candElevation > state.arena.getElevation(targetCoord)) {
+                  leapTacticalBonus += 4.0;
+                  reasons.push('High-ground vantage advantage');
+                }
+
+                if (selfBuff) {
+                  reasons.push('Defensive evasion boost on landing');
+                }
+
+                if (utility.reason) reasons.push(utility.reason);
+                if (flank.reason) reasons.push(flank.reason);
+                reasons.push(`Enables ${atk.name} on ${targetCu.unit.name}`);
+
+                const netScore =
+                  kill.score +
+                  damageScore +
+                  vulnScore +
+                  flank.score +
+                  focusScore +
+                  utility.score +
+                  leapTacticalBonus +
+                  selfBuffScore;
+
+                if (!bestAttackFromCand || netScore > bestAttackFromCand.score) {
+                  bestAttackFromCand = {
+                    score: netScore,
+                    reason: reasons.join('; ')
+                  };
+                }
+              }
+            }
+          }
+
+          if (bestAttackFromCand) {
+            candidateActions.push({
+              type: 'ABILITY',
+              ability,
+              target: { coord: candHex },
+              score: Math.round(bestAttackFromCand.score * 10) / 10,
+              reason: `Vault to (${candHex.q}, ${candHex.r}) — ${bestAttackFromCand.reason}`
+            });
+          } else {
+            // Repositioning / High Ground leaping when no attack is immediately followable
+            let bestLeapRepositionScore = -Infinity;
+            let leapRepositionReason = '';
+
+            for (const targetCu of hostileUnits) {
+              const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);
+              if (!targetCoord) continue;
+
+              const currentDist = hexDistance(currentCoord, targetCoord);
+              const candDist = hexDistance(candHex, targetCoord);
+
+              let score = 0;
+              const reasons: string[] = [];
+
+              if (candDist < currentDist) {
+                score += (currentDist - candDist) * 4.0;
+                reasons.push(`Close distance to ${targetCu.unit.name} (${currentDist} -> ${candDist})`);
+              }
+
+              if (candElevation > currentElevation) {
+                score += 10.0;
+                reasons.push(`Leap up cliff to high ground (elev ${candElevation})`);
+              }
+
+              score += selfBuffScore;
+              if (selfBuff) {
+                reasons.push('Defensive evasion boost on landing');
+              }
+
+              if (score > bestLeapRepositionScore) {
+                bestLeapRepositionScore = score;
+                leapRepositionReason = reasons.join('; ');
+              }
+            }
+
+            if (bestLeapRepositionScore > 0) {
+              candidateActions.push({
+                type: 'ABILITY',
+                ability,
+                target: { coord: candHex },
+                score: Math.round(bestLeapRepositionScore * 10) / 10,
+                reason: `Vault to (${candHex.q}, ${candHex.r}) — ${leapRepositionReason}`
+              });
+            }
+          }
+        }
+      }
+    } else if (ability.targetType === 'ALLY' || ability.targetType === 'SELF' || (ability.damageType === 'NONE' && ability.targetType !== 'HEX')) {
       for (const allyCu of alliedUnits) {
         const allyCoord = state.arena.getUnitPosition(allyCu.unit.id);
         if (!allyCoord) continue;
@@ -170,64 +387,96 @@ export function decideNextAction(
       const remainingAp = cu.currentAp - 1;
       for (const ability of cu.abilities) {
         if (remainingAp < ability.apCost) continue;
-        if (ability.targetType !== 'SINGLE_TARGET') continue;
+        if (ability.targetType === 'SINGLE_TARGET') {
+          for (const targetCu of hostileUnits) {
+            const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);
+            if (!targetCoord) continue;
 
-        for (const targetCu of hostileUnits) {
-          const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);
-          if (!targetCoord) continue;
-
-          const metrics = computeAbilityMetrics(
-            state,
-            actorUnitId,
-            ability,
-            targetCoord,
-            candCoord
-          );
-          if (!metrics || !metrics.hasLoS) continue;
-
-          const kill = scoreFinishingBlow(targetCu, metrics.expectedDamage, weights.killBonus);
-          const damageScore = metrics.expectedDamage * weights.expectedDamageWeight;
-          const vulnScore = scoreVulnerability(metrics, weights.vulnerabilityWeight);
-          const flank = scoreFlankOpportunity(metrics.combatArc, metrics.isFlankAdvantage, weights.flankWeight);
-          const focusScore = scoreFocusFire(targetCu, weights.focusFireWeight);
-          const standoff = scoreStandoffDistance(
-            hexDistance(candCoord, targetCoord),
-            weights.preferredStandoffRange,
-            weights.standoffWeight
-          );
-          const utility = scoreDebuffAndUtility(
-            cu,
-            targetCu,
-            ability,
-            candCoord,
-            targetCoord,
-            state,
-            profile
-          );
-
-          // Deduct 1 AP movement cost from utility
-          const moveNetScore = kill.score + damageScore + vulnScore + flank.score + focusScore + standoff + utility.score - 2;
-
-          if (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score) {
-            const reasons: string[] = [];
-            if (utility.reason) reasons.push(utility.reason);
-            if (flank.reason) reasons.push(flank.reason);
-            if (kill.reason) reasons.push(kill.reason);
-            if (weights.standoffWeight > 0) {
-              reasons.push(
-                hexDistance(candCoord, targetCoord) === weights.preferredStandoffRange
-                  ? `Ideal standoff range (${weights.preferredStandoffRange})`
-                  : `Standoff range (${hexDistance(candCoord, targetCoord)}/${weights.preferredStandoffRange})`
-              );
-            }
-            reasons.push(`Enables ${ability.name} on ${targetCu.unit.name}`);
-
-            bestAttackFromCand = {
-              score: moveNetScore,
+            const metrics = computeAbilityMetrics(
+              state,
+              actorUnitId,
               ability,
+              targetCoord,
+              candCoord
+            );
+            if (!metrics || !metrics.hasLoS) continue;
+
+            const kill = scoreFinishingBlow(targetCu, metrics.expectedDamage, weights.killBonus);
+            const damageScore = metrics.expectedDamage * weights.expectedDamageWeight;
+            const vulnScore = scoreVulnerability(metrics, weights.vulnerabilityWeight);
+            const flank = scoreFlankOpportunity(metrics.combatArc, metrics.isFlankAdvantage, weights.flankWeight);
+            const focusScore = scoreFocusFire(targetCu, weights.focusFireWeight);
+            const standoff = scoreStandoffDistance(
+              hexDistance(candCoord, targetCoord),
+              weights.preferredStandoffRange,
+              weights.standoffWeight
+            );
+            const utility = scoreDebuffAndUtility(
+              cu,
               targetCu,
-              reason: reasons.join('; ')
-            };
+              ability,
+              candCoord,
+              targetCoord,
+              state,
+              profile
+            );
+
+            // Deduct 1 AP movement cost from utility
+            const moveNetScore = kill.score + damageScore + vulnScore + flank.score + focusScore + standoff + utility.score - 2;
+
+            if (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score) {
+              const reasons: string[] = [];
+              if (utility.reason) reasons.push(utility.reason);
+              if (flank.reason) reasons.push(flank.reason);
+              if (kill.reason) reasons.push(kill.reason);
+              if (weights.standoffWeight > 0) {
+                reasons.push(
+                  hexDistance(candCoord, targetCoord) === weights.preferredStandoffRange
+                    ? `Ideal standoff range (${weights.preferredStandoffRange})`
+                    : `Standoff range (${hexDistance(candCoord, targetCoord)}/${weights.preferredStandoffRange})`
+                );
+              }
+              reasons.push(`Enables ${ability.name} on ${targetCu.unit.name}`);
+
+              bestAttackFromCand = {
+                score: moveNetScore,
+                ability,
+                targetCu,
+                reason: reasons.join('; ')
+              };
+            }
+          }
+        } else if (ability.targetType === 'HEX' && (ability.aoeRadius ?? 0) > 0) {
+          for (const targetCu of hostileUnits) {
+            const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);
+            if (!targetCoord) continue;
+
+            const val = canExecuteAbility(state, actorUnitId, ability, {
+              coord: targetCoord,
+              originCoord: candCoord
+            });
+            if (!val.valid) continue;
+
+            const utility = scoreDebuffAndUtility(
+              cu,
+              targetCu,
+              ability,
+              candCoord,
+              targetCoord,
+              state,
+              profile
+            );
+            if (utility.score <= 0) continue;
+
+            const moveNetScore = utility.score - 2;
+            if (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score) {
+              bestAttackFromCand = {
+                score: moveNetScore,
+                ability,
+                targetCu,
+                reason: `Enables ${ability.name} on ${targetCu.unit.name} (${utility.reason})`
+              };
+            }
           }
         }
       }

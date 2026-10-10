@@ -85,7 +85,11 @@ export function getAttackRollModifier(actorCu: CombatUnit, ability: Ability): nu
   const attr = ability.attackModifierAttribute;
   const baseAttr = attr ? actorCu.unit.baseAttributes[attr] : 0;
   const attackRollBonus = (ability as EffectiveAbility).attackRollBonus ?? 0;
-  return baseAttr + attackRollBonus;
+  const activeAttackMod = (actorCu.activeModifiers ?? []).reduce(
+    (sum, m) => sum + (m.stat === 'attackRoll' ? m.value : 0),
+    0
+  );
+  return baseAttr + attackRollBonus + activeAttackMod;
 }
 
 /**

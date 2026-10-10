@@ -358,6 +358,7 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       expect(getClassBadgePalette('highwayman')).toEqual(CLASS_BADGE_PALETTES.highwayman);
       expect(getClassBadgePalette('warlock')).toEqual(CLASS_BADGE_PALETTES.warlock);
       expect(getClassBadgePalette('witch')).toEqual(CLASS_BADGE_PALETTES.witch);
+      expect(getClassBadgePalette('cat-burglar')).toEqual(CLASS_BADGE_PALETTES['cat-burglar']);
     });
 
     it('returns dedicated palette colors for Tier 2 and Tier 1 classes', () => {

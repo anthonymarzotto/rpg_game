@@ -358,7 +358,8 @@ export class Arena {
     attackerCoord: HexCoord,
     targetCoord: HexCoord,
     distance = 1,
-    minCliffSlamElevationDelta: number = DISPLACEMENT_CONFIG.minCliffSlamElevationDelta
+    minCliffSlamElevationDelta: number = DISPLACEMENT_CONFIG.minCliffSlamElevationDelta,
+    options?: { canVaultOnKnockback?: boolean }
   ): KnockbackResult {
     const targetTile = this.getTile(targetCoord);
     if (!targetTile) {
@@ -392,8 +393,16 @@ export class Arena {
         };
       }
 
-      // 2. Unwalkable wall collision
+      // 2. Unwalkable wall collision (supports vaulting over 1-hex obstacles)
       if (!nextTile.isWalkable) {
+        if (options?.canVaultOnKnockback) {
+          const vaultCoord = hexAdd(nextCoord, stepDir);
+          const vaultTile = this.getTile(vaultCoord);
+          if (vaultTile && vaultTile.isWalkable && !vaultTile.occupiedByUnitId) {
+            current = vaultCoord;
+            continue;
+          }
+        }
         return {
           finalCoord: current,
           isCollided: true,
@@ -403,10 +412,14 @@ export class Arena {
         };
       }
 
-      // 3. Cliff / High elevation collision
+      // 3. Cliff / High elevation collision (supports vaulting up onto cliff top)
       const currentTile = this.getTile(current)!;
       const elevationDelta = nextTile.elevation - currentTile.elevation;
       if (elevationDelta >= minCliffSlamElevationDelta) {
+        if (options?.canVaultOnKnockback && !nextTile.occupiedByUnitId) {
+          current = nextCoord;
+          continue;
+        }
         return {
           finalCoord: current,
           isCollided: true,

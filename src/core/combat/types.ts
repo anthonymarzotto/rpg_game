@@ -97,7 +97,8 @@ export type ModifiableCombatStat =
   | 'speed'
   | 'move'
   | 'evasion'
-  | 'resolve';
+  | 'resolve'
+  | 'attackRoll';
 
 /**
  * Active stat modifier (positive for buffs, negative for penalties)

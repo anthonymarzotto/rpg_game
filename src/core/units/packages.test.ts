@@ -10,6 +10,8 @@ import {
   BERSERKER_PACKAGE,
   HIGHWAYMAN_PACKAGE,
   WARLOCK_PACKAGE,
+  WITCH_PACKAGE,
+  CAT_BURGLAR_PACKAGE,
   MOMENTUM,
   getClassPackage,
   getAbilityById,
@@ -135,7 +137,30 @@ describe('Class Packages & Catalog Verification', () => {
     expect(getClassPackage('cavalier')).toBe(CAVALIER_PACKAGE);
     expect(getClassPackage('berserker')).toBe(BERSERKER_PACKAGE);
     expect(getClassPackage('highwayman')).toBe(HIGHWAYMAN_PACKAGE);
+    expect(getClassPackage('witch')).toBe(WITCH_PACKAGE);
+    expect(getClassPackage('cat-burglar')).toBe(CAT_BURGLAR_PACKAGE);
+    expect(getClassPackage('catburglar')).toBe(CAT_BURGLAR_PACKAGE);
     expect(getClassPackage('unknown')).toBeUndefined();
+  });
+
+  it('correctly maps Cat-burglar abilities, passive, and profile', () => {
+    expect(CAT_BURGLAR_PACKAGE.classId).toBe('cat-burglar');
+    expect(CAT_BURGLAR_PACKAGE.signatureAbility.id).toBe('rooftop_vault');
+    expect(CAT_BURGLAR_PACKAGE.signatureAbility.apCost).toBe(1);
+    expect(CAT_BURGLAR_PACKAGE.signatureAbility.range).toBe(2);
+    expect(CAT_BURGLAR_PACKAGE.signatureAbility.targetType).toBe('HEX');
+    expect(CAT_BURGLAR_PACKAGE.domainAbilities.map((a) => a.id)).toEqual(['pilfer', 'flash_powder']);
+    expect(CAT_BURGLAR_PACKAGE.passive.id).toBe('feline_grace');
+    expect(CAT_BURGLAR_PACKAGE.passive.immuneToFallDamage).toBe(true);
+    expect(CAT_BURGLAR_PACKAGE.passive.immuneToCollisionDamage).toBe(true);
+    expect(CAT_BURGLAR_PACKAGE.passive.canVaultOnKnockback).toBe(true);
+    expect(CAT_BURGLAR_PACKAGE.passive.statModifiers?.evasion).toBe(2);
+    expect(CAT_BURGLAR_PACKAGE.aiProfile).toBe('SKIRMISHER');
+
+    expect(getAbilityById('rooftop_vault')).toBeDefined();
+    expect(getAbilityById('pilfer')).toBeDefined();
+    expect(getAbilityById('flash_powder')).toBeDefined();
+    expect(getPassiveById('feline_grace')).toBeDefined();
   });
 
   it('correctly maps Berserker abilities, passive, and profile', () => {

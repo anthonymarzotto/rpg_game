@@ -38,7 +38,9 @@ export const CLASS_BADGE_PALETTES: Record<string, { primary: string; border: str
   novice: { primary: '#64748b', border: '#94a3b8' },
   highwayman: { primary: '#d97706', border: '#f59e0b' },
   warlock: { primary: '#4f46e5', border: '#6366f1' },
-  witch: { primary: '#9333ea', border: '#a855f7' }
+  witch: { primary: '#9333ea', border: '#a855f7' },
+  'cat-burglar': { primary: '#0f766e', border: '#14b8a6' }, // Teal / Cyan (Rogue/Mage hybrid)
+  catburglar: { primary: '#0f766e', border: '#14b8a6' }
 };
 
 /**

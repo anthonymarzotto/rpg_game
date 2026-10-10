@@ -130,6 +130,9 @@ describe('Procedural Encounter Generator', () => {
         } else if (classId === 'witch') {
           expect(unit.progression.archetypePoints).toEqual({ fighter: 0, rogue: 1, mage: 2 });
           expect(unit.progression.constellation).toEqual(['wizard', 'sorcerer', 'witch']);
+        } else if (classId === 'cat-burglar') {
+          expect(unit.progression.archetypePoints).toEqual({ fighter: 0, rogue: 2, mage: 1 });
+          expect(unit.progression.constellation).toEqual(['thief', 'infiltrator', 'cat-burglar']);
         }
       }
     });

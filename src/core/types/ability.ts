@@ -55,7 +55,7 @@ export interface AbilityEffect {
   readonly flatDamage?: number;
   readonly durationTurns?: number;
   readonly conditionType?: ConditionType;
-  readonly statModifiers?: Partial<Record<'armor' | 'ward' | 'speed' | 'move' | 'evasion' | 'resolve', number>>;
+  readonly statModifiers?: Partial<Record<'armor' | 'ward' | 'speed' | 'move' | 'evasion' | 'resolve' | 'attackRoll', number>>;
   /** Tactical condition required for this effect to apply (e.g. FLANK_OR_REAR for Sneak Attack) */
   readonly condition?: AbilityCondition;
   /** Optional bonus damage dice applied when condition is satisfied */

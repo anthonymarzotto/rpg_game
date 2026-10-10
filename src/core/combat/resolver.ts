@@ -489,7 +489,7 @@ export function executeAbility(
           state,
           actorCu,
           targetCu: tCu,
-          targetCoord: state.arena.getUnitPosition(tCu.unit.id),
+          targetCoord: centerCoord,
           ability: effectiveAbility,
           hitOutcome: 'SOLID_HIT',
           diceRoller

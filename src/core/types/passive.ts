@@ -71,6 +71,8 @@ export interface PassiveTrait {
   readonly immuneToFallDamage?: boolean;
   /** Whether the unit is immune to wall-slam and collision damage */
   readonly immuneToCollisionDamage?: boolean;
+  /** Whether the unit vaults onto cliffs or over obstacles when displaced by knockback */
+  readonly canVaultOnKnockback?: boolean;
   /** Whether the unit ignores upward low-ground attack roll penalties and disadvantage */
   readonly ignoresElevationPenalty?: boolean;
   /** Pluggable effect payload executed when the trigger hook fires */

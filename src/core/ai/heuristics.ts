@@ -439,10 +439,41 @@ export function scoreDebuffAndUtility(
     }
   }
 
-  // 4. FORCE_FACING_AWAY (e.g. Poppet Needle)
+  // 3b. Attack roll penalty (e.g. Flash Powder -2 Attack Roll)
+  if (statMod?.statModifiers?.attackRoll && statMod.statModifiers.attackRoll < 0) {
+    const attackRollDebuff = Math.abs(statMod.statModifiers.attackRoll);
+    const hasExistingAttackRollDebuff = targetCu.activeModifiers.some(
+      (m) => m.stat === 'attackRoll' && m.value < 0
+    );
+
+    if (hasExistingAttackRollDebuff) {
+      if (ability.id === 'flash_powder') {
+        return { score: 0 };
+      }
+    } else {
+      score += 10.0;
+      reasons.push(`Debuff target Attack Roll (-${attackRollDebuff})`);
+
+      if (profile === 'SKIRMISHER' && actorCu.currentAp >= 2) {
+        score += 45.0;
+        reasons.push('Prime flash powder disorientation before strike');
+      }
+    }
+  }
+
+  // 3c. Self INITIATIVE_BOOST siphon on attacks (e.g. Pilfer)
+  const selfInitBoost = ability.effects?.find(
+    (e) => e.type === 'INITIATIVE_BOOST' && e.targetScope === 'SELF'
+  );
+  if (selfInitBoost && typeof selfInitBoost.magnitude === 'number') {
+    score += (selfInitBoost.magnitude / 10) * 2.5;
+    reasons.push(`Siphon +${selfInitBoost.magnitude} CTB initiative`);
+  }
+
+  // 4. FORCE_FACING_AWAY (e.g. Poppet Needle, Flash Powder)
   const forcesFacingAway = ability.effects?.some((e) => e.type === 'FORCE_FACING_AWAY');
   if (forcesFacingAway) {
-    score += 7.0;
+    score += profile === 'SKIRMISHER' ? 10.0 : 7.0;
     reasons.push('Force target facing 180° away');
   }
 

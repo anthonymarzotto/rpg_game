@@ -1,7 +1,7 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
 import { AbilityEffect, ConditionType } from '../../types/ability';
 import { ActiveCondition, CombatEvent } from '../types';
-import { getDirectionBetween } from '../../grid/hex';
+import { getDirectionBetween, hexEquals } from '../../grid/hex';
 
 export const conditionHandler: EffectHandler = {
   apply(effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
@@ -73,10 +73,16 @@ export const conditionHandler: EffectHandler = {
     } else if (effect.type === 'FORCE_FACING_AWAY') {
       const actorPos = state.arena.getUnitPosition(actorCu.unit.id);
       const targetPos = state.arena.getUnitPosition(targetUnit.unit.id);
-      if (actorPos && targetPos && targetUnit.unit.id !== actorCu.unit.id) {
-        const dirToActor = getDirectionBetween(targetPos, actorPos);
-        targetUnit.facing = ((dirToActor + 3) % 6) as any;
-        logDetail += ` 🔄 [Forced facing away from ${actorCu.unit.name}]`;
+      if (targetPos) {
+        const originPos =
+          ctx.targetCoord && !hexEquals(targetPos, ctx.targetCoord)
+            ? ctx.targetCoord
+            : actorPos;
+        if (originPos && !hexEquals(targetPos, originPos)) {
+          const dirToOrigin = getDirectionBetween(targetPos, originPos);
+          targetUnit.facing = ((dirToOrigin + 3) % 6) as any;
+          logDetail += ` 🔄 [Forced facing away from ${originPos === ctx.targetCoord ? 'blast center' : actorCu.unit.name}]`;
+        }
       }
     }
 

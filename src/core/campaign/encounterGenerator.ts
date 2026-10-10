@@ -16,7 +16,7 @@ import { computeDerivedVitals } from '../units/vitals';
 
 export type EnemyTier1Class = 'warrior' | 'thief' | 'wizard';
 export type EnemyTier2Class = 'knight' | 'infiltrator' | 'sorcerer';
-export type EnemyTier3Class = 'cavalier' | 'berserker' | 'highwayman' | 'warlock' | 'witch';
+export type EnemyTier3Class = 'cavalier' | 'berserker' | 'highwayman' | 'warlock' | 'witch' | 'cat-burglar';
 
 export const TIER1_CLASSES: readonly EnemyTier1Class[] = ['warrior', 'thief', 'wizard'];
 export const TIER2_CLASSES: readonly EnemyTier2Class[] = ['knight', 'infiltrator', 'sorcerer'];
@@ -25,7 +25,8 @@ export const TIER3_CLASSES: readonly EnemyTier3Class[] = [
   'berserker',
   'highwayman',
   'warlock',
-  'witch'
+  'witch',
+  'cat-burglar'
 ];
 
 /**
