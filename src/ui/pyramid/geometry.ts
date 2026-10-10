@@ -1,8 +1,6 @@
 import { ClassDefinition, ArchetypePoints } from '../../core/types/class';
 import { CLASS_CATALOG } from '../../data/classes';
 
-export type ProjectionMode = 'triangle-mosaic' | 'triangle-grid';
-
 export interface TriangleGeometry {
   readonly row: number;
   readonly col: number;

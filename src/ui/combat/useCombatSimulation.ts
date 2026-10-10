@@ -86,9 +86,6 @@ export function useCombatSimulation({
     return 'PLAYER_ACTION';
   }, [state.outcome, activeCu]);
 
-  const isPlayerTurn = phase === 'PLAYER_ACTION';
-  const isEnemyTurn = phase === 'HOSTILE_TURN';
-
   // Computes reachable tiles when in MOVE mode for currently active player unit
   const reachableCoords = useMemo<HexCoord[]>(() => {
     if (phase !== 'PLAYER_ACTION' || actionMode !== 'MOVE' || !activeCoord || !activeCu || activeCu.currentAp < 1) {
@@ -412,8 +409,6 @@ export function useCombatSimulation({
     activeCu,
     activeCoord,
     phase,
-    isPlayerTurn,
-    isEnemyTurn,
     aiSpeed,
     setAiSpeed,
     hostileActionStatus,

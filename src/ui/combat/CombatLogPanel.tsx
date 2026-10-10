@@ -59,7 +59,7 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       turn: 0,
       actor: '',
       isPlayer: false,
-      rawMessage: ''
+      rawMessage: 'This action is not yet defined'
     };
   }
 
@@ -67,100 +67,59 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
   const actorUnitId = entry.actorUnitId || '';
   const isPlayer = actorUnitId.startsWith('player');
   const msg = entry.message || '';
+  const meta = entry.metadata;
 
-  try {
-    // 1. Universal Move Action pattern: "Alden (Warrior) moved to (1, 0). [Remaining AP: 2]"
-    const moveMatch = msg.match(
-      /^(.*?)\s+moved to\s+\(([-\d]+),\s*([-\d]+)\)\.\s*\[Remaining AP:\s*(\d+)\]/i
-    );
-    if (moveMatch) {
-      return {
-        type: 'MOVE',
-        turn,
-        actor: moveMatch[1].trim(),
-        isPlayer,
-        coord: { q: parseInt(moveMatch[2], 10), r: parseInt(moveMatch[3], 10) },
-        remainingAp: parseInt(moveMatch[4], 10),
-        rawMessage: msg
-      };
-    }
-
-    // 2. Damaging Attack Resolution pattern:
-    // Format: `${actor} used ${ability} on ${target}: [d20: ${d20}+${mod} vs DC ${dc} -> ${outcome}] [Damage: ${breakdown}] (HP: ${hp}/${maxHp})${secondary}`
-    const attackMatch = msg.match(
-      /^(.*?)\s+used\s+(.*?)\s+on\s+(.*?):\s*\[d20:\s*([^\s]+)\s+vs\s+DC\s*(\d+)\s*->\s*([^\]]+)\]\s*\[Damage:\s*([^\]]*)\]\s*\(HP:\s*([-\d]+)\/([-\d]+)\)(.*)$/i
-    );
-    if (attackMatch) {
-      const rawDamage = attackMatch[7].trim();
-      const hitOutcome = attackMatch[6].trim();
-      let damageTotal = '0';
-      let damageBreakdown = rawDamage;
-
-      if (hitOutcome.toUpperCase() === 'MISS') {
-        damageTotal = '0';
-        damageBreakdown = rawDamage.includes('Miss') ? rawDamage : 'Miss';
-      } else if (rawDamage.includes('->')) {
-        const parts = rawDamage.split('->');
-        damageTotal = parts[parts.length - 1].trim();
-        damageBreakdown = parts.slice(0, -1).join('->').trim();
-      } else if (rawDamage.includes('=')) {
-        const parts = rawDamage.split('=');
-        damageTotal = parts[parts.length - 1].trim();
-        damageBreakdown = parts.slice(0, -1).join('=').trim();
-      } else {
-        damageTotal = rawDamage.trim();
-      }
-
-      return {
-        type: 'ATTACK',
-        turn,
-        actor: attackMatch[1].trim(),
-        isPlayer,
-        ability: attackMatch[2].trim(),
-        target: attackMatch[3].trim(),
-        d20: attackMatch[4].trim(),
-        defenseTarget: parseInt(attackMatch[5], 10),
-        hitOutcome,
-        damageTotal,
-        damageBreakdown,
-        targetHp: parseInt(attackMatch[8], 10),
-        targetMaxHp: parseInt(attackMatch[9], 10),
-        secondaryDetail: attackMatch[10]?.trim() ?? '',
-        rawMessage: msg
-      };
-    }
-
-    // 3. Buff/Self-Target ability pattern: "Vael (Wizard) used Minor Ward. 🛡️ [Armor Buff: +2 Armor for 2 turn(s)]"
-    const buffMatch = msg.match(/^(.*?)\s+used\s+([^.]+)\.(.*)$/i);
-    if (buffMatch && entry.actionId !== 'move') {
-      return {
-        type: 'BUFF',
-        turn,
-        actor: buffMatch[1].trim(),
-        isPlayer,
-        ability: buffMatch[2].trim(),
-        effectDetail: buffMatch[3]?.trim() ?? '',
-        rawMessage: msg
-      };
-    }
-
-    // 4. Fallback Generic
+  if (meta?.type === 'MOVE') {
     return {
-      type: 'GENERIC',
+      type: 'MOVE',
       turn,
-      actor: entry.actorUnitId || '',
+      actor: meta.actor,
       isPlayer,
-      rawMessage: msg
-    };
-  } catch {
-    return {
-      type: 'GENERIC',
-      turn,
-      actor: entry.actorUnitId || '',
-      isPlayer,
+      coord: meta.coord,
+      remainingAp: meta.remainingAp,
       rawMessage: msg
     };
   }
+
+  if (meta?.type === 'BUFF') {
+    return {
+      type: 'BUFF',
+      turn,
+      actor: meta.actor,
+      isPlayer,
+      ability: meta.ability,
+      effectDetail: meta.effectDetail ?? '',
+      rawMessage: msg
+    };
+  }
+
+  if (meta?.type === 'ATTACK') {
+    return {
+      type: 'ATTACK',
+      turn,
+      actor: meta.actor,
+      isPlayer,
+      ability: meta.ability,
+      target: meta.target,
+      d20: meta.d20,
+      defenseTarget: meta.defenseTarget,
+      hitOutcome: meta.hitOutcome,
+      damageTotal: meta.damageTotal,
+      damageBreakdown: meta.damageBreakdown,
+      targetHp: meta.targetHp,
+      targetMaxHp: meta.targetMaxHp,
+      secondaryDetail: meta.secondaryDetail ?? '',
+      rawMessage: msg
+    };
+  }
+
+  return {
+    type: 'GENERIC',
+    turn,
+    actor: meta?.actor || actorUnitId,
+    isPlayer,
+    rawMessage: msg || meta?.text || 'This action is not yet defined'
+  };
 }
 
 export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) {

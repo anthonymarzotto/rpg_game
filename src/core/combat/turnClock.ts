@@ -124,7 +124,12 @@ export function advanceTurnClock(state: CombatState): string {
           turnNumber: state.turnNumber,
           actorUnitId: nextActive.unit.id,
           actionId: cond.type.toLowerCase(),
-          message: `${nextActive.unit.name} suffered ${dmg} ${cond.type} damage!`
+          message: `${nextActive.unit.name} suffered ${dmg} ${cond.type} damage!`,
+          metadata: {
+            type: 'GENERIC',
+            actor: nextActive.unit.name,
+            text: `Suffered ${dmg} ${cond.type} status damage`
+          }
         });
       }
     }
@@ -150,7 +155,12 @@ export function advanceTurnClock(state: CombatState): string {
         turnNumber: state.turnNumber,
         actorUnitId: nextActive.unit.id,
         actionId: 'defeat',
-        message: `${nextActive.unit.name} was defeated by status condition damage!`
+        message: `${nextActive.unit.name} was defeated by status condition damage!`,
+        metadata: {
+          type: 'GENERIC',
+          actor: nextActive.unit.name,
+          text: `${nextActive.unit.name} was defeated by status condition damage`
+        }
       });
       state.outcome = evaluateEncounterOutcome(state.objectives, state);
 

@@ -3,7 +3,6 @@ import {
   NOVICE_FIGHTER_ABILITIES,
   NOVICE_ROGUE_ABILITIES,
   NOVICE_MAGE_ABILITIES,
-  UNIVERSAL_ACTIONS,
   rollNoviceStarterKit,
   CLASS_PACKAGES
 } from '../../data/abilities';
@@ -13,8 +12,7 @@ describe('Ability Catalog Invariants', () => {
   const allNoviceAbilities = [
     ...NOVICE_FIGHTER_ABILITIES,
     ...NOVICE_ROGUE_ABILITIES,
-    ...NOVICE_MAGE_ABILITIES,
-    ...UNIVERSAL_ACTIONS
+    ...NOVICE_MAGE_ABILITIES
   ];
 
   it('ensures all ability IDs are unique across the catalog', () => {

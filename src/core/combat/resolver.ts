@@ -137,7 +137,12 @@ export function triggerPassiveHook(
             turnNumber: state.turnNumber,
             actorUnitId: actorCu.unit.id,
             actionId: passive.id,
-            message: `${actorCu.unit.name}'s ${passive.name} triggered:${result.logDetail}`
+            message: `${actorCu.unit.name}'s ${passive.name} triggered:${result.logDetail}`,
+            metadata: {
+              type: 'GENERIC',
+              actor: actorCu.unit.name,
+              text: `${passive.name} triggered: ${result.logDetail}`
+            }
           });
         }
       }
@@ -274,14 +279,24 @@ export function executeMove(
         turnNumber: state.turnNumber,
         actorUnitId,
         actionId: 'move',
-        message: `💥 ${cu.unit.name} plunged from a ledge and suffered ${actualFallDamage} direct Fall Impact Damage! (HP: ${cu.currentHp}/${cu.unit.effectiveVitals.maxHp})`
+        message: `💥 ${cu.unit.name} plunged from a ledge and suffered ${actualFallDamage} direct Fall Impact Damage! (HP: ${cu.currentHp}/${cu.unit.effectiveVitals.maxHp})`,
+        metadata: {
+          type: 'GENERIC',
+          actor: cu.unit.name,
+          text: `Plunged from ledge: ${actualFallDamage} Fall Impact Damage`
+        }
       });
     } else {
       state.combatLog.push({
         turnNumber: state.turnNumber,
         actorUnitId,
         actionId: 'move',
-        message: `🐾 ${cu.unit.name} plunged from a ledge safely with Fall Damage Immunity!`
+        message: `🐾 ${cu.unit.name} plunged from a ledge safely with Fall Damage Immunity!`,
+        metadata: {
+          type: 'GENERIC',
+          actor: cu.unit.name,
+          text: 'Plunged from ledge safely with Fall Damage Immunity'
+        }
       });
     }
   }
@@ -296,7 +311,13 @@ export function executeMove(
     turnNumber: state.turnNumber,
     actorUnitId,
     actionId: 'move',
-    message: `${cu.unit.name} moved to (${destination.q}, ${destination.r}). [Remaining AP: ${cu.currentAp}]`
+    message: `${cu.unit.name} moved to (${destination.q}, ${destination.r}). [Remaining AP: ${cu.currentAp}]`,
+    metadata: {
+      type: 'MOVE',
+      actor: cu.unit.name,
+      coord: { q: destination.q, r: destination.r },
+      remainingAp: cu.currentAp
+    }
   });
 }
 
@@ -486,7 +507,13 @@ export function executeAbility(
         turnNumber: state.turnNumber,
         actorUnitId,
         actionId: effectiveAbility.id,
-        message: `${actorCu.unit.name} used ${effectiveAbility.name}.${combinedLog}`
+        message: `${actorCu.unit.name} used ${effectiveAbility.name}.${combinedLog}`,
+        metadata: {
+          type: 'BUFF',
+          actor: actorCu.unit.name,
+          ability: effectiveAbility.name,
+          effectDetail: combinedLog.trim()
+        }
       });
 
       return {
@@ -526,7 +553,13 @@ export function executeAbility(
       turnNumber: state.turnNumber,
       actorUnitId,
       actionId: effectiveAbility.id,
-      message: `${actorCu.unit.name} used ${effectiveAbility.name}.${effectResult.logDetail ?? ''}`
+      message: `${actorCu.unit.name} used ${effectiveAbility.name}.${effectResult.logDetail ?? ''}`,
+      metadata: {
+        type: 'BUFF',
+        actor: actorCu.unit.name,
+        ability: effectiveAbility.name,
+        effectDetail: effectResult.logDetail?.trim() ?? ''
+      }
     });
 
     return {
@@ -747,7 +780,21 @@ export function executeAbility(
     turnNumber: state.turnNumber,
     actorUnitId,
     actionId: ability.id,
-    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${rollResult.d20}+${rollResult.modifier} vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}]${elevDetail}${auraDetail} [Damage: ${damageResult.damageBreakdown}] (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})${secondaryDetail}`
+    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${rollResult.d20}+${rollResult.modifier} vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}]${elevDetail}${auraDetail} [Damage: ${damageResult.damageBreakdown}] (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})${secondaryDetail}`,
+    metadata: {
+      type: 'ATTACK',
+      actor: actorCu.unit.name,
+      ability: ability.name,
+      target: targetCu.unit.name,
+      d20: `${rollResult.d20}+${rollResult.modifier}`,
+      defenseTarget: rollResult.targetDefense,
+      hitOutcome: rollResult.hitOutcome,
+      damageTotal: rollResult.hitOutcome === 'MISS' ? '0' : String(damageResult.damageDealt),
+      damageBreakdown: damageResult.damageBreakdown,
+      targetHp: targetCu.currentHp,
+      targetMaxHp: targetCu.unit.effectiveVitals.maxHp,
+      secondaryDetail: [elevDetail, auraDetail, secondaryDetail].filter(Boolean).join('').trim()
+    }
   });
 
   return {

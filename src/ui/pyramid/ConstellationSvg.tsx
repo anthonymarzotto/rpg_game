@@ -5,11 +5,10 @@ import {
 } from '../../core/progression/pyramid';
 import { toCoordKey } from '../../core/progression/registry';
 import { isOffNodeCoordinate } from '../../core/progression/harmonization';
-import { ProjectionMode, STAR_POINTS, getOffNodeWaypoint } from './geometry';
+import { STAR_POINTS, getOffNodeWaypoint } from './geometry';
 import './ConstellationSvg.css';
 
 export interface ConstellationSvgProps {
-  readonly mode: ProjectionMode;
   readonly progression: UnitProgression;
   readonly unlockedSet: ReadonlySet<string>;
   readonly hoveredClassId: string | null;
@@ -23,7 +22,6 @@ export interface ConstellationSvgProps {
 }
 
 export function ConstellationSvg({
-  mode,
   progression,
   unlockedSet,
   hoveredClassId,
@@ -103,20 +101,6 @@ export function ConstellationSvg({
       {/* Cosmic Nebula Backing */}
       <circle cx="0" cy="-90" r="390" fill="url(#nebula)" />
 
-      {/* Triangular Wireframe (Star Pyramid mode) */}
-      {mode === 'triangle-grid' && (
-        <g className="triangle-wireframe" opacity="0.2">
-          {STAR_POINTS.map((pt) => (
-            <polygon
-              key={`wf-${pt.cls.id}`}
-              points={pt.triangle.pointsStr}
-              fill="none"
-              stroke="rgba(255, 255, 255, 0.25)"
-              strokeWidth="0.75"
-            />
-          ))}
-        </g>
-      )}
 
       {/* Archetype Directional Apex Markers */}
       <g opacity="0.95">
@@ -155,9 +139,8 @@ export function ConstellationSvg({
         </text>
       </g>
 
-      {/* 100 Triangular Mosaic Tiles (Triangle Mosaic mode) */}
-      {mode === 'triangle-mosaic' && (
-        <g className="mosaic-layer">
+      {/* 100 Triangular Mosaic Tiles */}
+      <g className="mosaic-layer">
           {STAR_POINTS.map((pt) => {
             const isUnlocked = unlockedSet.has(pt.cls.id);
             const isLocked = isClassLockedOut(
@@ -291,7 +274,6 @@ export function ConstellationSvg({
             );
           })}
         </g>
-      )}
 
       {/* Active Constellation Traversal Lines */}
       {constellationPathD && (
@@ -357,116 +339,6 @@ export function ConstellationSvg({
           })}
         </g>
       )}
-
-      {/* 100 Star Nodes (Shown in Star Pyramid mode) */}
-      {mode !== 'triangle-mosaic' &&
-        STAR_POINTS.map((pt) => {
-          const isUnlocked = unlockedSet.has(pt.cls.id);
-          const isLocked = isClassLockedOut(
-            pt.cls,
-            progression.currentLevel,
-            progression.archetypePoints,
-            isUnlocked
-          );
-          const isEligible = isClassEligibleNextLevel(
-            pt.cls,
-            progression.currentLevel,
-            progression.archetypePoints,
-            isUnlocked
-          );
-          const isHovered = hoveredClassId === pt.cls.id;
-          const isSelected = selectedClassId === pt.cls.id;
-
-          return (
-            <g
-              key={pt.cls.id}
-              className={`star-node ${isSelected ? 'selected' : ''}`}
-              transform={`translate(${pt.x}, ${pt.y})`}
-              onMouseEnter={() => onHoverNode(pt.cls.id)}
-              onMouseLeave={() => onHoverNode(null)}
-              onClick={() => onClickNode?.(pt.cls.id)}
-              style={onClickNode ? { cursor: 'pointer' } : undefined}
-            >
-              {/* Hit area for reliable hover detection on small nodes */}
-              <circle r="14" fill="transparent" className="pointer-events-all" />
-
-              {/* Inner visual group scaled on hover */}
-              <g className="star-visual">
-                {isSelected && (
-                  <circle
-                    r={14}
-                    fill="none"
-                    stroke="#38bdf8"
-                    strokeWidth="2"
-                    className="star-halo"
-                    strokeDasharray="4 2"
-                  />
-                )}
-                {isUnlocked && !isSelected && (
-                  <circle
-                    r={12}
-                    fill="none"
-                    stroke="#f59e0b"
-                    strokeWidth="1.5"
-                    opacity="0.8"
-                    className="star-halo"
-                    strokeDasharray="3 3"
-                  />
-                )}
-                {isEligible && !isSelected && (
-                  <circle
-                    r={10}
-                    fill="none"
-                    stroke="#fcd34d"
-                    strokeWidth="1.2"
-                    opacity="0.85"
-                    className="star-halo"
-                    strokeDasharray="2 2"
-                  />
-                )}
-
-                {/* Star Core */}
-                <circle
-                  r={isSelected ? 8 : isUnlocked ? 7 : isHovered ? 6 : isEligible ? 5.5 : isLocked ? 3 : 4}
-                  fill={isSelected ? '#38bdf8' : isUnlocked ? '#fcd34d' : isEligible ? '#f59e0b' : isLocked ? '#4b5563' : pt.color}
-                  stroke={isSelected ? '#fff' : isUnlocked ? '#fff' : isHovered ? '#fff' : isEligible ? '#fcd34d' : 'none'}
-                  strokeWidth={isSelected || isUnlocked || isHovered || isEligible ? 1.5 : 1}
-                  filter={isSelected || isUnlocked || isHovered || isEligible ? 'url(#star-glow)' : undefined}
-                  opacity={isLocked ? 0.35 : 1}
-                />
-              </g>
-
-              {/* Key Capstone / Corner Labels */}
-              {(isSelected ||
-                isUnlocked ||
-                isHovered ||
-                isEligible ||
-                pt.cls.totalPoints === 1 ||
-                pt.cls.totalPoints === 9) && (
-                <text
-                  y={isSelected || isUnlocked ? -13 : -9}
-                  fill={
-                    isSelected
-                      ? '#38bdf8'
-                      : isUnlocked
-                      ? '#fcd34d'
-                      : isHovered
-                      ? '#fff'
-                      : isEligible
-                      ? '#fcd34d'
-                      : 'rgba(255,255,255,0.6)'
-                  }
-                  fontSize={isSelected || isUnlocked ? '10' : '8'}
-                  fontWeight={isSelected || isUnlocked || isEligible ? '700' : '500'}
-                  textAnchor="middle"
-                  className="pointer-events-none"
-                >
-                  {pt.cls.name}
-                </text>
-              )}
-            </g>
-          );
-        })}
     </svg>
   );
 }

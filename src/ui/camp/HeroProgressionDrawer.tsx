@@ -604,7 +604,6 @@ export function HeroProgressionDrawer({
                 onMouseLeave={handleMouseLeaveViewport}
               >
                 <ConstellationSvg
-                  mode="triangle-mosaic"
                   progression={hero.progression}
                   unlockedSet={unlockedSet}
                   hoveredClassId={hoveredClassId}

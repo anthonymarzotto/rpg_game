@@ -8,7 +8,13 @@ describe('parseCombatLogMessage', () => {
       turnNumber: 1,
       actorUnitId: 'player-warrior',
       actionId: 'move',
-      message: 'Alden (Warrior) moved to (1, 0). [Remaining AP: 2]'
+      message: 'Alden (Warrior) moved to (1, 0). [Remaining AP: 2]',
+      metadata: {
+        type: 'MOVE',
+        actor: 'Alden (Warrior)',
+        coord: { q: 1, r: 0 },
+        remainingAp: 2
+      }
     };
 
     const parsed = parseCombatLogMessage(entry);
@@ -22,13 +28,26 @@ describe('parseCombatLogMessage', () => {
     }
   });
 
-  it('parses real engine damaging attack with mitigation and arrow breakdown', () => {
+  it('parses real engine damaging attack with mitigation and breakdown', () => {
     const entry: CombatLogEntry = {
       turnNumber: 2,
       actorUnitId: 'player-warrior',
       actionId: 'power_strike',
       message:
-        'Alden (Warrior) used Power Strike on Bandit Fighter A: [d20: 16+1 vs DC 11 -> HIT] [Damage: 1d6(4)+0 - 0 Armor -> 4] (HP: 16/20)'
+        'Alden (Warrior) used Power Strike on Bandit Fighter A: [d20: 16+1 vs DC 11 -> HIT] [Damage: 1d6(4)+0 - 0 Armor -> 4] (HP: 16/20)',
+      metadata: {
+        type: 'ATTACK',
+        actor: 'Alden (Warrior)',
+        ability: 'Power Strike',
+        target: 'Bandit Fighter A',
+        d20: '16+1',
+        defenseTarget: 11,
+        hitOutcome: 'HIT',
+        damageTotal: '4',
+        damageBreakdown: '1d6(4)+0 - 0 Armor',
+        targetHp: 16,
+        targetMaxHp: 20
+      }
     };
 
     const parsed = parseCombatLogMessage(entry);
@@ -54,7 +73,20 @@ describe('parseCombatLogMessage', () => {
       actorUnitId: 'player-thief',
       actionId: 'sneak_attack',
       message:
-        'Lyra (Thief) used Sneak Attack on Bandit Skirmisher B: [d20: 20+2 vs DC 12 -> CRITICAL_HIT] [Damage: 2d6(6, 6)+2 - 0 Armor -> 14] (HP: 0/20)'
+        'Lyra (Thief) used Sneak Attack on Bandit Skirmisher B: [d20: 20+2 vs DC 12 -> CRITICAL_HIT] [Damage: 2d6(6, 6)+2 - 0 Armor -> 14] (HP: 0/20)',
+      metadata: {
+        type: 'ATTACK',
+        actor: 'Lyra (Thief)',
+        ability: 'Sneak Attack',
+        target: 'Bandit Skirmisher B',
+        d20: '20+2',
+        defenseTarget: 12,
+        hitOutcome: 'CRITICAL_HIT',
+        damageTotal: '14',
+        damageBreakdown: '2d6(6, 6)+2 - 0 Armor',
+        targetHp: 0,
+        targetMaxHp: 20
+      }
     };
 
     const parsed = parseCombatLogMessage(entry);
@@ -72,7 +104,20 @@ describe('parseCombatLogMessage', () => {
       actorUnitId: 'dummy-a',
       actionId: 'strike',
       message:
-        'Bandit Fighter A used Strike on Alden (Warrior): [d20: 4+1 vs DC 13 -> MISS] [Damage: 0 (Miss)] (HP: 20/20)'
+        'Bandit Fighter A used Strike on Alden (Warrior): [d20: 4+1 vs DC 13 -> MISS] [Damage: 0 (Miss)] (HP: 20/20)',
+      metadata: {
+        type: 'ATTACK',
+        actor: 'Bandit Fighter A',
+        ability: 'Strike',
+        target: 'Alden (Warrior)',
+        d20: '4+1',
+        defenseTarget: 13,
+        hitOutcome: 'MISS',
+        damageTotal: '0',
+        damageBreakdown: '0 (Miss)',
+        targetHp: 20,
+        targetMaxHp: 20
+      }
     };
 
     const parsed = parseCombatLogMessage(entry);
@@ -91,7 +136,21 @@ describe('parseCombatLogMessage', () => {
       actorUnitId: 'player-warrior',
       actionId: 'shield_bash',
       message:
-        'Alden (Warrior) used Shield Bash on Bandit Fighter A: [d20: 15+1 vs DC 11 -> HIT] [Damage: 1d6(5)+1 - 1 Armor -> 5] (HP: 15/20) 💥 [Knockback Collision: Slammed into Map Boundary! Took +1 collision damage.]'
+        'Alden (Warrior) used Shield Bash on Bandit Fighter A: [d20: 15+1 vs DC 11 -> HIT] [Damage: 1d6(5)+1 - 1 Armor -> 5] (HP: 15/20) 💥 [Knockback Collision: Slammed into Map Boundary! Took +1 collision damage.]',
+      metadata: {
+        type: 'ATTACK',
+        actor: 'Alden (Warrior)',
+        ability: 'Shield Bash',
+        target: 'Bandit Fighter A',
+        d20: '15+1',
+        defenseTarget: 11,
+        hitOutcome: 'HIT',
+        damageTotal: '5',
+        damageBreakdown: '1d6(5)+1 - 1 Armor',
+        targetHp: 15,
+        targetMaxHp: 20,
+        secondaryDetail: 'Knockback Collision: Slammed into Map Boundary!'
+      }
     };
 
     const parsed = parseCombatLogMessage(entry);
@@ -106,7 +165,13 @@ describe('parseCombatLogMessage', () => {
       turnNumber: 1,
       actorUnitId: 'player-wizard',
       actionId: 'minor_ward',
-      message: 'Vael (Wizard) used Minor Ward. 🛡️ [Armor Buff: +2 Armor for 2 turn(s)]'
+      message: 'Vael (Wizard) used Minor Ward. 🛡️ [Armor Buff: +2 Armor for 2 turn(s)]',
+      metadata: {
+        type: 'BUFF',
+        actor: 'Vael (Wizard)',
+        ability: 'Minor Ward',
+        effectDetail: '+2 Armor for 2 turn(s)'
+      }
     };
 
     const parsed = parseCombatLogMessage(entry);
@@ -118,12 +183,17 @@ describe('parseCombatLogMessage', () => {
     }
   });
 
-  it('falls back to generic on unrecognized messages', () => {
+  it('falls back to generic on unrecognized or generic actions', () => {
     const entry: CombatLogEntry = {
       turnNumber: 5,
       actorUnitId: 'dummy-a',
       actionId: 'special',
-      message: 'A mysterious omen echoes through the arena.'
+      message: 'A mysterious omen echoes through the arena.',
+      metadata: {
+        type: 'GENERIC',
+        actor: 'dummy-a',
+        text: 'A mysterious omen echoes through the arena.'
+      }
     };
 
     const parsed = parseCombatLogMessage(entry);
@@ -133,13 +203,28 @@ describe('parseCombatLogMessage', () => {
     }
   });
 
-  it('safely handles empty or malformed entries', () => {
+  it('safely handles empty or malformed entries with action not defined fallback', () => {
+    const parsed = parseCombatLogMessage({
+      turnNumber: 1,
+      actorUnitId: '',
+      actionId: '',
+      message: '',
+      metadata: {
+        type: 'GENERIC'
+      }
+    });
+    expect(parsed.type).toBe('GENERIC');
+    expect(parsed.rawMessage).toBe('This action is not yet defined');
+  });
+
+  it('falls back gracefully when metadata is missing on legacy or untyped entry', () => {
     const parsed = parseCombatLogMessage({
       turnNumber: 1,
       actorUnitId: '',
       actionId: '',
       message: ''
-    });
+    } as unknown as CombatLogEntry);
     expect(parsed.type).toBe('GENERIC');
+    expect(parsed.rawMessage).toBe('This action is not yet defined');
   });
 });

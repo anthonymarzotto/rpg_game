@@ -171,6 +171,42 @@ export interface CombatUnit {
 
 
 /**
+ * Optional structured metadata for a combat log entry, avoiding UI string regex parsing.
+ */
+export type CombatLogMetadata =
+  | {
+      readonly type: 'ATTACK';
+      readonly actor: string;
+      readonly ability: string;
+      readonly target: string;
+      readonly d20: string;
+      readonly defenseTarget: number;
+      readonly hitOutcome: string;
+      readonly damageTotal: string;
+      readonly damageBreakdown: string;
+      readonly targetHp: number;
+      readonly targetMaxHp: number;
+      readonly secondaryDetail?: string;
+    }
+  | {
+      readonly type: 'MOVE';
+      readonly actor: string;
+      readonly coord: { readonly q: number; readonly r: number };
+      readonly remainingAp: number;
+    }
+  | {
+      readonly type: 'BUFF';
+      readonly actor: string;
+      readonly ability: string;
+      readonly effectDetail?: string;
+    }
+  | {
+      readonly type: 'GENERIC';
+      readonly actor?: string;
+      readonly text?: string;
+    };
+
+/**
  * Structured entry in the transparent combat log.
  */
 export interface CombatLogEntry {
@@ -178,6 +214,7 @@ export interface CombatLogEntry {
   readonly actorUnitId: string;
   readonly actionId: string;
   readonly message: string;
+  readonly metadata: CombatLogMetadata;
 }
 
 /**

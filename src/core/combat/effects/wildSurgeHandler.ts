@@ -32,7 +32,13 @@ export function handleWildSurge(ctx: CriticalHitContext): CombatEvent[] {
       turnNumber: state.turnNumber,
       actorUnitId: actorCu.unit.id,
       actionId: 'wild_surge',
-      message: ` 🌀 [Wild Surge: Chrono-Resonance restores +1 AP!] (Current AP: ${actorCu.currentAp})`
+      message: ` 🌀 [Wild Surge: Chrono-Resonance restores +1 AP!] (Current AP: ${actorCu.currentAp})`,
+      metadata: {
+        type: 'BUFF',
+        actor: actorCu.unit.name,
+        ability: 'Wild Surge: Chrono-Resonance',
+        effectDetail: `Restores +1 AP (Current AP: ${actorCu.currentAp})`
+      }
     });
   } else if (roll === 2) {
     actorCu.initiativeGauge += 25;
@@ -40,7 +46,13 @@ export function handleWildSurge(ctx: CriticalHitContext): CombatEvent[] {
       turnNumber: state.turnNumber,
       actorUnitId: actorCu.unit.id,
       actionId: 'wild_surge',
-      message: ` 🌀 [Wild Surge: Aetherial Surge grants +25 CTB Gauge!] (Current Gauge: ${actorCu.initiativeGauge})`
+      message: ` 🌀 [Wild Surge: Aetherial Surge grants +25 CTB Gauge!] (Current Gauge: ${actorCu.initiativeGauge})`,
+      metadata: {
+        type: 'BUFF',
+        actor: actorCu.unit.name,
+        ability: 'Wild Surge: Aetherial Surge',
+        effectDetail: `Grants +25 CTB Gauge (Current Gauge: ${actorCu.initiativeGauge})`
+      }
     });
   } else {
     const actorPos = state.arena.getUnitPosition(actorCu.unit.id);
@@ -82,7 +94,20 @@ export function handleWildSurge(ctx: CriticalHitContext): CombatEvent[] {
         turnNumber: state.turnNumber,
         actorUnitId: actorCu.unit.id,
         actionId: 'wild_surge',
-        message: ` 🌀 [Wild Surge: Arcane Discharge strikes ${targetEnemy.unit.name} for 2 magic damage!] (HP: ${Math.max(0, targetEnemy.currentHp - 2)}/${targetEnemy.unit.effectiveVitals.maxHp})`
+        message: ` 🌀 [Wild Surge: Arcane Discharge strikes ${targetEnemy.unit.name} for 2 magic damage!] (HP: ${Math.max(0, targetEnemy.currentHp - 2)}/${targetEnemy.unit.effectiveVitals.maxHp})`,
+        metadata: {
+          type: 'ATTACK',
+          actor: actorCu.unit.name,
+          ability: 'Wild Surge: Arcane Discharge',
+          target: targetEnemy.unit.name,
+          d20: '-',
+          defenseTarget: 0,
+          hitOutcome: 'SOLID_HIT',
+          damageTotal: '2',
+          damageBreakdown: '2 magic damage',
+          targetHp: Math.max(0, targetEnemy.currentHp - 2),
+          targetMaxHp: targetEnemy.unit.effectiveVitals.maxHp
+        }
       });
     }
   }
