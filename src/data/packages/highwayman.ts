@@ -52,7 +52,17 @@ export const STAND_AND_DELIVER: Ability = {
         armor: -2
       }
     }
-  ]
+  ],
+  aiHint: {
+    role: 'PRIMER',
+    primer: {
+      requiresFollowUp: 'PHYSICAL_ATTACK',
+      minTotalAp: 3,
+      bonusScore: 30.0,
+      reason: 'Prime armor shred before physical strike',
+      preferredProfiles: ['SKIRMISHER']
+    }
+  }
 };
 
 export const GALLANT_FLOURISH: Ability = {

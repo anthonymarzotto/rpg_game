@@ -861,5 +861,33 @@ describe('Headless AI Decision Engine', () => {
         expect(action.ability.id).toBe('pilfer');
       }
     });
+
+    it('cross-class wildcard unit evaluates primer ability without relying on source class package', () => {
+      const arena = createRadialArena(3);
+      // Unit has 'thief' class (Skirmisher), NOT 'cat-burglar', but borrows 'flash_powder' as a wildcard ability
+      const skirmisher = createMockUnit('thief-enemy', 'Hostile Thief', 'ENEMY', {
+        activeClassId: 'thief',
+        abilities: ['flash_powder'],
+        baseAttributes: { force: 10, finesse: 14, focus: 10 }
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50,
+        evasion: 10
+      });
+
+      arena.setUnitPosition(skirmisher.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [skirmisher, hero], skirmisher.id);
+      state.units.get(skirmisher.id)!.currentAp = 2;
+
+      // Ensure flash_powder is evaluated as a primer despite thief not being a cat-burglar
+      const action = decideNextAction(state, skirmisher.id);
+      expect(action.type).toBe('ABILITY');
+      if (action.type === 'ABILITY') {
+        expect(action.ability.id).toBe('flash_powder');
+        expect(action.reason).toContain('Prime flash powder disorientation before strike');
+      }
+    });
   });
 });

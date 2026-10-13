@@ -49,7 +49,16 @@ export const PACT_BLADE: Ability = {
         modifierAttribute: 'focus'
       }
     }
-  ]
+  ],
+  aiHint: {
+    role: 'MELEE_CONTINGENCY',
+    meleeContingency: {
+      preferredProfiles: ['SNIPER'],
+      minTargetArmor: 2,
+      bonusScore: 6.0,
+      reason: 'Pact Blade bypasses Armor in melee contingency'
+    }
+  }
 };
 
 export const HELLFIRE_BRAND: Ability = {

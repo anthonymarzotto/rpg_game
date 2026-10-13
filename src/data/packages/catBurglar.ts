@@ -87,7 +87,17 @@ export const FLASH_POWDER: Ability = {
       },
       applyOn: 'ALWAYS'
     }
-  ]
+  ],
+  aiHint: {
+    role: 'PRIMER',
+    primer: {
+      requiresFollowUp: 'ANY_ATTACK',
+      minTotalAp: 2,
+      bonusScore: 45.0,
+      reason: 'Prime flash powder disorientation before strike',
+      preferredProfiles: ['SKIRMISHER']
+    }
+  }
 };
 
 export const FELINE_GRACE: PassiveTrait = {

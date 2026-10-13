@@ -18,7 +18,16 @@ export const SPELL_SCULPT: Ability = {
       type: 'SPELL_SCULPT',
       magnitude: 1
     }
-  ]
+  ],
+  aiHint: {
+    role: 'PRIMER',
+    primer: {
+      requiresFollowUp: 'SPELL',
+      minTotalAp: 2,
+      bonusScore: 35.0,
+      reason: 'Prime Spell Sculpt before casting Mage spell'
+    }
+  }
 };
 
 export const IGNITE: Ability = {

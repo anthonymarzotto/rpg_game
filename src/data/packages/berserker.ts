@@ -19,7 +19,17 @@ export const BLOOD_FRENZY: Ability = {
       type: 'BLOOD_FRENZY',
       magnitude: 1
     }
-  ]
+  ],
+  aiHint: {
+    role: 'PRIMER',
+    primer: {
+      requiresFollowUp: 'PHYSICAL_ATTACK',
+      minTotalAp: 2,
+      bonusScore: 15.0,
+      scaleWithFollowUpDamage: true,
+      reason: 'Prime Blood Frenzy before unleashing physical attack'
+    }
+  }
 };
 
 export const RECKLESS_CLEAVE: Ability = {

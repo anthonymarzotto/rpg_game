@@ -1,5 +1,6 @@
 import { Archetype } from './class';
 import { TriadAttributes } from './stats';
+import { AIProfile } from './ai';
 
 export type AbilityTargetType = 'SINGLE_TARGET' | 'SELF' | 'ALLY' | 'HEX';
 export type DefenseTarget = 'EVASION' | 'RESOLVE' | 'NONE';
@@ -64,6 +65,42 @@ export interface AbilityEffect {
   readonly grantsAdvantage?: boolean;
 }
 
+export type AIRole = 'PRIMER' | 'FINISHER' | 'DEFENSIVE' | 'DISRUPTION' | 'UTILITY' | 'MELEE_CONTINGENCY';
+
+export type FollowUpCategory = 'PHYSICAL_ATTACK' | 'SPELL' | 'FLANK_ATTACK' | 'ANY_ATTACK';
+
+export interface AIPrimerHint {
+  /** Follow-up action required to justify casting this primer */
+  readonly requiresFollowUp: FollowUpCategory;
+  /** Minimum combined AP required (cost of primer + minimum cost of follow-up) */
+  readonly minTotalAp: number;
+  /** Tactical bonus score added when primer prerequisites are satisfied */
+  readonly bonusScore: number;
+  /** Whether the primer bonus scales with the projected expected damage of the follow-up attack */
+  readonly scaleWithFollowUpDamage?: boolean;
+  /** Tactical reason string emitted in decision explanation */
+  readonly reason?: string;
+  /** Profiles that specifically prioritize this primer */
+  readonly preferredProfiles?: readonly AIProfile[];
+}
+
+export interface AIMeleeContingencyHint {
+  /** Minimum target armor required to trigger the melee contingency */
+  readonly minTargetArmor?: number;
+  /** Tactical bonus score added when contingency conditions are met */
+  readonly bonusScore: number;
+  /** Profiles that specifically prioritize this contingency (e.g. SNIPER) */
+  readonly preferredProfiles?: readonly AIProfile[];
+  /** Tactical reason string emitted in decision explanation */
+  readonly reason?: string;
+}
+
+export interface AbilityAIHint {
+  readonly role?: AIRole;
+  readonly primer?: AIPrimerHint;
+  readonly meleeContingency?: AIMeleeContingencyHint;
+}
+
 /**
  * Combat action contract.
  */
@@ -93,4 +130,6 @@ export interface Ability {
   readonly ignoresElevationPenalty?: boolean;
   /** Maximum vertical elevation delta allowed for melee reach (defaults to 1) */
   readonly reachElevationDelta?: number;
+  /** Optional declarative AI behavioral and combo sequencing hints */
+  readonly aiHint?: AbilityAIHint;
 }

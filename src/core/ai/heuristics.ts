@@ -193,6 +193,116 @@ export function scoreFocusFire(
 }
 
 /**
+ * Evaluates tactical utility and combo sequencing for primer abilities declared
+ * with declarative AbilityAIHint.primer metadata (e.g. Flash Powder, Blood Frenzy,
+ * Spell Sculpt, Stand and Deliver!).
+ */
+export function scorePrimerAbility(
+  actorCu: CombatUnit,
+  ability: Ability,
+  actorCoord: HexCoord,
+  hostileUnits: readonly CombatUnit[],
+  state: CombatState,
+  profile: AIProfile
+): { score: number; reason?: string } {
+  const primer = ability.aiHint?.primer;
+  if (!primer) return { score: 0 };
+
+  // Guard: if ability has HP sacrifice cost, do not self-sacrifice when dangerously low on HP
+  if (ability.hpCost && actorCu.currentHp <= ability.hpCost + 2) {
+    return { score: 0 };
+  }
+
+  // Guard: if actor already has this pending ability modifier active, do not re-prime
+  if (actorCu.abilityModifiers?.some((m) => m.id === ability.id)) {
+    return { score: 0 };
+  }
+
+  // Profile preference filter (if defined, actor profile must match)
+  if (primer.preferredProfiles && !primer.preferredProfiles.includes(profile)) {
+    return { score: 0 };
+  }
+
+  // Identify follow-up abilities matching the required category
+  const followUpAbilities = actorCu.abilities.filter((a) => {
+    if (a.id === ability.id) return false;
+    switch (primer.requiresFollowUp) {
+      case 'PHYSICAL_ATTACK':
+        return a.damageType === 'PHYSICAL';
+      case 'SPELL':
+        return (a.damageType === 'MAGICAL' || a.archetypeTag === 'MAGE') && !a.aiHint?.primer;
+      case 'FLANK_ATTACK':
+        return a.effects?.some((e) => e.condition === 'FLANK_OR_REAR');
+      case 'ANY_ATTACK':
+        return a.damageType !== 'NONE';
+      default:
+        return false;
+    }
+  });
+
+  if (followUpAbilities.length === 0) return { score: 0 };
+
+  // AP threshold check: actor must be able to afford the primer + at least one viable follow-up
+  const minApNeeded = Math.max(
+    primer.minTotalAp,
+    ability.apCost + Math.min(...followUpAbilities.map((a) => a.apCost))
+  );
+  if (actorCu.currentAp < minApNeeded) return { score: 0 };
+
+  // Verify there is an in-range hostile target for an affordable follow-up attack
+  let maxFollowUpDamage = 0;
+  let hasValidTarget = false;
+
+  for (const h of hostileUnits) {
+    const pos = state.arena.getUnitPosition(h.unit.id);
+    if (!pos) continue;
+    const dist = hexDistance(actorCoord, pos);
+
+    for (const atk of followUpAbilities) {
+      if (dist <= atk.range && actorCu.currentAp >= ability.apCost + atk.apCost) {
+        hasValidTarget = true;
+        const dmgEffect = atk.effects?.find((e) => e.type === 'DAMAGE');
+        if (dmgEffect) {
+          const diceCount = dmgEffect.damageProfile?.count ?? 1;
+          const diceSides = dmgEffect.damageProfile?.sides ?? 6;
+          const attr = atk.attackModifierAttribute ?? dmgEffect.damageProfile?.modifierAttribute;
+          const attrVal = attr ? actorCu.unit.baseAttributes[attr] : 0;
+          const expDmg = diceCount * ((diceSides + 1) / 2) + attrVal;
+          if (expDmg > maxFollowUpDamage) {
+            maxFollowUpDamage = expDmg;
+          }
+        }
+      }
+    }
+  }
+
+  // For hex/AoE primers like Flash Powder or Stand and Deliver, targets within ability range count as valid
+  if (!hasValidTarget) {
+    const hasTargetInPrimerRange = hostileUnits.some((h) => {
+      const pos = state.arena.getUnitPosition(h.unit.id);
+      return pos && hexDistance(actorCoord, pos) <= ability.range;
+    });
+    if (hasTargetInPrimerRange && followUpAbilities.some((a) => actorCu.currentAp >= ability.apCost + a.apCost)) {
+      hasValidTarget = true;
+    }
+  }
+
+  if (!hasValidTarget) return { score: 0 };
+
+  let score = primer.bonusScore;
+  // If damage-scaling primer: scale by follow-up damage
+  if (primer.scaleWithFollowUpDamage && maxFollowUpDamage > 0) {
+    const weights = getArchetypeWeights(profile);
+    score = maxFollowUpDamage * weights.expectedDamageWeight + primer.bonusScore;
+  }
+
+  return {
+    score: Math.round(score * 10) / 10,
+    reason: primer.reason ?? `Prime ${ability.name} before follow-up`
+  };
+}
+
+/**
  * Evaluates tactical utility for casting a support or defensive buff on self or an ally.
  * Strictly returns 0 if the target already has the active buff modifier.
  */
@@ -206,64 +316,15 @@ export function scoreBuffAbility(
   state: CombatState,
   profile: AIProfile
 ): { score: number; reason?: string } {
-  // Blood Frenzy primer check: prioritize when actor has >= 2 AP, follow-up physical attack, safe HP, and an enemy in range
-  if (ability.effects?.some((e) => e.type === 'BLOOD_FRENZY')) {
-    if (actorCu.unit.id !== targetCu.unit.id) return { score: 0 };
-    if (actorCu.abilityModifiers?.some((m) => m.id === 'blood_frenzy')) return { score: 0 };
-    if (actorCu.currentHp <= 5) return { score: 0 }; // Zero out self-sacrifice when dangerously low on HP
+  const isSelf = actorCu.unit.id === targetCu.unit.id;
 
-    const physicalAttacks = actorCu.abilities.filter(
-      (a) => a.id !== ability.id && a.damageType === 'PHYSICAL'
-    );
-    if (physicalAttacks.length === 0) return { score: 0 };
-
-    const minApNeeded = ability.apCost + Math.min(...physicalAttacks.map((a) => a.apCost));
-    if (actorCu.currentAp < minApNeeded) return { score: 0 };
-
-    // Find highest expected damage among affordable in-range physical attacks
-    let maxFollowUpDamage = 0;
-    for (const h of hostileUnits) {
-      const pos = state.arena.getUnitPosition(h.unit.id);
-      if (!pos) continue;
-      const dist = hexDistance(actorCoord, pos);
-      for (const atk of physicalAttacks) {
-        if (dist <= atk.range && actorCu.currentAp >= ability.apCost + atk.apCost) {
-          const dmgEffect = atk.effects?.find((e) => e.type === 'DAMAGE');
-          const diceCount = dmgEffect?.damageProfile?.count ?? 1;
-          const diceSides = dmgEffect?.damageProfile?.sides ?? 6;
-          const attr = atk.attackModifierAttribute ?? dmgEffect?.damageProfile?.modifierAttribute;
-          const attrVal = attr ? actorCu.unit.baseAttributes[attr] : 0;
-          const expDmg = diceCount * ((diceSides + 1) / 2) + attrVal;
-          if (expDmg > maxFollowUpDamage) {
-            maxFollowUpDamage = expDmg;
-          }
-        }
-      }
+  // Declarative primer evaluation for self/ally buffs (e.g. Blood Frenzy, Spell Sculpt)
+  if (ability.aiHint?.primer && isSelf) {
+    const primerResult = scorePrimerAbility(actorCu, ability, actorCoord, hostileUnits, state, profile);
+    if (primerResult.score > 0) {
+      return primerResult;
     }
-    if (maxFollowUpDamage === 0) return { score: 0 };
-
-    const weights = getArchetypeWeights(profile);
-    const score = maxFollowUpDamage * weights.expectedDamageWeight + 15.0;
-
-    return {
-      score: Math.round(score * 10) / 10,
-      reason: 'Prime Blood Frenzy before unleashing physical attack'
-    };
-  }
-
-  // Spell Sculpt primer check: prioritize when actor has >= 2 AP and a follow-up spell
-  if (ability.effects?.some((e) => e.type === 'SPELL_SCULPT')) {
-    if (actorCu.unit.id !== targetCu.unit.id) return { score: 0 };
-    if (actorCu.abilityModifiers?.some((m) => m.id === 'spell_sculpt')) return { score: 0 };
-    if (actorCu.currentAp < 2) return { score: 0 };
-    const hasFollowUpSpell = actorCu.abilities.some(
-      (a) => a.id !== ability.id && a.archetypeTag === 'MAGE' && !a.effects?.some((e) => e.type === 'SPELL_SCULPT')
-    );
-    if (!hasFollowUpSpell) return { score: 0 };
-    return {
-      score: 35.0,
-      reason: 'Prime Spell Sculpt before casting Mage spell'
-    };
+    return { score: 0 };
   }
 
   // 1. Guard against re-applying active modifier
@@ -290,8 +351,6 @@ export function scoreBuffAbility(
       }
     }
   }
-
-  const isSelf = actorCu.unit.id === targetCu.unit.id;
 
   // Find distance to closest living hostile unit
   let minHostileDist = Infinity;
@@ -403,61 +462,60 @@ export function scoreDebuffAndUtility(
     }
   }
 
-  // 2. Armor shred (e.g. Stand and Deliver! -2 Armor)
-  const statMod = ability.effects?.find((e) => e.type === 'STAT_MODIFIER');
-  if (statMod?.statModifiers?.armor && statMod.statModifiers.armor < 0) {
-    const armorShred = Math.abs(statMod.statModifiers.armor);
-    const targetArmor = targetCu.unit.effectiveVitals.armor;
-    const hasExistingArmorDebuff = targetCu.activeModifiers.some(
-      (m) => m.stat === 'armor' && m.value < 0
-    );
+  // 2. Stat debuffs (Armor, Resolve, Attack Roll, Speed, etc.)
+  const statMod = ability.effects?.find((e) => e.type === 'STAT_MODIFIER' && (!e.targetScope || e.targetScope === 'TARGET'));
+  if (statMod?.statModifiers) {
+    let hasApplicableDebuff = false;
+    let hasNegativeStatMod = false;
 
-    if (targetArmor > 0 && !hasExistingArmorDebuff) {
-      score += 8.0;
-      reasons.push(`Shred target Armor (-${armorShred})`);
+    for (const [statKey, rawVal] of Object.entries(statMod.statModifiers)) {
+      if (typeof rawVal === 'number' && rawVal < 0) {
+        hasNegativeStatMod = true;
+        const mag = Math.abs(rawVal);
+        const hasExistingDebuff = targetCu.activeModifiers.some(
+          (m) => m.stat === statKey && m.value < 0
+        );
 
-      // SKIRMISHER primer bonus if actor has follow-up physical attack
-      const hasFollowUpPhysical = actorCu.abilities.some(
-        (a) => a.id !== ability.id && a.damageType === 'PHYSICAL' && actorCu.currentAp >= ability.apCost + a.apCost
-      );
-      if (hasFollowUpPhysical) {
-        score += 30.0;
-        reasons.push('Prime armor shred before physical strike');
+        if (!hasExistingDebuff) {
+          hasApplicableDebuff = true;
+          if (statKey === 'armor') {
+            if (targetCu.unit.effectiveVitals.armor > 0) {
+              score += 8.0;
+              reasons.push(`Shred target Armor (-${mag})`);
+            }
+          } else if (statKey === 'resolve') {
+            score += 4.0;
+            reasons.push(`Shred target Resolve (-${mag})`);
+          } else if (statKey === 'attackRoll') {
+            score += 10.0;
+            reasons.push(`Debuff target Attack Roll (-${mag})`);
+          } else {
+            score += 6.0;
+            reasons.push(`Debuff target ${statKey} (-${mag})`);
+          }
+        }
       }
     }
-  }
 
-  // 3. Resolve shred (e.g. Poppet Needle -2 Resolve)
-  if (statMod?.statModifiers?.resolve && statMod.statModifiers.resolve < 0) {
-    const resolveShred = Math.abs(statMod.statModifiers.resolve);
-    const hasExistingResolveDebuff = targetCu.activeModifiers.some(
-      (m) => m.stat === 'resolve' && m.value < 0
-    );
-    if (!hasExistingResolveDebuff) {
-      score += 4.0;
-      reasons.push(`Shred target Resolve (-${resolveShred})`);
-    }
-  }
-
-  // 3b. Attack roll penalty (e.g. Flash Powder -2 Attack Roll)
-  if (statMod?.statModifiers?.attackRoll && statMod.statModifiers.attackRoll < 0) {
-    const attackRollDebuff = Math.abs(statMod.statModifiers.attackRoll);
-    const hasExistingAttackRollDebuff = targetCu.activeModifiers.some(
-      (m) => m.stat === 'attackRoll' && m.value < 0
-    );
-
-    if (hasExistingAttackRollDebuff) {
-      if (ability.id === 'flash_powder') {
+    // Universal non-redundancy guard:
+    // If an ability applies negative stat debuffs, but all of them are already active on the target,
+    // and the ability deals no damage, do not repeat/spam the debuff.
+    if (hasNegativeStatMod && !hasApplicableDebuff && ability.damageType === 'NONE' && !ability.effects?.some((e) => e.type === 'DAMAGE')) {
+      const hasOtherUtility = ability.effects?.some(
+        (e) => e.type === 'CTB_DELAY' || e.type === 'KNOCKBACK' || e.type === 'RUSH_CHARGE'
+      );
+      if (!hasOtherUtility) {
         return { score: 0 };
       }
-    } else {
-      score += 10.0;
-      reasons.push(`Debuff target Attack Roll (-${attackRollDebuff})`);
+    }
+  }
 
-      if (profile === 'SKIRMISHER' && actorCu.currentAp >= 2) {
-        score += 45.0;
-        reasons.push('Prime flash powder disorientation before strike');
-      }
+  // 3. Declarative primer evaluation (e.g. Flash Powder, Stand and Deliver!)
+  if (ability.aiHint?.primer) {
+    const primerResult = scorePrimerAbility(actorCu, ability, actorCoord, [targetCu], state, profile);
+    if (primerResult.score > 0) {
+      score += primerResult.score;
+      if (primerResult.reason) reasons.push(primerResult.reason);
     }
   }
 
@@ -523,12 +581,16 @@ export function scoreDebuffAndUtility(
     }
   }
 
-  // 7. Armor-bypassing melee (e.g. Pact Blade)
-  if (ability.id === 'pact_blade' && dist === 1) {
+  // 7. Declarative Melee contingency evaluation (e.g. Pact Blade)
+  if (ability.aiHint?.meleeContingency && dist === 1) {
+    const contingency = ability.aiHint.meleeContingency;
     const targetArmor = targetCu.unit.effectiveVitals.armor;
-    if (targetArmor >= 2) {
-      score += 6.0;
-      reasons.push(`Pact Blade bypasses ${targetArmor} Armor`);
+    const matchesProfile = !contingency.preferredProfiles || contingency.preferredProfiles.includes(profile);
+    const matchesArmor = contingency.minTargetArmor === undefined || targetArmor >= contingency.minTargetArmor;
+
+    if (matchesProfile && matchesArmor) {
+      score += contingency.bonusScore;
+      reasons.push(contingency.reason ?? `Melee contingency bypasses ${targetArmor} Armor`);
     }
   }
 
