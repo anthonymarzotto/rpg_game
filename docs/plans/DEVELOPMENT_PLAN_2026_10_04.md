@@ -167,34 +167,36 @@ All foundational systems through Phase 4 are fully implemented, verified, and ba
   * Arena borders remain solid enclosing perimeter walls (wall-slam collision on boundary hit; no instant-death ring-outs).
   * Impassable obstacles (`RUINS`, pillars) exist across any elevation tier, blocking pathfinding and LoS, and acting as wall-slam backboards.
 
-### 6.3. Procedural 2.5D SVG Prism Rendering & Terraced Encounters (`src/ui/combat/`, `src/core/campaign/`)
+### 6.3. Procedural 2.5D SVG Prism Rendering & Terraced Encounters (`src/ui/combat/`, `src/core/campaign/`) - [x] COMPLETED
 * **Faux-3D SVG Extruded Prisms**:
   * Projected Y-offset: $y_{\text{projected}} = y_{\text{flat}} - (h \times 14\text{px})$.
-  * Procedural extruded prism side walls (South, Southeast, Southwest edges) rendered with darker CSS gradient shading for tactile 3D relief.
-  * Back-to-front depth sorting (Painter's algorithm) ensuring foreground elevated plateaus cleanly occlude background hexes and tokens.
-  * Elevation contour indicators and badge markers (`+1`, `+2`) on tile hover and selection rings.
+  * Procedural extruded prism side walls (South, Southeast, Southwest edges in `elevationGeometry.ts`) rendered with darker CSS gradient shading for tactile 3D relief.
+  * Back-to-front depth sorting (Painter's algorithm) ensuring foreground elevated plateaus cleanly occlude background hexes and tokens, with `pointer-events-none` on prism walls.
+  * Elevation contour indicators and badge markers (`+1`, `+2`, `+3`) on elevated tiles, with dynamic viewBox bounds calculation to prevent clipping.
+  * Interactive Fall Hazard preview badge (`⚠️ Fall Hazard: -X HP`) on hovered reachable tiles when dropping down cliffs ($\Delta h \le -2$) during move actions.
 * **Radius 4 Multi-Peak Procedural Arenas**:
-  * Standard encounter arena expanded to **Radius 4** (61 hexes, ~9 hexes across) to support rich 3D topography.
+  * Standard encounter arena expanded to **Radius 4** (61 hexes, ~9 hexes across) for Stage 3+ encounters while preserving Radius 3 for early trials.
   * Procedural terrain generator in `encounterGenerator.ts` seeds 1–2 random peak foci ($h=2$), flood-filling surrounding terraces ($h=1$), low-ground valleys ($h=0$), sheer drop cliff edges, and scattered ruins.
+  * Guaranteed reachable pathfinding connectivity verified between player West deployment spawns and enemy East deployment spawns across elevation changes.
 
 ---
 
-## Phase 6b: Cat-Burglar Class Package & Elevation Infiltration
+## Phase 6b: Cat-Burglar Class Package & Elevation Infiltration - [x] COMPLETED
 
 **Primary Goal**: Author the Tier 3 **Cat-burglar** `(0, 2, 1)` (Rogue/Mage — Dominant Rogue) class package (`src/data/packages/catBurglar.ts`), specifically designed to leverage Phase 6's verticality mechanics (wall climbing, ledge drop-downs, obstacle vaulting, and immunity to fall damage).
 
 * **Motivation for Phase 6b Timing**: The core fantasy of a second-story cat-burglar is an agile acrobat who scales heights, escapes being cornered, and steals tempo rather than dealing brute damage. Implementing this class after discrete elevation is in place allows the kit to naturally interact with cliffs ($\Delta h \ge +2$), rooftops, and wall boundaries.
 
-### Finalized Class Package Specifications:
-
-* **Class Package**: `cat-burglar` `(0 Fighter, 2 Rogue, 1 Mage)` (`src/data/packages/catBurglar.ts`)
-* **Signature Ability**: `Rooftop Vault` (1 AP, range 2 hex leap to an unoccupied walkable hex, ignoring intervening units, obstacles, and up to $\Delta h = 2$ elevation cliffs; grants self +2 Evasion for 1 turn upon landing).
-* **Domain Ability 1**: `Pilfer` (1 AP, range 1, 1d4 + Finesse physical damage vs Evasion; siphons 20 CTB initiative ticks from target directly into the Burglar on solid hit or critical hit).
-* **Domain Ability 2**: `Flash Powder` (1 AP, range 2 thrown hex AoE with radius 1; forces all affected enemies to face 180° away from blast center/actor and inflicts -2 Attack Roll for 1 turn).
-* **Innate Passive**: `Feline Grace` (Immune to Fall Impact Damage, rebounds safely over 1-hex obstacles and onto cliff tops $\Delta h \ge 2$ during knockback without suffering wall-slam collision damage, and grants flat +2 Evasion).
+### 6b.1. Cat-Burglar Class Package (`src/data/packages/catBurglar.ts`) - [x] COMPLETED
+* **Archetype**: `(0, 2, 1)` (Rogue/Mage — Dominant Rogue) — Second-story acrobat, rooftop infiltrator & tempo thief.
+* **Signature**: `Rooftop Vault` (1 AP, range 2 hex leap to an unoccupied walkable hex, ignoring intervening units, obstacles, and up to $\Delta h = 2$ elevation cliffs; grants self +2 Evasion for 1 turn upon landing).
+* **Domain 1**: `Pilfer` (1 AP, range 1, 1d4 + Finesse physical damage vs Evasion; siphons 20 CTB initiative ticks from target directly into the Burglar on solid hit or critical hit).
+* **Domain 2**: `Flash Powder` (1 AP, range 2 thrown hex AoE with radius 1; forces all affected enemies to face 180° away from blast center/actor and inflicts -2 Attack Roll for 1 turn).
+* **Passive**: `Feline Grace` (Immune to Fall Impact Damage, rebounds safely over 1-hex obstacles and onto cliff tops $\Delta h \ge 2$ during knockback without suffering wall-slam collision damage, and grants flat +2 Evasion).
 * **AI Profile**: `SKIRMISHER` (prioritizes the 3-AP Solo Heist combo: Flash Powder disorientation -> Rooftop Vault leap to rear arc -> Pilfer backstab with Flank Advantage; evaluates high-ground cliff leaps).
 
-### 6b.2. Vertical Infiltration & Campaign Integration (`src/core/ai/`, `src/core/campaign/`, `src/ui/combat/`)
+### 6b.2. Vertical Infiltration & Campaign Integration (`src/core/ai/`, `src/core/campaign/`, `src/ui/combat/`) - [x] COMPLETED
+* **Knockback Rebound & Collision Engine**: Updated knockback solver in `src/core/grid/arena.ts` and collision damage in `src/core/combat/damageEngine.ts` to support cat-like rebound (stepping onto cliff tops on $\Delta h \ge 2$, vaulting over 1-hex obstacles, taking 0 collision damage against perimeter walls) when target has `immuneToCollisionDamage` / `canVaultOnKnockback`.
 * **Skirmisher Heuristics**: `scoreDebuffAndUtility` and `decisionEngine.ts` evaluate AoE hex debuffs and mobility leaps, priming disorienting flash powder before backstabs and vaulting onto high-ground vantage points.
 * **Campaign Encounters**: Added `cat-burglar` to `TIER3_CLASSES` in `encounterGenerator.ts` (55 threat budget, stage 5+ encounters) with valid constellation `['thief', 'infiltrator', 'cat-burglar']`.
 * **Visual Palette**: Configured token badge palette `{ primary: '#0f766e', border: '#14b8a6' }` mapped to `83_human_male` in `tokenAssets.ts`.
