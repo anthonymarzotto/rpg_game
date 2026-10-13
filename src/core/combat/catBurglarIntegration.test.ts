@@ -1,18 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { CombatState, CombatUnit } from './types';
-import { Arena } from '../grid/arena';
 import { createRadialArena } from '../grid/templates';
 import { executeAbility, executeMove } from './resolver';
 import {
   ROOFTOP_VAULT,
   PILFER,
   FLASH_POWDER,
-  FELINE_GRACE,
-  CAT_BURGLAR_PACKAGE
+  FELINE_GRACE
 } from '../../data/packages/catBurglar';
 import { Unit } from '../types/unit';
-import { SeededDiceRoller } from './dice';
+import { MockDiceRoller } from './dice';
 import { getAttackRollModifier } from './attackRoll';
+import { createRecruit } from '../units/unitFactory';
 
 function createMockCombatUnit(
   id: string,
@@ -25,18 +24,16 @@ function createMockCombatUnit(
     passives?: typeof FELINE_GRACE[];
   }
 ): CombatUnit {
+  const recruit = createRecruit(id, name, { faction });
   const unit: Unit = {
-    id,
-    name,
-    gender: 'female',
-    race: 'human',
-    faction,
+    ...recruit,
     baseAttributes: {
       force: 10,
       finesse: options?.finesse ?? 14,
       focus: 10
     },
     effectiveVitals: {
+      ...recruit.effectiveVitals,
       maxHp: 20,
       maxAp: 3,
       speed: 10,
@@ -45,15 +42,7 @@ function createMockCombatUnit(
       evasion: options?.evasion ?? 10,
       resolve: 10,
       move: 3
-    },
-    progression: {
-      level: 3,
-      unspentAttributePoints: 0,
-      archetypes: { fighter: 0, rogue: 2, mage: 1 },
-      constellation: ['thief', 'infiltrator', 'cat-burglar'],
-      nodeHarmonizationSurges: {}
-    },
-    equippedShards: {}
+    }
   };
 
   return {
@@ -96,7 +85,10 @@ describe('Cat-burglar Integration & Abilities', () => {
         coord: { q: 2, r: 0 }
       });
 
-      expect(result.events.some((e) => e.type === 'DISPLACEMENT')).toBe(true);
+      expect(result.type).toBe('BUFF');
+      if (result.type === 'BUFF') {
+        expect(result.events?.some((e) => e.type === 'DISPLACEMENT')).toBe(true);
+      }
       expect(arena.getUnitPosition('burglar')).toEqual({ q: 2, r: 0 });
       expect(burglar.currentAp).toBe(2);
 
@@ -129,7 +121,9 @@ describe('Cat-burglar Integration & Abilities', () => {
       });
 
       expect(arena.getUnitPosition('burglar')).toEqual({ q: 2, r: 0 });
-      expect(result.events.some((e) => e.type === 'COLLISION')).toBe(false);
+      if (result.type === 'BUFF') {
+        expect(result.events?.some((e) => e.type === 'COLLISION')).toBe(false);
+      }
     });
   });
 
@@ -160,7 +154,7 @@ describe('Cat-burglar Integration & Abilities', () => {
       };
 
       // Force high roll for solid hit
-      const diceRoller = new SeededDiceRoller([15, 3]);
+      const diceRoller = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3] });
 
       const result = executeAbility(
         state,
@@ -205,7 +199,7 @@ describe('Cat-burglar Integration & Abilities', () => {
       };
 
       // Finesse 10 vs Evasion 18: diff = -8. d20 = 7 -> score = 17 -> Graze (Evasion - 5 to Evasion - 1)
-      const diceRoller = new SeededDiceRoller([7, 4]);
+      const diceRoller = new MockDiceRoller({ d20Rolls: [7], damageRolls: [4] });
 
       const result = executeAbility(
         state,
@@ -214,6 +208,8 @@ describe('Cat-burglar Integration & Abilities', () => {
         { targetUnitId: 'target' },
         diceRoller
       );
+
+      expect(result.type).toBe('ATTACK');
 
       // Graze should deal halved damage but negate CTB delay and boost
       expect(target.initiativeGauge).toBe(50);

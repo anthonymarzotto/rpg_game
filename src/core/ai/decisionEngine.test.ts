@@ -846,10 +846,6 @@ describe('Headless AI Decision Engine', () => {
       const state = createCombatState(arena, [catBurglar, hero], catBurglar.id);
       state.units.get(catBurglar.id)!.currentAp = 1;
       state.units.get(hero.id)!.activeModifiers.push({
-        id: 'blinded',
-        name: 'Flash Powder Blind',
-        sourceAbilityId: 'flash_powder',
-        sourceUnitId: catBurglar.id,
         stat: 'attackRoll',
         value: -2,
         durationTurns: 1

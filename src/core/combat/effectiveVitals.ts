@@ -6,6 +6,11 @@ import { getPassiveStatModifier } from './passives';
  * respecting minimum stat floors (speed and move floor at 1, other stats floor at 0).
  */
 export function getEffectiveStat(cu: CombatUnit, stat: ModifiableCombatStat): number {
+  if (stat === 'attackRoll') {
+    return cu.activeModifiers
+      .filter((m) => m.stat === 'attackRoll')
+      .reduce((sum, m) => sum + m.value, 0);
+  }
   const base = cu.unit.effectiveVitals[stat];
   const modSum = cu.activeModifiers
     .filter((m) => m.stat === stat)

@@ -15,6 +15,9 @@ export function getPassiveStatModifier(
   passives: readonly PassiveTrait[] | undefined,
   stat: ModifiableCombatStat
 ): number {
+  if (stat === 'attackRoll') {
+    return 0;
+  }
   return (passives ?? []).reduce((sum, p) => sum + (p.statModifiers?.[stat] ?? 0), 0);
 }
 
