@@ -19,6 +19,9 @@
     - Maybe boost threat a bit or reduce enemy threat calculation to get more/better units on the field.
     - Through 5 rounds, only lost units maybe once or twice.
     - Stage 5 felt better with myself having a level 3, 2, and 1 character against a level 3, 1, and 2 Novices.
+  - Enemy Generation
+    - Go through real levelling and choose appropriate resonant abilities. 
+    - Allow level up through wayfarer levels.
 
 # UI Refinements:
   - Trial Arena
