@@ -127,6 +127,9 @@ export const PIXEL_ROTATIONS = [
   'south'
 ] as const;
 
+const rawBase = typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL ? import.meta.env.BASE_URL : './';
+const BASE_URL = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
+
 /**
  * Checks whether an asset source URL belongs to the pixel token set.
  */
@@ -149,7 +152,7 @@ export function resolveTokenAssetPath(
   // When facing is specified on the hex grid, resolve 6-direction rotation;
   // For general UI portraits (ribbons, banners, modals), default to 'south' (front-facing)
   const rotation = facing !== undefined ? HEX_TO_PIXEL_ROTATION[facing] : 'south';
-  return `/assets/tokens/pixel/${pixelBase}/Idle/rotations/${rotation}.png`;
+  return `${BASE_URL}assets/tokens/pixel/${pixelBase}/Idle/rotations/${rotation}.png`;
 }
 
 /**
@@ -162,7 +165,7 @@ export function getUnitTokenUrls(unit: Unit): string[] {
     return [];
   }
   return PIXEL_ROTATIONS.map(
-    (rot) => `/assets/tokens/pixel/${pixelBase}/Idle/rotations/${rot}.png`
+    (rot) => `${BASE_URL}assets/tokens/pixel/${pixelBase}/Idle/rotations/${rot}.png`
   );
 }
 

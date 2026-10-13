@@ -273,10 +273,12 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
   describe('isPixelAsset helper', () => {
     it('returns true for pixel token paths', () => {
       expect(isPixelAsset('/assets/tokens/pixel/000_human_male/Idle/rotations/east.png')).toBe(true);
+      expect(isPixelAsset('./assets/tokens/pixel/000_human_male/Idle/rotations/east.png')).toBe(true);
     });
 
     it('returns false for non-pixel paths and null', () => {
       expect(isPixelAsset('/assets/tokens/enamel/000_human_male.png')).toBe(false);
+      expect(isPixelAsset('./assets/tokens/enamel/000_human_male.png')).toBe(false);
       expect(isPixelAsset('/assets/tokens/stained-glass/000_human_male_glass.png')).toBe(false);
       expect(isPixelAsset(null)).toBe(false);
       expect(isPixelAsset('')).toBe(false);
