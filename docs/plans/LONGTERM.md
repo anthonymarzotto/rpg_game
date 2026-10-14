@@ -65,17 +65,17 @@
   - Some way to export the current combat for assessment on AI decision making.
 
 # Bugs:
-  - Arcane Blast splash damage shouts out "Collision" and is not logged in Combat Log.
-  - Does "Hit Chance" consider Disadvantage from Challenged state?
-  - Challenged shouldn't stack. Just one active per unit. Knight should try to do other things.
-    - Same for the Witch and Witch's Talisman. I think the Witch is trying to Talisman the same unit multiple times.
-  - Critical hits seem to trigger on any roll calculated to 20, including modifiers. I would think that this should have to be a natural 20 (or naturally rolled in the crit range)?
-  - Power Strike doesn't have a fancy formatted Combat Log card.
-    - Also Baleful Hex, Point Blank Buckshot, Soul Carapace, Wild Surge, Throw Dart, Frostbite, Elusive Stride, Strike
-    - Brace doesn't get a nice Combat Log card on Miss, but it does on Graze.
-  - Expose Weakness and Witch's Talisman don't say their target in the Combat Log.
-    - General problem for Buff/Debuff skills.
-  - Gust didn't call out anything for knockback damage on the target or the unit being knocked into.
-  - **BLOCKER** When the AI is trying to buff and all allies are buffed, it gets locked.
-  - When standing on a Height 2 hex, it didn't seem like Mage attacks had increased range. Is this true?
-  - Knight Challenging Shout still used twice on one unit in one turn. Better option was to just pass and save +20 CTB. 1 left and not close enough to hit melee.
+
+| Done | Issue | Clarity | Complexity | Root Cause & Notes | Affected Files |
+| :---: | :--- | :---: | :---: | :--- | :--- |
+| [x] | **Critical hits trigger on total roll $\ge 20$** | High | Low | `attackRoll.ts` implements PF2e-style crit rule (`totalScore >= targetDefense + 10`). Against base defense 10, any roll $\ge 20$ crits. Design intent is to require natural 20 / natural crit threshold. | `src/core/combat/attackRoll.ts` |
+| [ ] | **Arcane Blast splash shouts "Collision" & missing from Log** | High | Low | `useFloatingCombatText.ts` maps `COLLATERAL` damage to `'COLLISION! '` prefix. `resolver.ts` AoE splash loop pushes damage events but never logs secondary damage to `combatLog`. | `src/ui/combat/useFloatingCombatText.ts`, `src/core/combat/resolver.ts` |
+| [ ] | **Buff/Debuff skills omit target in Combat Log** | High | Low | `resolver.ts` buff branch formats `${actor} used ${ability}` without `on ${target}` and omits target from metadata. `CombatLogPanel.tsx` BUFF card header only renders actor and ability. | `src/core/combat/resolver.ts`, `src/ui/combat/CombatLogPanel.tsx` |
+| [ ] | **Hit Chance preview ignores Disadvantage** | High | Medium | `targetPreview.ts` only checks advantage; ignores `CHALLENGED` disadvantage and low-ground elevation disadvantage, displaying overly optimistic hit chances. | `src/core/combat/targetPreview.ts` |
+| [ ] | **Height 2 hex Mage range extension not shown in UI** | High | Medium | Engine validation supports `range + elevationDelta`, but `useCombatSimulation.ts` generates `abilityRangeCoords` using static `effective.range`, cutting off tiles and candidate targets at distance 4–5. | `src/ui/combat/useCombatSimulation.ts` |
+| [ ] | **Challenged & Witch's Talisman stacking** | High | Medium | `conditionHandler.ts` pushes conditions without deduplicating `CHALLENGED`. `heuristics.ts` scores `INITIATIVE_BOOST` whenever CTB $< 100$, repeatedly buffing the same ally with talisman/speed. | `src/core/combat/effects/conditionHandler.ts`, `src/core/ai/heuristics.ts` |
+| [ ] | **Knight Challenging Shout repeated in one turn** | High | Medium | In `decisionEngine.ts`, 0-damage debuffs still accumulate standoff (+2) and focus fire (+3) scores even when taunt score is 0, exceeding `apConservationThreshold` (4.0) instead of banking +20 CTB. | `src/core/ai/decisionEngine.ts`, `src/core/ai/heuristics.ts` |
+| [ ] | **Gust knockback & collision damage not called out** | High | Medium | Gust has `damageType: 'NONE'` resolving as `'BUFF'`. `useFloatingCombatText.ts` gates all damage and displacement floaters behind `'ATTACK'`. `CombatLogPanel.tsx` also renders Gust as a buff card. | `src/ui/combat/useFloatingCombatText.ts`, `src/core/combat/resolver.ts`, `src/ui/combat/CombatLogPanel.tsx` |
+| [ ] | **BLOCKER: AI buff lock / turn freeze** | Medium | Med–High | When an AI support unit banks AP and wins the CTB clock again, `state.activeUnitId` does not change, causing React's hostile turn `useEffect` to stall. Unhandled validation errors also freeze turns. | `src/ui/combat/useCombatSimulation.ts`, `src/ui/combat/asyncTurnSequencer.ts` |
+| [x] | **Combat Log card formatting on specific abilities / Misses** | High | Fixed | Fixed in v0.4.0 (`d8c1413`). Structured `CombatLogMetadata` replaced string parsing. Power Strike, Throw Dart, Strike, and Brace on Miss now format correctly as cards. | `src/core/combat/resolver.ts`, `src/ui/combat/CombatLogPanel.tsx` |
+

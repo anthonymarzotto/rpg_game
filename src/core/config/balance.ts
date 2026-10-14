@@ -63,8 +63,6 @@ export const DISPLACEMENT_CONFIG = {
  * Combat resolution thresholds, graze margin, and damage multipliers.
  */
 export const COMBAT_RESOLUTION_CONFIG = {
-  /** Beat target defense by 10+ points for a Critical Hit */
-  critThresholdMargin: 10,
   /** Missing target defense within 5 points lands as a Graze */
   grazeMargin: 5,
   /** Damage percentage dealt on a Graze */

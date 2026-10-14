@@ -147,7 +147,7 @@ Combat actions explicitly define their attack and damage modifier attributes dir
 │      - Magical / Arcane Spells     ──► Target RESOLVE       │
 │                                                             │
 │    Outcomes:                                                │
-│      - Beat Target by 10+ or Nat 20 ──► CRITICAL HIT        │
+│      - Natural 20 (or Crit Range)   ──► CRITICAL HIT        │
 │      - Meet or Beat Target Defense  ──► SOLID HIT (100% dmg)│
 │      - Narrow Miss (e.g. within 5)  ──► GRAZE (50% dmg)     │
 │      - Wide Miss                    ──► CLEAN MISS          │

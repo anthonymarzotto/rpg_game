@@ -147,7 +147,6 @@ export function resolveAttackRoll(
   const d20 = diceRoller.rollD20(finalAdvantage);
   const totalScore = d20 + modifier;
 
-  const critMargin = COMBAT_RESOLUTION_CONFIG.critThresholdMargin;
   const isCritBoosted = ability.effects?.some((e) => e.type === 'CRIT_BOOST');
   let naturalCritThreshold = isCritBoosted ? 19 : 20;
 
@@ -170,7 +169,7 @@ export function resolveAttackRoll(
   }
 
   let hitOutcome: HitOutcome = 'MISS';
-  if (d20 >= naturalCritThreshold || totalScore >= targetDefense + critMargin) {
+  if (d20 >= naturalCritThreshold) {
     hitOutcome = 'CRITICAL_HIT';
   } else if (d20 === 1 || totalScore < targetDefense - COMBAT_RESOLUTION_CONFIG.grazeMargin) {
     hitOutcome = 'MISS';

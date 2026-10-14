@@ -86,6 +86,35 @@ describe('Attack & Ability Resolution Outcomes', () => {
       expect(goblinCu.currentHp).toBe(goblin.effectiveVitals.maxHp - 11);
     });
 
+    it('does not trigger a critical hit on high total score if natural roll is below crit threshold', () => {
+      const arena = createRadialArena(3);
+      const rogue = createRecruit('rogue', 'Lyra');
+      (rogue as any).baseAttributes = { force: 2, finesse: 10, focus: 0 };
+      const goblin = createRecruit('goblin', 'Goblin');
+
+      arena.setUnitPosition('rogue', { q: 0, r: 0 });
+      arena.setUnitPosition('goblin', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [rogue, goblin], 'rogue');
+
+      // Target Evasion 10. d20 = 15 + 10 = 25 (beats defense by 15).
+      // Natural 15 is not a natural 20 -> SOLID_HIT, not CRITICAL_HIT.
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [4] });
+
+      const result = executeAbility(
+        state,
+        'rogue',
+        STRIKE,
+        { targetUnitId: 'goblin' },
+        dice
+      );
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.hitOutcome).toBe('SOLID_HIT');
+      }
+    });
+
     it('resolves a GRAZE dealing 50% damage without secondary effects', () => {
       const arena = createRadialArena(3);
       const hero = createRecruit('hero', 'Alden');
