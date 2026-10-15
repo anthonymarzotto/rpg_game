@@ -3,6 +3,7 @@ import { getEffectiveSpeed } from './effectiveVitals';
 import { ACTION_ECONOMY_CONFIG } from '../config/balance';
 import { evaluateEncounterOutcome } from './objectives';
 import { onTurnStartPassives } from './passives';
+import { getConditionDefinition } from './conditions';
 import { Faction } from '../types/unit';
 
 /**
@@ -114,11 +115,13 @@ export function advanceTurnClock(state: CombatState): string {
     state.activeUnitId = nextActive.unit.id;
     state.turnNumber += 1;
 
-    // Resolve turn-start damage-over-time (POISON, BURN) before AP grant
+    // Resolve turn-start damage-over-time via declarative condition lifecycle hooks before AP grant
     let dotDamageTotal = 0;
     for (const cond of nextActive.activeConditions) {
-      if (cond.type === 'POISON' || cond.type === 'BURN') {
-        const dmg = cond.damagePerTurn ?? 2;
+      const def = getConditionDefinition(cond.type);
+      const turnStartResult = def?.onTurnStart?.(cond, nextActive, state);
+      if (turnStartResult?.damage) {
+        const dmg = turnStartResult.damage;
         dotDamageTotal += dmg;
         state.combatLog.push({
           turnNumber: state.turnNumber,

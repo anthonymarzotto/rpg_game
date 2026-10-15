@@ -366,7 +366,13 @@ export function scoreBuffAbility(
   const initiativeEffect = ability.effects?.find((e) => e.type === 'INITIATIVE_BOOST');
   if (initiativeEffect) {
     if (isSelf) return { score: 0 };
-    if (targetCu.initiativeGauge >= 100) return { score: 0 };
+    if (targetCu.initiativeGauge >= 80) return { score: 0 };
+
+    // Check if target already has an active speed modifier buff
+    const hasSpeedBuff = targetCu.activeModifiers.some(
+      (m) => m.stat === 'speed' && m.value > 0
+    );
+    if (hasSpeedBuff) return { score: 0 };
 
     let initScore = 20.0;
     const reasons: string[] = ['Initiative acceleration'];
@@ -540,10 +546,10 @@ export function scoreDebuffAndUtility(
     (e) => e.type === 'CONDITION' && e.conditionType === 'CHALLENGED'
   );
   if (inflictsChallenged) {
-    const isAlreadyChallenged = targetCu.activeConditions.some(
-      (c) => c.type === 'CHALLENGED'
+    const isAlreadyChallengedByActor = targetCu.activeConditions.some(
+      (c) => c.type === 'CHALLENGED' && c.sourceUnitId === actorCu.unit.id
     );
-    if (!isAlreadyChallenged) {
+    if (!isAlreadyChallengedByActor) {
       score += 18.0;
       reasons.push('Taunt target with Challenged');
 

@@ -102,7 +102,12 @@ export function decideNextAction(
           profile
         );
 
-        const totalScore = kill.score + damageScore + vulnScore + flank.score + focusScore + standoff + utility.score;
+        const hasPrimaryValue = metrics.expectedDamage > 0 || utility.score > 0;
+        const totalScore = hasPrimaryValue
+          ? kill.score + damageScore + vulnScore + flank.score + focusScore + standoff + utility.score
+          : 0;
+
+        if (totalScore <= 0) continue;
 
         const reasons: string[] = [];
         if (utility.reason) reasons.push(utility.reason);
@@ -422,7 +427,15 @@ export function decideNextAction(
             );
 
             // Deduct 1 AP movement cost from utility
-            const moveNetScore = kill.score + damageScore + vulnScore + flank.score + focusScore + standoff + utility.score - 2;
+            const effectiveDamage = kill.score + damageScore + vulnScore;
+            const hasPrimaryValue = effectiveDamage > 0 || utility.score > 0;
+            const effectiveFlank = effectiveDamage > 0 ? flank.score : 0;
+            const effectiveFocus = hasPrimaryValue ? focusScore : 0;
+            const effectiveStandoff = hasPrimaryValue ? standoff : 0;
+
+            const moveNetScore = hasPrimaryValue
+              ? effectiveDamage + effectiveFlank + effectiveFocus + effectiveStandoff + utility.score - 2
+              : 0;
 
             if (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score) {
               const reasons: string[] = [];
@@ -546,8 +559,8 @@ export function decideNextAction(
           const currentDist = hexDistance(currentCoord, targetCoord);
           const candDist = hexDistance(candCoord, targetCoord);
 
-          if (profile === 'SNIPER') {
-            // Sniper evaluates how close candCoord is to preferredStandoffRange
+          if (profile === 'SNIPER' || profile === 'SUPPORT') {
+            // Sniper/Support evaluates how close candCoord is to preferredStandoffRange
             const currentDev = Math.abs(currentDist - weights.preferredStandoffRange);
             const candDev = Math.abs(candDist - weights.preferredStandoffRange);
             if (candDev < currentDev && state.arena.hasLineOfSight(candCoord, targetCoord)) {

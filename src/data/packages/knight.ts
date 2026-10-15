@@ -38,6 +38,9 @@ export const CHALLENGING_SHOUT: Ability = {
   damageType: 'NONE',
   effects: [
     {
+      type: 'FORCE_FACING'
+    },
+    {
       type: 'CONDITION',
       conditionType: 'CHALLENGED',
       magnitude: 0,

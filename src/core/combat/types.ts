@@ -116,8 +116,8 @@ export interface ActiveModifier {
 export interface ActiveCondition {
   readonly type: ConditionType;
   durationTurns: number;
-  readonly sourceUnitId: string;
-  readonly damagePerTurn?: number;
+  sourceUnitId: string;
+  damagePerTurn?: number;
 }
 
 /**

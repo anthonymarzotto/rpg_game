@@ -885,5 +885,67 @@ describe('Headless AI Decision Engine', () => {
         expect(action.reason).toContain('Prime flash powder disorientation before strike');
       }
     });
+
+    it('knight does not repeat challenging_shout on already-challenged target, conserving AP', () => {
+      const arena = createRadialArena(3);
+      const knight = createMockUnit('knight-enemy', 'Hostile Knight', 'ENEMY', {
+        activeClassId: 'knight',
+        starterAbilityIds: ['challenging_shout']
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50,
+        armor: 1
+      });
+
+      arena.setUnitPosition(knight.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [knight, hero], knight.id);
+      const knightCu = state.units.get(knight.id)!;
+      knightCu.currentAp = 1;
+
+      // Hero already has CHALLENGED from this knight
+      state.units.get(hero.id)!.activeConditions.push({
+        type: 'CHALLENGED',
+        durationTurns: 2,
+        sourceUnitId: knight.id
+      });
+
+      const action = decideNextAction(state, knight.id);
+      expect(action.type).toBe('CONSERVE_AP');
+      expect(action.reason).toContain('Conserving');
+    });
+
+    it('witch does not repeat witchs_talisman on ally with active speed buff or high initiative', () => {
+      const arena = createRadialArena(3);
+      const witch = createMockUnit('witch-enemy', 'Hostile Witch', 'ENEMY', {
+        activeClassId: 'witch',
+        starterAbilityIds: ['witchs_talisman']
+      });
+      const ally = createMockUnit('ally-enemy', 'Frontline Ally', 'ENEMY', {
+        maxHp: 50
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50
+      });
+
+      arena.setUnitPosition(witch.id, { q: 0, r: 0 });
+      arena.setUnitPosition(ally.id, { q: 1, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [witch, ally, hero], witch.id);
+      state.units.get(witch.id)!.currentAp = 1;
+
+      // Ally already has speed buff from a previous cast
+      state.units.get(ally.id)!.activeModifiers.push({
+        stat: 'speed',
+        value: 2,
+        durationTurns: 1
+      });
+
+      const action = decideNextAction(state, witch.id);
+      expect(action.type).toBe('CONSERVE_AP');
+      expect(action.reason).toContain('Conserving');
+    });
   });
 });

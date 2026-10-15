@@ -37,6 +37,7 @@ import { resolveUnitLoadout, LoadoutLookupProviders } from '../units/loadout';
 import { getClassPackage, getAbilityById, getPassiveById } from '../../data/packages';
 import { PassiveTriggerHook } from '../types/passive';
 import { evaluateTargetAuras } from './auras';
+import { getConditionDefinition } from './conditions';
 
 const defaultDiceRoller = new SeededDiceRoller();
 
@@ -780,8 +781,21 @@ export function executeAbility(
     }
   }
 
-  // Attacking from stealth breaks stealth
-  actorCu.activeConditions = actorCu.activeConditions.filter((c) => c.type !== 'STEALTH');
+  // Delegate post-action condition updates (e.g. attacking from stealth breaks stealth)
+  actorCu.activeConditions = actorCu.activeConditions.filter((c) => {
+    const def = getConditionDefinition(c.type);
+    if (def?.onAfterAction) {
+      const outcome = def.onAfterAction(c, actorCu, {
+        type: 'ATTACK',
+        ability,
+        target: targetCu
+      });
+      if (outcome?.removeCondition) {
+        return false;
+      }
+    }
+    return true;
+  });
 
   // Evaluate encounter outcome
   state.outcome = evaluateEncounterOutcome(state.objectives, state);

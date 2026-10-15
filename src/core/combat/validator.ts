@@ -3,6 +3,7 @@ import { Ability } from '../types/ability';
 import { CombatState, CombatUnit, ValidationResult } from './types';
 import { getEffectiveMove } from './effectiveVitals';
 import { getEffectiveAbility } from './modifiers';
+import { getConditionDefinition } from './conditions';
 
 function validateElevationReachAndRange(
   actorElevation: number,
@@ -170,11 +171,11 @@ export function canExecuteAbility(
       ) {
         return { valid: false, reason: 'Cannot attack a friendly unit.' };
       }
-      if (
-        targetCu.activeConditions?.some((c) => c.type === 'STEALTH') &&
-        (!cu.faction || !targetCu.faction || cu.faction !== targetCu.faction)
-      ) {
-        return { valid: false, reason: 'Cannot target a stealthed unit directly.' };
+      for (const cond of targetCu.activeConditions ?? []) {
+        const def = getConditionDefinition(cond.type);
+        if (def?.canBeTargeted && !def.canBeTargeted(cond, cu, targetCu, effectiveAbility)) {
+          return { valid: false, reason: 'Cannot target a stealthed unit directly.' };
+        }
       }
     }
 
