@@ -1,16 +1,25 @@
-import { Ability } from '../types/ability';
+import { Ability, AbilityEffect } from '../types/ability';
 import { EffectiveAbility } from '../types/modifier';
-import { CombatUnit, HitOutcome } from './types';
+import { CombatState, CombatUnit, HitOutcome } from './types';
 import { getEffectiveEvasion, getEffectiveResolve } from './effectiveVitals';
 import { DiceRoller, RollAdvantage } from './dice';
 import { COMBAT_RESOLUTION_CONFIG } from '../config/balance';
+import { HexCoord } from '../grid/hex';
+import { evaluateTargetAuras } from './auras';
+import { getConditionDefinition } from './conditions';
 
-export interface AttackRollOptions {
+export interface AttackRollEvaluationOptions {
+  readonly state?: CombatState;
+  readonly originCoord?: HexCoord;
+  readonly targetCoord?: HexCoord;
+  readonly elevationDelta?: number;
   readonly advantage?: RollAdvantage;
   readonly rollBonus?: number;
   readonly rollPenalty?: number;
-  readonly elevationDelta?: number;
+  readonly effect?: AbilityEffect;
 }
+
+export interface AttackRollOptions extends AttackRollEvaluationOptions {}
 
 export interface ElevationAttackModifierResult {
   readonly rollBonus: number;
@@ -18,6 +27,21 @@ export interface ElevationAttackModifierResult {
   readonly grantsAdvantage: boolean;
   readonly grantsDisadvantage: boolean;
   readonly description?: string;
+}
+
+export interface AttackRollContext {
+  readonly actor: CombatUnit;
+  readonly target: CombatUnit;
+  readonly netModifier: number;
+  readonly targetDefense: number;
+  readonly defenseType: 'Evasion' | 'Resolve';
+  readonly advantageSources: readonly string[];
+  readonly disadvantageSources: readonly string[];
+  readonly hasAdvantage: boolean;
+  readonly hasDisadvantage: boolean;
+  readonly finalAdvantage: RollAdvantage;
+  readonly neededRoll: number;
+  readonly hitProbability: number;
 }
 
 /**
@@ -93,8 +117,162 @@ export function getAttackRollModifier(actorCu: CombatUnit, ability: Ability): nu
 }
 
 /**
+ * Centrally evaluates the attack roll context, aggregating base modifiers, ability effects,
+ * conditions via the declarative registry, elevation difference (including spatial lookahead),
+ * protective auras, advantage/disadvantage determination, and exact d20 hit probability.
+ */
+export function evaluateAttackRollContext(
+  actorCu: CombatUnit,
+  targetCu: CombatUnit,
+  ability: Ability,
+  options?: AttackRollEvaluationOptions
+): AttackRollContext {
+  const baseModifier = getAttackRollModifier(actorCu, ability);
+  let totalBonus = options?.rollBonus ?? 0;
+  let totalPenalty = options?.rollPenalty ?? 0;
+  const advantageSources: string[] = [];
+  const disadvantageSources: string[] = [];
+
+  // 1. Explicit advantage/disadvantage in options
+  if (options?.advantage === 'ADVANTAGE') {
+    advantageSources.push('Context (Advantage)');
+  } else if (options?.advantage === 'DISADVANTAGE') {
+    disadvantageSources.push('Context (Disadvantage)');
+  }
+
+  // 2. Ability effect modifiers
+  const effect = options?.effect ?? ability.effects?.find((e) => e.type === 'DAMAGE');
+  if (effect) {
+    if (effect.grantsAdvantage) {
+      advantageSources.push('Ability Effect (Advantage)');
+    }
+    if (effect.grantsDisadvantage) {
+      disadvantageSources.push('Ability Effect (Disadvantage)');
+    }
+    if (effect.attackRollBonus) {
+      totalBonus += effect.attackRollBonus;
+    }
+    if (effect.attackRollPenalty) {
+      totalPenalty += effect.attackRollPenalty;
+    }
+  }
+
+  // 3. Elevation modifier (computed from coordinates or explicit elevationDelta)
+  let elevationDelta = options?.elevationDelta;
+  if (elevationDelta === undefined && options?.state) {
+    const effectiveOrigin = options.originCoord ?? options.state.arena.getUnitPosition(actorCu.unit.id);
+    const effectiveTarget = options.targetCoord ?? options.state.arena.getUnitPosition(targetCu.unit.id);
+    if (effectiveOrigin && effectiveTarget) {
+      const actorElevation = options.state.arena.getElevation(effectiveOrigin);
+      const targetElevation = options.state.arena.getElevation(effectiveTarget);
+      elevationDelta = actorElevation - targetElevation;
+    }
+  }
+
+  if (elevationDelta !== undefined && elevationDelta !== 0) {
+    const elevMod = calculateElevationAttackModifier(actorCu, elevationDelta, ability);
+    totalBonus += elevMod.rollBonus;
+    totalPenalty += elevMod.rollPenalty;
+    if (elevMod.grantsAdvantage) {
+      advantageSources.push(elevMod.description ?? 'Elevation Advantage');
+    }
+    if (elevMod.grantsDisadvantage) {
+      disadvantageSources.push(elevMod.description ?? 'Elevation Disadvantage');
+    }
+  }
+
+  // 4. Target protective auras (if state is present and rollPenalty wasn't already passed)
+  if (options?.rollPenalty === undefined && options?.state) {
+    const auraEval = evaluateTargetAuras(targetCu, actorCu, options.state);
+    totalPenalty += auraEval.attackRollPenalty;
+  }
+
+  // 5. Conditions on actor (outgoing)
+  if (actorCu.activeConditions) {
+    for (const cond of actorCu.activeConditions) {
+      const def = getConditionDefinition(cond.type);
+      const mod = def?.onOutgoingAttackRoll?.(cond, actorCu, targetCu, options?.state);
+      if (mod?.advantage) {
+        advantageSources.push(mod.description ?? `${cond.type} (Advantage)`);
+      }
+      if (mod?.disadvantage) {
+        disadvantageSources.push(mod.description ?? `${cond.type} (Disadvantage)`);
+      }
+      if (mod?.attackRollBonus) {
+        totalBonus += mod.attackRollBonus;
+      }
+      if (mod?.attackRollPenalty) {
+        totalPenalty += mod.attackRollPenalty;
+      }
+    }
+  }
+
+  // 6. Conditions on target (incoming)
+  if (targetCu.activeConditions) {
+    for (const cond of targetCu.activeConditions) {
+      const def = getConditionDefinition(cond.type);
+      const mod = def?.onIncomingAttackRoll?.(cond, actorCu, targetCu, options?.state);
+      if (mod?.advantage) {
+        advantageSources.push(mod.description ?? `${cond.type} (Advantage)`);
+      }
+      if (mod?.disadvantage) {
+        disadvantageSources.push(mod.description ?? `${cond.type} (Disadvantage)`);
+      }
+      if (mod?.attackRollBonus) {
+        totalBonus += mod.attackRollBonus;
+      }
+      if (mod?.attackRollPenalty) {
+        totalPenalty += mod.attackRollPenalty;
+      }
+    }
+  }
+
+  // 7. Advantage / Disadvantage cancellation
+  const hasAdvantage = advantageSources.length > 0;
+  const hasDisadvantage = disadvantageSources.length > 0;
+  const finalAdvantage: RollAdvantage =
+    hasAdvantage === hasDisadvantage ? 'NORMAL' : hasAdvantage ? 'ADVANTAGE' : 'DISADVANTAGE';
+
+  // 8. Defense target & net modifier
+  const netModifier = baseModifier + totalBonus - totalPenalty;
+  const targetDefense =
+    ability.defenseTarget === 'EVASION'
+      ? getEffectiveEvasion(targetCu)
+      : getEffectiveResolve(targetCu);
+  const defenseType = ability.defenseTarget === 'EVASION' ? 'Evasion' : 'Resolve';
+
+  // 9. Exact d20 probability math clamped between 5% and 95%
+  const neededRoll = Math.max(1, Math.min(20, targetDefense - netModifier));
+  const rawP = Math.max(0.05, Math.min(0.95, (21 - neededRoll) / 20));
+  let hitProbability: number;
+  if (finalAdvantage === 'ADVANTAGE') {
+    hitProbability = 1 - Math.pow(1 - rawP, 2);
+  } else if (finalAdvantage === 'DISADVANTAGE') {
+    hitProbability = Math.pow(rawP, 2);
+  } else {
+    hitProbability = rawP;
+  }
+  hitProbability = Math.max(0.05, Math.min(0.95, hitProbability));
+
+  return {
+    actor: actorCu,
+    target: targetCu,
+    netModifier,
+    targetDefense,
+    defenseType,
+    advantageSources,
+    disadvantageSources,
+    hasAdvantage,
+    hasDisadvantage,
+    finalAdvantage,
+    neededRoll,
+    hitProbability
+  };
+}
+
+/**
  * Resolves an attack roll comparing d20 + modifier against the target defense score,
- * supporting first-class Advantage/Disadvantage, elevation modifiers, and custom critical thresholds.
+ * supporting first-class Advantage/Disadvantage, elevation modifiers, conditions, and custom critical thresholds.
  */
 export function resolveAttackRoll(
   actorCu: CombatUnit,
@@ -103,49 +281,9 @@ export function resolveAttackRoll(
   diceRoller: DiceRoller,
   options?: AttackRollOptions
 ): AttackRollResult {
-  const baseModifier = getAttackRollModifier(actorCu, ability);
-  let totalBonus = options?.rollBonus ?? 0;
-  let totalPenalty = options?.rollPenalty ?? 0;
-  let hasAdvantage = options?.advantage === 'ADVANTAGE';
-  let hasDisadvantage = options?.advantage === 'DISADVANTAGE';
-
-  if (options?.elevationDelta !== undefined && options.elevationDelta !== 0) {
-    const elevMod = calculateElevationAttackModifier(
-      actorCu,
-      options.elevationDelta,
-      ability
-    );
-    totalBonus += elevMod.rollBonus;
-    totalPenalty += elevMod.rollPenalty;
-    if (elevMod.grantsAdvantage) hasAdvantage = true;
-    if (elevMod.grantsDisadvantage) hasDisadvantage = true;
-  }
-
-  const modifier = baseModifier + totalBonus - totalPenalty;
-  const targetDefense =
-    ability.defenseTarget === 'EVASION'
-      ? getEffectiveEvasion(targetCu)
-      : getEffectiveResolve(targetCu);
-
-  // Attacking from STEALTH grants Advantage
-  if (actorCu.activeConditions?.some((c) => c.type === 'STEALTH')) {
-    hasAdvantage = true;
-  }
-
-  // CHALLENGED imposes Disadvantage when attacking anyone other than the challenger
-  if (
-    actorCu.activeConditions?.some(
-      (c) => c.type === 'CHALLENGED' && c.sourceUnitId !== targetCu.unit.id
-    )
-  ) {
-    hasDisadvantage = true;
-  }
-
-  const finalAdvantage: RollAdvantage =
-    hasAdvantage === hasDisadvantage ? 'NORMAL' : hasAdvantage ? 'ADVANTAGE' : 'DISADVANTAGE';
-
-  const d20 = diceRoller.rollD20(finalAdvantage);
-  const totalScore = d20 + modifier;
+  const context = evaluateAttackRollContext(actorCu, targetCu, ability, options);
+  const d20 = diceRoller.rollD20(context.finalAdvantage);
+  const totalScore = d20 + context.netModifier;
 
   const isCritBoosted = ability.effects?.some((e) => e.type === 'CRIT_BOOST');
   let naturalCritThreshold = isCritBoosted ? 19 : 20;
@@ -171,13 +309,13 @@ export function resolveAttackRoll(
   let hitOutcome: HitOutcome = 'MISS';
   if (d20 >= naturalCritThreshold) {
     hitOutcome = 'CRITICAL_HIT';
-  } else if (d20 === 1 || totalScore < targetDefense - COMBAT_RESOLUTION_CONFIG.grazeMargin) {
+  } else if (d20 === 1 || totalScore < context.targetDefense - COMBAT_RESOLUTION_CONFIG.grazeMargin) {
     hitOutcome = 'MISS';
-  } else if (totalScore >= targetDefense) {
+  } else if (totalScore >= context.targetDefense) {
     hitOutcome = 'SOLID_HIT';
   } else {
     hitOutcome = 'GRAZE';
   }
 
-  return { hitOutcome, d20, modifier, totalScore, targetDefense };
+  return { hitOutcome, d20, modifier: context.netModifier, totalScore, targetDefense: context.targetDefense };
 }

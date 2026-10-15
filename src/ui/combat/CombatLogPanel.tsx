@@ -41,6 +41,7 @@ export type ParsedLogEntry =
       actor: string;
       isPlayer: boolean;
       ability: string;
+      target?: string;
       effectDetail: string;
       rawMessage: string;
     }
@@ -88,6 +89,7 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       actor: meta.actor,
       isPlayer,
       ability: meta.ability,
+      target: meta.target,
       effectDetail: meta.effectDetail ?? '',
       rawMessage: msg
     };
@@ -314,6 +316,14 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
                     </span>
                     <span className="log-ability-name">🛡️ {entry.ability}</span>
                   </div>
+                  {entry.target && entry.target !== entry.actor && (
+                    <div className="log-card-body">
+                      <div className="log-target-line">
+                        <span className="target-arrow">→</span>
+                        <span className="target-name">{entry.target}</span>
+                      </div>
+                    </div>
+                  )}
                   {entry.effectDetail && (
                     <div className="log-buff-detail">
                       <span>✨ {entry.effectDetail}</span>

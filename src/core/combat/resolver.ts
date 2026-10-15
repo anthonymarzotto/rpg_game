@@ -503,15 +503,26 @@ export function executeAbility(
       applyCombatEvents(state, allEvents);
       state.outcome = evaluateEncounterOutcome(state.objectives, state);
 
+      const externalTargets = targetCus.filter((c) => c.unit.id !== actorCu.unit.id);
+      const targetClause =
+        externalTargets.length > 0
+          ? ` on ${externalTargets.map((c) => c.unit.name).join(', ')}`
+          : '';
+      const targetMetadata =
+        externalTargets.length > 0
+          ? externalTargets.map((c) => c.unit.name).join(', ')
+          : undefined;
+
       state.combatLog.push({
         turnNumber: state.turnNumber,
         actorUnitId,
         actionId: effectiveAbility.id,
-        message: `${actorCu.unit.name} used ${effectiveAbility.name}.${combinedLog}`,
+        message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${combinedLog}`,
         metadata: {
           type: 'BUFF',
           actor: actorCu.unit.name,
           ability: effectiveAbility.name,
+          target: targetMetadata,
           effectDetail: combinedLog.trim()
         }
       });
@@ -549,15 +560,18 @@ export function executeAbility(
       durationTurns: 0
     };
 
+    const isSelfTarget = targetCu.unit.id === actorCu.unit.id;
+    const targetClause = isSelfTarget ? '' : ` on ${targetCu.unit.name}`;
     state.combatLog.push({
       turnNumber: state.turnNumber,
       actorUnitId,
       actionId: effectiveAbility.id,
-      message: `${actorCu.unit.name} used ${effectiveAbility.name}.${effectResult.logDetail ?? ''}`,
+      message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${effectResult.logDetail ?? ''}`,
       metadata: {
         type: 'BUFF',
         actor: actorCu.unit.name,
         ability: effectiveAbility.name,
+        target: isSelfTarget ? undefined : targetCu.unit.name,
         effectDetail: effectResult.logDetail?.trim() ?? ''
       }
     });

@@ -7,7 +7,7 @@ Provides a composable atomic effect pipeline and declarative ability modifier en
 ## Requirements
 
 ### Requirement: Composable Ability Effects Pipeline
-The combat engine SHALL model abilities as an execution envelope containing an array of atomic `AbilityEffect` objects rather than a single monolithic damage profile and secondary effect. Each effect SHALL declare its type, execution payload, optional `targetScope` (`'TARGET' | 'SELF' | 'ALLIES'`), and optional `applyOn` trigger condition (`'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY'`).
+The combat engine SHALL model abilities as an execution envelope containing an array of atomic `AbilityEffect` objects rather than a single monolithic damage profile and secondary effect. Each effect SHALL declare its type, execution payload, optional `targetScope` (`'TARGET' | 'SELF' | 'ALLIES'`), optional `applyOn` trigger condition (`'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY'`), and optional to-hit modifiers including `grantsAdvantage`, `grantsDisadvantage`, `attackRollBonus`, and `attackRollPenalty`.
 
 #### Scenario: Multi-effect execution on hit
 - **WHEN** an ability with both a physical damage effect and a knockback effect scores a solid hit against an enemy
@@ -20,6 +20,10 @@ The combat engine SHALL model abilities as an execution envelope containing an a
 #### Scenario: Secondary effects negated on graze
 - **WHEN** an attack with `applyOn: 'HIT_OR_CRIT'` secondary effects (e.g. poison condition or knockback) scores a Graze outcome
 - **THEN** the damage effect resolves at half value and all secondary effects are negated
+
+#### Scenario: Ability effect imposes disadvantage on attack roll
+- **WHEN** an attack ability effect specifies `grantsDisadvantage: true`
+- **THEN** the attack roll evaluates with Disadvantage unless canceled by an Advantage source
 
 ### Requirement: Universal Declarative Ability Modifiers
 The combat engine SHALL provide an `AbilityModifier` contract that declarative patches can use to modify any property of an ability. Modifiers SHALL support numeric deltas (`apCost`, `range`, `aoeRadius`), property overrides (`archetypeTag`, `defenseTarget`, `attackModifierAttribute`, `targetType`), effect appends, and damage profile patches (die steps, die counts, flat damage). Modifiers SHALL support lifecycle scoping (`isPermanent`, `durationTurns`, `consumesOnUse`) and applicability filtering (`abilityIds`, `archetypeTags`, `damageTypes`).

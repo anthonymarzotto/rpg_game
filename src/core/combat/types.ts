@@ -199,6 +199,7 @@ export type CombatLogMetadata =
       readonly type: 'BUFF';
       readonly actor: string;
       readonly ability: string;
+      readonly target?: string;
       readonly effectDetail?: string;
     }
   | {

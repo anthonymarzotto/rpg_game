@@ -179,7 +179,33 @@ describe('parseCombatLogMessage', () => {
     if (parsed.type === 'BUFF') {
       expect(parsed.actor).toBe('Vael (Wizard)');
       expect(parsed.ability).toBe('Minor Ward');
+      expect(parsed.target).toBeUndefined();
       expect(parsed.effectDetail).toContain('+2 Armor for 2 turn(s)');
+    }
+  });
+
+  it('parses targeted buff/debuff ability entry with target', () => {
+    const entry: CombatLogEntry = {
+      turnNumber: 2,
+      actorUnitId: 'player-witch',
+      actionId: 'witchs_talisman',
+      message: "Morrigan (Witch) used Witch's Talisman on Alden (Warrior). ⚡ [Speed Buff: +2 Initiative for 2 turn(s)]",
+      metadata: {
+        type: 'BUFF',
+        actor: 'Morrigan (Witch)',
+        ability: "Witch's Talisman",
+        target: 'Alden (Warrior)',
+        effectDetail: '+2 Initiative for 2 turn(s)'
+      }
+    };
+
+    const parsed = parseCombatLogMessage(entry);
+    expect(parsed.type).toBe('BUFF');
+    if (parsed.type === 'BUFF') {
+      expect(parsed.actor).toBe('Morrigan (Witch)');
+      expect(parsed.ability).toBe("Witch's Talisman");
+      expect(parsed.target).toBe('Alden (Warrior)');
+      expect(parsed.effectDetail).toContain('+2 Initiative for 2 turn(s)');
     }
   });
 

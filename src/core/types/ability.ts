@@ -63,6 +63,12 @@ export interface AbilityEffect {
   readonly bonusDamage?: DiceProfile;
   /** Whether satisfying condition grants advantage on attack roll */
   readonly grantsAdvantage?: boolean;
+  /** Whether this effect imposes disadvantage on the attack roll */
+  readonly grantsDisadvantage?: boolean;
+  /** Flat bonus to the attack roll modifier from this effect */
+  readonly attackRollBonus?: number;
+  /** Flat penalty to the attack roll modifier from this effect */
+  readonly attackRollPenalty?: number;
 }
 
 export type AIRole = 'PRIMER' | 'FINISHER' | 'DEFENSIVE' | 'DISRUPTION' | 'UTILITY' | 'MELEE_CONTINGENCY';

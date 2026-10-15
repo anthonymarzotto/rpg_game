@@ -688,6 +688,45 @@ describe('Attack & Ability Resolution Outcomes', () => {
         expect(state.combatLog[0].message).toContain('[Elevation: Low Ground Penalty Negated]');
       }
     });
+
+    it('records target in message and metadata for targeted support abilities, but omits target for self-buffs', () => {
+      const arena = createRadialArena(3);
+      const mage = createRecruit('mage', 'Vael');
+      const ally = createRecruit('ally', 'Alden');
+
+      arena.setUnitPosition('mage', { q: 0, r: 0 });
+      arena.setUnitPosition('ally', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [mage, ally], 'mage');
+      const dice = new MockDiceRoller();
+
+      // Targeted ally buff: Minor Ward on Alden
+      executeAbility(state, 'mage', MINOR_WARD, { targetUnitId: 'ally' }, dice);
+
+      expect(state.combatLog.length).toBe(1);
+      const targetedLog = state.combatLog[0];
+      expect(targetedLog.message).toContain('Vael used Minor Ward on Alden.');
+      expect(targetedLog.metadata.type).toBe('BUFF');
+      if (targetedLog.metadata.type === 'BUFF') {
+        expect(targetedLog.metadata.actor).toBe('Vael');
+        expect(targetedLog.metadata.ability).toBe('Minor Ward');
+        expect(targetedLog.metadata.target).toBe('Alden');
+      }
+
+      // Self buff: Minor Ward on self
+      executeAbility(state, 'mage', MINOR_WARD, { targetUnitId: 'mage' }, dice);
+
+      expect(state.combatLog.length).toBe(2);
+      const selfLog = state.combatLog[1];
+      expect(selfLog.message).toContain('Vael used Minor Ward.');
+      expect(selfLog.message).not.toContain('on Vael');
+      expect(selfLog.metadata.type).toBe('BUFF');
+      if (selfLog.metadata.type === 'BUFF') {
+        expect(selfLog.metadata.actor).toBe('Vael');
+        expect(selfLog.metadata.ability).toBe('Minor Ward');
+        expect(selfLog.metadata.target).toBeUndefined();
+      }
+    });
   });
 });
 

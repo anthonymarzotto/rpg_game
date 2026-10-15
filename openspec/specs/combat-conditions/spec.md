@@ -32,7 +32,7 @@ The system SHALL evaluate all active damage-over-time conditions (`POISON` and `
 - **THEN** the unit is marked as defeated immediately and their turn terminates without granting AP
 
 ### Requirement: Behavioral Condition Enforcement
-The system SHALL enforce tactical and behavioral constraints imposed by active conditions, including targeting prevention for `STEALTH` and roll penalties for `CHALLENGED`.
+The system SHALL enforce tactical and behavioral constraints imposed by active conditions through a declarative condition registry, including targeting prevention for `STEALTH` and roll penalties for `CHALLENGED` applied symmetrically to attack rolls and targeting previews.
 
 #### Scenario: Stealth prevents single-target hostile targeting
 - **WHEN** an enemy attempts to execute a single-target ability targeting a unit with the `STEALTH` condition
@@ -46,6 +46,11 @@ The system SHALL enforce tactical and behavioral constraints imposed by active c
 #### Scenario: Challenged condition imposes Disadvantage
 - **WHEN** a unit with an active `CHALLENGED` condition attacks a target that is NOT the challenger (`sourceUnitId`)
 - **THEN** the attack roll evaluates with Disadvantage
+
+#### Scenario: Challenged condition applies Disadvantage to targeting preview
+- **WHEN** a unit with an active `CHALLENGED` condition previews an attack against a target that is NOT the challenger (`sourceUnitId`)
+- **THEN** the previewed hit chance is calculated using the Disadvantage formula ($p^2$)
+- **THEN** the preview indicates active Disadvantage
 
 ### Requirement: CTB Gauge Manipulation & Pre-Encounter Setup
 The system SHALL support direct adjustments to a unit's CTB initiative gauge during combat and provide a pre-encounter setup pass allowing passives and scenario modifiers to seed starting initiative or conditions.

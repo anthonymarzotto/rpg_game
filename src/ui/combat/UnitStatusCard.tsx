@@ -288,6 +288,16 @@ export function UnitStatusCard({
             <div className="preview-details-grid">
               <div>
                 Hit Chance: <b className="text-gold">{targetPreview.toHitChance}%</b>
+                {targetPreview.rollAdvantage === 'ADVANTAGE' && (
+                  <span className="roll-advantage-badge adv" title="Rolling with Advantage (higher of 2d20)">
+                    (Adv)
+                  </span>
+                )}
+                {targetPreview.rollAdvantage === 'DISADVANTAGE' && (
+                  <span className="roll-advantage-badge disadv" title="Rolling with Disadvantage (lower of 2d20)">
+                    (Disadv)
+                  </span>
+                )}
               </div>
               <div>
                 Target {targetPreview.defenseType}: <b>{targetPreview.targetDefense}</b>
