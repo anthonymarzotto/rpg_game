@@ -60,14 +60,18 @@ The system is organized into two strictly decoupled tiers:
 ### 2.2. Core Simulation Engine (Headless)
 * **Runtime**: Pure TypeScript executed in both browser and Node.js environments.
 * **Responsibilities**:
-  * Hexagonal coordinate math (supporting axial $(q, r)$ and cube $(q, r, s)$ representations) and elevation/height offsets.
-  * Spatial queries: range rings, distance formulas, line-of-sight, and pathfinding.
+  * Hexagonal coordinate math (supporting axial $(q, r)$ and cube $(q, r, s)$ representations), discrete elevation tiers ($h \in [0, 3]$), and height-aware traversal costs.
+  * Spatial queries: range rings, distance formulas, continuous 3D line-of-sight raycasting, and safety-weighted Dijkstra pathfinding.
   * Turn order management: Continuous Turn-Based (CTB) accumulator clock driving tactical turns. While the internal math uses continuous accumulator ticks, player-facing contracts and the presentation layer standardize strictly on **Initiative** and the **Turn Queue**.
-  * Deterministic rule resolution (hit rolls, damage formulas, archetype XP allocation).
+  * Deterministic rule resolution (hit rolls, damage formulas, kinetic displacement & wall-slams, archetype XP allocation).
   * Save/load serialization and deserialization.
 
 ### 2.3. Presentation & Rendering Layer
 * **React + SVG + CSS**: Declarative, high-contrast presentation layer combining vector geometry with pixel art assets built directly in the DOM.
+* **2.5D Extruded Hex Prisms**:
+  * Procedural extruded prism side walls (South, Southeast, Southwest edges) with gradient shading for tactile 3D relief.
+  * Painter's algorithm depth sorting ensuring elevated plateaus cleanly occlude background hexes.
+  * Dynamic Fall Hazard indicator badges on reachable tiles during movement previews.
 * **Hybrid Token & Asset Pipeline**:
   * **Primary Pixel Art Sprites**: `64x64` multi-directional PNG sprites (`public/assets/tokens/pixel/`) with 6 hex orientations + south facing, rendered with `image-rendering: pixelated;` to preserve crisp retro outlines.
   * **Scoped Asset Preloading**: Scoped asset preloader (`preloadCombatUnitTokens`) loads combatant sprite textures into the browser cache asynchronously before skirmishes launch.

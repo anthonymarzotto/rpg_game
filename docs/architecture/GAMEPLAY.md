@@ -183,15 +183,32 @@ Tactical positioning centers on true unit orientation on the hex grid. Every uni
 * **Allied Pincers**: If an ally of the attacker is engaged adjacent to the target, the target is considered flanked from all arcs regardless of their individual facing, enabling coordinated team flanking.
 * **Elevation & High Ground**: Ranged attacks from higher elevation gain range or attack roll bonuses.
 
-### 3.4. Tactical Grid Mechanics & Displacement
-* **Orientation**: Pointy-topped hexagonal tiles mapped in axial `(q, r)` and cube `(x, y, z)` spaces.
-* **Elevation**: Discrete integer heights (`0, 1, 2...`). Moving up an elevation difference $> 1$ is blocked without climbing abilities.
-* **Occupancy & Passability**: Strict single-unit occupancy. All occupied hexes (friendly or hostile) block movement pathing.
-* **Line-of-Sight (LoS)**: Both terrain obstacles (higher elevation) and intermediate units physically block Line-of-Sight for ranged abilities, allowing frontline units to screen allies.
-* **Knockback & Wall-Slam Collision**:
-  * When pushed (e.g. `Shield Bash`), the target displaces along the attacker $\rightarrow$ target vector.
-  * If the destination hex is off-map, a cliff/wall (elevation rise $\ge 2$), or occupied by another unit, displacement halts immediately.
-  * The target suffers **Wall-Slam Damage**: $\max(1, (1 + \text{Attacker Force}) - \text{Target Armor})$. If colliding with another unit, both take 1 point of collision impact.
+### 3.4. Tactical Grid Mechanics, Dynamic Elevation & Displacement
+* **Orientation & Arena Boundaries**:
+  * Pointy-topped hexagonal tiles mapped in axial `(q, r)` and cube `(x, y, z)` spaces. Standard arenas range from Radius 3 (early skirmishes) to Radius 4 (61 hexes, multi-terrace arenas).
+  * Arena boundaries remain solid perimeter walls (inflicting wall-slam collision damage on impact; no ring-out instant death).
+* **Discrete Hex Elevation Model ($h \in [0, 3]$)**:
+  * Hex tiles have discrete heights: `0` (low ground), `1` (terrace/hill), `2` (cliff/peak), `3` (high plateau).
+* **Movement & Traversal Costs**:
+  * Step cost formula: $1 + \max(0, \Delta h)$ Movement Points (MP). Flat step = 1 MP; Step Up +1 = 2 MP; Step Up +2 = 3 MP; Step Down = 1 MP.
+  * Maximum climb: $\Delta h \ge +3$ is strictly impassable without specialized abilities (e.g. Cat-Burglar *Rooftop Vault*).
+* **Ledge Drops & Unmitigated Fall Damage**:
+  * Stepping down $\Delta h = -1$ is safe and incurs 0 damage.
+  * Dropping down a cliff $\Delta h \le -2$ is permitted, but inflicts **Fall Impact Damage**: $|\Delta h| \times 4$, **strictly unmitigated by Armor** (armor provides zero cushion against gravity).
+  * Pathfinding automatically prioritizes safe zero-fall-damage routes first, and UI movement preview displays `⚠️ Fall Hazard: -X HP` on hovered drop tiles.
+* **Elevation Combat Modifiers**:
+  * **High-Ground Vantage**: Ranged attacks fired from higher elevation ($\Delta h \ge +1$) gain **+1 Effective Range** per elevation level.
+  * **Downward Targeting**: Firing downward onto a lower target grants **+2 to the Attack Roll** ($\Delta h = 1$) or **Advantage** ($\Delta h \ge +2$).
+  * **Upward Low-Ground Penalty**: Firing upward into higher elevation suffers **-2 to the Attack Roll** ($\Delta h = -1$) or **Disadvantage** ($\Delta h \le -2$).
+  * **Melee Reach Constraints**: Melee attacks are permitted across $|\Delta h| \le 1$ (inheriting downward attack roll bonuses), but are strictly out of reach across $|\Delta h| \ge 2$.
+* **Continuous 3D Line-of-Sight Raycasting**:
+  * Line-of-sight follows a 3D ray equation: $h_{\text{ray}}(t) = h_{\text{from}} + t \times (h_{\text{to}} - h_{\text{from}})$ for $t \in [0, 1]$ along intermediate hexes.
+  * An intermediate hex occludes LoS if $H_{\text{tile}} \ge h_{\text{ray}}(t)$, or if occupied by another unit or impassable obstacle (`RUINS`). High-ground units naturally shoot over lower intervening obstacles.
+* **Kinetic Displacement, Knockback & Plunging**:
+  * When pushed (e.g. `Shield Bash`, `Lance Charge`, `Eldritch Blast`), the target displaces along the attacker $\rightarrow$ target vector.
+  * **Upward Cliff-Slam**: Displacing into an elevation rise $\Delta h \ge 2$, an obstacle, or another unit halts displacement and inflicts **Wall-Slam Damage**: $\max(1, (1 + \text{Attacker Force}) - \text{Target Armor})$.
+  * **Plunging Knockback**: Knocking a unit off a ledge ($\Delta h \le -2$) drops them to the lower tile and inflicts Fall Impact Damage ($|\Delta h| \times 4$, unmitigated by Armor) in addition to displacement.
+  * Units with specialized passives (e.g., Cat-burglar's *Feline Grace*) take 0 collision/fall damage, safely rebounding over 1-hex obstacles or cliff tops.
 
 ### 3.5. Status Conditions & Combat Lifecycles
 Tactical actions and passives can inflict persistent conditions, direct CTB manipulation, and event-driven reactions:
@@ -238,22 +255,19 @@ A unit's combat loadout balances core class identity with cross-class customizat
 2. **Active Class Core Kit**:
    * Each unit designates one active class unlocked from their constellation.
    * The active class defines the unit's baseline combat deck: **1 Unique Signature Ability** + **2 Domain Pool Abilities** + **1 Innate Passive Trait**.
-   * **Tier 2 Pure Kits**:
-     * **Knight** `(2, 0, 0)`: Frontline leader & controller.
-       * *Lead the Charge* (Signature, 2 AP): 3-hex aura granting +2 Move and +2 Speed to the Knight and all allies within range for 2 turns.
-       * *Challenging Shout* (Domain, 1 AP): Forces a target within 3 hexes to rotate to face the Knight and inflicts `CHALLENGED` for 2 turns.
-       * *Pommel Strike* (Domain, 1 AP): Melee strike dealing 1d4 + Force physical damage and delaying target CTB initiative by -20 on hit/crit.
+   * For the comprehensive catalog of all active class kits (Tier 1 through Tier 3), see [`docs/architecture/CLASS_PACKAGES.md`](file:///c:/Repos/rpg_game/docs/architecture/CLASS_PACKAGES.md).
+   * **Illustrative Examples**:
+     * **Pure Class — Knight `(2, 0, 0)`**:
+       * *Lead the Charge* (Signature, 2 AP): 3-hex aura granting +2 Move and +2 Speed to allies for 2 turns.
+       * *Challenging Shout* (Domain, 1 AP): Forces target within 3 hexes to face the Knight and inflicts `CHALLENGED` for 2 turns.
+       * *Pommel Strike* (Domain, 1 AP): Melee strike dealing 1d4 + Force physical damage and delaying target CTB initiative by 20 on hit/crit.
        * *Tactical Vanguard* (Passive): Seeds +25 starting initiative gauge at battle start.
-     * **Infiltrator** `(0, 2, 0)`: Shadow stalker & saboteur.
-       * *Expose Weakness* (Signature, 1 AP): Target suffers -2 Armor and -2 Evasion for 2 turns.
-       * *Smoke Veil* (Domain, 1 AP): Self-stealth for 1 turn, rendering unit immune to single-target hostile attacks; attacking from stealth rolls with Advantage and breaks stealth.
-       * *Toxic Shiv* (Domain, 1 AP): Melee strike dealing 1d4 + Finesse physical damage and inflicting `POISON` for 2 turns (2 damage/turn).
-       * *Elusive Stride* (Passive): Moving during combat grants +2 Evasion lasting until the start of the unit's next turn.
-     * **Sorcerer** `(0, 0, 2)`: Metamagic sculptor & wild magic conduit.
-       * *Spell Sculpt* (Signature, 1 AP, once/turn): Primes an in-combat ability modifier granting +1 Range and +1 AoE splash radius to the next cast Mage spell.
-       * *Ignite* (Domain, 1 AP): Ranged spell dealing 1d4 + Focus fire damage and inflicting `BURN` for 2 turns (2 damage/turn).
-       * *Gust* (Domain, 1 AP): Pushes target 1 hex directly away from the caster, triggering wall-slam collision rules if obstructed.
-       * *Wild Surge* (Passive): Critical hits with magical spells trigger a spontaneous 1d3 surge (+1 AP refund, +25 CTB boost, or 2 magic damage to a random enemy in range 3).
+     * **Hybrid Class — Cavalier `(2, 1, 0)`**:
+       * *Lance Charge* (Signature, 2 AP): Straight-line 2–3 hex charge dealing 1d8 + Force physical damage and knocking target back 1 hex with wall-slam collision risk.
+       * *Ride-Through* (Domain, 1 AP): 1d4 + Finesse saber strike advancing through target into rear hex.
+       * *Flamboyant Flourish* (Domain, 1 AP): Aristocratic taunt inflicting `CHALLENGED` for 2 turns and granting self +2 Evasion for 1 turn.
+       * *Impact Velocity* (Passive): +2 flat collision and wall-slam damage bonus caused by this unit.
+
 3. **Cross-Class Wildcard Slots**:
    * Units equip additional wildcard abilities and passives unlocked from any past class or off-node milestone along their constellation path:
      * **Active Wildcards** (2 slots): Expand active tactical options with abilities from past classes, recruits, or off-node domain skill unlocks.

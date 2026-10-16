@@ -43,19 +43,18 @@ The primary progression engine revolves around the three archetypes. Each archet
 | **Rogue** | Finesse | `--color-archetype-rogue` | `#10b981` | Emerald / Jade — speed, criticals, flanking, agility |
 | **Mage** | Focus | `--color-archetype-mage` | `#8b5cf6` | Violet / Arcane — spell fields, barriers, resolve |
 
-### 2.2. Class Highlights
+### 2.2. Class Highlights & Badges
 
-Specific class nodes in the Constellation and combat arena have distinct thematic accents for currently implemented classes:
+Key class nodes in the Constellation and arena have thematic CSS color tokens in `tokens.css`:
+* `--color-class-novice`: `#94a3b8` (Unformed Slate / Silver)
+* `--color-class-warrior`: `#f97316` (Tempered Bronze / Amber)
+* `--color-class-thief`: `#34d399` (Shadow Emerald)
+* `--color-class-wizard`: `#a78bfa` (Starlight Lavender)
+* `--color-class-knight`: `#f59e0b` (Royal Amber Gold)
+* `--color-class-infiltrator`: `#059669` (Nightshade Jade)
+* `--color-class-sorcerer`: `#7c3aed` (Deep Starlight Indigo)
 
-* **Foundation Classes (Tier 1)**:
-  * `--color-class-novice`: `#94a3b8` (Unformed Slate / Silver)
-  * `--color-class-warrior`: `#f97316` (Tempered Bronze / Amber)
-  * `--color-class-thief`: `#34d399` (Shadow Emerald)
-  * `--color-class-wizard`: `#a78bfa` (Starlight Lavender)
-* **Specialized Classes (Tier 2)**:
-  * `--color-class-knight`: `#f59e0b` (Royal Amber Gold / Burnished Steel) — Sprite `02_human_male`
-  * `--color-class-infiltrator`: `#059669` (Nightshade Jade / Obsidian Shadow) — Sprite `82_human_male`
-  * `--color-class-sorcerer`: `#7c3aed` (Deep Starlight Indigo / Wild Arcane) — Sprite `98_human_male`
+*(Note: Advanced and hybrid class cards dynamically resolve high-contrast primary and border colors via `CLASS_BADGE_PALETTES` in `src/ui/combat/tokenAssets.ts`)*.
 
 ### 2.3. Tactical Factions & UI States
 
@@ -83,7 +82,13 @@ Specific class nodes in the Constellation and combat arena have distinct themati
 * `--shadow-glass`: `0 8px 32px 0 rgba(0, 0, 0, 0.37)`
 * `--blur-panel`: `blur(12px)`
 
-### 2.5. Typography Scale
+### 2.5. Tactical Elevation Visuals & Badges
+
+* **Extruded Relief**: Elevated terrain tiers display darker extruded side-wall shading to convey tactile 3D depth.
+* **Elevation Badges**: Elevated terrain tiles display luminous contour badges (`+1`, `+2`, `+3`) in the hex corner.
+* **Fall Hazard Indicators**: Reachable tiles incurring dangerous cliff drops ($\Delta h \le -2$) display an animated amber hazard badge (`⚠️ Fall Hazard: -X HP`) during move action hover.
+
+### 2.6. Typography Scale
 
 * **Display Font** (`--font-display`): `system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`
   * Used for: Titles, victory/defeat headers, class names, camp banners.
@@ -95,7 +100,7 @@ Specific class nodes in the Constellation and combat arena have distinct themati
   * Used for: Combat log entries, HP/AP numerical values, Initiative / timeline ticks, dice roll breakdowns.
   * Ensures clean tabular alignment of numbers in tactical combat.
 
-### 2.6. Ability Modification & Attribution Styling
+### 2.7. Ability Modification & Attribution Styling
 
 * **Action Bar Augment Indicators**:
   * Action buttons with active in-combat modifiers or socketed augment shards display an illuminated celestial glyph (`✦`) in the upper corner.

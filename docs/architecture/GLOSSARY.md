@@ -75,6 +75,10 @@ The world of Astral Tactics centers on celestial navigation, astral rifts, and s
 | **Metamagic Primer** | Buff, Spell charge | An in-combat modifier that enhances and is consumed by the next cast spell (e.g. *Spell Sculpt*). |
 | **Wild Surge** | Magic miscast, Wild magic | Spontaneous celestial surges triggered by spell critical hits from the Sorcerer's *Wild Surge*. |
 | **Wall-Slam Impact** | Knockback damage, Collision | Bonus physical damage suffered when forced kinetic displacement collides with walls or obstacles. |
+| **Elevation Tier** | Height, Level | Discrete terrain altitude ($0$ to $3$) determining tactical vantage and step costs. |
+| **Ledge Drop** | Cliff Jump, Drop | Stepping down a height difference of 2 or more ($\Delta h \le -2$), incurring fall impact. |
+| **Fall Impact Damage** | Gravity damage, Fall damage | Unmitigated kinetic damage ($|\Delta h| \times 4$) suffered from dropping $\Delta h \le -2$. |
+| **Cliff Slam** | Wall slam, Wall impact | Collision impact suffered when displacement pushes a unit into a cliff face ($\Delta h \ge 2$). |
 | **Threat Budget** | Difficulty Rating, Enemy Points | The numerical cap used by the procedural generator to budget hostile archetype quantities. |
 
 ---
@@ -104,20 +108,10 @@ When generating or refactoring user interface elements, refer to this standard p
 
 ---
 
-## 4. Class Packages & Archetype Tokens
+## 4. Archetype Triad & Color Signatures
 
-Class names remain grounded and direct, while archetype accents maintain high-contrast accessibility:
+Archetype accents maintain high-contrast accessibility across all UI meters, dice, and markers:
 
-* **Archetypes**:
-  * **Fighter / Force**: `--color-archetype-fighter` (`#ef4444` Crimson / Rust)
-  * **Rogue / Finesse**: `--color-archetype-rogue` (`#10b981` Emerald / Jade)
-  * **Mage / Focus**: `--color-archetype-mage` (`#8b5cf6` Starlight Violet)
-* **Foundation Classes (Tier 1)**:
-  * **Novice**: `--color-class-novice` (`#94a3b8` Silver Slate)
-  * **Warrior**: `--color-class-warrior` (`#f97316` Tempered Bronze)
-  * **Thief**: `--color-class-thief` (`#34d399` Shadow Emerald)
-  * **Wizard**: `--color-class-wizard` (`#a78bfa` Starlight Lavender)
-* **Specialized Classes (Tier 2)**:
-  * **Knight**: `--color-class-knight` (`#f59e0b` Royal Amber Gold / Burnished Steel) — Token: `02_human_male`
-  * **Infiltrator**: `--color-class-infiltrator` (`#059669` Obsidian Shadow / Nightshade Jade) — Token: `82_human_male`
-  * **Sorcerer**: `--color-class-sorcerer` (`#7c3aed` Deep Starlight Indigo / Wild Arcane) — Token: `98_human_male`
+* **Fighter / Force**: `--color-archetype-fighter` (`#ef4444` Crimson / Rust)
+* **Rogue / Finesse**: `--color-archetype-rogue` (`#10b981` Emerald / Jade)
+* **Mage / Focus**: `--color-archetype-mage` (`#8b5cf6` Starlight Violet)
