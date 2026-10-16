@@ -1,0 +1,92 @@
+# Astral Tactics — Strategic Roadmap
+
+> **The Architectural North Star**: Every gameplay mechanic, AI decision model, and data pipeline is implemented and verified first as pure headless TypeScript logic in `src/core/` before integrating with the React + SVG + CSS presentation tier.
+
+---
+
+## Horizon 1: Combat Feel & Tactical Clarity
+
+**Goal**: Transform the combat experience from "mechanically functional" to "tactile, clear, and perfectly balanced."
+
+1. **Unit Inspection & State Visibility**:
+   * Click-to-pin unit inspection cards during combat for both allies and enemies.
+   * Interactive hover tooltips for active conditions (`POISON`, `BURN`, `STEALTH`, `CHALLENGED`, stat buffs).
+   * Transparent enemy ability preview (view threat range, primary attacks, remaining AP).
+2. **Tactical Facing Control**:
+   * Post-move facing selection: upon moving to a destination hex, prompt a directional wheel/arrow to set unit orientation before ending the action or taking follow-up actions.
+3. **Initiative & Combat Tempo Balance**:
+   * Break the "player-always-acts-first" tempo lock. Add randomized initial CTB ticks, agility modifiers, or enemy ambush conditions.
+   * Rebalance Rogue/Thief action economy to prevent disproportionate turn frequency and XP accumulation compared to Fighters and Mages.
+4. **Progression Smoothing**:
+   * Alleviate the friction of using basic Novice skills to grind off-archetype XP. Explore ability starring, secondary archetype victory resonance, or flexible skirmish XP allocation.
+
+---
+
+## Horizon 2: Expedition Sector Map & Roguelike Run Loop
+
+**Goal**: Replace linear stage progression with a strategic, non-linear expedition map, ambient micro-lore, and a satisfying run completion loop.
+
+1. **Procedural Sector Navigation (`src/core/campaign/sectorMap.ts`)**:
+   * Directed Acyclic Graph (DAG) generation connecting nodes across 3–4 expedition sectors:
+     * **Skirmish Trials**: Standard void incursion battles.
+     * **Elite Anomalies**: High-threat battles yielding rare augment shards and relics.
+     * **Celestial Havens**: Safe campsites to heal HP, re-attune abilities, and recruit novices.
+     * **Astral Shrines**: Risky altars offering powerful blessings in exchange for permanent vitals.
+     * **Mystery Rifts**: Unpredictable celestial rifts with dice-check outcomes.
+2. **Ambient Micro-Lore & Narrative Framing**:
+   * Maintain a **gameplay-first, zero-friction** narrative style:
+     * **Named Astral Sectors**: Thematic sector names (*The Obsidian Verge*, *The Weeping Nebula*, *The Shattered Apex*, *The Clockwork Abyss*) with distinct environmental hazard rules.
+     * **Shrine Vignettes**: 2-sentence mysterious narrative choices presenting clear risk vs. reward without long exposition.
+     * **Battle Barks**: 1-sentence floating combat whispers triggered on key events (entering stealth, blood frenzy, killing blows).
+     * **Shard & Class Epigraphs**: Short, poetic lore fragments embedded in ability tooltips and Constellation cards.
+3. **Expedition Win/Loss Closure & Run Summary**:
+   * Sector boss encounters concluding each sector.
+   * Final Trial victory screen: Run Summary showing battles won, MVPs, total starlight harvested, and constellation mastery achieved.
+4. **Passive Squad Relics (`src/core/items/`)**:
+   * Global run modifiers found during exploration (e.g. *Chrono Hourglass* boosting unspent AP refund, *Sunstone Prism* expanding aura radii).
+
+---
+
+## Horizon 3: Sensory Juice, Visual Dice & Audio Engine
+
+**Goal**: Give every tactical choice visceral physical feedback.
+
+1. **Visual Dice Tumbler Tray**:
+   * 3D/2.5D tumbling dice modal that animates attack, defense, and crit rolls, landing on values with kinetic screen impacts.
+2. **Procedural & Synthesized Audio**:
+   * Lightweight Web Audio API or audio sprite sound engine:
+     * Dice rolling and clattering on the tray.
+     * Kinetic impact sounds (blade clash, blunt thud, wall slam, spell burst).
+     * Interface sounds (hex selection, turn chimes, condition popups).
+     * Dynamic victory fanfare and ambient astral drone.
+3. **Tactile Screen Effects**:
+   * Directional screen-shake on wall collisions and critical strikes.
+   * Polished bezier floating combat text (Physical: orange, Magic: violet, Healing: emerald, DoTs: crimson).
+
+---
+
+## Horizon 4: Expanded Roster & Boss Behemoths
+
+**Goal**: Scale the 100-class pyramid and introduce massive adversaries.
+
+1. **Tier 4 Class Packages (6 Classes)**:
+   * *Paladin* `(3, 0, 1)` (Fighter/Mage — Holy Vanguard & Ward Guardian)
+   * *Warden* `(3, 1, 0)` (Fighter/Rogue — Sentinel & Boundary Anchor)
+   * *Assassin* `(1, 3, 0)` (Rogue/Fighter — Executioner & Lethal Ambush)
+   * *Shadowblade* `(0, 3, 1)` (Rogue/Mage — Arcane Trickster & Blink Striker)
+   * *Battlemage* `(1, 0, 3)` (Mage/Fighter — Spell-Shield Juggernaut)
+   * *Elementalist* `(0, 1, 3)` (Mage/Rogue — Chaos Evoker & Storm Sculptor)
+2. **Multi-Hex Boss Behemoths**:
+   * Multi-tile astral entities occupying 2–3 contiguous hex footprints with custom directional arcs and multi-phase action economies.
+3. **Higher Pyramid Horizons**:
+   * Progressive authoring of Tier 5–9 class nodes advancing toward the geometric centroid (*Bard* `3, 3, 3`).
+
+---
+
+## 🔮 Future Systems Exploration (Unscheduled)
+
+Broad mechanical concepts to prototype and evaluate after the core run loop is established:
+
+* **Nemeses**: Enemies that flee at low HP threshold, level up, and return in later sectors with higher threat budgets, counter-abilities, and persistent battle history.
+* **Camp Tutoring**: Veterans training Novices in Camp by passing on earned archetype XP while sitting out trials for a set number of rounds.
+* **Wayfarer Aging & Mortality**: Units aging after each skirmish, progressing through age brackets with changing stat modifiers, and eventually retiring into Constellation legends.
