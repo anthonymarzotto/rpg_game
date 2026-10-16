@@ -106,4 +106,127 @@ describe('useFloatingCombatText: resolveDamageFloatingText', () => {
     };
     expect(resolveDamageFloatingText(solidEvent, 'SOLID_HIT').text).toBe('-4');
   });
+
+  it('formats unlabelled COLLISION damage as SLAM! and FALL damage as FALL!', () => {
+    const wallCollisionEvent: Extract<CombatEvent, { type: 'DAMAGE' }> = {
+      type: 'DAMAGE',
+      targetUnitId: 'dummy',
+      amount: 3,
+      damageType: 'PHYSICAL',
+      reason: 'COLLISION'
+    };
+    const collisionResult = resolveDamageFloatingText(wallCollisionEvent, 'SOLID_HIT');
+    expect(collisionResult.text).toBe('SLAM! -3');
+    expect(collisionResult.textType).toBe('slam');
+
+    const fallEvent: Extract<CombatEvent, { type: 'DAMAGE' }> = {
+      type: 'DAMAGE',
+      targetUnitId: 'dummy',
+      amount: 5,
+      damageType: 'PHYSICAL',
+      reason: 'FALL'
+    };
+    const fallResult = resolveDamageFloatingText(fallEvent, 'SOLID_HIT');
+    expect(fallResult.text).toBe('FALL! -5');
+    expect(fallResult.textType).toBe('slam');
+  });
+});
+
+describe('useFloatingCombatText: collectResolutionFloatingTexts', () => {
+  it('collects floaters for non-attack resolutions with knockback and collision damage', async () => {
+    const { collectResolutionFloatingTexts } = await import('./useFloatingCombatText');
+    const { createRadialArena } = await import('../../core/grid/templates');
+    const { createRecruit } = await import('../../core/units/unitFactory');
+    const { createCombatState } = await import('../../core/combat/resolver');
+    const { GUST } = await import('../../data/packages/sorcerer');
+
+    const arena = createRadialArena(3);
+    const sorcerer = createRecruit('sorcerer', 'Sorcerer');
+    const goblin = createRecruit('goblin', 'Goblin');
+    arena.setUnitPosition('sorcerer', { q: 0, r: 0 });
+    arena.setUnitPosition('goblin', { q: 1, r: 0 });
+    const state = createCombatState(arena, [sorcerer, goblin], 'sorcerer');
+
+    const resolution = {
+      type: 'BUFF' as const,
+      targetUnitId: 'goblin',
+      modifierApplied: { stat: 'armor' as const, value: 0, durationTurns: 0 },
+      events: [
+        {
+          type: 'DISPLACEMENT' as const,
+          unitId: 'goblin',
+          fromCoord: { q: 1, r: 0 },
+          toCoord: { q: 2, r: 0 },
+          kind: 'KNOCKBACK' as const
+        },
+        {
+          type: 'DAMAGE' as const,
+          targetUnitId: 'goblin',
+          amount: 2,
+          damageType: 'PHYSICAL' as const,
+          reason: 'COLLISION' as const
+        }
+      ]
+    };
+
+    const items = collectResolutionFloatingTexts(
+      state,
+      resolution,
+      GUST,
+      { q: 1, r: 0 },
+      { q: 0, r: 0 },
+      { q: 1, r: 0 },
+      'goblin'
+    );
+
+    const knockbackItem = items.find((i) => i.text === 'KNOCKBACK!');
+    expect(knockbackItem).toBeDefined();
+    expect(knockbackItem?.coord).toEqual({ q: 2, r: 0 });
+
+    const slamItem = items.find((i) => i.text === 'SLAM! -2');
+    expect(slamItem).toBeDefined();
+    expect(slamItem?.coord).toEqual({ q: 1, r: 0 });
+  });
+
+  it('collects TELEPORT! floater on non-attack teleportation resolution', async () => {
+    const { collectResolutionFloatingTexts } = await import('./useFloatingCombatText');
+    const { createRadialArena } = await import('../../core/grid/templates');
+    const { createRecruit } = await import('../../core/units/unitFactory');
+    const { createCombatState } = await import('../../core/combat/resolver');
+    const { SHADOW_STEP } = await import('../../data/packages/thief');
+
+    const arena = createRadialArena(3);
+    const thief = createRecruit('thief', 'Thief');
+    arena.setUnitPosition('thief', { q: 0, r: 0 });
+    const state = createCombatState(arena, [thief], 'thief');
+
+    const resolution = {
+      type: 'BUFF' as const,
+      targetUnitId: 'thief',
+      modifierApplied: { stat: 'armor' as const, value: 0, durationTurns: 0 },
+      events: [
+        {
+          type: 'DISPLACEMENT' as const,
+          unitId: 'thief',
+          fromCoord: { q: 0, r: 0 },
+          toCoord: { q: 2, r: 0 },
+          kind: 'TELEPORT' as const
+        }
+      ]
+    };
+
+    const items = collectResolutionFloatingTexts(
+      state,
+      resolution,
+      SHADOW_STEP,
+      undefined,
+      { q: 0, r: 0 },
+      { q: 2, r: 0 },
+      undefined
+    );
+
+    const teleportItem = items.find((i) => i.text === 'TELEPORT!');
+    expect(teleportItem).toBeDefined();
+    expect(teleportItem?.coord).toEqual({ q: 2, r: 0 });
+  });
 });

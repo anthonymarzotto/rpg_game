@@ -46,6 +46,20 @@ export type ParsedLogEntry =
       rawMessage: string;
     }
   | {
+      type: 'UTILITY';
+      turn: number;
+      actor: string;
+      isPlayer: boolean;
+      ability: string;
+      target?: string;
+      effectDetail: string;
+      damageTotal?: string;
+      targetHp?: number;
+      targetMaxHp?: number;
+      secondaryDetail?: string;
+      rawMessage: string;
+    }
+  | {
       type: 'GENERIC';
       turn: number;
       actor: string;
@@ -91,6 +105,23 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       ability: meta.ability,
       target: meta.target,
       effectDetail: meta.effectDetail ?? '',
+      rawMessage: msg
+    };
+  }
+
+  if (meta?.type === 'UTILITY') {
+    return {
+      type: 'UTILITY',
+      turn,
+      actor: meta.actor,
+      isPlayer,
+      ability: meta.ability,
+      target: meta.target,
+      effectDetail: meta.effectDetail ?? '',
+      damageTotal: meta.damageTotal,
+      targetHp: meta.targetHp,
+      targetMaxHp: meta.targetMaxHp,
+      secondaryDetail: meta.secondaryDetail ?? '',
       rawMessage: msg
     };
   }
@@ -325,6 +356,58 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
                     </div>
                   )}
                   {entry.effectDetail && (
+                    <div className="log-buff-detail">
+                      <span>✨ {entry.effectDetail}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            if (entry.type === 'UTILITY') {
+              const utilityIcon = entry.ability.toLowerCase().includes('gust') ? '💨' : '🌀';
+              return (
+                <div
+                  key={idx}
+                  className={`log-card log-utility-card ${entry.isPlayer ? 'player-card' : 'enemy-card'} ${
+                    isNewest ? 'entry-fresh' : ''
+                  }`}
+                >
+                  <div className="log-card-header">
+                    <span className="log-turn-pill">T{entry.turn}</span>
+                    <span className={`log-actor-name ${entry.isPlayer ? 'actor-player' : 'actor-enemy'}`}>
+                      {entry.actor}
+                    </span>
+                    <span className="log-ability-name">{utilityIcon} {entry.ability}</span>
+                  </div>
+                  {entry.target && (
+                    <div className="log-card-body">
+                      <div className="log-target-line">
+                        <span className="target-arrow">→</span>
+                        <span className="target-name">{entry.target}</span>
+                        {entry.targetHp !== undefined && entry.targetMaxHp !== undefined && (
+                          <span className="target-hp-chip" title="Target Remaining HP">
+                            ❤️ {entry.targetHp}/{entry.targetMaxHp}
+                          </span>
+                        )}
+                      </div>
+
+                      {entry.damageTotal && (
+                        <div className="log-impact-line">
+                          <span className="impact-damage">
+                            💥 <strong>{entry.damageTotal}</strong> dmg
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {entry.secondaryDetail && (
+                    <div className="log-card-secondary">
+                      <span className="secondary-icon">⚡</span>
+                      <span className="secondary-text">{entry.secondaryDetail}</span>
+                    </div>
+                  )}
+                  {entry.effectDetail && !entry.damageTotal && (
                     <div className="log-buff-detail">
                       <span>✨ {entry.effectDetail}</span>
                     </div>

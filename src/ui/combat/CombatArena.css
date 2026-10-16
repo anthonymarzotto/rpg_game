@@ -957,6 +957,13 @@
   padding: 0.4rem 0.6rem;
 }
 
+/* Utility Card */
+.log-utility-card {
+  padding: 0.4rem 0.6rem;
+  border-left: 3px solid #14b8a6;
+  background: rgba(20, 184, 166, 0.05);
+}
+
 .log-buff-detail {
   font-size: 0.68rem;
   color: #fbbf24;

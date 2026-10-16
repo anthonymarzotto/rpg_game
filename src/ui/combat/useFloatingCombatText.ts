@@ -18,7 +18,7 @@ export function resolveDamageFloatingText(
   hitOutcome: HitOutcome
 ): { text: string; textType: FloatingText['type'] } {
   const textType: FloatingText['type'] =
-    event.reason === 'COLLISION' || event.reason === 'COLLATERAL' || event.reason === 'SPLASH'
+    event.reason === 'COLLISION' || event.reason === 'COLLATERAL' || event.reason === 'SPLASH' || event.reason === 'FALL'
       ? 'slam'
       : event.isCrit
       ? 'crit'
@@ -32,6 +32,8 @@ export function resolveDamageFloatingText(
       ? 'SLAM! '
       : event.reason === 'COLLATERAL'
       ? 'COLLISION! '
+      : event.reason === 'FALL'
+      ? 'FALL! '
       : event.reason === 'SPLASH'
       ? 'SPLASH! '
       : event.isCrit
@@ -44,6 +46,101 @@ export function resolveDamageFloatingText(
     text: `${prefix}-${event.amount}`,
     textType
   };
+}
+
+/**
+ * Pure evaluation function that calculates all floating combat text items,
+ * coordinates, styles, and delays resulting from an ability resolution.
+ */
+export function collectResolutionFloatingTexts(
+  state: CombatState,
+  resolution: AbilityResolution,
+  selectedAbility: Ability,
+  targetCoordBefore: HexCoord | undefined,
+  playerCoord: HexCoord | undefined,
+  clickedCoord: HexCoord,
+  targetUnitId?: string
+): Array<{ text: string; type: FloatingText['type']; coord: HexCoord; delay: number }> {
+  const result: Array<{ text: string; type: FloatingText['type']; coord: HexCoord; delay: number }> = [];
+
+  const hitOutcome = resolution.type === 'ATTACK' ? resolution.details.hitOutcome : 'SOLID_HIT';
+  if (resolution.type === 'ATTACK' && hitOutcome === 'MISS' && targetCoordBefore) {
+    result.push({ text: 'MISS', type: 'miss', coord: targetCoordBefore, delay: 0 });
+  }
+
+  const events: readonly CombatEvent[] =
+    resolution.type === 'ATTACK'
+      ? resolution.details.events
+      : (resolution.events ?? []);
+
+  for (const event of events) {
+    if (event.type === 'DAMAGE') {
+      const unitPos =
+        event.targetUnitId === targetUnitId && targetCoordBefore
+          ? targetCoordBefore
+          : state.arena.getUnitPosition(event.targetUnitId);
+      if (unitPos) {
+        const delay = event.reason === 'ATTACK' ? 0 : 350;
+        const { text, textType } = resolveDamageFloatingText(event, hitOutcome);
+        result.push({ text, type: textType, coord: unitPos, delay });
+      }
+    } else if (event.type === 'DISPLACEMENT') {
+      const text = event.kind === 'TELEPORT' ? 'TELEPORT!' : 'KNOCKBACK!';
+      result.push({ text, type: 'buff', coord: event.toCoord, delay: 250 });
+    } else if (event.type === 'STATUS_APPLIED') {
+      const unitPos = state.arena.getUnitPosition(event.targetUnitId) ?? clickedCoord;
+      if (event.modifier) {
+        result.push({
+          text: `+${event.modifier.value} ${event.modifier.stat.toUpperCase()}`,
+          type: 'buff',
+          coord: unitPos,
+          delay: 200
+        });
+      } else if (event.condition) {
+        result.push({
+          text: event.condition.type,
+          type: event.condition.type === 'POISON' || event.condition.type === 'BURN' ? 'damage' : 'buff',
+          coord: unitPos,
+          delay: 200
+        });
+      }
+    } else if (event.type === 'CONDITION_APPLIED') {
+      const unitPos = state.arena.getUnitPosition(event.targetUnitId) ?? clickedCoord;
+      result.push({
+        text: event.condition.type,
+        type: event.condition.type === 'POISON' || event.condition.type === 'BURN' ? 'damage' : 'buff',
+        coord: unitPos,
+        delay: 200
+      });
+    }
+  }
+
+  // Fallback for legacy BUFF resolutions without explicit STATUS_APPLIED event
+  if (
+    resolution.type === 'BUFF' &&
+    resolution.modifierApplied &&
+    resolution.modifierApplied.value !== 0 &&
+    !events.some((e) => e.type === 'STATUS_APPLIED')
+  ) {
+    result.push({
+      text: `+${resolution.modifierApplied.value} ${resolution.modifierApplied.stat.toUpperCase()}`,
+      type: 'buff',
+      coord: clickedCoord,
+      delay: 0
+    });
+  }
+
+  // XP Gain Float
+  if (selectedAbility.archetypeTag && playerCoord) {
+    result.push({
+      text: `+1 ${selectedAbility.archetypeTag} XP`,
+      type: 'xp',
+      coord: playerCoord,
+      delay: 300
+    });
+  }
+
+  return result;
 }
 
 /**
@@ -77,79 +174,24 @@ export function useFloatingCombatText() {
       clickedCoord: HexCoord,
       targetUnitId?: string
     ) => {
-      if (resolution.type === 'ATTACK') {
-        const hit = resolution.details.hitOutcome;
-        if (hit === 'MISS' && targetCoordBefore) {
-          addFloatingText('MISS', 'miss', targetCoordBefore);
-        }
+      const items = collectResolutionFloatingTexts(
+        state,
+        resolution,
+        selectedAbility,
+        targetCoordBefore,
+        playerCoord,
+        clickedCoord,
+        targetUnitId
+      );
 
-        for (const event of resolution.details.events) {
-          if (event.type === 'DAMAGE') {
-            const unitPos =
-              event.targetUnitId === targetUnitId && targetCoordBefore
-                ? targetCoordBefore
-                : state.arena.getUnitPosition(event.targetUnitId);
-            if (unitPos) {
-              const delay = event.reason === 'ATTACK' ? 0 : 350;
-              const { text, textType } = resolveDamageFloatingText(event, hit);
-              setTimeout(() => {
-                addFloatingText(text, textType, unitPos);
-              }, delay);
-            }
-          } else if (event.type === 'DISPLACEMENT' && event.kind === 'KNOCKBACK') {
-            setTimeout(() => {
-              addFloatingText('KNOCKBACK!', 'buff', event.toCoord);
-            }, 250);
-          } else if (event.type === 'STATUS_APPLIED') {
-            const unitPos = state.arena.getUnitPosition(event.targetUnitId) ?? clickedCoord;
-            setTimeout(() => {
-              if (event.modifier) {
-                addFloatingText(
-                  `+${event.modifier.value} ${event.modifier.stat.toUpperCase()}`,
-                  'buff',
-                  unitPos
-                );
-              } else if (event.condition) {
-                addFloatingText(
-                  event.condition.type,
-                  event.condition.type === 'POISON' || event.condition.type === 'BURN' ? 'damage' : 'buff',
-                  unitPos
-                );
-              }
-            }, 200);
-          }
+      for (const item of items) {
+        if (item.delay === 0) {
+          addFloatingText(item.text, item.type, item.coord);
+        } else {
+          setTimeout(() => {
+            addFloatingText(item.text, item.type, item.coord);
+          }, item.delay);
         }
-      } else if (resolution.type === 'BUFF') {
-        const conditionEvent = resolution.events?.find(
-          (e): e is Extract<typeof e, { type: 'STATUS_APPLIED' | 'CONDITION_APPLIED' }> =>
-            (e.type === 'STATUS_APPLIED' && !!e.condition) || e.type === 'CONDITION_APPLIED'
-        );
-        if (conditionEvent && 'condition' in conditionEvent && conditionEvent.condition) {
-          addFloatingText(
-            conditionEvent.condition.type,
-            conditionEvent.condition.type === 'POISON' || conditionEvent.condition.type === 'BURN'
-              ? 'damage'
-              : 'buff',
-            clickedCoord
-          );
-        } else if (resolution.modifierApplied && resolution.modifierApplied.value !== 0) {
-          addFloatingText(
-            `+${resolution.modifierApplied.value} ${resolution.modifierApplied.stat.toUpperCase()}`,
-            'buff',
-            clickedCoord
-          );
-        }
-      }
-
-      // XP Gain Float
-      if (selectedAbility.archetypeTag && playerCoord) {
-        setTimeout(() => {
-          addFloatingText(
-            `+1 ${selectedAbility.archetypeTag} XP`,
-            'xp',
-            playerCoord
-          );
-        }, 600);
       }
     },
     [addFloatingText]

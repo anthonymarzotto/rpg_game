@@ -5,6 +5,7 @@ import { createCombatState, executeAbility } from './resolver';
 import { defaultEffectRegistry } from './effects';
 import { MockDiceRoller } from './dice';
 import { STRIKE, SHIELD_BASH, SKIRMISH } from '../../data/abilities';
+import { GUST } from '../../data/packages/sorcerer';
 
 describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
   describe('Knockback & Wall-Slam Damage', () => {
@@ -408,6 +409,55 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
         );
         expect(collisionDmgEvent).toBeUndefined();
         expect(state.combatLog[0].message).toContain('Collision Damage Negated');
+      }
+    });
+
+    it('executes Gust into an obstacle, generating UTILITY metadata with collision damage and target vitals', () => {
+      const arena = createRadialArena(2);
+      const sorcerer = createRecruit('sorcerer', 'Sorcerer', { faction: 'PLAYER' });
+      const goblin = createRecruit('goblin', 'Goblin', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('sorcerer', { q: 1, r: 0 });
+      arena.setUnitPosition('goblin', { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [sorcerer, goblin], 'sorcerer');
+      const goblinInitialHp = state.units.get('goblin')!.currentHp;
+
+      const result = executeAbility(state, 'sorcerer', GUST, { targetUnitId: 'goblin' });
+
+      expect(result.type).toBe('BUFF');
+      const logEntry = state.combatLog[0];
+      expect(logEntry.metadata?.type).toBe('UTILITY');
+      if (logEntry.metadata?.type === 'UTILITY') {
+        expect(logEntry.metadata.actor).toBe('Sorcerer');
+        expect(logEntry.metadata.ability).toBe('Gust');
+        expect(logEntry.metadata.target).toBe('Goblin');
+        expect(Number(logEntry.metadata.damageTotal)).toBeGreaterThan(0);
+        expect(logEntry.metadata.targetHp).toBe(goblinInitialHp - Number(logEntry.metadata.damageTotal));
+        expect(logEntry.metadata.secondaryDetail).toContain('Slammed into Map Boundary');
+      }
+    });
+
+    it('executes Gust into open terrain, generating UTILITY metadata with 0 damage and displacement detail', () => {
+      const arena = createRadialArena(3);
+      const sorcerer = createRecruit('sorcerer', 'Sorcerer', { faction: 'PLAYER' });
+      const goblin = createRecruit('goblin', 'Goblin', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('sorcerer', { q: 0, r: 0 });
+      arena.setUnitPosition('goblin', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [sorcerer, goblin], 'sorcerer');
+
+      const result = executeAbility(state, 'sorcerer', GUST, { targetUnitId: 'goblin' });
+
+      expect(result.type).toBe('BUFF');
+      expect(arena.getUnitPosition('goblin')).toEqual({ q: 2, r: 0 });
+
+      const logEntry = state.combatLog[0];
+      expect(logEntry.metadata?.type).toBe('UTILITY');
+      if (logEntry.metadata?.type === 'UTILITY') {
+        expect(logEntry.metadata.damageTotal).toBeUndefined();
+        expect(logEntry.metadata.secondaryDetail).toContain('Pushed to (2, 0)');
       }
     });
   });

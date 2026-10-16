@@ -205,6 +205,17 @@ export type CombatLogMetadata =
       readonly effectDetail?: string;
     }
   | {
+      readonly type: 'UTILITY';
+      readonly actor: string;
+      readonly ability: string;
+      readonly target?: string;
+      readonly effectDetail?: string;
+      readonly damageTotal?: string;
+      readonly targetHp?: number;
+      readonly targetMaxHp?: number;
+      readonly secondaryDetail?: string;
+    }
+  | {
       readonly type: 'GENERIC';
       readonly actor?: string;
       readonly text?: string;

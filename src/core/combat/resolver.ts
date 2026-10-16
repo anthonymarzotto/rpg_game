@@ -514,18 +514,34 @@ export function executeAbility(
           ? externalTargets.map((c) => c.unit.name).join(', ')
           : undefined;
 
+      const aoeDamageEvents = allEvents.filter(
+        (e): e is Extract<CombatEvent, { type: 'DAMAGE' }> => e.type === 'DAMAGE'
+      );
+      const totalAoeDamage = aoeDamageEvents.reduce((acc, d) => acc + d.amount, 0);
+      const isAoeHostile = !isFriendlyTargeting || totalAoeDamage > 0;
+
       state.combatLog.push({
         turnNumber: state.turnNumber,
         actorUnitId,
         actionId: effectiveAbility.id,
         message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${combinedLog}`,
-        metadata: {
-          type: 'BUFF',
-          actor: actorCu.unit.name,
-          ability: effectiveAbility.name,
-          target: targetMetadata,
-          effectDetail: combinedLog.trim()
-        }
+        metadata: isAoeHostile
+          ? {
+              type: 'UTILITY',
+              actor: actorCu.unit.name,
+              ability: effectiveAbility.name,
+              target: targetMetadata,
+              effectDetail: totalAoeDamage === 0 ? combinedLog.trim() || undefined : undefined,
+              damageTotal: totalAoeDamage > 0 ? String(totalAoeDamage) : undefined,
+              secondaryDetail: combinedLog.trim() || undefined
+            }
+          : {
+              type: 'BUFF',
+              actor: actorCu.unit.name,
+              ability: effectiveAbility.name,
+              target: targetMetadata,
+              effectDetail: combinedLog.trim()
+            }
       });
 
       return {
@@ -562,19 +578,43 @@ export function executeAbility(
     };
 
     const isSelfTarget = targetCu.unit.id === actorCu.unit.id;
+    const isFriendlyTargeting =
+      effectiveAbility.targetType === 'SELF' ||
+      effectiveAbility.targetType === 'ALLY' ||
+      (isSelfTarget ? true : (actorCu.faction && targetCu.faction ? actorCu.faction === targetCu.faction : false));
+
+    const damageEvents = effectResult.events.filter(
+      (e): e is Extract<CombatEvent, { type: 'DAMAGE' }> => e.type === 'DAMAGE'
+    );
+    const totalDamage = damageEvents.reduce((acc, d) => acc + d.amount, 0);
+    const isHostile = !isFriendlyTargeting || totalDamage > 0;
+    const collisionDetail = effectResult.logDetail?.trim() || undefined;
+
     const targetClause = isSelfTarget ? '' : ` on ${targetCu.unit.name}`;
     state.combatLog.push({
       turnNumber: state.turnNumber,
       actorUnitId,
       actionId: effectiveAbility.id,
       message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${effectResult.logDetail ?? ''}`,
-      metadata: {
-        type: 'BUFF',
-        actor: actorCu.unit.name,
-        ability: effectiveAbility.name,
-        target: isSelfTarget ? undefined : targetCu.unit.name,
-        effectDetail: effectResult.logDetail?.trim() ?? ''
-      }
+      metadata: isHostile
+        ? {
+            type: 'UTILITY',
+            actor: actorCu.unit.name,
+            ability: effectiveAbility.name,
+            target: isSelfTarget ? undefined : targetCu.unit.name,
+            effectDetail: totalDamage === 0 ? collisionDetail : undefined,
+            damageTotal: totalDamage > 0 ? String(totalDamage) : undefined,
+            targetHp: totalDamage > 0 ? targetCu.currentHp : undefined,
+            targetMaxHp: totalDamage > 0 ? targetCu.unit.effectiveVitals.maxHp : undefined,
+            secondaryDetail: collisionDetail
+          }
+        : {
+            type: 'BUFF',
+            actor: actorCu.unit.name,
+            ability: effectiveAbility.name,
+            target: isSelfTarget ? undefined : targetCu.unit.name,
+            effectDetail: effectResult.logDetail?.trim() ?? ''
+          }
     });
 
     return {

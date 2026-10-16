@@ -253,4 +253,62 @@ describe('parseCombatLogMessage', () => {
     expect(parsed.type).toBe('GENERIC');
     expect(parsed.rawMessage).toBe('This action is not yet defined');
   });
+
+  it('parses UTILITY entry with collision damage and secondary collision detail', () => {
+    const entry: CombatLogEntry = {
+      turnNumber: 2,
+      actorUnitId: 'player-sorcerer',
+      actionId: 'gust',
+      message:
+        'Sorcerer used Gust on Goblin. 💥 [Knockback Collision: Slammed into Obstacle! Took +2 collision damage.]',
+      metadata: {
+        type: 'UTILITY',
+        actor: 'Sorcerer',
+        ability: 'Gust',
+        target: 'Goblin',
+        damageTotal: '2',
+        targetHp: 8,
+        targetMaxHp: 10,
+        secondaryDetail: '💥 [Knockback Collision: Slammed into Obstacle! Took +2 collision damage.]'
+      }
+    };
+
+    const parsed = parseCombatLogMessage(entry);
+    expect(parsed.type).toBe('UTILITY');
+    if (parsed.type === 'UTILITY') {
+      expect(parsed.actor).toBe('Sorcerer');
+      expect(parsed.isPlayer).toBe(true);
+      expect(parsed.ability).toBe('Gust');
+      expect(parsed.target).toBe('Goblin');
+      expect(parsed.damageTotal).toBe('2');
+      expect(parsed.targetHp).toBe(8);
+      expect(parsed.targetMaxHp).toBe(10);
+      expect(parsed.secondaryDetail).toContain('Slammed into Obstacle');
+    }
+  });
+
+  it('parses UTILITY entry for open displacement without damage', () => {
+    const entry: CombatLogEntry = {
+      turnNumber: 3,
+      actorUnitId: 'player-sorcerer',
+      actionId: 'gust',
+      message: 'Sorcerer used Gust on Goblin. 💨 [Knockback: Pushed to (2, 0)]',
+      metadata: {
+        type: 'UTILITY',
+        actor: 'Sorcerer',
+        ability: 'Gust',
+        target: 'Goblin',
+        effectDetail: '💨 [Knockback: Pushed to (2, 0)]',
+        secondaryDetail: '💨 [Knockback: Pushed to (2, 0)]'
+      }
+    };
+
+    const parsed = parseCombatLogMessage(entry);
+    expect(parsed.type).toBe('UTILITY');
+    if (parsed.type === 'UTILITY') {
+      expect(parsed.damageTotal).toBeUndefined();
+      expect(parsed.targetHp).toBeUndefined();
+      expect(parsed.secondaryDetail).toContain('Pushed to (2, 0)');
+    }
+  });
 });
