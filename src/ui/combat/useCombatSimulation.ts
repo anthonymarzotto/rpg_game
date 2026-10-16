@@ -220,6 +220,13 @@ export function useCombatSimulation({
         setState({ ...state, combatLog: [...state.combatLog] });
         checkEncounterProgression(state);
       },
+      onActionFault: (actor, _action, _reason) => {
+        const actorCoord = state.arena.getUnitPosition(actor.unit.id);
+        if (actorCoord) {
+          addFloatingText('⚠️ Action Fault', 'miss', actorCoord);
+        }
+        setState({ ...state, combatLog: [...state.combatLog] });
+      },
       onTurnCompleted: (actor, unspentAp) => {
         if (unspentAp > 0) {
           const actorCoord = state.arena.getUnitPosition(actor.unit.id);
@@ -244,6 +251,16 @@ export function useCombatSimulation({
     ).catch((err: unknown) => {
       if (err instanceof Error && err.name !== 'AbortError') {
         console.error('Error executing hostile turn:', err);
+        setHostileActionStatus(null);
+        if (state.outcome === 'IN_PROGRESS') {
+          try {
+            endActiveTurn(state);
+            setState({ ...state, combatLog: [...state.combatLog] });
+            checkEncounterProgression(state);
+          } catch (recoveryErr) {
+            console.error('Emergency turn recovery failed:', recoveryErr);
+          }
+        }
       }
     });
 
@@ -253,6 +270,7 @@ export function useCombatSimulation({
   }, [
     phase,
     state.activeUnitId,
+    state.turnNumber,
     state.outcome,
     aiSpeed,
     encounterSession,

@@ -3,6 +3,7 @@ import { HexCoord, hexDistance, hexEquals, getCombatArc } from '../grid/hex';
 import { getEffectiveMove } from '../combat/effectiveVitals';
 import { computeAbilityMetrics } from '../combat/targetPreview';
 import { canExecuteAbility, getAbilityRangeCoords } from '../combat/validator';
+import { getEffectiveAbility } from '../combat/modifiers';
 import { executeMove, executeAbility } from '../combat/resolver';
 import { endActiveTurn } from '../combat/turnClock';
 import { SeededDiceRoller, DiceRoller } from '../combat/dice';
@@ -66,7 +67,8 @@ export function decideNextAction(
 
   // 1. Evaluate immediate abilities from current hex
   for (const ability of cu.abilities) {
-    if (cu.currentAp < ability.apCost) continue;
+    const effectiveAbility = getEffectiveAbility(ability, cu.abilityModifiers);
+    if (cu.currentAp < effectiveAbility.apCost) continue;
 
     if (ability.targetType === 'SINGLE_TARGET') {
       for (const targetCu of hostileUnits) {
@@ -181,11 +183,14 @@ export function decideNextAction(
       } else if (ability.effects?.some((e) => e.type === 'TELEPORT')) {
         // Mobility leap ability (e.g. Rooftop Vault, Shadow Step)
         const rangeHexes = getAbilityRangeCoords(state.arena, currentCoord, ability, cu);
-        const remainingAp = cu.currentAp - ability.apCost;
+        const remainingAp = cu.currentAp - effectiveAbility.apCost;
 
         // Identify follow-up single target attacks affordable with remaining AP
         const followUpAttacks = cu.abilities.filter(
-          (a) => a.id !== ability.id && a.apCost <= remainingAp && a.targetType === 'SINGLE_TARGET'
+          (a) =>
+            a.id !== ability.id &&
+            getEffectiveAbility(a, cu.abilityModifiers).apCost <= remainingAp &&
+            a.targetType === 'SINGLE_TARGET'
         );
 
         for (const candHex of rangeHexes) {
@@ -391,7 +396,8 @@ export function decideNextAction(
       // Check if moving here enables a follow-up attack this turn
       const remainingAp = cu.currentAp - 1;
       for (const ability of cu.abilities) {
-        if (remainingAp < ability.apCost) continue;
+        const effectiveAbility = getEffectiveAbility(ability, cu.abilityModifiers);
+        if (remainingAp < effectiveAbility.apCost) continue;
         if (ability.targetType === 'SINGLE_TARGET') {
           for (const targetCu of hostileUnits) {
             const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);
@@ -496,7 +502,8 @@ export function decideNextAction(
 
       // Check if moving here enables a follow-up buff on an ally this turn
       for (const ability of cu.abilities) {
-        if (remainingAp < ability.apCost) continue;
+        const effectiveAbility = getEffectiveAbility(ability, cu.abilityModifiers);
+        if (remainingAp < effectiveAbility.apCost) continue;
         if (ability.targetType !== 'ALLY' && ability.damageType !== 'NONE') continue;
 
         for (const allyCu of alliedUnits) {
@@ -696,23 +703,39 @@ export function executeAiTurn(
   let steps = 0;
   const maxSteps = 10; // Safety guard against infinite loops
 
-  while (steps < maxSteps) {
-    steps++;
-    const cu = state.units.get(actorUnitId);
-    if (!cu || cu.isDefeated || cu.currentAp <= 0 || state.activeUnitId !== actorUnitId || state.outcome !== 'IN_PROGRESS') {
-      break;
+  try {
+    while (steps < maxSteps) {
+      steps++;
+      const cu = state.units.get(actorUnitId);
+      if (
+        !cu ||
+        cu.isDefeated ||
+        cu.currentAp <= 0 ||
+        state.activeUnitId !== actorUnitId ||
+        state.outcome !== 'IN_PROGRESS'
+      ) {
+        break;
+      }
+
+      const action = decideNextAction(state, actorUnitId, options);
+      executedActions.push(action);
+      let result: AIActionResult;
+      try {
+        result = executeAiAction(state, actorUnitId, action, options?.diceRoller);
+      } catch (err) {
+        console.warn(`[executeAiTurn] Action execution failed for ${actorUnitId}:`, err);
+        break;
+      }
+
+      if (result.type === 'CONSERVE_AP' || state.outcome !== 'IN_PROGRESS') {
+        break;
+      }
     }
-
-    const action = decideNextAction(state, actorUnitId, options);
-    executedActions.push(action);
-    const result = executeAiAction(state, actorUnitId, action, options?.diceRoller);
-
-    if (result.type === 'CONSERVE_AP' || state.outcome !== 'IN_PROGRESS') {
-      break;
+  } finally {
+    // Conclude the turn and apply CTB recovery for any remaining unspent AP
+    if (state.activeUnitId === actorUnitId && state.outcome === 'IN_PROGRESS') {
+      endActiveTurn(state);
     }
   }
-
-  // Conclude the turn and apply CTB recovery for any remaining unspent AP
-  endActiveTurn(state);
   return executedActions;
 }

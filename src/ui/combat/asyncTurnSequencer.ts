@@ -7,6 +7,7 @@ import {
   AIActionResult
 } from '../../core/ai';
 import { endActiveTurn } from '../../core/combat/turnClock';
+import { canMove, canExecuteAbility } from '../../core/combat/validator';
 
 export type AISpeedMode = 'NORMAL' | 'FAST' | 'INSTANT';
 
@@ -32,6 +33,11 @@ export interface CombatExecutionObserver {
     actor: CombatUnit,
     action: AIAction,
     result: AIActionResult
+  ) => void;
+  readonly onActionFault?: (
+    actor: CombatUnit,
+    action: AIAction,
+    reason: string
   ) => void;
   readonly onTurnCompleted?: (actor: CombatUnit, unspentAp: number) => void;
 }
@@ -117,47 +123,136 @@ export async function executeHostileTurnAsync(
     return;
   }
 
-  // 1. Initial turn transition buffer
-  observer?.onTurnTransitionStart?.(actor);
-  if (pacing.turnTransitionDelayMs > 0) {
-    await delayWithAbort(pacing.turnTransitionDelayMs, signal);
-    if (signal?.aborted) return;
-  }
-
-  // 2. Action loop
-  let steps = 0;
-  const maxSteps = 10;
-
-  while (
-    steps < maxSteps &&
-    !signal?.aborted &&
-    actor.currentAp > 0 &&
-    state.activeUnitId === actorUnitId &&
-    state.outcome === 'IN_PROGRESS' &&
-    !actor.isDefeated
-  ) {
-    steps++;
-
-    const action = decideNextAction(state, actorUnitId, { diceRoller });
-    const description = formatActionDescription(state, actor, action);
-
-    observer?.onActionStart?.(actor, action, description);
-
-    const result = executeAiAction(state, actorUnitId, action, diceRoller);
-    observer?.onActionResolved?.(actor, action, result);
-
-    if (result.type === 'CONSERVE_AP' || state.outcome !== 'IN_PROGRESS') {
-      break;
-    }
-
-    if (pacing.stepDelayMs > 0) {
-      await delayWithAbort(pacing.stepDelayMs, signal);
+  try {
+    // 1. Initial turn transition buffer
+    observer?.onTurnTransitionStart?.(actor);
+    if (pacing.turnTransitionDelayMs > 0) {
+      await delayWithAbort(pacing.turnTransitionDelayMs, signal);
       if (signal?.aborted) return;
     }
-  }
 
-  // 3. Conclude turn and apply CTB recovery
-  const unspent = actor.currentAp;
-  endActiveTurn(state);
-  observer?.onTurnCompleted?.(actor, unspent);
+    // 2. Action loop
+    let steps = 0;
+    const maxSteps = 10;
+
+    while (
+      steps < maxSteps &&
+      !signal?.aborted &&
+      actor.currentAp > 0 &&
+      state.activeUnitId === actorUnitId &&
+      state.outcome === 'IN_PROGRESS' &&
+      !actor.isDefeated
+    ) {
+      steps++;
+
+      const action = decideNextAction(state, actorUnitId, { diceRoller });
+      const description = formatActionDescription(state, actor, action);
+
+      // Pre-validate proposed actions against authoritative engine rules
+      let validationReason: string | undefined;
+      if (action.type === 'MOVE') {
+        const validation = canMove(state, actorUnitId, action.destination);
+        if (!validation.valid) {
+          validationReason = validation.reason ?? 'Invalid move destination';
+        }
+      } else if (action.type === 'ABILITY') {
+        const validation = canExecuteAbility(state, actorUnitId, action.ability, {
+          coord: action.target.coord,
+          targetUnitId: action.target.targetUnitId
+        });
+        if (!validation.valid) {
+          validationReason = validation.reason ?? 'Invalid ability execution';
+        }
+      }
+
+      if (validationReason) {
+        const actionName =
+          action.type === 'MOVE'
+            ? `Move to (${action.destination.q}, ${action.destination.r})`
+            : action.type === 'ABILITY'
+            ? action.ability.name
+            : 'Action';
+
+        console.warn(`[AI Fault] ${actor.unit.name} failed ${actionName}: ${validationReason}`);
+        state.combatLog.push({
+          turnNumber: state.turnNumber,
+          actorUnitId: actor.unit.id,
+          actionId: 'ai_fault',
+          message: `⚠️ [AI Fault] ${actor.unit.name} could not execute ${actionName}: ${validationReason}. Conserving remaining AP.`,
+          metadata: {
+            type: 'GENERIC',
+            actor: actor.unit.name,
+            text: `⚠️ [AI Fault] ${actionName}: ${validationReason}`
+          }
+        });
+        observer?.onActionFault?.(actor, action, validationReason);
+        break;
+      }
+
+      observer?.onActionStart?.(actor, action, description);
+
+      let result: AIActionResult;
+      try {
+        result = executeAiAction(state, actorUnitId, action, diceRoller);
+      } catch (err: unknown) {
+        const errorReason = err instanceof Error ? err.message : String(err);
+        const actionName =
+          action.type === 'MOVE'
+            ? `Move to (${action.destination.q}, ${action.destination.r})`
+            : action.type === 'ABILITY'
+            ? action.ability.name
+            : 'Action';
+
+        console.warn(`[AI Fault] ${actor.unit.name} threw error on ${actionName}: ${errorReason}`);
+        state.combatLog.push({
+          turnNumber: state.turnNumber,
+          actorUnitId: actor.unit.id,
+          actionId: 'ai_fault',
+          message: `⚠️ [AI Fault] ${actor.unit.name} error executing ${actionName}: ${errorReason}. Conserving remaining AP.`,
+          metadata: {
+            type: 'GENERIC',
+            actor: actor.unit.name,
+            text: `⚠️ [AI Fault] ${actionName}: ${errorReason}`
+          }
+        });
+        observer?.onActionFault?.(actor, action, errorReason);
+        break;
+      }
+
+      observer?.onActionResolved?.(actor, action, result);
+
+      if (result.type === 'CONSERVE_AP' || state.outcome !== 'IN_PROGRESS') {
+        break;
+      }
+
+      if (pacing.stepDelayMs > 0) {
+        await delayWithAbort(pacing.stepDelayMs, signal);
+        if (signal?.aborted) return;
+      }
+    }
+  } catch (unexpectedErr: unknown) {
+    console.error(`[AI Turn Sequencer] Unexpected error during turn for ${actor.unit.name}:`, unexpectedErr);
+    state.combatLog.push({
+      turnNumber: state.turnNumber,
+      actorUnitId: actor.unit.id,
+      actionId: 'ai_fault',
+      message: `⚠️ [AI Fault] Turn halted due to unexpected error: ${unexpectedErr instanceof Error ? unexpectedErr.message : String(unexpectedErr)}. Conserving AP.`,
+      metadata: {
+        type: 'GENERIC',
+        actor: actor.unit.name,
+        text: `⚠️ [AI Fault] Unexpected turn error`
+      }
+    });
+  } finally {
+    // 3. Conclude turn and apply CTB recovery if turn is still active
+    if (
+      !signal?.aborted &&
+      state.activeUnitId === actorUnitId &&
+      state.outcome === 'IN_PROGRESS'
+    ) {
+      const unspent = actor.currentAp;
+      endActiveTurn(state);
+      observer?.onTurnCompleted?.(actor, unspent);
+    }
+  }
 }

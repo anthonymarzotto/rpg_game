@@ -60,6 +60,15 @@ export type ParsedLogEntry =
       rawMessage: string;
     }
   | {
+      type: 'FAULT';
+      turn: number;
+      actor: string;
+      isPlayer: boolean;
+      actionName: string;
+      reason: string;
+      rawMessage: string;
+    }
+  | {
       type: 'GENERIC';
       turn: number;
       actor: string;
@@ -142,6 +151,21 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       targetHp: meta.targetHp,
       targetMaxHp: meta.targetMaxHp,
       secondaryDetail: meta.secondaryDetail ?? '',
+      rawMessage: msg
+    };
+  }
+
+  if (entry.actionId === 'ai_fault' || msg.includes('[AI Fault]')) {
+    const rawActionName = meta?.text
+      ? meta.text.replace(/^⚠️\s*\[AI Fault\]\s*/, '').split(':')[0]?.trim()
+      : 'Action';
+    return {
+      type: 'FAULT',
+      turn,
+      actor: meta?.actor || actorUnitId,
+      isPlayer,
+      actionName: rawActionName || 'Action',
+      reason: msg,
       rawMessage: msg
     };
   }
@@ -412,6 +436,29 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
                       <span>✨ {entry.effectDetail}</span>
                     </div>
                   )}
+                </div>
+              );
+            }
+
+            if (entry.type === 'FAULT') {
+              return (
+                <div
+                  key={idx}
+                  className={`log-card log-fault-card ${isNewest ? 'entry-fresh' : ''}`}
+                >
+                  <div className="log-card-header">
+                    <span className="log-turn-pill">T{entry.turn}</span>
+                    <span className="log-fault-badge">⚠️ AI FAULT</span>
+                    <span className={`log-actor-name ${entry.isPlayer ? 'actor-player' : 'actor-enemy'}`}>
+                      {entry.actor}
+                    </span>
+                    <span className="log-ability-name">{entry.actionName}</span>
+                  </div>
+                  <div className="log-card-body">
+                    <div className="log-fault-reason">
+                      {entry.reason}
+                    </div>
+                  </div>
                 </div>
               );
             }

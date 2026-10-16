@@ -10,6 +10,7 @@ import {
   PACING_PRESETS,
   CombatExecutionObserver
 } from './asyncTurnSequencer';
+import * as aiModule from '../../core/ai';
 
 function createMockCombatUnit(
   id: string,
@@ -265,5 +266,164 @@ describe('asyncTurnSequencer', () => {
       // No further actions should have executed after abort
       expect(actionsRun).toBe(1);
     });
+
+    it('pre-validates MOVE and falls back to AP banking on invalid destination, logging fault and triggering callbacks', async () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockCombatUnit('enemy', 'Orc', 'ENEMY', { speed: 8 });
+      const hero = createMockCombatUnit('hero', 'Alden', 'PLAYER', { maxHp: 40, speed: 50 });
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 2, r: 0 });
+      const state = createCombatState(arena, [enemy, hero], enemy.id);
+      const initialTurnNumber = state.turnNumber;
+
+      // Mock decideNextAction to propose an illegal move out of arena bounds / unreachable hex
+      const decideSpy = vi.spyOn(aiModule, 'decideNextAction').mockReturnValue({
+        type: 'MOVE',
+        destination: { q: 10, r: 10 }, // completely off arena
+        score: 10,
+        reason: 'illegal move'
+      });
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      let faultReported: { reason: string } | null = null;
+      let completedUnspentAp: number | null = null;
+
+      const observer: CombatExecutionObserver = {
+        onActionFault: (_actor, _action, reason) => {
+          faultReported = { reason };
+        },
+        onTurnCompleted: (_actor, unspentAp) => {
+          completedUnspentAp = unspentAp;
+        }
+      };
+
+      await executeHostileTurnAsync(
+        state,
+        enemy.id,
+        PACING_PRESETS.INSTANT,
+        observer,
+        undefined,
+        new SeededDiceRoller(42)
+      );
+
+      // Fault must be reported
+      expect(faultReported).not.toBeNull();
+      expect(faultReported!.reason).toContain('not reachable');
+
+      // Diagnostic entry must exist in state.combatLog
+      const faultLog = state.combatLog.find((entry) => entry.actionId === 'ai_fault');
+      expect(faultLog).toBeDefined();
+      expect(faultLog!.message).toContain('⚠️ [AI Fault]');
+      expect(faultLog!.metadata.type).toBe('GENERIC');
+
+      // Unspent AP (3 AP) was banked and CTB recovery applied cleanly
+      expect(completedUnspentAp).toBe(3);
+      // Faster hero takes next turn
+      expect(state.activeUnitId).toBe(hero.id);
+      expect(state.units.get(enemy.id)!.currentAp).toBe(0);
+      expect(state.turnNumber).toBe(initialTurnNumber + 1);
+
+      decideSpy.mockRestore();
+      warnSpy.mockRestore();
+    });
+
+    it('pre-validates ABILITY and falls back to AP banking on uncastable ability, logging fault and concluding turn', async () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockCombatUnit('enemy', 'Orc', 'ENEMY', { speed: 8 });
+      const hero = createMockCombatUnit('hero', 'Alden', 'PLAYER', { maxHp: 40, speed: 50 });
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 2, r: 0 }); // Hero is 2 hexes away, out of range for melee Strike (range 1)
+      const state = createCombatState(arena, [enemy, hero], enemy.id);
+      const enemyCu = state.units.get(enemy.id)!;
+      const initialTurnNumber = state.turnNumber;
+
+      // Mock decideNextAction to propose Strike against the out-of-range hero
+      const decideSpy = vi.spyOn(aiModule, 'decideNextAction').mockReturnValue({
+        type: 'ABILITY',
+        ability: enemyCu.abilities[0], // Strike (range 1)
+        target: { coord: { q: 2, r: 0 }, targetUnitId: hero.id },
+        score: 15,
+        reason: 'out of range strike'
+      });
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      let faultReported: { reason: string } | null = null;
+      let turnCompleted = false;
+
+      const observer: CombatExecutionObserver = {
+        onActionFault: (_actor, _action, reason) => {
+          faultReported = { reason };
+        },
+        onTurnCompleted: () => {
+          turnCompleted = true;
+        }
+      };
+
+      await executeHostileTurnAsync(
+        state,
+        enemy.id,
+        PACING_PRESETS.INSTANT,
+        observer,
+        undefined,
+        new SeededDiceRoller(42)
+      );
+
+      expect(faultReported).not.toBeNull();
+      expect(turnCompleted).toBe(true);
+
+      const faultLog = state.combatLog.find((entry) => entry.actionId === 'ai_fault');
+      expect(faultLog).toBeDefined();
+      expect(faultLog!.message).toContain('out of range');
+
+      // Turn concluded cleanly and advanced to hero
+      expect(state.turnNumber).toBe(initialTurnNumber + 1);
+      expect(state.activeUnitId).toBe(hero.id);
+      expect(state.units.get(enemy.id)!.currentAp).toBe(0);
+
+      decideSpy.mockRestore();
+      warnSpy.mockRestore();
+    });
+
+    it('catches execution error from executeAiAction, logs fault, and guarantees endActiveTurn in finally', async () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockCombatUnit('enemy', 'Orc', 'ENEMY');
+      const hero = createMockCombatUnit('hero', 'Alden', 'PLAYER', { maxHp: 40 });
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+      const state = createCombatState(arena, [enemy, hero], enemy.id);
+      const initialTurnNumber = state.turnNumber;
+
+      const executeSpy = vi.spyOn(aiModule, 'executeAiAction').mockImplementationOnce(() => {
+        throw new Error('Simulation crash during action resolution');
+      });
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      let completedCalled = false;
+      const observer: CombatExecutionObserver = {
+        onTurnCompleted: () => {
+          completedCalled = true;
+        }
+      };
+
+      await executeHostileTurnAsync(
+        state,
+        enemy.id,
+        PACING_PRESETS.INSTANT,
+        observer,
+        undefined,
+        new SeededDiceRoller(42)
+      );
+
+      expect(completedCalled).toBe(true);
+      expect(state.turnNumber).toBe(initialTurnNumber + 1);
+
+      const faultLog = state.combatLog.find((entry) => entry.actionId === 'ai_fault');
+      expect(faultLog).toBeDefined();
+      expect(faultLog!.message).toContain('Simulation crash during action resolution');
+
+      executeSpy.mockRestore();
+      warnSpy.mockRestore();
+    });
   });
 });
+

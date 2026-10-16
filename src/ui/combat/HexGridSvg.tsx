@@ -788,8 +788,11 @@ export function HexGridSvg({
           let color = '#ffffff';
           let weight = '700';
           let size = '12';
-
-          if (ft.type === 'crit') {
+          if (ft.text.includes('Fault')) {
+            color = '#f59e0b';
+            weight = '800';
+            size = '13';
+          } else if (ft.type === 'crit') {
             color = '#fbbf24';
             weight = '900';
             size = '14';

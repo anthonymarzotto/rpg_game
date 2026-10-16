@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import * as resolver from '../combat/resolver';
 import { Unit } from '../types/unit';
 import { createRadialArena } from '../grid/templates';
 import { createCombatState } from '../combat/resolver';
@@ -947,5 +948,61 @@ describe('Headless AI Decision Engine', () => {
       expect(action.type).toBe('CONSERVE_AP');
       expect(action.reason).toContain('Conserving');
     });
+
+    it('decideNextAction checks effectiveAbility apCost when modified by abilityModifiers', () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockUnit('enemy', 'Hostile Novice', 'ENEMY', {
+        activeClassId: 'novice',
+        starterAbilityIds: ['strike'] // Strike base apCost is 1
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', { maxHp: 50 });
+
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [enemy, hero], enemy.id);
+      const enemyCu = state.units.get(enemy.id)!;
+      enemyCu.currentAp = 1;
+
+      // Add abilityModifier that increases Strike's AP cost by +1 (effective AP cost = 2)
+      enemyCu.abilityModifiers.push({
+        id: 'tax_mod',
+        name: 'Tax Modifier',
+        targetAbilityIds: ['strike'],
+        deltas: {
+          apCost: 1
+        }
+      });
+
+      const action = decideNextAction(state, enemy.id);
+      // Since effective AP cost is 2 and enemy has 1 AP, Strike cannot be chosen
+      expect(action.type).toBe('CONSERVE_AP');
+      expect(action.reason).toContain('Conserving');
+    });
+
+    it('executeAiTurn concludes cleanly with endActiveTurn even if action execution fails', () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockUnit('enemy', 'Hostile Warrior', 'ENEMY');
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', { maxHp: 50 });
+
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [enemy, hero], enemy.id);
+      const initialTurnNumber = state.turnNumber;
+
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const errorSpy = vi.spyOn(resolver, 'executeAbility').mockImplementationOnce(() => {
+        throw new Error('Simulated ability execution throw');
+      });
+
+      const executed = executeAiTurn(state, enemy.id);
+      expect(executed.length).toBeGreaterThan(0);
+      expect(state.turnNumber).toBe(initialTurnNumber + 1);
+
+      warnSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
   });
 });
+

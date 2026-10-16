@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { parseCombatLogMessage } from './CombatLogPanel';
+import * as React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { parseCombatLogMessage, CombatLogPanel } from './CombatLogPanel';
 import { CombatLogEntry } from '../../core/combat/types';
 
 describe('parseCombatLogMessage', () => {
@@ -311,4 +313,43 @@ describe('parseCombatLogMessage', () => {
       expect(parsed.secondaryDetail).toContain('Pushed to (2, 0)');
     }
   });
+
+  it('parses and renders diagnostic warning entries (ai_fault) as amber fault cards', () => {
+    const entry: CombatLogEntry = {
+      turnNumber: 3,
+      actorUnitId: 'enemy-goblin',
+      actionId: 'ai_fault',
+      message:
+        '⚠️ [AI Fault] Goblin Mage could not execute Spark: Destination is not reachable. Conserving remaining AP.',
+      metadata: {
+        type: 'GENERIC',
+        actor: 'Goblin Mage',
+        text: '⚠️ [AI Fault] Spark: Destination is not reachable'
+      }
+    };
+
+    const parsed = parseCombatLogMessage(entry);
+    expect(parsed.type).toBe('FAULT');
+    if (parsed.type === 'FAULT') {
+      expect(parsed.actor).toBe('Goblin Mage');
+      expect(parsed.actionName).toBe('Spark');
+      expect(parsed.isPlayer).toBe(false);
+      expect(parsed.reason).toContain('Destination is not reachable');
+    }
+
+    // Render component and verify .log-fault-card markup
+    const html = renderToStaticMarkup(
+      React.createElement(CombatLogPanel, {
+        logEntries: [entry],
+        turnNumber: 3
+      })
+    );
+
+    expect(html).toContain('log-fault-card');
+    expect(html).toContain('⚠️ AI FAULT');
+    expect(html).toContain('Goblin Mage');
+    expect(html).toContain('Spark');
+    expect(html).toContain('Destination is not reachable');
+  });
 });
+
