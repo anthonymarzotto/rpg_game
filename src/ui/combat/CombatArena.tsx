@@ -15,6 +15,8 @@ import { AISpeedMode } from './asyncTurnSequencer';
 import { EncounterDefinition } from '../../core/combat/encounter';
 import { CombatState } from '../../core/combat/types';
 import { SquadMemberVictorySummary } from './useCombatSimulation';
+import { TrialExportModal } from './TrialExportModal';
+import { TrialErrorBoundary } from './TrialErrorBoundary';
 import './CombatArena.css';
 
 export interface CombatArenaProps {
@@ -31,6 +33,7 @@ export function CombatArena({
   onExit
 }: CombatArenaProps = {}) {
   const [fieldZoom, setFieldZoom] = useState<number>(1.0);
+  const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
 
   const activeEncounter = useMemo(
     () => encounter ?? createNoviceSandboxEncounter(),
@@ -101,7 +104,12 @@ export function CombatArena({
   }, [state.units]);
 
   return (
-    <div className="combat-arena-container">
+    <TrialErrorBoundary
+      state={state}
+      encounterName={activeEncounter.name}
+      onReset={handleResetEncounter}
+    >
+      <div className="combat-arena-container">
       {/* Top Testbed Bar */}
       <div className="testbed-top-bar">
         <div className="testbed-title-block">
@@ -193,10 +201,20 @@ export function CombatArena({
 
         {/* Global Controls */}
         <div className="testbed-actions">
+          <button
+            type="button"
+            className="btn-testbed export-btn font-ui"
+            onClick={() => setIsExportModalOpen(true)}
+            title="Export trial state and AI decision telemetry for debugging"
+            data-testid="btn-open-trial-export"
+          >
+            📋 Export Trial
+          </button>
           <button className="btn-testbed reset-btn" onClick={handleResetEncounter} title="Restores all units and HP to start">
             ↺ Reset Trial
           </button>
         </div>
+
       </div>
 
       {/* CTB Timeline Initiative Ribbon */}
@@ -279,6 +297,16 @@ export function CombatArena({
             : undefined
         }
       />
+
+      {/* Trial Export & Diagnostics Modal */}
+      <TrialExportModal
+        isOpen={isExportModalOpen}
+        state={state}
+        encounterName={activeEncounter.name}
+        onClose={() => setIsExportModalOpen(false)}
+      />
     </div>
-  );
+  </TrialErrorBoundary>
+);
 }
+

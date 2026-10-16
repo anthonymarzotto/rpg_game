@@ -208,6 +208,19 @@
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+.btn-testbed.export-btn {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+
+.btn-testbed.export-btn:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+  color: #ffffff;
+}
+
+
 .btn-arena-exit {
   background: rgba(245, 158, 11, 0.15);
   border: 1px solid rgba(245, 158, 11, 0.35);

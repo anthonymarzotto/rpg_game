@@ -217,7 +217,11 @@ export function useCombatSimulation({
             result.target.targetUnitId
           );
         }
-        setState({ ...state, combatLog: [...state.combatLog] });
+        setState({
+          ...state,
+          combatLog: [...state.combatLog],
+          aiDecisionLog: state.aiDecisionLog ? [...state.aiDecisionLog] : []
+        });
         checkEncounterProgression(state);
       },
       onActionFault: (actor, _action, _reason) => {
@@ -225,7 +229,11 @@ export function useCombatSimulation({
         if (actorCoord) {
           addFloatingText('⚠️ Action Fault', 'miss', actorCoord);
         }
-        setState({ ...state, combatLog: [...state.combatLog] });
+        setState({
+          ...state,
+          combatLog: [...state.combatLog],
+          aiDecisionLog: state.aiDecisionLog ? [...state.aiDecisionLog] : []
+        });
       },
       onTurnCompleted: (actor, unspentAp) => {
         if (unspentAp > 0) {
@@ -237,9 +245,14 @@ export function useCombatSimulation({
           );
         }
         setHostileActionStatus(null);
-        setState({ ...state, combatLog: [...state.combatLog] });
+        setState({
+          ...state,
+          combatLog: [...state.combatLog],
+          aiDecisionLog: state.aiDecisionLog ? [...state.aiDecisionLog] : []
+        });
         checkEncounterProgression(state);
       }
+
     };
 
     executeHostileTurnAsync(

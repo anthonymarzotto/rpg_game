@@ -4,7 +4,12 @@ import { Unit } from '../types/unit';
 import { createRadialArena } from '../grid/templates';
 import { createCombatState } from '../combat/resolver';
 import { HEX_DIRECTIONS, getDirectionBetween, hexDistance } from '../grid/hex';
-import { decideNextAction, executeAiTurn, executeAiAction } from './decisionEngine';
+import {
+  decideNextAction,
+  decideNextActionWithTrace,
+  executeAiTurn,
+  executeAiAction
+} from './decisionEngine';
 import { SeededDiceRoller } from '../combat/dice';
 import { STRIKE } from '../../data/packages/novice';
 
@@ -1003,6 +1008,61 @@ describe('Headless AI Decision Engine', () => {
       warnSpy.mockRestore();
       errorSpy.mockRestore();
     });
+
+    it('decideNextActionWithTrace captures winning action and ranked candidate alternatives', () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockUnit('enemy', 'Hostile Novice', 'ENEMY', {
+        activeClassId: 'novice',
+        starterAbilityIds: ['strike']
+      });
+      const hero1 = createMockUnit('hero1', 'Hero One', 'PLAYER', { maxHp: 30 });
+      const hero2 = createMockUnit('hero2', 'Hero Two', 'PLAYER', { maxHp: 10 }); // Low HP attracts focus fire
+
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero1.id, { q: 1, r: 0 });
+      arena.setUnitPosition(hero2.id, { q: 0, r: 1 });
+
+      const state = createCombatState(arena, [enemy, hero1, hero2], enemy.id);
+      const result = decideNextActionWithTrace(state, enemy.id);
+
+      expect(result.action).toBeDefined();
+      expect(result.trace).toBeDefined();
+      expect(result.trace.actorUnitId).toBe(enemy.id);
+      expect(result.trace.turnNumber).toBe(state.turnNumber);
+      expect(result.trace.chosenAction).toEqual(result.action);
+      expect(result.trace.topCandidates.length).toBeGreaterThan(0);
+      expect(result.trace.totalCandidatesEvaluated).toBeGreaterThanOrEqual(result.trace.topCandidates.length);
+
+      // Top candidate rank 1 should match the highest score
+      expect(result.trace.topCandidates[0].rank).toBe(1);
+      if (result.trace.topCandidates.length > 1) {
+        expect(result.trace.topCandidates[0].score).toBeGreaterThanOrEqual(result.trace.topCandidates[1].score);
+      }
+    });
+
+    it('executeAiTurn records traces to state.aiDecisionLog when initialized', () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockUnit('enemy', 'Hostile Novice', 'ENEMY', {
+        activeClassId: 'novice',
+        starterAbilityIds: ['strike']
+      });
+      const hero = createMockUnit('hero', 'Player Hero', 'PLAYER', { maxHp: 40 });
+
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [enemy, hero], enemy.id);
+      // Initialize aiDecisionLog array on combat state
+      const mutableState = state as { aiDecisionLog?: any[] };
+      mutableState.aiDecisionLog = [];
+
+      executeAiTurn(state, enemy.id);
+
+      expect(mutableState.aiDecisionLog.length).toBeGreaterThan(0);
+      expect(mutableState.aiDecisionLog[0].actorUnitId).toBe(enemy.id);
+      expect(mutableState.aiDecisionLog[0].chosenAction).toBeDefined();
+    });
   });
 });
+
 

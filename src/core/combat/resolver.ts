@@ -208,8 +208,10 @@ export function createCombatState(
     turnNumber: 0,
     combatLog: [],
     outcome: 'IN_PROGRESS',
-    objectives
+    objectives,
+    aiDecisionLog: []
   };
+
 
   // Pre-encounter setup pass: seed initial state (e.g. +25 initiative for Tactical Vanguard)
   applyPreEncounterSetup(state);

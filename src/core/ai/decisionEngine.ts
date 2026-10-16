@@ -8,7 +8,13 @@ import { executeMove, executeAbility } from '../combat/resolver';
 import { endActiveTurn } from '../combat/turnClock';
 import { SeededDiceRoller, DiceRoller } from '../combat/dice';
 import { Ability } from '../types/ability';
-import { AIAction, AIDecisionOptions } from './types';
+import {
+  AIAction,
+  AIDecisionOptions,
+  AICandidateEvaluation,
+  AIDecisionTrace,
+  AIDecisionResult
+} from './types';
 import {
   resolveAIProfile,
   getArchetypeWeights,
@@ -24,30 +30,64 @@ import {
 const defaultDiceRoller = new SeededDiceRoller();
 
 /**
- * Decides the single next highest-utility action for the active AI combat unit.
+ * Decides the single next highest-utility action along with diagnostic candidate evaluation telemetry.
  */
-export function decideNextAction(
+export function decideNextActionWithTrace(
   state: CombatState,
   actorUnitId: string,
   options?: AIDecisionOptions
-): AIAction {
+): AIDecisionResult {
   const cu = state.units.get(actorUnitId);
   if (!cu || cu.isDefeated || cu.currentAp <= 0 || state.activeUnitId !== actorUnitId) {
-    return {
+    const fallbackAction: AIAction = {
       type: 'CONSERVE_AP',
       unspentAp: cu?.currentAp ?? 0,
       score: 0,
       reason: 'No AP remaining or unit not active'
     };
+    return {
+      action: fallbackAction,
+      trace: {
+        turnNumber: state.turnNumber,
+        actorUnitId,
+        actorName: cu?.unit.name ?? actorUnitId,
+        profile: cu ? resolveAIProfile(cu, options?.profileOverride) : 'BRAWLER',
+        weights: getArchetypeWeights(cu ? resolveAIProfile(cu, options?.profileOverride) : 'BRAWLER', options?.weightsOverride),
+        currentAp: cu?.currentAp ?? 0,
+        chosenAction: fallbackAction,
+        topCandidates: [],
+        totalCandidatesEvaluated: 0,
+        apConservationThreshold: 0,
+        timestamp: Date.now()
+      }
+    };
   }
 
   const currentCoord = state.arena.getUnitPosition(actorUnitId);
   if (!currentCoord) {
-    return {
+    const fallbackAction: AIAction = {
       type: 'CONSERVE_AP',
       unspentAp: cu.currentAp,
       score: 0,
       reason: 'Actor not placed on arena'
+    };
+    const profile = resolveAIProfile(cu, options?.profileOverride);
+    const weights = getArchetypeWeights(profile, options?.weightsOverride);
+    return {
+      action: fallbackAction,
+      trace: {
+        turnNumber: state.turnNumber,
+        actorUnitId,
+        actorName: cu.unit.name,
+        profile,
+        weights,
+        currentAp: cu.currentAp,
+        chosenAction: fallbackAction,
+        topCandidates: [],
+        totalCandidatesEvaluated: 0,
+        apConservationThreshold: weights.apConservationThreshold,
+        timestamp: Date.now()
+      }
     };
   }
 
@@ -606,40 +646,83 @@ export function decideNextAction(
   }
 
   // 3. AP Conservation check: Compare best candidate against conservation threshold
+  candidateActions.sort((a, b) => b.score - a.score);
+
+  const topCandidates: AICandidateEvaluation[] = candidateActions.slice(0, 5).map((cand, idx) => ({
+    type: cand.type,
+    action: cand,
+    score: cand.score,
+    reason: cand.reason,
+    rank: idx + 1
+  }));
+
+  let chosenAction: AIAction;
+
   if (candidateActions.length === 0) {
-    return {
+    chosenAction = {
       type: 'CONSERVE_AP',
       unspentAp: cu.currentAp,
       score: 0,
       reason: `Conserving ${cu.currentAp} AP for +${cu.currentAp * 20} CTB gauge (no legal actions)`
     };
+  } else {
+    const bestCandidate = candidateActions[0];
+
+    if (bestCandidate.score < weights.apConservationThreshold) {
+      chosenAction = {
+        type: 'CONSERVE_AP',
+        unspentAp: cu.currentAp,
+        score: 0,
+        reason: `Conserving ${cu.currentAp} AP for +${cu.currentAp * 20} CTB gauge (best action score ${bestCandidate.score} < threshold ${weights.apConservationThreshold})`
+      };
+    } else {
+      // 4. Seeded dice tie-breaking among candidates with identical top scores (within 0.01)
+      const tiedCandidates = candidateActions.filter(
+        (c) => Math.abs(c.score - bestCandidate.score) <= 0.01
+      );
+
+      if (tiedCandidates.length === 1) {
+        chosenAction = tiedCandidates[0];
+      } else {
+        const rollIndex = diceRoller.rollDice(1, tiedCandidates.length) - 1;
+        chosenAction = tiedCandidates[rollIndex];
+      }
+    }
   }
 
-  // Sort descending by score
-  candidateActions.sort((a, b) => b.score - a.score);
-  const bestCandidate = candidateActions[0];
+  const trace: AIDecisionTrace = {
+    turnNumber: state.turnNumber,
+    actorUnitId,
+    actorName: cu.unit.name,
+    profile,
+    weights,
+    currentAp: cu.currentAp,
+    chosenAction,
+    topCandidates,
+    totalCandidatesEvaluated: candidateActions.length,
+    apConservationThreshold: weights.apConservationThreshold,
+    timestamp: Date.now()
+  };
 
-  if (bestCandidate.score < weights.apConservationThreshold) {
-    return {
-      type: 'CONSERVE_AP',
-      unspentAp: cu.currentAp,
-      score: 0,
-      reason: `Conserving ${cu.currentAp} AP for +${cu.currentAp * 20} CTB gauge (best action score ${bestCandidate.score} < threshold ${weights.apConservationThreshold})`
-    };
-  }
-
-  // 4. Seeded dice tie-breaking among candidates with identical top scores (within 0.01)
-  const tiedCandidates = candidateActions.filter(
-    (c) => Math.abs(c.score - bestCandidate.score) <= 0.01
-  );
-
-  if (tiedCandidates.length === 1) {
-    return tiedCandidates[0];
-  }
-
-  const rollIndex = diceRoller.rollDice(1, tiedCandidates.length) - 1;
-  return tiedCandidates[rollIndex];
+  return { action: chosenAction, trace };
 }
+
+/**
+ * Decides the single next highest-utility action for the active AI combat unit.
+ */
+export function decideNextAction(
+  state: CombatState,
+  actorUnitId: string,
+  options?: AIDecisionOptions
+): AIAction {
+  const result = decideNextActionWithTrace(state, actorUnitId, options);
+  if (state.aiDecisionLog) {
+    state.aiDecisionLog.push(result.trace);
+  }
+  return result.action;
+}
+
+
 
 export type AIActionResult =
   | { readonly type: 'MOVE'; readonly destination: HexCoord }
@@ -717,7 +800,10 @@ export function executeAiTurn(
         break;
       }
 
-      const action = decideNextAction(state, actorUnitId, options);
+      const { action, trace } = decideNextActionWithTrace(state, actorUnitId, options);
+      if (state.aiDecisionLog) {
+        state.aiDecisionLog.push(trace);
+      }
       executedActions.push(action);
       let result: AIActionResult;
       try {

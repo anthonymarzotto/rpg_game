@@ -3,7 +3,8 @@ import { AbilityEffect, Ability, ConditionType } from '../types/ability';
 import { AbilityModifier } from '../types/modifier';
 import { PassiveTrait } from '../types/passive';
 import { HexCoord, HexDirection } from '../grid/hex';
-import { Arena, KnockbackResult } from '../grid/arena';
+import { Arena, KnockbackResult, HexTile } from '../grid/arena';
+import type { AIDecisionTrace } from '../ai/types';
 
 export type HitOutcome = 'CRITICAL_HIT' | 'SOLID_HIT' | 'GRAZE' | 'MISS';
 
@@ -271,5 +272,31 @@ export interface CombatState {
   readonly combatLog: CombatLogEntry[];
   outcome: CombatOutcome;
   readonly objectives?: readonly EncounterObjective[];
+  aiDecisionLog?: AIDecisionTrace[];
 }
+
+/**
+ * Unpacked plain-object serialization format for the Hex Arena.
+ */
+export interface SerializedArena {
+  readonly tiles: readonly HexTile[];
+  readonly unitPositions: readonly (readonly [string, HexCoord])[];
+}
+
+/**
+ * Portable, JSON-serializable snapshot of an active or concluded combat trial.
+ */
+export interface SerializedCombatState {
+  readonly version: number;
+  readonly arena: SerializedArena;
+  readonly units: Record<string, CombatUnit>;
+  readonly activeUnitId: string;
+  readonly turnNumber: number;
+  readonly combatLog: readonly CombatLogEntry[];
+  readonly outcome: CombatOutcome;
+  readonly objectives?: readonly EncounterObjective[];
+  readonly aiDecisionLog?: readonly AIDecisionTrace[];
+  readonly exportedAt?: number;
+}
+
 

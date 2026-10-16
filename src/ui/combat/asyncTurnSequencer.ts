@@ -148,6 +148,36 @@ export async function executeHostileTurnAsync(
       const action = decideNextAction(state, actorUnitId, { diceRoller });
       const description = formatActionDescription(state, actor, action);
 
+      if (!state.aiDecisionLog) {
+        state.aiDecisionLog = [];
+      }
+      const decisionLog = state.aiDecisionLog;
+      const lastTrace = decisionLog[decisionLog.length - 1];
+      if (!lastTrace || lastTrace.chosenAction !== action) {
+        decisionLog.push({
+          turnNumber: state.turnNumber,
+          actorUnitId,
+          actorName: actor.unit.name,
+          profile: 'BRAWLER',
+          weights: {
+            killBonus: 20,
+            expectedDamageWeight: 1.5,
+            vulnerabilityWeight: 2,
+            flankWeight: 3,
+            standoffWeight: 2,
+            preferredStandoffRange: 1,
+            focusFireWeight: 4,
+            apConservationThreshold: 5
+          },
+          currentAp: actor.currentAp,
+          chosenAction: action,
+          topCandidates: [{ type: action.type, action, score: action.score, reason: action.reason, rank: 1 }],
+          totalCandidatesEvaluated: 1,
+          apConservationThreshold: 5,
+          timestamp: Date.now()
+        });
+      }
+
       // Pre-validate proposed actions against authoritative engine rules
       let validationReason: string | undefined;
       if (action.type === 'MOVE') {
@@ -173,6 +203,14 @@ export async function executeHostileTurnAsync(
             ? action.ability.name
             : 'Action';
 
+        if (state.aiDecisionLog && state.aiDecisionLog.length > 0) {
+          const lastIdx = state.aiDecisionLog.length - 1;
+          (state.aiDecisionLog as any[])[lastIdx] = {
+            ...state.aiDecisionLog[lastIdx],
+            faultReason: validationReason
+          };
+        }
+
         console.warn(`[AI Fault] ${actor.unit.name} failed ${actionName}: ${validationReason}`);
         state.combatLog.push({
           turnNumber: state.turnNumber,
@@ -191,11 +229,20 @@ export async function executeHostileTurnAsync(
 
       observer?.onActionStart?.(actor, action, description);
 
+
       let result: AIActionResult;
       try {
         result = executeAiAction(state, actorUnitId, action, diceRoller);
       } catch (err: unknown) {
         const errorReason = err instanceof Error ? err.message : String(err);
+        if (state.aiDecisionLog && state.aiDecisionLog.length > 0) {
+          const lastIdx = state.aiDecisionLog.length - 1;
+          (state.aiDecisionLog as any[])[lastIdx] = {
+            ...state.aiDecisionLog[lastIdx],
+            faultReason: errorReason
+          };
+        }
+
         const actionName =
           action.type === 'MOVE'
             ? `Move to (${action.destination.q}, ${action.destination.r})`
@@ -218,6 +265,7 @@ export async function executeHostileTurnAsync(
         observer?.onActionFault?.(actor, action, errorReason);
         break;
       }
+
 
       observer?.onActionResolved?.(actor, action, result);
 

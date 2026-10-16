@@ -424,6 +424,35 @@ describe('asyncTurnSequencer', () => {
       executeSpy.mockRestore();
       warnSpy.mockRestore();
     });
+
+    it('Task 4.1: records AI decision traces and captures faultReason in state.aiDecisionLog', async () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockCombatUnit('enemy', 'Hostile Scout', 'ENEMY', {
+        maxHp: 30
+      });
+      const hero = createMockCombatUnit('hero', 'Alden', 'PLAYER', { maxHp: 40 });
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+      const state = createCombatState(arena, [enemy, hero], enemy.id);
+
+      expect(state.aiDecisionLog).toBeDefined();
+
+      await executeHostileTurnAsync(
+        state,
+        enemy.id,
+        PACING_PRESETS.INSTANT,
+        {},
+        undefined,
+        new SeededDiceRoller(42)
+      );
+
+      expect(state.aiDecisionLog!.length).toBeGreaterThan(0);
+      const firstTrace = state.aiDecisionLog![0];
+      expect(firstTrace.actorUnitId).toBe(enemy.id);
+      expect(firstTrace.chosenAction).toBeDefined();
+      expect(firstTrace.topCandidates.length).toBeGreaterThan(0);
+    });
   });
 });
+
 

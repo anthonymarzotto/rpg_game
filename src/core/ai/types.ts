@@ -73,3 +73,42 @@ export interface AIDecisionOptions {
   readonly profileOverride?: AIProfile;
   readonly weightsOverride?: Partial<AIArchetypeWeights>;
 }
+
+/**
+ * Scored candidate action considered by the AI decision engine.
+ */
+export interface AICandidateEvaluation {
+  readonly type: 'MOVE' | 'ABILITY' | 'CONSERVE_AP';
+  readonly action: AIAction;
+  readonly score: number;
+  readonly reason: string;
+  readonly rank: number;
+}
+
+/**
+ * Detailed trace of an AI action decision step, capturing the winner alongside top candidate alternatives.
+ */
+export interface AIDecisionTrace {
+  readonly turnNumber: number;
+  readonly actorUnitId: string;
+  readonly actorName: string;
+  readonly profile: AIProfile;
+  readonly weights: AIArchetypeWeights;
+  readonly currentAp: number;
+  readonly chosenAction: AIAction;
+  readonly topCandidates: readonly AICandidateEvaluation[];
+  readonly totalCandidatesEvaluated: number;
+  readonly apConservationThreshold: number;
+  readonly timestamp: number;
+  readonly faultReason?: string;
+}
+
+/**
+ * Result of AI action decision containing both the chosen action and the full diagnostic trace.
+ */
+export interface AIDecisionResult {
+  readonly action: AIAction;
+  readonly trace: AIDecisionTrace;
+}
+
+
