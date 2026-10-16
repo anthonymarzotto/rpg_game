@@ -1,8 +1,8 @@
 import { CombatState, CombatUnit, AbilityResolution } from '../combat/types';
-import { HexCoord, hexDistance, hexEquals, getCombatArc, getHexesInRange } from '../grid/hex';
+import { HexCoord, hexDistance, hexEquals, getCombatArc } from '../grid/hex';
 import { getEffectiveMove } from '../combat/effectiveVitals';
 import { computeAbilityMetrics } from '../combat/targetPreview';
-import { canExecuteAbility } from '../combat/validator';
+import { canExecuteAbility, getAbilityRangeCoords } from '../combat/validator';
 import { executeMove, executeAbility } from '../combat/resolver';
 import { endActiveTurn } from '../combat/turnClock';
 import { SeededDiceRoller, DiceRoller } from '../combat/dice';
@@ -128,7 +128,7 @@ export function decideNextAction(
     } else if (ability.targetType === 'HEX') {
       if ((ability.aoeRadius ?? 0) > 0) {
         // AoE hex ability (e.g. Flash Powder)
-        const rangeHexes = getHexesInRange(currentCoord, ability.range);
+        const rangeHexes = getAbilityRangeCoords(state.arena, currentCoord, ability, cu);
         for (const candHex of rangeHexes) {
           const val = canExecuteAbility(state, actorUnitId, ability, { coord: candHex });
           if (!val.valid) continue;
@@ -180,7 +180,7 @@ export function decideNextAction(
         }
       } else if (ability.effects?.some((e) => e.type === 'TELEPORT')) {
         // Mobility leap ability (e.g. Rooftop Vault, Shadow Step)
-        const rangeHexes = getHexesInRange(currentCoord, ability.range);
+        const rangeHexes = getAbilityRangeCoords(state.arena, currentCoord, ability, cu);
         const remainingAp = cu.currentAp - ability.apCost;
 
         // Identify follow-up single target attacks affordable with remaining AP

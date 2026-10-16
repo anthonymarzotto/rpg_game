@@ -158,6 +158,28 @@ describe('Target Preview Calculation', () => {
     expect(preview!.toHitChance).toBe(30);
   });
 
+  it('computes elevationVantageRange when attacking downward from high ground with a ranged ability', () => {
+    const arena = createRadialArena(5);
+    const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+    const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+
+    // Hero at elevation 2, Enemy at elevation 0 -> elevationDelta = 2
+    arena.setTile({ coord: { q: 0, r: 0 }, elevation: 2, isWalkable: true });
+    arena.setTile({ coord: { q: 4, r: 0 }, elevation: 0, isWalkable: true });
+
+    arena.setUnitPosition('hero', { q: 0, r: 0 });
+    arena.setUnitPosition('enemy', { q: 4, r: 0 });
+
+    const state = createCombatState(arena, [hero, enemy], 'hero');
+
+    // SPARK (base range 3) against enemy at distance 4:
+    // With vantage dh = 2, max range is 3 + 2 = 5 -> valid!
+    const preview = computeTargetPreview(state, 'hero', SPARK, { q: 4, r: 0 });
+    expect(preview).not.toBeNull();
+    expect(preview!.elevationVantageRange).toBe(2);
+    expect(preview!.rollAdvantage).toBe('ADVANTAGE');
+  });
+
   it('factors in protective aura penalty in target preview', () => {
     const arena = createRadialArena(3);
     const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });

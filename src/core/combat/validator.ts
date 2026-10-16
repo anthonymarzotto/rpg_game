@@ -1,9 +1,64 @@
-import { HexCoord, hexDistance, getHexLine } from '../grid/hex';
+import { HexCoord, hexDistance, getHexLine, getHexesInRange } from '../grid/hex';
 import { Ability } from '../types/ability';
 import { CombatState, CombatUnit, ValidationResult } from './types';
 import { getEffectiveMove } from './effectiveVitals';
 import { getEffectiveAbility } from './modifiers';
 import { getConditionDefinition } from './conditions';
+import { Arena } from '../grid/arena';
+
+/**
+ * Calculates all arena tile coordinates that fall within the effective reach of an ability,
+ * accounting for active ability modifiers, relative elevation vantage (for ranged),
+ * vertical reach limits (for melee), and arena boundaries.
+ */
+export function getAbilityRangeCoords(
+  arena: Arena,
+  actorCoord: HexCoord,
+  ability: Ability,
+  cu?: CombatUnit
+): HexCoord[] {
+  const effectiveAbility = cu?.abilityModifiers
+    ? getEffectiveAbility(ability, cu.abilityModifiers)
+    : ability;
+
+  if (effectiveAbility.targetType === 'SELF') {
+    return arena.hasTile(actorCoord) ? [actorCoord] : [];
+  }
+
+  const actorElevation = arena.getElevation(actorCoord);
+
+  if (effectiveAbility.range <= 1) {
+    const candidates = getHexesInRange(actorCoord, 1);
+    const maxReach = effectiveAbility.reachElevationDelta ?? 1;
+    const ignoresReach = cu?.passives?.some((p) => p.ignoresElevationPenalty);
+
+    return candidates.filter((coord) => {
+      if (!arena.hasTile(coord)) return false;
+      const targetElevation = arena.getElevation(coord);
+      const elevationDelta = actorElevation - targetElevation;
+      if (!ignoresReach && Math.abs(elevationDelta) > maxReach) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  // Ranged abilities (range >= 2):
+  // Vantage grants +1 range per level of positive elevation difference:
+  // effectiveRange = range + max(0, actorElevation - targetElevation).
+  // The maximum possible range in any direction is range + actorElevation (since min arena elevation is 0).
+  const maxPotentialRange = effectiveAbility.range + Math.max(0, actorElevation);
+  const candidates = getHexesInRange(actorCoord, maxPotentialRange);
+
+  return candidates.filter((coord) => {
+    if (!arena.hasTile(coord)) return false;
+    const dist = hexDistance(actorCoord, coord);
+    const targetElevation = arena.getElevation(coord);
+    const elevationDelta = actorElevation - targetElevation;
+    const effectiveRange = effectiveAbility.range + Math.max(0, elevationDelta);
+    return dist <= effectiveRange;
+  });
+}
 
 function validateElevationReachAndRange(
   actorElevation: number,

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createRadialArena } from '../grid/templates';
 import { createRecruit } from '../units/unitFactory';
 import { createCombatState, executeAbility } from './resolver';
-import { canExecuteAbility } from './validator';
+import { canExecuteAbility, getAbilityRangeCoords } from './validator';
 import { MockDiceRoller } from './dice';
 import { STRIKE, SHIELD_BASH } from '../../data/abilities';
 import { Ability } from '../types/ability';
@@ -294,6 +294,103 @@ describe('Phase 6.2 Elevation Combat Modifiers & Plunging Knockback Integration'
         expect(foeCu.isDefeated).toBe(true);
         expect(state.combatLog[0].message).toContain('Plunged from ledge: Took +12 Fall Impact Damage!');
       }
+    });
+  });
+
+  describe('getAbilityRangeCoords with Elevation Vantage & Reach', () => {
+    it('extends ranged ability reach up to range + elevationDelta on lower ground', () => {
+      const arena = createRadialArena(5);
+      const actorCoord = { q: 0, r: 0 };
+      arena.setTile({ coord: actorCoord, elevation: 2, isWalkable: true });
+
+      // Set specific tiles at varying distances and elevations
+      const dist5Low = { q: 5, r: 0 }; // dist 5, elev 0 -> effective range = 3 + (2 - 0) = 5 -> in range
+      const dist5Mid = { q: 0, r: 5 }; // dist 5, elev 1 -> effective range = 3 + (2 - 1) = 4 -> OUT of range
+      const dist4Mid = { q: 4, r: 0 }; // dist 4, elev 1 -> effective range = 3 + (2 - 1) = 4 -> in range
+      const dist4High = { q: 0, r: 4 }; // dist 4, elev 2 -> effective range = 3 + (2 - 2) = 3 -> OUT of range
+      const dist3High = { q: 0, r: 3 }; // dist 3, elev 2 -> effective range = 3 + (2 - 2) = 3 -> in range
+
+      arena.setTile({ coord: dist5Low, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: dist5Mid, elevation: 1, isWalkable: true });
+      arena.setTile({ coord: dist4Mid, elevation: 1, isWalkable: true });
+      arena.setTile({ coord: dist4High, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: dist3High, elevation: 2, isWalkable: true });
+
+      const ability: Ability = {
+        ...RANGED_VOLLEY,
+        range: 3
+      };
+
+      const inRangeCoords = getAbilityRangeCoords(arena, actorCoord, ability);
+      const hasCoord = (c: { q: number; r: number }) =>
+        inRangeCoords.some((coord) => coord.q === c.q && coord.r === c.r);
+
+      expect(hasCoord(dist5Low)).toBe(true);
+      expect(hasCoord(dist5Mid)).toBe(false);
+      expect(hasCoord(dist4Mid)).toBe(true);
+      expect(hasCoord(dist4High)).toBe(false);
+      expect(hasCoord(dist3High)).toBe(true);
+    });
+
+    it('filters out adjacent hexes with |dh| > reach for melee abilities unless ignored', () => {
+      const arena = createRadialArena(2);
+      const actorCoord = { q: 0, r: 0 };
+      arena.setTile({ coord: actorCoord, elevation: 2, isWalkable: true });
+
+      const adjCliffDrop = { q: 1, r: 0 }; // dist 1, elev 0 -> |dh| = 2 > 1 -> vertically out of reach
+      const adjStepDrop = { q: 0, r: 1 }; // dist 1, elev 1 -> |dh| = 1 <= 1 -> in reach
+      const adjSameElev = { q: -1, r: 0 }; // dist 1, elev 2 -> |dh| = 0 <= 1 -> in reach
+
+      arena.setTile({ coord: adjCliffDrop, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: adjStepDrop, elevation: 1, isWalkable: true });
+      arena.setTile({ coord: adjSameElev, elevation: 2, isWalkable: true });
+
+      const hero = createRecruit('hero', 'Hero');
+      const heroCu = createCombatState(arena, [hero], 'hero').units.get('hero')!;
+
+      // Normal melee without reach bypass
+      const rangeCoords = getAbilityRangeCoords(arena, actorCoord, STRIKE, heroCu);
+      const hasCoord = (c: { q: number; r: number }) =>
+        rangeCoords.some((coord) => coord.q === c.q && coord.r === c.r);
+
+      expect(hasCoord(adjCliffDrop)).toBe(false);
+      expect(hasCoord(adjStepDrop)).toBe(true);
+      expect(hasCoord(adjSameElev)).toBe(true);
+
+      // Hero with passive that ignores elevation penalty
+      const climberHero = createRecruit('climber', 'Climber');
+      const climberCu = createCombatState(arena, [climberHero], 'climber').units.get('climber')!;
+      (climberCu as any).passives = [
+        {
+          id: 'mountain_stride',
+          name: 'Mountain Stride',
+          description: 'Ignores vertical reach limits',
+          hook: 'ALWAYS',
+          ignoresElevationPenalty: true
+        }
+      ];
+
+      const climberRangeCoords = getAbilityRangeCoords(arena, actorCoord, STRIKE, climberCu);
+      const climberHasCoord = (c: { q: number; r: number }) =>
+        climberRangeCoords.some((coord) => coord.q === c.q && coord.r === c.r);
+
+      expect(climberHasCoord(adjCliffDrop)).toBe(true);
+    });
+
+    it('returns only actorCoord for SELF abilities if tile exists', () => {
+      const arena = createRadialArena(2);
+      const actorCoord = { q: 0, r: 0 };
+      const selfAbility: Ability = {
+        ...STRIKE,
+        id: 'self_buff',
+        name: 'Inner Focus',
+        range: 0,
+        targetType: 'SELF'
+      };
+
+      const coords = getAbilityRangeCoords(arena, actorCoord, selfAbility);
+      expect(coords).toHaveLength(1);
+      expect(coords[0]).toEqual(actorCoord);
     });
   });
 });

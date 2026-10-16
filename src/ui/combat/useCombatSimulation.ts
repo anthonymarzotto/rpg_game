@@ -1,11 +1,10 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { HexCoord, getHexesInRange } from '../../core/grid/hex';
+import { HexCoord } from '../../core/grid/hex';
 import { Ability } from '../../core/types/ability';
 import { Unit } from '../../core/types/unit';
 import { UnitLoadout } from '../../core/types/loadout';
 import { CombatState, InBattleXp } from '../../core/combat/types';
-import { canMove, canExecuteAbility } from '../../core/combat/validator';
-import { getEffectiveAbility } from '../../core/combat/modifiers';
+import { canMove, canExecuteAbility, getAbilityRangeCoords } from '../../core/combat/validator';
 import { executeMove, executeAbility } from '../../core/combat/resolver';
 import { endActiveTurn } from '../../core/combat/turnClock';
 import {
@@ -39,13 +38,17 @@ export interface MovePathPreview {
 
 export interface UseCombatSimulationOptions {
   readonly encounter: EncounterDefinition;
+  readonly initialActionMode?: ActionMode;
+  readonly initialSelectedAbility?: Ability | null;
 }
 
 /**
  * Orchestrates combat interaction state, squad turn sequencing, action selection, and intent dispatch.
  */
 export function useCombatSimulation({
-  encounter
+  encounter,
+  initialActionMode,
+  initialSelectedAbility
 }: UseCombatSimulationOptions) {
   const [squadSummaries, setSquadSummaries] = useState<readonly SquadMemberVictorySummary[]>([]);
   const [activeSquadUnitId, setActiveSquadUnitId] = useState<string>('player-warrior');
@@ -59,8 +62,8 @@ export function useCombatSimulation({
   const [state, setState] = useState<CombatState>(() =>
     buildEncounterState(encounter)
   );
-  const [actionMode, setActionMode] = useState<ActionMode>('IDLE');
-  const [selectedAbility, setSelectedAbility] = useState<Ability | null>(null);
+  const [actionMode, setActionMode] = useState<ActionMode>(initialActionMode ?? 'IDLE');
+  const [selectedAbility, setSelectedAbility] = useState<Ability | null>(initialSelectedAbility ?? null);
   const [hoveredCoord, setHoveredCoord] = useState<HexCoord | null>(null);
   const [diceMode, setDiceMode] = useState<DiceMode>('NORMAL');
 
@@ -99,9 +102,8 @@ export function useCombatSimulation({
     if (phase !== 'PLAYER_ACTION' || actionMode !== 'ABILITY' || !selectedAbility || !activeCoord || !activeCu) {
       return [];
     }
-    const effective = getEffectiveAbility(selectedAbility, activeCu.abilityModifiers);
-    return getHexesInRange(activeCoord, effective.range);
-  }, [phase, actionMode, selectedAbility, activeCoord, activeCu]);
+    return getAbilityRangeCoords(state.arena, activeCoord, selectedAbility, activeCu);
+  }, [phase, actionMode, selectedAbility, activeCoord, activeCu, state.arena]);
 
   // Candidate targets within ability range that pass validation (enemies for attacks, allies for buffs)
   const candidateTargetCoords = useMemo<HexCoord[]>(() => {

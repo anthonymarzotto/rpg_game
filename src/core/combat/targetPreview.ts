@@ -31,6 +31,7 @@ export interface AbilityMetrics {
   readonly mitigation: number;
   readonly isDamaging: boolean;
   readonly rollAdvantage?: RollAdvantage;
+  readonly elevationVantageRange?: number;
 }
 
 /**
@@ -52,6 +53,7 @@ export interface TargetPreview {
   readonly hasLoS: boolean;
   readonly mitigation: number;
   readonly rollAdvantage?: RollAdvantage;
+  readonly elevationVantageRange?: number;
 }
 
 /**
@@ -82,6 +84,8 @@ export function computeAbilityMetrics(
   const actorElevation = state.arena.getElevation(effectiveOrigin);
   const targetElevation = state.arena.getElevation(targetCoord);
   const elevationDelta = actorElevation - targetElevation;
+  const elevationVantageRange =
+    effectiveAbility.range >= 2 && elevationDelta > 0 ? elevationDelta : undefined;
   const maxRange =
     effectiveAbility.range >= 2
       ? effectiveAbility.range + Math.max(0, elevationDelta)
@@ -176,7 +180,8 @@ export function computeAbilityMetrics(
       diceDescription: diceDesc,
       mitigation: 0,
       isDamaging: false,
-      rollAdvantage: 'NORMAL'
+      rollAdvantage: 'NORMAL',
+      elevationVantageRange
     };
   }
 
@@ -207,7 +212,8 @@ export function computeAbilityMetrics(
     diceDescription: diceDesc,
     mitigation,
     isDamaging: true,
-    rollAdvantage: rollContext.finalAdvantage
+    rollAdvantage: rollContext.finalAdvantage,
+    elevationVantageRange
   };
 }
 
@@ -241,6 +247,7 @@ export function computeTargetPreview(
     isFlankAdvantage: metrics.isFlankAdvantage,
     hasLoS: metrics.hasLoS,
     mitigation: metrics.mitigation,
-    rollAdvantage: metrics.rollAdvantage
+    rollAdvantage: metrics.rollAdvantage,
+    elevationVantageRange: metrics.elevationVantageRange
   };
 }

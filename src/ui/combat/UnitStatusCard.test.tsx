@@ -85,4 +85,19 @@ describe('UnitStatusCard Component', () => {
     expect(html).not.toContain('(Disadv)');
     expect(html).not.toContain('roll-advantage-badge');
   });
+
+  it('renders Vantage badge when target preview includes elevationVantageRange', () => {
+    const activeCu = createMockCombatUnit();
+    const targetPreview = {
+      ...createMockTargetPreview('ADVANTAGE'),
+      elevationVantageRange: 2
+    };
+
+    const html = renderToStaticMarkup(
+      <UnitStatusCard activeCu={activeCu} targetPreview={targetPreview} />
+    );
+
+    expect(html).toContain('✦ Vantage (+2 Range)');
+    expect(html).toContain('advantage-indicator-badge vantage');
+  });
 });

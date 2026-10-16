@@ -237,6 +237,11 @@ export function UnitStatusCard({
               <span className="los-badge blocked">✖ Obstructed</span>
             ) : (
               <div className="preview-badges-row">
+                {targetPreview.elevationVantageRange !== undefined && targetPreview.elevationVantageRange > 0 && (
+                  <span className="advantage-indicator-badge vantage" title={`High Ground Vantage extends ability reach by +${targetPreview.elevationVantageRange} hexes`}>
+                    ✦ Vantage (+{targetPreview.elevationVantageRange} Range)
+                  </span>
+                )}
                 {targetPreview.isFlankAdvantage && (
                   <span className="advantage-indicator-badge">
                     ✦ {targetPreview.combatArc === 'REAR' ? 'Rear' : 'Flank'} (+1d6)
