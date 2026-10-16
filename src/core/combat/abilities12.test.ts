@@ -196,6 +196,7 @@ describe('Phase 1.2: Foundational Abilities & Passive Mechanics', () => {
 
         const collateralEvent = damageEvents.find((e) => e.targetUnitId === 'g2')!;
         expect(collateralEvent.reason).toBe('COLLATERAL');
+        expect(collateralEvent.label).toBe('CLEAVE');
 
         expect(state.combatLog[0].message).toContain('Cleave hit Goblin 2');
       }
@@ -233,6 +234,7 @@ describe('Phase 1.2: Foundational Abilities & Passive Mechanics', () => {
             e.type === 'DAMAGE' && e.reason === 'COLLATERAL'
         );
         expect(collateral?.targetUnitId).toBe('g3'); // Targeted goblin 3 with lowest HP
+        expect(collateral?.label).toBe('CLEAVE');
       }
     });
 

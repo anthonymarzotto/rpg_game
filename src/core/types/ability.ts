@@ -130,6 +130,8 @@ export interface Ability {
   readonly effects: readonly AbilityEffect[];
   /** Blast AoE radius in hexes (undefined or 0 = single target hex, 1 = target + adjacent ring) */
   readonly aoeRadius?: number;
+  /** Optional custom floater label for AoE splash damage (e.g. 'BLAST', 'SPLASH'). Defaults to 'SPLASH'. */
+  readonly splashLabel?: string;
   /** Whether the ability can only be executed at most once per turn */
   readonly oncePerTurn?: boolean;
   /** Whether the ability ignores upward low-ground attack roll penalties and disadvantage */

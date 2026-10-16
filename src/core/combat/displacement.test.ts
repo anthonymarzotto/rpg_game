@@ -210,6 +210,7 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
           amount: 1,
           damageType: 'PHYSICAL',
           reason: 'COLLATERAL',
+          label: 'COLLISION',
           sourceUnitId: 'hero'
         });
       }

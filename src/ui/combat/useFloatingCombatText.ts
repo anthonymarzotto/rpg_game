@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { HexCoord } from '../../core/grid/hex';
-import { CombatState, AbilityResolution } from '../../core/combat/types';
+import { CombatState, AbilityResolution, CombatEvent, HitOutcome } from '../../core/combat/types';
 import { Ability } from '../../core/types/ability';
 
 export interface FloatingText {
@@ -8,6 +8,42 @@ export interface FloatingText {
   readonly text: string;
   readonly type: 'damage' | 'crit' | 'graze' | 'miss' | 'xp' | 'buff' | 'slam';
   readonly coord: HexCoord;
+}
+
+/**
+ * Evaluates the floating combat text string and visual style for a damage event.
+ */
+export function resolveDamageFloatingText(
+  event: Extract<CombatEvent, { type: 'DAMAGE' }>,
+  hitOutcome: HitOutcome
+): { text: string; textType: FloatingText['type'] } {
+  const textType: FloatingText['type'] =
+    event.reason === 'COLLISION' || event.reason === 'COLLATERAL' || event.reason === 'SPLASH'
+      ? 'slam'
+      : event.isCrit
+      ? 'crit'
+      : hitOutcome === 'GRAZE'
+      ? 'graze'
+      : 'damage';
+  const prefix =
+    event.label
+      ? `${event.label}! `
+      : event.reason === 'COLLISION'
+      ? 'SLAM! '
+      : event.reason === 'COLLATERAL'
+      ? 'COLLISION! '
+      : event.reason === 'SPLASH'
+      ? 'SPLASH! '
+      : event.isCrit
+      ? 'CRITICAL! '
+      : hitOutcome === 'GRAZE'
+      ? 'GRAZE '
+      : '';
+
+  return {
+    text: `${prefix}-${event.amount}`,
+    textType
+  };
 }
 
 /**
@@ -55,26 +91,9 @@ export function useFloatingCombatText() {
                 : state.arena.getUnitPosition(event.targetUnitId);
             if (unitPos) {
               const delay = event.reason === 'ATTACK' ? 0 : 350;
-              const textType =
-                event.reason === 'COLLISION' || event.reason === 'COLLATERAL'
-                  ? 'slam'
-                  : event.isCrit
-                  ? 'crit'
-                  : hit === 'GRAZE'
-                  ? 'graze'
-                  : 'damage';
-              const prefix =
-                event.reason === 'COLLISION'
-                  ? 'SLAM! '
-                  : event.reason === 'COLLATERAL'
-                  ? 'COLLISION! '
-                  : event.isCrit
-                  ? 'CRITICAL! '
-                  : hit === 'GRAZE'
-                  ? 'GRAZE '
-                  : '';
+              const { text, textType } = resolveDamageFloatingText(event, hit);
               setTimeout(() => {
-                addFloatingText(`${prefix}-${event.amount}`, textType, unitPos);
+                addFloatingText(text, textType, unitPos);
               }, delay);
             }
           } else if (event.type === 'DISPLACEMENT' && event.kind === 'KNOCKBACK') {

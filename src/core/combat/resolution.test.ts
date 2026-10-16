@@ -17,6 +17,8 @@ import {
   SNEAK_ATTACK,
   ARCANE_BLAST
 } from '../../data/abilities';
+import { CombatEvent } from './types';
+import { Ability } from '../types/ability';
 
 describe('Attack & Ability Resolution Outcomes', () => {
   describe('Hit Tiers & Archetype XP Awards', () => {
@@ -404,12 +406,58 @@ describe('Attack & Ability Resolution Outcomes', () => {
         expect(event2.type).toBe('DAMAGE');
         if (event2.type === 'DAMAGE') {
           expect(event2.targetUnitId).toBe('dummyB');
-          expect(event2.reason).toBe('COLLATERAL');
+          expect(event2.reason).toBe('SPLASH');
+          expect(event2.label).toBe('BLAST');
         }
       }
 
       expect(dummyACu.currentHp).toBe(dummyA.effectiveVitals.maxHp - 3);
       expect(dummyBCu.currentHp).toBe(dummyB.effectiveVitals.maxHp - 2);
+
+      // Verify combat log records secondary splash damage in secondaryDetail
+      expect((state.combatLog[0].metadata as any)?.secondaryDetail).toContain(
+        'Blast hit Dummy B (Adjacent) for 2 magical damage (HP: 10/12)'
+      );
+      expect(state.combatLog[0].message).toContain(
+        'Blast hit Dummy B (Adjacent) for 2 magical damage (HP: 10/12)'
+      );
+    });
+
+    it('defaults splash damage events to SPLASH reason and label when splashLabel is not set', () => {
+      const arena = createRadialArena(3);
+      const wizard = createRecruit('wizard', 'Wizard');
+      const dummyA = createRecruit('dummyA', 'Dummy A');
+      const dummyB = createRecruit('dummyB', 'Dummy B (Adjacent)');
+
+      arena.setUnitPosition('wizard', { q: 0, r: 0 });
+      arena.setUnitPosition('dummyA', { q: 2, r: 0 });
+      arena.setUnitPosition('dummyB', { q: 2, r: 1 });
+
+      const state = createCombatState(arena, [wizard, dummyA, dummyB], 'wizard');
+
+      const genericSplashAbility: Ability = {
+        ...ARCANE_BLAST,
+        id: 'generic_spell',
+        name: 'Generic Spell',
+        splashLabel: undefined
+      };
+
+      const dice = new MockDiceRoller({ d20Rolls: [14], damageRolls: [3, 2] });
+      const result = executeAbility(state, 'wizard', genericSplashAbility, { targetUnitId: 'dummyA' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        const splashEvent = result.details.events.find(
+          (e): e is Extract<CombatEvent, { type: 'DAMAGE' }> =>
+            e.type === 'DAMAGE' && e.targetUnitId === 'dummyB'
+        );
+        expect(splashEvent?.reason).toBe('SPLASH');
+        expect(splashEvent?.label).toBe('SPLASH');
+      }
+
+      expect((state.combatLog[0].metadata as any)?.secondaryDetail).toContain(
+        'Splash hit Dummy B (Adjacent) for 2 magical damage'
+      );
     });
 
     it('executes Thief Sneak Attack with Advantage and bonus precision dice when target is flanked or struck from rear', () => {

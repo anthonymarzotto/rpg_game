@@ -11,6 +11,7 @@ export const ARCANE_BLAST: Ability = {
   apCost: 1,
   range: 3,
   aoeRadius: 1,
+  splashLabel: 'BLAST',
   targetType: 'SINGLE_TARGET',
   defenseTarget: 'RESOLVE',
   attackModifierAttribute: 'focus',

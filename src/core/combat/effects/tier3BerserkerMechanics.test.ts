@@ -135,6 +135,8 @@ describe('Tier 3 Berserker Core Mechanics', () => {
       const events = (result as any).details?.events ?? (result as any).events;
       const collateralEvents = events.filter((e: any) => e.reason === 'COLLATERAL');
       expect(collateralEvents).toHaveLength(2);
+      expect(collateralEvents[0].label).toBe('CLEAVE');
+      expect(collateralEvents[1].label).toBe('CLEAVE');
       expect(state.combatLog[0].message).toContain('Cleave hit');
     });
   });

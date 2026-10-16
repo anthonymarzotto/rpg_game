@@ -86,6 +86,7 @@ export function handleWildSurge(ctx: CriticalHitContext): CombatEvent[] {
         amount: 2,
         damageType: 'MAGICAL',
         reason: 'COLLATERAL',
+        label: 'SURGE',
         sourceUnitId: actorCu.unit.id,
         isCrit: false
       };

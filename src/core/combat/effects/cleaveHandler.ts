@@ -65,6 +65,7 @@ export const cleaveHandler: EffectHandler = {
           amount: damageResult.damageDealt,
           damageType: ability.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL',
           reason: 'COLLATERAL',
+          label: 'CLEAVE',
           sourceUnitId: actorCu.unit.id,
           isCrit: false
         });

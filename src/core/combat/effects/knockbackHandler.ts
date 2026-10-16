@@ -74,6 +74,7 @@ export const knockbackHandler: EffectHandler = {
           amount: collateralDmg,
           damageType: 'PHYSICAL',
           reason: 'COLLATERAL',
+          label: 'COLLISION',
           sourceUnitId: actorCu.unit.id
         });
 

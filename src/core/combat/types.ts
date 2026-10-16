@@ -11,6 +11,7 @@ export type CombatDamageReason =
   | 'ATTACK'
   | 'COLLISION'
   | 'COLLATERAL'
+  | 'SPLASH'
   | 'STATUS_TICK'
   | 'ENVIRONMENT'
   | 'FALL';
@@ -31,6 +32,7 @@ export type CombatEvent =
       readonly reason: CombatDamageReason;
       readonly sourceUnitId?: string;
       readonly isCrit?: boolean;
+      readonly label?: string;
     }
   | {
       readonly type: 'DISPLACEMENT';

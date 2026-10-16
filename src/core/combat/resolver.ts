@@ -679,6 +679,8 @@ export function executeAbility(
   }
 
   // Secondary AoE Splash Resolution
+  const splashLogDetails: string[] = [];
+  const splashLabel = effectiveAbility.splashLabel ?? 'SPLASH';
   if (effectiveAbility.aoeRadius && effectiveAbility.aoeRadius > 0 && rollResult.hitOutcome !== 'MISS') {
     const targetCoord = target?.coord ?? state.arena.getUnitPosition(targetCu.unit.id);
     if (targetCoord) {
@@ -697,15 +699,21 @@ export function executeAbility(
               diceRoller
             );
             if (splashDmg.damageDealt > 0) {
+              const damageType = effectiveAbility.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL';
               events.push({
                 type: 'DAMAGE',
                 targetUnitId: splashCu.unit.id,
                 amount: splashDmg.damageDealt,
-                damageType: effectiveAbility.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL',
-                reason: 'COLLATERAL',
+                damageType,
+                reason: 'SPLASH',
+                label: splashLabel,
                 sourceUnitId: actorCu.unit.id,
                 isCrit: false
               });
+              const remainingHp = Math.max(0, splashCu.currentHp - splashDmg.damageDealt);
+              splashLogDetails.push(
+                `${splashCu.unit.name} for ${splashDmg.damageDealt} ${damageType.toLowerCase()} damage (HP: ${remainingHp}/${splashCu.unit.effectiveVitals.maxHp})`
+              );
             }
           }
         }
@@ -801,7 +809,10 @@ export function executeAbility(
   state.outcome = evaluateEncounterOutcome(state.objectives, state);
 
   // Combat Log
-  const secondaryDetail = effectResult.logDetail ?? '';
+  const splashDetail = splashLogDetails.length > 0
+    ? ` 💥 [${splashLabel.charAt(0).toUpperCase() + splashLabel.slice(1).toLowerCase()} hit ${splashLogDetails.join(', ')}]`
+    : '';
+  const secondaryDetail = [effectResult.logDetail ?? '', splashDetail].filter(Boolean).join('');
   const auraDetail = auraEval.attackRollPenalty > 0 ? ` [Aura Penalty: -${auraEval.attackRollPenalty} (${auraEval.sourceAuraNames.join(', ')})]` : '';
   const elevDetail = elevMod.description ? ` [Elevation: ${elevMod.description}]` : '';
   state.combatLog.push({
