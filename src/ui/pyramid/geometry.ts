@@ -113,10 +113,16 @@ export function parseCoordKey(key: string): ArchetypePoints {
 }
 
 /**
- * Calculates barycentric star chart (x, y) coordinates for an off-node point.
- * Interpolates relative to pure Fighter (Warrior), Rogue (Thief), and Mage (Wizard) apex positions.
+ * Calculates star chart (x, y) coordinates for an off-node point.
+ * When rootClassId is provided (e.g. 'warrior', 'thief', 'wizard'), applies tier-scaled
+ * anchor interpolation so early-game waypoints (like Level 2 (1,1,0)) remain adjacent
+ * to their origin and destination classes instead of leaping to the center of the chart.
+ * Falls back to global barycentric midpoint when rootClassId is omitted.
  */
-export function getOffNodeWaypointPosition(points: ArchetypePoints): { x: number; y: number } {
+export function getOffNodeWaypointPosition(
+  points: ArchetypePoints,
+  rootClassId?: string
+): { x: number; y: number } {
   const total = points.fighter + points.rogue + points.mage;
   if (total === 0) {
     return { x: 0, y: 0 };
@@ -125,6 +131,69 @@ export function getOffNodeWaypointPosition(points: ArchetypePoints): { x: number
   const thiefPoint = POINTS_BY_ID.get('thief')!;
   const wizardPoint = POINTS_BY_ID.get('wizard')!;
 
+  if (rootClassId) {
+    // Level 2 off-nodes (1,1,0), (1,0,1), (0,1,1)
+    if (total === 2) {
+      if (rootClassId === 'warrior') {
+        if (points.rogue === 1) {
+          const cavalier = POINTS_BY_ID.get('cavalier')!;
+          return {
+            x: Number(((warriorPoint.x + cavalier.x) / 2).toFixed(1)),
+            y: Number(((warriorPoint.y + cavalier.y) / 2).toFixed(1))
+          };
+        }
+        if (points.mage === 1) {
+          const berserker = POINTS_BY_ID.get('berserker')!;
+          return {
+            x: Number(((warriorPoint.x + berserker.x) / 2).toFixed(1)),
+            y: Number(((warriorPoint.y + berserker.y) / 2).toFixed(1))
+          };
+        }
+      } else if (rootClassId === 'thief') {
+        if (points.fighter === 1) {
+          const highwayman = POINTS_BY_ID.get('highwayman')!;
+          return {
+            x: Number(((thiefPoint.x + highwayman.x) / 2).toFixed(1)),
+            y: Number(((thiefPoint.y + highwayman.y) / 2).toFixed(1))
+          };
+        }
+        if (points.mage === 1) {
+          const catBurglar = POINTS_BY_ID.get('cat-burglar')!;
+          return {
+            x: Number(((thiefPoint.x + catBurglar.x) / 2).toFixed(1)),
+            y: Number(((thiefPoint.y + catBurglar.y) / 2).toFixed(1))
+          };
+        }
+      } else if (rootClassId === 'wizard') {
+        if (points.fighter === 1) {
+          const warlock = POINTS_BY_ID.get('warlock')!;
+          return {
+            x: Number(((wizardPoint.x + warlock.x) / 2).toFixed(1)),
+            y: Number(((wizardPoint.y + warlock.y) / 2).toFixed(1))
+          };
+        }
+        if (points.rogue === 1) {
+          const witch = POINTS_BY_ID.get('witch')!;
+          return {
+            x: Number(((wizardPoint.x + witch.x) / 2).toFixed(1)),
+            y: Number(((wizardPoint.y + witch.y) / 2).toFixed(1))
+          };
+        }
+      }
+    }
+
+    // Level 3 Tri-Hybrid off-node (1,1,1)
+    if (total === 3 && points.fighter === 1 && points.rogue === 1 && points.mage === 1) {
+      const rootPoint = POINTS_BY_ID.get(rootClassId) ?? warriorPoint;
+      // Interpolates 1/3 of the way from the root class toward the pyramid center (0, 0)
+      return {
+        x: Number(((rootPoint.x * 2) / 3).toFixed(1)),
+        y: Number(((rootPoint.y * 2) / 3).toFixed(1))
+      };
+    }
+  }
+
+  // Standard global barycentric interpolation (fallback / root-independent)
   const wF = points.fighter / total;
   const wR = points.rogue / total;
   const wM = points.mage / total;
@@ -138,9 +207,9 @@ export function getOffNodeWaypointPosition(points: ArchetypePoints): { x: number
 /**
  * Creates a StarlightWaypoint descriptor for an off-node coordinate key.
  */
-export function getOffNodeWaypoint(coordKey: string): StarlightWaypoint {
+export function getOffNodeWaypoint(coordKey: string, rootClassId?: string): StarlightWaypoint {
   const points = parseCoordKey(coordKey);
-  const { x, y } = getOffNodeWaypointPosition(points);
+  const { x, y } = getOffNodeWaypointPosition(points, rootClassId);
   return {
     coordKey,
     points,

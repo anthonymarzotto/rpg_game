@@ -38,4 +38,28 @@ describe('pyramid geometry off-node waypoint calculations', () => {
     expect(typeof wp.x).toBe('number');
     expect(typeof wp.y).toBe('number');
   });
+
+  it('calculates tier-scaled waypoint position for 1,1,0 anchored to warrior root', () => {
+    const warrior = POINTS_BY_ID.get('warrior')!;
+    const cavalier = POINTS_BY_ID.get('cavalier')!;
+    const pos = getOffNodeWaypointPosition({ fighter: 1, rogue: 1, mage: 0 }, 'warrior');
+    expect(pos.x).toBeCloseTo((warrior.x + cavalier.x) / 2, 1);
+    expect(pos.y).toBeCloseTo((warrior.y + cavalier.y) / 2, 1);
+  });
+
+  it('calculates tier-scaled waypoint position for 1,1,0 anchored to thief root', () => {
+    const thief = POINTS_BY_ID.get('thief')!;
+    const highwayman = POINTS_BY_ID.get('highwayman')!;
+    const pos = getOffNodeWaypointPosition({ fighter: 1, rogue: 1, mage: 0 }, 'thief');
+    expect(pos.x).toBeCloseTo((thief.x + highwayman.x) / 2, 1);
+    expect(pos.y).toBeCloseTo((thief.y + highwayman.y) / 2, 1);
+  });
+
+  it('calculates tier-scaled waypoint position for 1,0,1 anchored to wizard root', () => {
+    const wizard = POINTS_BY_ID.get('wizard')!;
+    const warlock = POINTS_BY_ID.get('warlock')!;
+    const pos = getOffNodeWaypointPosition({ fighter: 1, rogue: 0, mage: 1 }, 'wizard');
+    expect(pos.x).toBeCloseTo((wizard.x + warlock.x) / 2, 1);
+    expect(pos.y).toBeCloseTo((wizard.y + warlock.y) / 2, 1);
+  });
 });

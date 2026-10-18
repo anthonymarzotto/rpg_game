@@ -6,7 +6,8 @@
 
 ## 🔨 In Progress
 
-*None currently active. Ready to select from Next Up.*
+### Attuned Waypoint Selection Display
+- [ ] Show what was selected at an Attuned Waypoint (display the chosen Wayfarer Attunement and/or unlocked Domain Ability / Astral Shard in the Constellation scanner HUD instead of the generic option pool).
 
 ---
 
@@ -44,8 +45,3 @@
    * **1.2** *Idea*: Consider passive archetype resonance (e.g., earning a fraction of secondary archetype XP on trial victory, or starring a "Focus Archetype" for the battle), or ability starring to remind players which skills advance their desired constellation path.
 2. **Shard Stats in Combat Manifest**:
    * **2.1** *Observation*: Combat Manifest in the Unit Info dialog doesn't always reflect updated values from equipped shards (e.g. Bloodbound Shard modifying damage/dice description). Verify text evaluation vs runtime effect pipeline.
-3. **Constellation & Camp Copy Polish**:
-   * **3.1**: Wayfarer milestone points: first waypoint at R:1, F:1 feels centrally placed; refine barycentric visual placement.
-   * **3.2**: Change the three apex labels on the constellation triangle to **Force / Finesse / Focus**.
-   * **3.3**: Replace the title "Assumed Class" with something more thematic (e.g., `Attuned Class`, `Ascended Form`, or `Active Discipline`).
-   * **3.4**: Resonance ability dropdown: ensure the Fighter/Rogue/Mage archetype tag is explicitly displayed alongside AP cost.

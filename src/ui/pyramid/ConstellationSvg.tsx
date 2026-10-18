@@ -34,6 +34,7 @@ export function ConstellationSvg({
   onHoverWaypoint
 }: ConstellationSvgProps) {
   // Off-Node Starlight Waypoints: unlocked and eligible
+  const rootClassId = progression.constellation?.[0];
   const unlockedOffNodes = progression.offNodeMilestones ?? [];
   const visibleWaypoints: {
     coordKey: string;
@@ -46,7 +47,7 @@ export function ConstellationSvg({
   const addedWaypointKeys = new Set<string>();
 
   for (const key of unlockedOffNodes) {
-    const wp = getOffNodeWaypoint(key);
+    const wp = getOffNodeWaypoint(key, rootClassId);
     addedWaypointKeys.add(key);
     visibleWaypoints.push({
       ...wp,
@@ -66,7 +67,7 @@ export function ConstellationSvg({
       const key = toCoordKey(nextPoints);
       if (!addedWaypointKeys.has(key)) {
         addedWaypointKeys.add(key);
-        const wp = getOffNodeWaypoint(key);
+        const wp = getOffNodeWaypoint(key, rootClassId);
         visibleWaypoints.push({
           ...wp,
           isUnlocked: false,
@@ -113,7 +114,7 @@ export function ConstellationSvg({
           textAnchor="middle"
           letterSpacing="0.06em"
         >
-          ▲ FIGHTER APEX (WARRIOR)
+          ▲ FORCE
         </text>
         <text
           x={-355}
@@ -124,7 +125,7 @@ export function ConstellationSvg({
           textAnchor="middle"
           letterSpacing="0.06em"
         >
-          ◀ ROGUE APEX (THIEF)
+          ◀ FINESSE
         </text>
         <text
           x={355}
@@ -135,7 +136,7 @@ export function ConstellationSvg({
           textAnchor="middle"
           letterSpacing="0.06em"
         >
-          MAGE APEX (WIZARD) ▶
+          FOCUS ▶
         </text>
       </g>
 
@@ -300,39 +301,47 @@ export function ConstellationSvg({
                 {/* Hit area */}
                 <circle r="16" fill="transparent" className="pointer-events-all" />
 
-                {/* Glow Halo */}
-                <circle
-                  r={wp.isUnlocked ? 12 : 9}
-                  fill="none"
-                  stroke={wp.isUnlocked ? '#38bdf8' : '#a78bfa'}
-                  strokeWidth={wp.isUnlocked ? 1.6 : 1.2}
-                  strokeDasharray={wp.isUnlocked ? undefined : '3 2'}
-                  filter="url(#star-glow)"
-                  opacity={wp.isUnlocked ? 0.95 : 0.8}
-                />
+                {/* Isolated Visual Container (handles scaling/pulsing without overriding translate) */}
+                <g className="waypoint-visual">
+                  {/* Glow Halo - cyan solid for unlocked, amber dashed for eligible */}
+                  <circle
+                    r={wp.isUnlocked ? 12 : 9.5}
+                    fill="none"
+                    stroke={wp.isUnlocked ? '#38bdf8' : '#f59e0b'}
+                    strokeWidth={wp.isUnlocked ? 1.6 : 1.3}
+                    strokeDasharray={wp.isUnlocked ? undefined : '3 2'}
+                    filter="url(#star-glow)"
+                    opacity={wp.isUnlocked ? 0.95 : 0.85}
+                  />
 
-                {/* Diamond Starlight Glyph */}
-                <polygon
-                  points="0,-7 7,0 0,7 -7,0"
-                  fill={wp.isUnlocked ? '#f8fafc' : '#c084fc'}
-                  stroke={wp.isUnlocked ? '#38bdf8' : '#8b5cf6'}
-                  strokeWidth="1.2"
-                  filter="url(#star-glow)"
-                />
+                  {/* Diamond Starlight Glyph - solid white/cyan for unlocked, hollow ghost amber for eligible */}
+                  <polygon
+                    points="0,-7 7,0 0,7 -7,0"
+                    fill={wp.isUnlocked ? '#f8fafc' : 'rgba(245, 158, 11, 0.08)'}
+                    stroke={wp.isUnlocked ? '#38bdf8' : '#fbbf24'}
+                    strokeWidth={wp.isUnlocked ? 1.2 : 1.4}
+                    strokeDasharray={wp.isUnlocked ? undefined : '3 2'}
+                    filter="url(#star-glow)"
+                  />
 
-                {/* Centroid Pip */}
-                <circle r="2.5" fill="#fff" className="pointer-events-none" />
+                  {/* Centroid Pip */}
+                  <circle
+                    r={wp.isUnlocked ? 2.5 : 1.8}
+                    fill={wp.isUnlocked ? '#fff' : 'rgba(251, 191, 36, 0.6)'}
+                    className="pointer-events-none"
+                  />
+                </g>
 
                 {/* Waypoint Label */}
                 <text
                   y={-12}
-                  fill={wp.isUnlocked ? '#38bdf8' : '#cbd5e1'}
+                  fill={wp.isUnlocked ? '#38bdf8' : '#fbbf24'}
                   fontSize="8.5"
                   fontWeight="700"
                   textAnchor="middle"
                   className="pointer-events-none font-mono"
                 >
-                  ✦ {wp.coordKey}
+                  {wp.isUnlocked ? `★ ${wp.coordKey}` : `◇ ${wp.coordKey} [Next]`}
                 </text>
               </g>
             );

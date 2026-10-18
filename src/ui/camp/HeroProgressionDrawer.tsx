@@ -33,6 +33,18 @@ export interface HeroProgressionDrawerProps {
   readonly campaign: CampaignState;
   readonly onClose: () => void;
   readonly onUpdateCampaign: (updatedCampaign: CampaignState) => void;
+  readonly initialHoveredClassId?: string | null;
+  readonly initialHoveredWaypointKey?: string | null;
+}
+
+export function getNeededArchetype(
+  targetPoints: ArchetypePoints,
+  currentPoints: ArchetypePoints
+): 'Force' | 'Finesse' | 'Focus' | null {
+  if (targetPoints.fighter > currentPoints.fighter) return 'Force';
+  if (targetPoints.rogue > currentPoints.rogue) return 'Finesse';
+  if (targetPoints.mage > currentPoints.mage) return 'Focus';
+  return null;
 }
 
 const NOVICE_CLASS_DEF: ClassDefinition = {
@@ -53,10 +65,12 @@ export function HeroProgressionDrawer({
   hero,
   campaign,
   onClose,
-  onUpdateCampaign
+  onUpdateCampaign,
+  initialHoveredClassId,
+  initialHoveredWaypointKey
 }: HeroProgressionDrawerProps) {
-  const [hoveredClassId, setHoveredClassId] = useState<string | null>(null);
-  const [hoveredWaypointKey, setHoveredWaypointKey] = useState<string | null>(null);
+  const [hoveredClassId, setHoveredClassId] = useState<string | null>(initialHoveredClassId ?? null);
+  const [hoveredWaypointKey, setHoveredWaypointKey] = useState<string | null>(initialHoveredWaypointKey ?? null);
   const [selectedClassId, setSelectedClassId] = useState<string>(hero.loadout.activeClassId);
   const [pendingOffNode, setPendingOffNode] = useState<{
     readonly archetype: Archetype;
@@ -90,8 +104,9 @@ export function HeroProgressionDrawer({
       }
     }
 
+    const rootClassId = hero.progression.constellation?.[0];
     for (const coordKey of hero.progression.offNodeMilestones ?? []) {
-      const wp = getOffNodeWaypoint(coordKey);
+      const wp = getOffNodeWaypoint(coordKey, rootClassId);
       const lvl = wp.points.fighter + wp.points.rogue + wp.points.mage;
       pathSteps.push({
         level: lvl,
@@ -345,6 +360,9 @@ export function HeroProgressionDrawer({
         isSelectedUnlocked
       )
     : false;
+  const selectedClassReqArch = selectedClassDef.id !== 'novice'
+    ? getNeededArchetype(selectedClassDef.requirements, hero.progression.archetypePoints)
+    : null;
 
   // Hovered Class details for the fast floating tooltip
   const hoveredClassDef = hoveredClassId ? resolveClassDef(hoveredClassId) : undefined;
@@ -365,6 +383,9 @@ export function HeroProgressionDrawer({
         isHoveredUnlocked
       )
     : false;
+  const hoveredClassReqArch = hoveredClassDef
+    ? getNeededArchetype(hoveredClassDef.requirements, hero.progression.archetypePoints)
+    : null;
 
   const handleMouseLeaveViewport = () => {
     setHoveredClassId(null);
@@ -376,13 +397,16 @@ export function HeroProgressionDrawer({
     const points = parseCoordKey(hoveredWaypointKey);
     const isUnlocked = (hero.progression.offNodeMilestones ?? []).includes(hoveredWaypointKey);
     const attunements = getAvailableAttunements(points);
+    const reqArchetype = getNeededArchetype(points, hero.progression.archetypePoints);
+
     return {
       coordKey: hoveredWaypointKey,
       points,
       isUnlocked,
-      attunements
+      attunements,
+      reqArchetype
     };
-  }, [hoveredWaypointKey, hero.progression.offNodeMilestones]);
+  }, [hoveredWaypointKey, hero.progression.offNodeMilestones, hero.progression.archetypePoints]);
 
   const renderSlotSockets = (slotIdx: number) => {
     const slotShards = hero.loadout.slotAugments?.[slotIdx] ?? [];
@@ -623,7 +647,9 @@ export function HeroProgressionDrawer({
                   {hoveredWaypointInfo ? (
                     <div className="scanner-body active">
                       <div className="scanner-header">
-                        <span className="scanner-name font-display">✦ Starlight Waypoint</span>
+                        <span className="scanner-name font-display">
+                          {hoveredWaypointInfo.isUnlocked ? '★ Starlight Waypoint' : '◇ Potential Waypoint'}
+                        </span>
                         <span className="scanner-tier font-mono">({hoveredWaypointInfo.coordKey})</span>
                       </div>
                       <div className="scanner-reqs font-mono">
@@ -633,9 +659,11 @@ export function HeroProgressionDrawer({
                       </div>
                       <div className="scanner-status font-ui">
                         {hoveredWaypointInfo.isUnlocked ? (
-                          <span className="status-unlocked">★ Milestone Attuned</span>
+                          <span className="status-unlocked">★ Milestone Attuned (Active)</span>
                         ) : (
-                          <span className="status-eligible">✦ Wayfarer Milestone</span>
+                          <span className="status-eligible">
+                            ✦ Next Waypoint{hoveredWaypointInfo.reqArchetype ? ` • +1 ${hoveredWaypointInfo.reqArchetype}` : ''}
+                          </span>
                         )}
                       </div>
                       <div className="scanner-hint font-mono">
@@ -657,7 +685,9 @@ export function HeroProgressionDrawer({
                         {isHoveredUnlocked ? (
                           <span className="status-unlocked">★ Class Unlocked</span>
                         ) : isHoveredEligible ? (
-                          <span className="status-eligible">✦ Next Ascension</span>
+                          <span className="status-eligible">
+                            ✦ Next Ascension{hoveredClassReqArch ? ` • +1 ${hoveredClassReqArch}` : ''}
+                          </span>
                         ) : isHoveredLocked ? (
                           <span className="status-locked">✕ Locked Out</span>
                         ) : (
@@ -709,7 +739,9 @@ export function HeroProgressionDrawer({
                     ) : isSelectedUnlocked ? (
                       <span className="status-unlocked">★ Unlocked</span>
                     ) : isSelectedEligible ? (
-                      <span className="status-eligible">✦ Next Ascension</span>
+                      <span className="status-eligible">
+                        ✦ Next Ascension{selectedClassReqArch ? ` • +1 ${selectedClassReqArch}` : ''}
+                      </span>
                     ) : isSelectedLocked ? (
                       <span className="status-locked">✕ Locked Out</span>
                     ) : (
@@ -785,7 +817,7 @@ export function HeroProgressionDrawer({
                 {isSelectedUnlocked ? (
                   isSelectedActive ? (
                     <button type="button" className="btn-equip-class equipped font-ui" disabled>
-                      ✓ Assumed Class
+                      ✓ Attuned Class
                     </button>
                   ) : (
                     <button
@@ -794,7 +826,7 @@ export function HeroProgressionDrawer({
                       onClick={() => handleUpdateLoadout({ activeClassId: selectedClassDef.id })}
                       data-testid="btn-equip-active-class"
                     >
-                      ✦ Assume Class
+                      ✦ Attune Class
                     </button>
                   )
                 ) : isSelectedEligible ? (
@@ -821,7 +853,7 @@ export function HeroProgressionDrawer({
 
               {/* Active Class */}
               <div className="drawer-loadout-field">
-                <label className="drawer-field-label font-ui">Assumed Class:</label>
+                <label className="drawer-field-label font-ui">Attuned Class:</label>
                 <select
                   className="drawer-select font-ui"
                   value={hero.loadout.activeClassId}
@@ -885,11 +917,16 @@ export function HeroProgressionDrawer({
                   <option value="">(None)</option>
                   {eligibleWildcardAbilities
                     .filter((a) => a.id !== currentWildcard2)
-                    .map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name} ({a.apCost} AP)
-                      </option>
-                    ))}
+                    .map((a) => {
+                      const archLabel = a.archetypeTag
+                        ? a.archetypeTag.charAt(0).toUpperCase() + a.archetypeTag.slice(1).toLowerCase()
+                        : 'Universal';
+                      return (
+                        <option key={a.id} value={a.id}>
+                          {a.name} ({archLabel} · {a.apCost} AP)
+                        </option>
+                      );
+                    })}
                 </select>
 
                 {equippedWildcard1Ability ? (() => {
@@ -931,11 +968,16 @@ export function HeroProgressionDrawer({
                   <option value="">(None)</option>
                   {eligibleWildcardAbilities
                     .filter((a) => a.id !== currentWildcard1)
-                    .map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name} ({a.apCost} AP)
-                      </option>
-                    ))}
+                    .map((a) => {
+                      const archLabel = a.archetypeTag
+                        ? a.archetypeTag.charAt(0).toUpperCase() + a.archetypeTag.slice(1).toLowerCase()
+                        : 'Universal';
+                      return (
+                        <option key={a.id} value={a.id}>
+                          {a.name} ({archLabel} · {a.apCost} AP)
+                        </option>
+                      );
+                    })}
                 </select>
 
                 {equippedWildcard2Ability ? (() => {

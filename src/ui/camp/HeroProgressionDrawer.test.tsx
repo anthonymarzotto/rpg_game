@@ -201,7 +201,7 @@ describe('HeroProgressionDrawer Component', () => {
     );
 
     expect(html).toContain('Combat Manifest');
-    expect(html).toContain('Assumed Class:');
+    expect(html).toContain('Attuned Class:');
     expect(html).toContain('Resonant Ability I:');
     expect(html).toContain('Resonant Ability II:');
     expect(html).toContain('Resonant Passive:');
@@ -237,7 +237,7 @@ describe('HeroProgressionDrawer Component', () => {
     expect(html).toContain('Warrior');
     expect(html).toContain('Tier 1');
     expect(html).toContain('Force: 1');
-    expect(html).toContain('Assumed Class');
+    expect(html).toContain('Attuned Class');
     // Tactical slot cards for equipped wildcards
     expect(html).toContain('drawer-tactical-slot-card');
     expect(html).toContain('Strike');
@@ -270,7 +270,7 @@ describe('HeroProgressionDrawer Component', () => {
 
     // Initial inspection shows novice (currently active)
     expect(html).toContain('Novice');
-    expect(html).toContain('Assumed Class');
+    expect(html).toContain('Attuned Class');
   });
 
   it('renders the Dev XP button for quick ascension testing', () => {
@@ -288,5 +288,87 @@ describe('HeroProgressionDrawer Component', () => {
     expect(html).toContain('+10 XP (Dev)');
     expect(html).toContain('hero-drawer-dev-xp-btn');
   });
+
+  it('renders concise "✦ Next Ascension • +1 Force" in scanner HUD when hovering eligible class triangle', () => {
+    const hero = makeMockUnit({
+      progression: {
+        unitId: 'hero-1',
+        currentLevel: 0,
+        constellation: [],
+        accumulatedXp: { fighter: 10, rogue: 0, mage: 0 },
+        archetypePoints: { fighter: 0, rogue: 0, mage: 0 }
+      }
+    });
+    const campaign = makeMockCampaign(hero);
+    const html = renderToStaticMarkup(
+      <HeroProgressionDrawer
+        hero={hero}
+        campaign={campaign}
+        onClose={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+        initialHoveredClassId="warrior"
+      />
+    );
+
+    expect(html).toContain('✦ Next Ascension • +1 Force');
+    expect(html).toContain('Warrior');
+  });
+
+  it('renders concise "✦ Next Waypoint • +1 Force" in scanner HUD when hovering eligible waypoint', () => {
+    // Level 1 wizard with 1 Focus (0, 0, 1) hovering waypoint (1, 0, 1)
+    const hero = makeMockUnit({
+      progression: {
+        unitId: 'hero-1',
+        currentLevel: 1,
+        constellation: ['wizard'],
+        accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+        archetypePoints: { fighter: 0, rogue: 0, mage: 1 }
+      }
+    });
+    const campaign = makeMockCampaign(hero);
+    const html = renderToStaticMarkup(
+      <HeroProgressionDrawer
+        hero={hero}
+        campaign={campaign}
+        onClose={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+        initialHoveredWaypointKey="1,0,1"
+      />
+    );
+
+    expect(html).toContain('✦ Next Waypoint • +1 Force');
+    // Ensure verbose instructions and old bullet text are absent
+    expect(html).not.toContain('ELIGIBLE NEXT LEVEL');
+    expect(html).not.toContain('scanner-instruction');
+    expect(html).not.toContain('harmonize with this milestone');
+  });
+
+  it('renders "★ Milestone Attuned (Active)" in scanner HUD when hovering an unlocked waypoint', () => {
+    const hero = makeMockUnit({
+      progression: {
+        unitId: 'hero-1',
+        currentLevel: 2,
+        constellation: ['warrior'],
+        accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+        archetypePoints: { fighter: 1, rogue: 1, mage: 0 },
+        offNodeMilestones: ['1,1,0']
+      }
+    });
+    const campaign = makeMockCampaign(hero);
+    const html = renderToStaticMarkup(
+      <HeroProgressionDrawer
+        hero={hero}
+        campaign={campaign}
+        onClose={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+        initialHoveredWaypointKey="1,1,0"
+      />
+    );
+
+    expect(html).toContain('★ Milestone Attuned (Active)');
+    expect(html).toContain('★ Starlight Waypoint');
+    expect(html).not.toContain('Next Waypoint');
+  });
 });
+
 
