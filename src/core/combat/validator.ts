@@ -4,7 +4,7 @@ import { CombatState, CombatUnit, ValidationResult } from './types';
 import { getEffectiveMove } from './effectiveVitals';
 import { getEffectiveAbility } from './modifiers';
 import { getConditionDefinition } from './conditions';
-import { Arena } from '../grid/arena';
+import { Arena, LineOfSightObstruction } from '../grid/arena';
 
 /**
  * Calculates all arena tile coordinates that fall within the effective reach of an ability,
@@ -281,10 +281,45 @@ export function canExecuteAbility(
       }
     }
 
-    if (!state.arena.hasLineOfSight(actorCoord, targetCoord)) {
-      return { valid: false, reason: 'Line-of-Sight is blocked.' };
+    const obstruction = state.arena.getLineOfSightObstruction(actorCoord, targetCoord, {
+      isUnitScreening: (unitId) =>
+        !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
+    });
+    if (obstruction) {
+      return { valid: false, reason: formatLoSObstructionReason(state, obstruction) };
     }
   }
 
   return { valid: true };
 }
+
+/**
+ * Formats an informative, user-facing explanation for why Line-of-Sight is blocked.
+ */
+export function formatLoSObstructionReason(
+  state: CombatState,
+  obstruction: LineOfSightObstruction
+): string {
+  const { coord, type, elevation, label, occupiedByUnitId } = obstruction;
+  const hexStr = `(${coord.q}, ${coord.r})`;
+
+  switch (type) {
+    case 'UNIT': {
+      const blockingUnit = occupiedByUnitId ? state.units.get(occupiedByUnitId) : undefined;
+      const unitName = blockingUnit?.unit?.name ?? 'a unit';
+      return `Line-of-Sight is blocked: screened by ${unitName} at ${hexStr}.`;
+    }
+    case 'OBSTACLE': {
+      const obstacleLabel = label ? label : 'an obstacle';
+      return `Line-of-Sight is blocked by ${obstacleLabel} at ${hexStr}.`;
+    }
+    case 'HILL': {
+      return `Line-of-Sight is blocked by high terrain (+${elevation}) at ${hexStr}.`;
+    }
+    case 'VOID':
+    default: {
+      return `Line-of-Sight is blocked at ${hexStr}.`;
+    }
+  }
+}
+

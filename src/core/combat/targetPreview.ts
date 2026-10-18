@@ -5,7 +5,7 @@ import {
   getEffectiveArmor,
   getEffectiveWard
 } from './effectiveVitals';
-import { canExecuteAbility } from './validator';
+import { canExecuteAbility, formatLoSObstructionReason } from './validator';
 import { isFlankOrRear } from './flanking';
 import { getEffectiveAbility } from './modifiers';
 import { evaluateAttackRollContext } from './attackRoll';
@@ -27,6 +27,7 @@ export interface AbilityMetrics {
   readonly isFlankAdvantage: boolean;
   readonly combatArc: CombatArc;
   readonly hasLoS: boolean;
+  readonly blockReason?: string;
   readonly diceDescription: string;
   readonly mitigation: number;
   readonly isDamaging: boolean;
@@ -103,11 +104,16 @@ export function computeAbilityMetrics(
     ignoreApCheck: true
   });
 
-  if (!validation.valid && validation.reason !== 'Line-of-Sight is blocked.') {
+  if (!validation.valid && !validation.reason?.startsWith('Line-of-Sight is blocked')) {
     return null;
   }
 
-  const hasLoS = state.arena.hasLineOfSight(effectiveOrigin, targetCoord);
+  const obstruction = state.arena.getLineOfSightObstruction(effectiveOrigin, targetCoord, {
+    isUnitScreening: (unitId) =>
+      !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
+  });
+  const hasLoS = obstruction === null;
+  const blockReason = obstruction ? formatLoSObstructionReason(state, obstruction) : undefined;
   const combatArc = getCombatArc(targetCu.facing, targetCoord, effectiveOrigin);
   let isFlankAdvantage = false;
   let bonusDamageProfile = undefined;
@@ -209,6 +215,7 @@ export function computeAbilityMetrics(
     isFlankAdvantage,
     combatArc,
     hasLoS,
+    blockReason,
     diceDescription: diceDesc,
     mitigation,
     isDamaging: true,
@@ -241,7 +248,7 @@ export function computeTargetPreview(
       ? `${metrics.minDamage} – ${metrics.maxDamage} (Soak: ${metrics.mitigation})`
       : 'Buff',
     isBlockedLoS: !metrics.hasLoS,
-    blockReason: !metrics.hasLoS ? 'Line-of-Sight is screened/blocked' : undefined,
+    blockReason: !metrics.hasLoS ? (metrics.blockReason ?? 'Line-of-Sight is screened/blocked') : undefined,
     expectedDamage: metrics.expectedDamage,
     combatArc: metrics.combatArc,
     isFlankAdvantage: metrics.isFlankAdvantage,

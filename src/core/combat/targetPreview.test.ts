@@ -61,7 +61,7 @@ describe('Target Preview Calculation', () => {
     const preview = computeTargetPreview(state, 'hero', SPARK, { q: 0, r: 2 });
     expect(preview).not.toBeNull();
     expect(preview!.isBlockedLoS).toBe(true);
-    expect(preview!.blockReason).toBe('Line-of-Sight is screened/blocked');
+    expect(preview!.blockReason).toContain('Line-of-Sight is blocked');
   });
 
   it('returns null when target is out of range or tile has no valid enemy', () => {

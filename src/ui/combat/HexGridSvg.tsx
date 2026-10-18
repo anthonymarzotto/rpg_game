@@ -204,14 +204,17 @@ export function HexGridSvg({
             strokeWidth = 1.6;
           }
 
+          let strokeDasharray: string | undefined;
+
           if (isObstacle) {
             fillColor = elevation >= 2
-              ? 'rgba(71, 85, 105, 0.95)'
+              ? 'rgba(40, 48, 64, 0.96)'
               : elevation === 1
-              ? 'rgba(51, 65, 85, 0.92)'
-              : 'rgba(51, 65, 85, 0.9)';
-            strokeColor = elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#64748b';
-            strokeWidth = 1.5;
+                ? 'rgba(30, 38, 54, 0.94)'
+                : 'rgba(24, 30, 42, 0.92)';
+            strokeColor = elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#94a3b8';
+            strokeWidth = 2;
+            strokeDasharray = '4 2';
           } else if (isReachable) {
             fillColor = isHovered
               ? 'rgba(6, 182, 212, 0.4)'
@@ -243,13 +246,13 @@ export function HexGridSvg({
             fillColor = elevation >= 2
               ? 'rgba(71, 85, 105, 0.95)'
               : elevation === 1
-              ? 'rgba(51, 65, 85, 0.92)'
-              : 'rgba(255, 255, 255, 0.08)';
+                ? 'rgba(51, 65, 85, 0.92)'
+                : 'rgba(255, 255, 255, 0.08)';
             strokeColor = elevation >= 2
               ? '#fbbf24'
               : elevation === 1
-              ? '#38bdf8'
-              : 'rgba(255, 255, 255, 0.4)';
+                ? '#38bdf8'
+                : 'rgba(255, 255, 255, 0.4)';
             strokeWidth = 1.8;
           }
 
@@ -286,8 +289,78 @@ export function HexGridSvg({
                 fill={fillColor}
                 stroke={strokeColor}
                 strokeWidth={strokeWidth}
+                strokeDasharray={strokeDasharray}
                 filter={filter}
               />
+
+              {/* Obstacle / Ruins Stone Icon */}
+              {isObstacle && (
+                <g className="pointer-events-none obstacle-ruins-glyph">
+                  {/* Left Ruin Pillar */}
+                  <rect
+                    x={basePixel.x - 12}
+                    y={topY - 14}
+                    width={9}
+                    height={16}
+                    rx={2}
+                    fill="rgba(15, 23, 42, 0.92)"
+                    stroke={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#94a3b8'}
+                    strokeWidth="1.2"
+                  />
+                  {/* Right Ruin Pillar (taller) */}
+                  <rect
+                    x={basePixel.x + 3}
+                    y={topY - 20}
+                    width={9}
+                    height={22}
+                    rx={2}
+                    fill="rgba(15, 23, 42, 0.92)"
+                    stroke={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#94a3b8'}
+                    strokeWidth="1.2"
+                  />
+                  {/* Crossbeam / fallen lintel cap */}
+                  <line
+                    x1={basePixel.x - 14}
+                    y1={topY - 14}
+                    x2={basePixel.x - 1}
+                    y2={topY - 14}
+                    stroke="#e2e8f0"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  />
+                  <line
+                    x1={basePixel.x + 1}
+                    y1={topY - 20}
+                    x2={basePixel.x + 14}
+                    y2={topY - 20}
+                    stroke="#e2e8f0"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  />
+                  {/* Obstacle / Ruins Label Badge */}
+                  <rect
+                    x={basePixel.x - 20}
+                    y={topY + 6}
+                    width={40}
+                    height={12}
+                    rx={3}
+                    fill="rgba(15, 23, 42, 0.85)"
+                    stroke={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#64748b'}
+                    strokeWidth="0.8"
+                  />
+                  <text
+                    x={basePixel.x}
+                    y={topY + 15}
+                    fill={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#7dd3fc' : '#cbd5e1'}
+                    fontSize="7.5"
+                    fontWeight="800"
+                    letterSpacing="0.6"
+                    textAnchor="middle"
+                  >
+                    {tile.label || 'RUINS'}
+                  </text>
+                </g>
+              )}
 
               {/* Elevation Contour Badge */}
               {elevation > 0 && (
@@ -341,22 +414,6 @@ export function HexGridSvg({
                 </g>
               )}
 
-              {/* Obstacle pattern with data-driven label */}
-              {isObstacle && (
-                <g className="pointer-events-none">
-                  <circle cx={basePixel.x} cy={topY} r="12" fill="rgba(100, 116, 139, 0.4)" />
-                  <text
-                    x={basePixel.x}
-                    y={topY + 3}
-                    fill="#94a3b8"
-                    fontSize="8.5"
-                    fontWeight="700"
-                    textAnchor="middle"
-                  >
-                    {tile.label ?? 'BLOCK'}
-                  </text>
-                </g>
-              )}
 
               {/* Subtle coordinate labels */}
               {!isObstacle && (
@@ -420,17 +477,17 @@ export function HexGridSvg({
             const tokenStroke = isActiveActor
               ? '#fbbf24'
               : isPlayer
-              ? '#38bdf8'
-              : isEnemy
-              ? '#f87171'
-              : '#a8a29e';
+                ? '#38bdf8'
+                : isEnemy
+                  ? '#f87171'
+                  : '#a8a29e';
             const nameColor = isActiveActor
               ? '#fef08a'
               : isPlayer
-              ? '#7dd3fc'
-              : isEnemy
-              ? '#fca5a5'
-              : '#e2e8f0';
+                ? '#7dd3fc'
+                : isEnemy
+                  ? '#fca5a5'
+                  : '#e2e8f0';
             const badgeSymbol = isPlayer ? '🛡️' : isEnemy ? '🎯' : '⚪';
             const hpBarFill = isPlayer ? '#10b981' : hpPercent < 40 ? '#ef4444' : '#f59e0b';
 
@@ -443,16 +500,16 @@ export function HexGridSvg({
             const statusIcons: string[] = [
               ...(cu.activeConditions ?? []).map((c) =>
                 c.type === 'STEALTH' ? '👤' :
-                c.type === 'POISON' ? '🧪' :
-                c.type === 'BURN' ? '🔥' :
-                c.type === 'CHALLENGED' ? '⚔️' : '✨'
+                  c.type === 'POISON' ? '🧪' :
+                    c.type === 'BURN' ? '🔥' :
+                      c.type === 'CHALLENGED' ? '⚔️' : '✨'
               ),
               ...(cu.activeModifiers ?? []).map((m) =>
                 m.stat === 'move' && m.value < 0 ? '❄️' :
-                m.stat === 'move' && m.value > 0 ? '💨' :
-                m.stat === 'armor' ? '🛡️' :
-                m.stat === 'ward' ? '🔮' :
-                m.stat === 'speed' ? '⚡' : '✨'
+                  m.stat === 'move' && m.value > 0 ? '💨' :
+                    m.stat === 'armor' ? '🛡️' :
+                      m.stat === 'ward' ? '🔮' :
+                        m.stat === 'speed' ? '⚡' : '✨'
               )
             ];
             const hasDebuff =

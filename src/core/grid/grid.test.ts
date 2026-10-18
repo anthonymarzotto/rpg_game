@@ -225,9 +225,24 @@ describe('Arena Spatial Engine', () => {
     // Midpoint ray height is 1.0 > obstacle elevation 0 -> LoS is clear!
     expect(arena.hasLineOfSight(source, target)).toBe(true);
 
-    // 3. Intervening hill at elevation 1 blocks LoS along the slope (hRay(0.5) = 1.0)
+    // 3. Stepped terrace at elevation 1 does NOT block LoS down the slope (hRay(0.5) = 1.0, H_tile = 1 <= hRay)
     arena.setTile({ coord: intermediate, elevation: 1, isWalkable: true });
+    expect(arena.hasLineOfSight(source, target)).toBe(true);
+
+    // 3b. Higher hill (elevation 2) DOES block LoS along the slope (H_tile 2 > hRay 1.0)
+    arena.setTile({ coord: intermediate, elevation: 2, isWalkable: true });
     expect(arena.hasLineOfSight(source, target)).toBe(false);
+
+    // 3c. Impassable obstacle on stepped terrace (elevation 1) blocks LoS (H_tile 1 >= hRay 1.0)
+    arena.setTile({ coord: intermediate, elevation: 1, isWalkable: false });
+    expect(arena.hasLineOfSight(source, target)).toBe(false);
+
+    // 3d. Intervening stealthed unit on stepped terrace does not screen LoS when screening is bypassed
+    arena.setTile({ coord: intermediate, elevation: 1, isWalkable: true });
+    arena.setUnitPosition('scout', intermediate);
+    expect(arena.hasLineOfSight(source, target, { isUnitScreening: () => false })).toBe(true);
+    expect(arena.hasLineOfSight(source, target, { isUnitScreening: () => true })).toBe(false);
+    arena.removeUnit('scout');
 
     // 4. Low-ground shooter at elevation 0 cannot shoot over hill to target at elevation 0
     arena.setTile({ coord: source, elevation: 0, isWalkable: true });

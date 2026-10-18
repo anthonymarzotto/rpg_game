@@ -287,7 +287,35 @@ describe('Combat Validator', () => {
       expect(result.valid).toBe(false);
       if (!result.valid) {
         expect(result.reason).toContain('Line-of-Sight is blocked');
+        expect(result.reason).toContain('screened by Intervening at (1, 0)');
       }
+    });
+
+    it('allows ranged execution when an intervening unit has STEALTH (stealth bypasses unit screening)', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      const intervening = createRecruit('intervening', 'Intervening', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('intervening', { q: 1, r: 0 });
+      arena.setUnitPosition('enemy', { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [hero, intervening, enemy], 'hero');
+      state.units.get('intervening')!.activeConditions = [
+        { type: 'STEALTH', durationTurns: 1, sourceUnitId: 'intervening' }
+      ];
+
+      const RANGED_ATTACK: Ability = {
+        ...STRIKE,
+        range: 3
+      };
+
+      const result = canExecuteAbility(state, 'hero', RANGED_ATTACK, {
+        coord: { q: 2, r: 0 },
+        targetUnitId: 'enemy'
+      });
+      expect(result.valid).toBe(true);
     });
 
     it('enforces ALLY targeting: allows self, default self, and allies, while rejecting enemies', () => {

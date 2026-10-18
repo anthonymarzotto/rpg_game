@@ -29,6 +29,21 @@ export interface ReachableTileInfo {
 
 export type CollisionType = 'VOID' | 'WALL' | 'CLIFF' | 'UNIT';
 
+export type LoSObstructionType = 'VOID' | 'HILL' | 'OBSTACLE' | 'UNIT';
+
+export interface LineOfSightObstruction {
+  readonly coord: HexCoord;
+  readonly type: LoSObstructionType;
+  readonly elevation: number;
+  readonly rayElevation: number;
+  readonly label?: string;
+  readonly occupiedByUnitId?: string;
+}
+
+export interface LineOfSightOptions {
+  readonly isUnitScreening?: (unitId: string) => boolean;
+}
+
 export interface KnockbackResult {
   readonly finalCoord: HexCoord;
   readonly isCollided: boolean;
@@ -288,25 +303,36 @@ export class Arena {
   }
 
   /**
-   * Evaluates Line-of-Sight (LoS) between two hexes using continuous 3D slope raycasting.
+   * Evaluates Line-of-Sight (LoS) between two hexes using continuous 3D slope raycasting,
+   * returning any intermediate obstruction that blocks the ray.
    * Ray equation: h_ray(t) = fromElevation + t * (toElevation - fromElevation)
    * LoS is blocked if any intermediate hex:
    * 1. Does not exist in the arena (void), OR
    * 2. Has an elevation strictly higher than h_ray(t) (terrain hill), OR
-   * 3. Has an elevation >= h_ray(t) along an intersecting slope, OR
-   * 4. Is occupied by another unit or is an obstacle at or above the ray elevation.
+   * 3. Is an impassable obstacle at or above the ray elevation, OR
+   * 4. Is occupied by a screening unit at or above the ray elevation.
+   * Stepped terraces along a downward slope (H_tile <= h_ray) do NOT block high ground sightlines.
    */
-  public hasLineOfSight(from: HexCoord, to: HexCoord): boolean {
+  public getLineOfSightObstruction(
+    from: HexCoord,
+    to: HexCoord,
+    options?: LineOfSightOptions
+  ): LineOfSightObstruction | null {
     const fromTile = this.getTile(from);
     const toTile = this.getTile(to);
     if (!fromTile || !toTile) {
-      return false;
+      return {
+        coord: !fromTile ? from : to,
+        type: 'VOID',
+        elevation: 0,
+        rayElevation: 0
+      };
     }
 
     const line = getHexLine(from, to);
     if (line.length <= 2) {
       // Adjacent hexes always have direct Line-of-Sight
-      return true;
+      return null;
     }
 
     const n = line.length - 1;
@@ -319,33 +345,72 @@ export class Arena {
       const stepCoord = line[i];
       const stepTile = this.getTile(stepCoord);
 
-      // Void / missing tile blocks LoS
-      if (!stepTile) {
-        return false;
-      }
-
       const t = i / n;
       const hRay = hFrom + t * (hTo - hFrom);
 
-      // 1. Higher terrain blocks
-      if (stepTile.elevation > hRay + EPSILON) {
-        return false;
+      // Void / missing tile blocks LoS
+      if (!stepTile) {
+        return {
+          coord: stepCoord,
+          type: 'VOID',
+          elevation: 0,
+          rayElevation: hRay
+        };
       }
 
-      // 2. Terrain at ray level blocks if slope intersects it
-      if (hFrom !== hTo && stepTile.elevation >= hRay - EPSILON) {
-        return false;
-      }
-
-      // 3. Obstacle or intervening unit blocks if its tile is at or above ray level
-      if (stepTile.occupiedByUnitId || !stepTile.isWalkable) {
+      // 1. Obstacle blocks if at or above ray elevation
+      if (!stepTile.isWalkable) {
         if (stepTile.elevation >= hRay - EPSILON) {
-          return false;
+          return {
+            coord: stepCoord,
+            type: 'OBSTACLE',
+            elevation: stepTile.elevation,
+            rayElevation: hRay,
+            label: stepTile.label
+          };
+        }
+      }
+
+      // 2. Terrain strictly higher than ray blocks (hills)
+      if (stepTile.elevation > hRay + EPSILON) {
+        return {
+          coord: stepCoord,
+          type: 'HILL',
+          elevation: stepTile.elevation,
+          rayElevation: hRay,
+          label: stepTile.label
+        };
+      }
+
+      // 3. Intervening screening unit blocks if at or above ray elevation
+      if (stepTile.occupiedByUnitId) {
+        const isScreening = options?.isUnitScreening
+          ? options.isUnitScreening(stepTile.occupiedByUnitId)
+          : true;
+        if (isScreening && stepTile.elevation >= hRay - EPSILON) {
+          return {
+            coord: stepCoord,
+            type: 'UNIT',
+            elevation: stepTile.elevation,
+            rayElevation: hRay,
+            occupiedByUnitId: stepTile.occupiedByUnitId
+          };
         }
       }
     }
 
-    return true;
+    return null;
+  }
+
+  /**
+   * Evaluates Line-of-Sight (LoS) between two hexes using continuous 3D slope raycasting.
+   */
+  public hasLineOfSight(
+    from: HexCoord,
+    to: HexCoord,
+    options?: LineOfSightOptions
+  ): boolean {
+    return this.getLineOfSightObstruction(from, to, options) === null;
   }
 
   /**

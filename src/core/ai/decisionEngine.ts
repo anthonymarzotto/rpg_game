@@ -610,7 +610,11 @@ export function decideNextActionWithTrace(
             // Sniper/Support evaluates how close candCoord is to preferredStandoffRange
             const currentDev = Math.abs(currentDist - weights.preferredStandoffRange);
             const candDev = Math.abs(candDist - weights.preferredStandoffRange);
-            if (candDev < currentDev && state.arena.hasLineOfSight(candCoord, targetCoord)) {
+            const hasLoS = state.arena.hasLineOfSight(candCoord, targetCoord, {
+              isUnitScreening: (unitId) =>
+                !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
+            });
+            if (candDev < currentDev && hasLoS) {
               const score = (currentDev - candDev) * 5;
               if (score > bestRepositionScore) {
                 bestRepositionScore = score;

@@ -160,4 +160,36 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
     // Occlusion glow filter for enemy
     expect(html).toContain('url(#standee-occlusion-glow-enemy)');
   });
+
+  it('renders ruins stone icon and label badge on obstacle tiles without legacy overlay text', () => {
+    const arena = createRadialArena(3);
+    const tile = arena.getTile({ q: 0, r: 1 });
+    if (tile) {
+      arena.setTile({ ...tile, isWalkable: false, label: 'RUINS' });
+    }
+    const player = createRecruit('p1', 'Alden', { faction: 'PLAYER' });
+    const enemy = createRecruit('e1', 'Goblin', { faction: 'ENEMY' });
+    arena.setUnitPosition('p1', { q: -1, r: 0 });
+    arena.setUnitPosition('e1', { q: 1, r: 0 });
+    const state = createCombatState(arena, [player, enemy], 'p1');
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('obstacle-ruins-glyph');
+    expect(html).toContain('>RUINS<');
+    expect(html).not.toContain('>BLOCK<');
+  });
 });
+

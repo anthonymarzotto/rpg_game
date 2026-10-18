@@ -67,15 +67,23 @@ The movement reachability and pathfinding system SHALL evaluate traversal paths 
 - **THEN** the preview result SHALL return the exact unmitigated fall damage amount for warning badge presentation
 
 ### Requirement: Continuous 3D Line-of-Sight Raycasting
-The spatial container SHALL determine line-of-sight between two hex coordinates using continuous 3D slope raycasting: $h_{\text{ray}}(t) = h_{\text{from}} + t \times (h_{\text{to}} - h_{\text{from}})$ for $t \in [0, 1]$ along the interpolated hex line. Line-of-sight SHALL be blocked if any intermediate hex has an elevation $H_{\text{tile}} \ge h_{\text{ray}}(t)$, or if an intermediate hex is occupied by another unit or an impassable obstacle. Units on high ground SHALL maintain unobstructed line-of-sight over lower intermediate obstacles to targets at lower elevation.
+The spatial container SHALL determine line-of-sight between two hex coordinates using continuous 3D slope raycasting: $h_{\text{ray}}(t) = h_{\text{from}} + t \times (h_{\text{to}} - h_{\text{from}})$ for $t \in [0, 1]$ along the interpolated hex line. Line-of-sight SHALL be blocked if any intermediate hex has an elevation $H_{\text{tile}} > h_{\text{ray}}(t)$, or if an intermediate hex is an impassable obstacle or occupied by an intervening non-stealthed unit at $H_{\text{tile}} \ge h_{\text{ray}}(t)$. Units on high ground SHALL maintain unobstructed line-of-sight over lower intermediate obstacles to targets at lower elevation, and down stepped terraces where intermediate terrain matches the slope ($H_{\text{tile}} \le h_{\text{ray}}(t)$). Stealthed units SHALL NOT screen line-of-sight.
 
 #### Scenario: High-ground shooter sees over lower obstacle
 - **WHEN** a unit at elevation 2 targets a unit at elevation 0 with an intermediate obstacle tile at elevation 0
 - **THEN** the calculated ray height at the intermediate tile exceeds the obstacle height and line-of-sight SHALL be true
 
+#### Scenario: High-ground shooter sees down stepped terrace
+- **WHEN** a unit at elevation 2 targets a unit at elevation 0 with an intermediate stepped terrace tile at elevation 1
+- **THEN** the calculated ray height at the intermediate tile ($h_{\text{ray}} = 1.0$) matches the terrace elevation ($H_{\text{tile}} = 1$) and line-of-sight SHALL be true
+
 #### Scenario: Low-ground shooter blocked by intervening hill
 - **WHEN** a unit at elevation 0 targets a unit at elevation 0 with an intervening tile at elevation 1
 - **THEN** the calculated ray height at the intermediate tile is lower than the hill and line-of-sight SHALL be false
+
+#### Scenario: Stealthed intervening unit does not screen sightline
+- **WHEN** an intervening unit possessing the STEALTH condition stands along the ray
+- **THEN** the stealthed unit SHALL NOT block line-of-sight to the target
 
 #### Scenario: Direct sightline unobstructed across descending slope
 - **WHEN** a unit at elevation 2 targets an adjacent or distant unit at elevation 1 with no intermediate blocking tiles
