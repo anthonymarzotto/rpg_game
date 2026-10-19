@@ -27,7 +27,8 @@ function createSandboxEnemy(
       unitId: id,
       currentLevel: 1,
       archetypePoints: { fighter: 1, rogue: 0, mage: 0 },
-      constellation: []
+      constellation: [],
+      milestoneSelections: {}
     },
     baseAttributes: { force: 0, finesse: 0, focus: 0 },
     effectiveVitals: {
@@ -73,7 +74,8 @@ export function createNoviceSandboxEncounter(
       unitId: 'player-warrior',
       currentLevel: 1,
       archetypePoints: { fighter: 1, rogue: 0, mage: 0 },
-      constellation: ['warrior']
+      constellation: ['warrior'],
+      milestoneSelections: {}
     },
     baseAttributes: aldenAttrs,
     effectiveVitals: computeDerivedVitals(aldenAttrs, 1),
@@ -97,7 +99,8 @@ export function createNoviceSandboxEncounter(
       unitId: 'player-thief',
       currentLevel: 1,
       archetypePoints: { fighter: 0, rogue: 1, mage: 0 },
-      constellation: ['thief']
+      constellation: ['thief'],
+      milestoneSelections: {}
     },
     baseAttributes: lyraAttrs,
     effectiveVitals: computeDerivedVitals(lyraAttrs, 1),
@@ -121,7 +124,8 @@ export function createNoviceSandboxEncounter(
       unitId: 'player-wizard',
       currentLevel: 1,
       archetypePoints: { fighter: 0, rogue: 0, mage: 1 },
-      constellation: ['wizard']
+      constellation: ['wizard'],
+      milestoneSelections: {}
     },
     baseAttributes: vaelAttrs,
     effectiveVitals: computeDerivedVitals(vaelAttrs, 1),

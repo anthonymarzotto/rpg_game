@@ -20,7 +20,9 @@ import { POINTS_BY_ID, getOffNodeWaypoint, parseCoordKey } from '../pyramid/geom
 import {
   getShardById,
   getAvailableAttunements,
-  WayfarerAttunementId
+  WAYFARER_ATTUNEMENTS,
+  WayfarerAttunementId,
+  AstralAugmentShard
 } from '../../core/progression/harmonization';
 import { resolveUnitLoadout } from '../../core/units/loadout';
 import { CLASS_REGISTRY } from '../../data/classes';
@@ -35,6 +37,7 @@ export interface HeroProgressionDrawerProps {
   readonly onUpdateCampaign: (updatedCampaign: CampaignState) => void;
   readonly initialHoveredClassId?: string | null;
   readonly initialHoveredWaypointKey?: string | null;
+  readonly initialSelectedWaypointKey?: string | null;
 }
 
 export function getNeededArchetype(
@@ -67,11 +70,13 @@ export function HeroProgressionDrawer({
   onClose,
   onUpdateCampaign,
   initialHoveredClassId,
-  initialHoveredWaypointKey
+  initialHoveredWaypointKey,
+  initialSelectedWaypointKey
 }: HeroProgressionDrawerProps) {
   const [hoveredClassId, setHoveredClassId] = useState<string | null>(initialHoveredClassId ?? null);
   const [hoveredWaypointKey, setHoveredWaypointKey] = useState<string | null>(initialHoveredWaypointKey ?? null);
-  const [selectedClassId, setSelectedClassId] = useState<string>(hero.loadout.activeClassId);
+  const [selectedWaypointKey, setSelectedWaypointKey] = useState<string | null>(initialSelectedWaypointKey ?? null);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(initialSelectedWaypointKey ? null : hero.loadout.activeClassId);
   const [pendingOffNode, setPendingOffNode] = useState<{
     readonly archetype: Archetype;
     readonly targetPoints: ArchetypePoints;
@@ -294,6 +299,7 @@ export function HeroProgressionDrawer({
         onUpdateCampaign(nextState);
         if (changed.activeClassId) {
           setSelectedClassId(changed.activeClassId);
+          setSelectedWaypointKey(null);
         }
       } catch (err) {
         console.warn('Loadout update rejected', err);
@@ -340,7 +346,8 @@ export function HeroProgressionDrawer({
     : undefined;
 
   // Selected Class details for the persistent Inspector Card
-  const selectedClassDef = resolveClassDef(selectedClassId) ?? NOVICE_CLASS_DEF;
+  const selectedClassDef = resolveClassDef(selectedClassId ?? '') ?? NOVICE_CLASS_DEF;
+  const activeClassDef = resolveClassDef(hero.loadout.activeClassId) ?? NOVICE_CLASS_DEF;
   const selectedPackage = selectedClassDef.id !== 'novice' ? getClassPackage(selectedClassDef.id) : undefined;
   const isSelectedUnlocked = unlockedSet.has(selectedClassDef.id);
   const isSelectedActive = hero.loadout.activeClassId === selectedClassDef.id;
@@ -391,6 +398,48 @@ export function HeroProgressionDrawer({
     setHoveredClassId(null);
     setHoveredWaypointKey(null);
   };
+
+  const handleSelectClass = (cid: string) => {
+    setSelectedClassId(cid);
+    setSelectedWaypointKey(null);
+  };
+
+  const handleSelectWaypoint = (key: string) => {
+    setSelectedWaypointKey(key);
+    setSelectedClassId(null);
+  };
+
+  const selectedWaypointInfo = useMemo(() => {
+    if (!selectedWaypointKey) return null;
+    const points = parseCoordKey(selectedWaypointKey);
+    const isUnlocked = (hero.progression.offNodeMilestones ?? []).includes(selectedWaypointKey);
+    const attunements = getAvailableAttunements(points);
+    const reqArchetype = getNeededArchetype(points, hero.progression.archetypePoints);
+    const selection = hero.progression.milestoneSelections?.[selectedWaypointKey];
+
+    const attunedDef = selection?.attunementId ? WAYFARER_ATTUNEMENTS[selection.attunementId] : null;
+
+    let rewardAbility: Ability | null = null;
+    let rewardShard: AstralAugmentShard | null = null;
+    if (selection?.reward.type === 'ABILITY') {
+      rewardAbility = getAbilityById(selection.reward.abilityId) ?? null;
+    } else if (selection?.reward.type === 'SHARD') {
+      rewardShard = getShardById(selection.reward.shardId) ?? null;
+    }
+
+    return {
+      coordKey: selectedWaypointKey,
+      points,
+      tier: points.fighter + points.rogue + points.mage,
+      isUnlocked,
+      attunements,
+      reqArchetype,
+      selection,
+      attunedDef,
+      rewardAbility,
+      rewardShard
+    };
+  }, [selectedWaypointKey, hero.progression.offNodeMilestones, hero.progression.archetypePoints, hero.progression.milestoneSelections]);
 
   const hoveredWaypointInfo = useMemo(() => {
     if (!hoveredWaypointKey) return null;
@@ -632,11 +681,13 @@ export function HeroProgressionDrawer({
                   unlockedSet={unlockedSet}
                   hoveredClassId={hoveredClassId}
                   hoveredWaypointKey={hoveredWaypointKey}
-                  selectedClassId={selectedClassId}
+                  selectedClassId={selectedWaypointKey ? null : selectedClassId}
+                  selectedWaypointKey={selectedWaypointKey}
                   constellationPathD={constellationPathD}
                   onHoverNode={setHoveredClassId}
                   onHoverWaypoint={setHoveredWaypointKey}
-                  onClickNode={setSelectedClassId}
+                  onClickNode={handleSelectClass}
+                  onClickWaypoint={handleSelectWaypoint}
                 />
 
                 {/* Pinned Star Scanner HUD (Docked top-right, never covers pyramid) */}
@@ -648,9 +699,13 @@ export function HeroProgressionDrawer({
                     <div className="scanner-body active">
                       <div className="scanner-header">
                         <span className="scanner-name font-display">
-                          {hoveredWaypointInfo.isUnlocked ? '★ Starlight Waypoint' : '◇ Potential Waypoint'}
+                          {hoveredWaypointInfo.isUnlocked
+                            ? `★ Waypoint (${hoveredWaypointInfo.coordKey})`
+                            : `◇ Waypoint (${hoveredWaypointInfo.coordKey})`}
                         </span>
-                        <span className="scanner-tier font-mono">({hoveredWaypointInfo.coordKey})</span>
+                        <span className="scanner-tier font-mono">
+                          Tier {hoveredWaypointInfo.points.fighter + hoveredWaypointInfo.points.rogue + hoveredWaypointInfo.points.mage}
+                        </span>
                       </div>
                       <div className="scanner-reqs font-mono">
                         Harmonization: <span className="req-fighter font-mono">{hoveredWaypointInfo.points.fighter}F</span> /{' '}
@@ -659,15 +714,12 @@ export function HeroProgressionDrawer({
                       </div>
                       <div className="scanner-status font-ui">
                         {hoveredWaypointInfo.isUnlocked ? (
-                          <span className="status-unlocked">★ Milestone Attuned (Active)</span>
+                          <span className="status-unlocked">★ Milestone Attuned</span>
                         ) : (
                           <span className="status-eligible">
                             ✦ Next Waypoint{hoveredWaypointInfo.reqArchetype ? ` • +1 ${hoveredWaypointInfo.reqArchetype}` : ''}
                           </span>
                         )}
-                      </div>
-                      <div className="scanner-hint font-mono">
-                        Attunements: {hoveredWaypointInfo.attunements.map((a) => a.name.replace("Wayfarer's ", '')).join(' • ')}
                       </div>
                     </div>
                   ) : hoveredClassDef ? (
@@ -714,8 +766,138 @@ export function HeroProgressionDrawer({
               </div>
             </div>
 
-            {/* Persistent Class Inspector Card */}
-            <div className="drawer-class-inspector-card" data-testid="drawer-class-inspector-card">
+            {/* Persistent Inspector Card (Waypoint or Class) */}
+            {selectedWaypointInfo ? (
+              <div className="drawer-class-inspector-card" data-testid="drawer-waypoint-inspector-card">
+                <div className="inspector-card-header">
+                  <div className="inspector-title-row">
+                    <h4 className="inspector-class-name font-display">
+                      {selectedWaypointInfo.isUnlocked
+                        ? `★ Waypoint (${selectedWaypointInfo.coordKey})`
+                        : `◇ Waypoint (${selectedWaypointInfo.coordKey})`}
+                    </h4>
+                    <div className="inspector-badges font-mono">
+                      <span className="inspector-tier-chip">Tier {selectedWaypointInfo.tier}</span>
+                      {selectedWaypointInfo.selection?.levelAwarded !== undefined && (
+                        <span className="inspector-tier-chip">Level {selectedWaypointInfo.selection.levelAwarded}</span>
+                      )}
+                      <span className="inspector-id-chip">Off-Node Milestone</span>
+                    </div>
+                  </div>
+
+                  <div className="inspector-reqs-row font-mono">
+                    <span className="req-chip fighter">⚔️ Force: {selectedWaypointInfo.points.fighter}</span>
+                    <span className="req-chip rogue">🗡️ Finesse: {selectedWaypointInfo.points.rogue}</span>
+                    <span className="req-chip mage">🔮 Focus: {selectedWaypointInfo.points.mage}</span>
+                    <span className="inspector-status-badge font-ui">
+                      {selectedWaypointInfo.isUnlocked ? (
+                        <span className="status-unlocked">★ Milestone Attuned</span>
+                      ) : (
+                        <span className="status-eligible">
+                          ✦ Next Waypoint{selectedWaypointInfo.reqArchetype ? ` • +1 ${selectedWaypointInfo.reqArchetype}` : ''}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="inspector-kit-details">
+                  {selectedWaypointInfo.isUnlocked ? (
+                    <div className="inspector-abilities-grid" data-testid="waypoint-attuned-details">
+                      {/* Step 1: Attuned Defense */}
+                      <div className="kit-item signature">
+                        <div className="kit-item-head font-ui">
+                          <span className="kit-type-tag signature font-mono">ATTUNED DEFENSE</span>
+                          <span className="kit-name font-display">
+                            {selectedWaypointInfo.attunedDef
+                              ? `${selectedWaypointInfo.attunedDef.icon} ${selectedWaypointInfo.attunedDef.name}`
+                              : '★ Defensive Surge'}
+                          </span>
+                        </div>
+                        <p className="kit-desc font-ui">
+                          {selectedWaypointInfo.attunedDef
+                            ? selectedWaypointInfo.attunedDef.description
+                            : 'Permanent derived combat vitals bonus active.'}
+                        </p>
+                      </div>
+
+                      {/* Step 2: Milestone Specialization */}
+                      <div className="kit-item domain">
+                        <div className="kit-item-head font-ui">
+                          <span className="kit-type-tag domain font-mono">
+                            {selectedWaypointInfo.rewardShard ? 'ASTRAL AUGMENT SHARD' : 'DOMAIN ABILITY'}
+                          </span>
+                          <span className="kit-name font-display">
+                            {selectedWaypointInfo.rewardShard
+                              ? `${selectedWaypointInfo.rewardShard.icon} ${selectedWaypointInfo.rewardShard.name}`
+                              : selectedWaypointInfo.rewardAbility
+                              ? `✦ ${selectedWaypointInfo.rewardAbility.name}`
+                              : '✦ Specialization Reward'}
+                          </span>
+                          {selectedWaypointInfo.rewardAbility && (
+                            <span className="kit-ap font-mono">{selectedWaypointInfo.rewardAbility.apCost} AP</span>
+                          )}
+                        </div>
+                        <p className="kit-desc font-ui">
+                          {selectedWaypointInfo.rewardShard
+                            ? `Socketable into loadout ability slots. ${selectedWaypointInfo.rewardShard.description}`
+                            : selectedWaypointInfo.rewardAbility
+                            ? `${selectedWaypointInfo.rewardAbility.description} (Permanent Wildcard)`
+                            : 'Granted at this milestone.'}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="inspector-abilities-grid" data-testid="waypoint-potential-details">
+                      {/* Step 1 Options */}
+                      <div className="kit-item signature">
+                        <div className="kit-item-head font-ui">
+                          <span className="kit-type-tag signature font-mono">DEFENSIVE ATTUNEMENT (CHOOSE 1)</span>
+                        </div>
+                        <ul className="milestone-options-list font-ui" style={{ margin: '0.35rem 0 0 0', paddingLeft: '1.2rem', lineHeight: '1.4', fontSize: '0.8rem' }}>
+                          {selectedWaypointInfo.attunements.map((att) => (
+                            <li key={att.id}>
+                              <strong>{att.name}:</strong> {att.description}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Step 2 Options */}
+                      <div className="kit-item domain">
+                        <div className="kit-item-head font-ui">
+                          <span className="kit-type-tag domain font-mono">SPECIALIZATION REWARD (CHOOSE 1)</span>
+                        </div>
+                        <ul className="milestone-options-list font-ui" style={{ margin: '0.35rem 0 0 0', paddingLeft: '1.2rem', lineHeight: '1.4', fontSize: '0.8rem' }}>
+                          <li>
+                            <strong>Domain Ability Draft:</strong> Unlock 1 unlearned domain ability from advancing archetype (Tier &le; {selectedWaypointInfo.tier}).
+                          </li>
+                          <li>
+                            <strong>Astral Augment Shard:</strong> Forge 1 augment shard module to socket into loadout ability slots.
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="inspector-card-actions">
+                  <button
+                    type="button"
+                    className="btn-equip-class font-ui"
+                    onClick={() => {
+                      setSelectedClassId(hero.loadout.activeClassId);
+                      setSelectedWaypointKey(null);
+                    }}
+                    data-testid="btn-inspect-active-class"
+                  >
+                    ✦ Inspect Active Class ({activeClassDef.name})
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Persistent Class Inspector Card */
+              <div className="drawer-class-inspector-card" data-testid="drawer-class-inspector-card">
               <div className="inspector-card-header">
                 <div className="inspector-title-row">
                   <h4 className="inspector-class-name font-display">
@@ -844,7 +1026,8 @@ export function HeroProgressionDrawer({
                 )}
               </div>
             </div>
-          </div>
+          )}
+        </div>
 
           {/* Right Column: Equipped Loadout & Wildcards */}
           <div className="drawer-right-col">

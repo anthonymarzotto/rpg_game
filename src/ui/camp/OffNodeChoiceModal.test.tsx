@@ -25,7 +25,8 @@ const mockWarrior: Unit = {
     unitId: 'unit-1',
     currentLevel: 1,
     archetypePoints: { fighter: 1, rogue: 0, mage: 0 },
-    constellation: ['warrior']
+    constellation: ['warrior'],
+    milestoneSelections: {}
   },
   loadout: {
     activeClassId: 'warrior',

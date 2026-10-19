@@ -15,6 +15,23 @@ export interface ClassDefinition {
   readonly totalPoints: number;
 }
 
+export type WayfarerAttunementId =
+  | 'wayfarer_bastion'
+  | 'wayfarer_stride'
+  | 'wayfarer_ward'
+  | 'wayfarer_zenith';
+
+export type MilestoneReward =
+  | { readonly type: 'ABILITY'; readonly abilityId: string }
+  | { readonly type: 'SHARD'; readonly shardId: string };
+
+export interface MilestoneSelection {
+  readonly coordKey: string;
+  readonly attunementId: WayfarerAttunementId;
+  readonly reward: MilestoneReward;
+  readonly levelAwarded?: number;
+}
+
 export interface UnitProgression {
   readonly unitId: string;
   readonly currentLevel: number;
@@ -28,5 +45,8 @@ export interface UnitProgression {
   readonly unlockedAbilityIds?: readonly string[];
   /** Wayfarer Attunement IDs chosen at off-node milestones */
   readonly earnedAttunements?: readonly string[];
+  /** First-class provenance ledger of choices made at each off-node milestone */
+  readonly milestoneSelections: Readonly<Record<string, MilestoneSelection>>;
 }
+
 

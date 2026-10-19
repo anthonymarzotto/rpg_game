@@ -198,7 +198,8 @@ export function allocateCampArchetypePoint(
   // Advance level and constellation via pyramid
   const advancedProg = advanceArchetypeLevel(unit.progression, archetype, registry, {
     attunementId: options?.attunementId,
-    unlockedAbilityId: options?.unlockedAbilityId
+    unlockedAbilityId: options?.unlockedAbilityId,
+    earnedShardId: options?.earnedShardId
   });
 
   // Deduct threshold XP from the chosen archetype while preserving remaining XP

@@ -23,7 +23,8 @@ function createMockUnit(overrides: Partial<Unit> = {}): Unit {
       unitId: 'test-unit',
       currentLevel: 1,
       archetypePoints: { fighter: 1, rogue: 0, mage: 0 },
-      constellation: []
+      constellation: [],
+      milestoneSelections: {}
     },
     baseAttributes: { force: 2, finesse: 2, focus: 2 },
     effectiveVitals: {

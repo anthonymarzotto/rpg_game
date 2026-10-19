@@ -19,6 +19,8 @@ export interface ConstellationSvgProps {
   readonly viewBox?: string;
   readonly hoveredWaypointKey?: string | null;
   readonly onHoverWaypoint?: (coordKey: string | null) => void;
+  readonly selectedWaypointKey?: string | null;
+  readonly onClickWaypoint?: (coordKey: string) => void;
 }
 
 export function ConstellationSvg({
@@ -31,7 +33,9 @@ export function ConstellationSvg({
   onClickNode,
   viewBox = '-390 -455 920 730',
   hoveredWaypointKey,
-  onHoverWaypoint
+  onHoverWaypoint,
+  selectedWaypointKey,
+  onClickWaypoint
 }: ConstellationSvgProps) {
   // Off-Node Starlight Waypoints: unlocked and eligible
   const rootClassId = progression.constellation?.[0];
@@ -289,13 +293,15 @@ export function ConstellationSvg({
         <g className="starlight-waypoints-layer">
           {visibleWaypoints.map((wp) => {
             const isHovered = hoveredWaypointKey === wp.coordKey;
+            const isSelected = selectedWaypointKey === wp.coordKey;
             return (
               <g
                 key={`waypoint-${wp.coordKey}`}
-                className={`starlight-waypoint ${wp.isUnlocked ? 'unlocked' : 'eligible'} ${isHovered ? 'hovered' : ''}`}
+                className={`starlight-waypoint ${wp.isUnlocked ? 'unlocked' : 'eligible'} ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''}`}
                 transform={`translate(${wp.x}, ${wp.y})`}
                 onMouseEnter={() => onHoverWaypoint?.(wp.coordKey)}
                 onMouseLeave={() => onHoverWaypoint?.(null)}
+                onClick={() => onClickWaypoint?.(wp.coordKey)}
                 data-testid={`waypoint-${wp.coordKey}`}
               >
                 {/* Hit area */}
@@ -303,6 +309,18 @@ export function ConstellationSvg({
 
                 {/* Isolated Visual Container (handles scaling/pulsing without overriding translate) */}
                 <g className="waypoint-visual">
+                  {/* Active Selection Ring */}
+                  {isSelected && (
+                    <polygon
+                      points="0,-14 14,0 0,14 -14,0"
+                      fill="none"
+                      stroke={wp.isUnlocked ? '#67e8f9' : '#fbbf24'}
+                      strokeWidth="2"
+                      filter="url(#star-glow)"
+                      className="waypoint-selected-ring"
+                    />
+                  )}
+
                   {/* Glow Halo - cyan solid for unlocked, amber dashed for eligible */}
                   <circle
                     r={wp.isUnlocked ? 12 : 9.5}

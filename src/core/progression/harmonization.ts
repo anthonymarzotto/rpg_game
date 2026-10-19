@@ -1,4 +1,4 @@
-import { Archetype, ArchetypePoints } from '../types/class';
+import { Archetype, ArchetypePoints, WayfarerAttunementId } from '../types/class';
 import { DerivedCombatVitals } from '../types/stats';
 import { AbilityModifier } from '../types/modifier';
 import { Unit } from '../types/unit';
@@ -8,11 +8,7 @@ import { ClassRegistry } from './registry';
 import { CLASS_REGISTRY, CLASS_CATALOG } from '../../data/classes';
 import { getClassPackage } from '../../data/packages';
 
-export type WayfarerAttunementId =
-  | 'wayfarer_bastion'
-  | 'wayfarer_stride'
-  | 'wayfarer_ward'
-  | 'wayfarer_zenith';
+export type { WayfarerAttunementId };
 
 export interface WayfarerAttunement {
   readonly id: WayfarerAttunementId;

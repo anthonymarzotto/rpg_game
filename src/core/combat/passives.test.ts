@@ -87,7 +87,8 @@ describe('Phase 1.3: Passive Trait Evaluation Pipeline', () => {
           unitId: 'warrior_hero',
           currentLevel: 1,
           archetypePoints: { fighter: 1, rogue: 0, mage: 0 },
-          constellation: ['warrior']
+          constellation: ['warrior'],
+          milestoneSelections: {}
         },
         loadout: {
           activeClassId: 'warrior',
@@ -135,7 +136,8 @@ describe('Phase 1.3: Passive Trait Evaluation Pipeline', () => {
           unitId: 'thief_hero',
           currentLevel: 1,
           archetypePoints: { fighter: 0, rogue: 1, mage: 0 },
-          constellation: ['thief', 'warrior']
+          constellation: ['thief', 'warrior'],
+          milestoneSelections: {}
         },
         loadout: {
           activeClassId: 'thief',
@@ -162,7 +164,8 @@ describe('Phase 1.3: Passive Trait Evaluation Pipeline', () => {
           unitId: 'wizard_hero',
           currentLevel: 1,
           archetypePoints: { fighter: 0, rogue: 0, mage: 1 },
-          constellation: ['wizard', 'thief']
+          constellation: ['wizard', 'thief'],
+          milestoneSelections: {}
         },
         loadout: {
           activeClassId: 'wizard',

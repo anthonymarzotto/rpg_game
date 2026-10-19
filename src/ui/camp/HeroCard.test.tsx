@@ -2,8 +2,14 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HeroCard } from './HeroCard';
 import { Unit } from '../../core/types/unit';
+import { UnitProgression } from '../../core/types/class';
 
-function makeMockUnit(overrides: Partial<Unit> = {}): Unit {
+interface MockUnitOverrides extends Omit<Partial<Unit>, 'progression'> {
+  progression?: Partial<UnitProgression>;
+}
+
+function makeMockUnit(overrides: MockUnitOverrides = {}): Unit {
+  const { progression: progressionOverride, ...restOverrides } = overrides;
   return {
     id: 'hero-1',
     name: 'Roland',
@@ -17,7 +23,9 @@ function makeMockUnit(overrides: Partial<Unit> = {}): Unit {
       currentLevel: 0,
       constellation: [],
       accumulatedXp: { fighter: 2, rogue: 1, mage: 0 },
-      archetypePoints: { fighter: 0, rogue: 0, mage: 0 }
+      archetypePoints: { fighter: 0, rogue: 0, mage: 0 },
+      milestoneSelections: {},
+      ...(progressionOverride as object)
     },
     loadout: {
       activeClassId: 'novice',
@@ -26,7 +34,7 @@ function makeMockUnit(overrides: Partial<Unit> = {}): Unit {
       wildcardPassiveIds: []
     },
     starterAbilityIds: ['strike'],
-    ...overrides
+    ...restOverrides
   } as unknown as Unit;
 }
 

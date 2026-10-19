@@ -324,7 +324,8 @@ describe('harmonization domain engine', () => {
         unitId: 'warrior-1',
         currentLevel: 2,
         archetypePoints: { fighter: 1, rogue: 1, mage: 0 },
-        constellation: ['warrior']
+        constellation: ['warrior'],
+        milestoneSelections: {}
       },
       loadout: {
         activeClassId: 'warrior',

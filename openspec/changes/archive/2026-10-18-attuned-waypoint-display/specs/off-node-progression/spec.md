@@ -1,0 +1,59 @@
+# Spec Delta: Off-Node Progression
+
+## MODIFIED Requirements
+
+### Requirement: Wayfarer Attunements & Choice Milestone
+When a unit advances to an off-node level (a coordinate in the 100-class lattice with no canonical catalog class node), the system SHALL present an interactive two-step modal in Camp:
+1. **Step 1: Wayfarer Attunement**: The player SHALL select one balanced defensive attunement to add to the unit's permanent derived vitals:
+   - **Wayfarer's Bastion** (Force): $+6$ Max HP and $+1$ Armor.
+   - **Wayfarer's Stride** (Finesse): $+2$ Evasion and $+2$ Speed.
+   - **Wayfarer's Ward** (Focus): $+2$ Resolve and $+1$ Ward.
+   - **Wayfarer's Zenith** (Tri-Centroid at Levels 3 & 6): $+4$ Max HP, $+1$ Armor, $+1$ Ward, $+1$ Speed, $+1$ Evasion, $+1$ Resolve.
+2. **Step 2: Milestone Specialization**: The player SHALL select one of two strategic advancements:
+   - **Domain Skill Unlock**: Deterministically select 1 unlearned domain ability from the advancing archetype's domain pool where $\text{Tier} \le \text{Current Unit Level}$, adding it to the hero's permanent Wildcard ability pool.
+   - **Astral Augment Shard**: Select 1 socketable `AstralAugmentShard` module (e.g. *Starlight Lens*, *Astral Reach*, *Supernova Flare*, *Impact Shard*, *Venom Shard*, or *Static Shard*). Shards are assigned to an **Ability Slot** (0..4) in the hero's combat loadout, up to a maximum of **2 shards per slot**, augmenting whichever ability occupies that slot.
+
+The system SHALL record the player's choices as a first-class provenance entry in `milestoneSelections[coordKey]` on the unit's progression record, capturing `attunementId` and the chosen `reward` (`ABILITY` with `abilityId` or `SHARD` with `shardId`).
+
+#### Scenario: Selecting a Wayfarer Attunement on off-node level-up
+- **WHEN** a Level 1 Warrior `(1, 0, 0)` advances with Rogue XP to Level 2 `(1, 1, 0)` and the player selects *Wayfarer's Stride*
+- **THEN** their derived vitals gain +2 Evasion and +2 Speed on top of standard attribute scaling, and the modal proceeds to Milestone Specialization
+
+#### Scenario: Storing milestone selection provenance on progression record
+- **WHEN** a player completes Step 1 and Step 2 of the Off-Node Choice Modal for coordinate `(1, 1, 0)` with *Wayfarer's Stride* and *Starlight Lens*
+- **THEN** the unit's `progression.milestoneSelections['1,1,0']` records `{ attunementId: 'wayfarer_stride', reward: { type: 'SHARD', shardId: 'starlight_lens' } }`
+
+#### Scenario: Tri-centroid Wayfarer's Zenith option
+- **WHEN** a unit advances from `(1, 1, 0)` with Mage XP to Level 3 `(1, 1, 1)`
+- **THEN** the attunement selection includes *Wayfarer's Zenith*, granting +4 Max HP and +1 to all secondary defenses upon selection
+
+#### Scenario: Unlocking an eligible tier-gated domain skill in step 2
+- **WHEN** a Level 2 hero completes Step 1 with Rogue advancement and chooses Domain Skill Unlock
+- **THEN** the system presents all unlearned Rogue domain abilities of Tier $\le 2$ (excluding Tier 3+), and adds the selected skill to the hero's permanent wildcard pool and milestone selection record
+
+#### Scenario: Earning and socketing an Astral Augment Shard to an ability slot
+- **WHEN** a player completes Step 1 and chooses the Astral Augment Shard option
+- **THEN** the player selects an augment shard, adding it to the hero's loadout inventory, which can be socketed into any ability slot (0..4, max 2 shards per slot)
+
+#### Scenario: Swapping an ability in an augmented slot preserves socketed shards
+- **WHEN** an ability slot holding an *Astral Reach* shard has its equipped ability changed in Camp
+- **THEN** the socketed shard remains bound to that slot and dynamically applies its +1 Range modifier to the newly equipped ability
+
+### Requirement: Luminous Waypoint Constellation Integration
+The Constellation Star Chart SHALL calculate and render illuminated **Starlight Waypoints** at the exact barycentric coordinates for off-node points along triangle facet edges. When unlocked, the constellation laser path SHALL route through the waypoint.
+
+The Star Chart and Node Scanner HUD SHALL provide two levels of inspection for Starlight Waypoints:
+1. **Floating Hover Scanner**: Hovering over any visible waypoint SHALL display a compact, minimal 3-line readout containing Node Title & Tier (`★ Waypoint (F,R,M) Tier T`), Harmonization attributes, and status (`★ Milestone Attuned` or `✦ Next Waypoint • +1 <Archetype>`). It SHALL NOT display wrapped multi-line titles or wrapped option lists.
+2. **Interactive Waypoint Pinning**: Clicking any visible waypoint SHALL select the waypoint, pin its visual marker with an active diamond halo, and populate the bottom persistent Inspector panel with its milestone details.
+
+#### Scenario: Routing constellation laser line through an off-node waypoint
+- **WHEN** a unit with an unlocked path `Warrior (1, 0, 0)` $\rightarrow$ `(1, 1, 0)` $\rightarrow$ `Cavalier (2, 1, 0)` is inspected in the Constellation
+- **THEN** the glowing laser polyline connects from the Warrior star node, through the (1,1,0) Starlight Waypoint, to the Cavalier star node
+
+#### Scenario: Hovering over a Starlight Waypoint
+- **WHEN** a player hovers over an off-node waypoint on the constellation
+- **THEN** the Node Scanner HUD displays a compact 3-line card with single-line Title/Tier, Harmonization requirements, and single-line status without multi-line wrapping or an option list
+
+#### Scenario: Clicking a waypoint pins it for bottom panel inspection
+- **WHEN** a player clicks a waypoint on the Constellation Star Chart
+- **THEN** the waypoint is marked as selected on the chart and the bottom persistent Inspector panel updates to display that waypoint's milestone details

@@ -1,7 +1,7 @@
 import { CampaignState } from '../campaign/types';
 import { UseStore, createStore } from 'idb-keyval';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export const SAVE_SLOT_IDS = ['slot-1', 'slot-2', 'slot-3'] as const;
 export type SaveSlotId = (typeof SAVE_SLOT_IDS)[number];

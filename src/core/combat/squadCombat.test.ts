@@ -26,7 +26,8 @@ function makeMockUnit(
       unitId: id,
       currentLevel: 1,
       archetypePoints: { fighter: 1, rogue: 0, mage: 0 },
-      constellation: []
+      constellation: [],
+      milestoneSelections: {}
     },
     baseAttributes: { force: 10, finesse: 10, focus: 10 },
     effectiveVitals: {

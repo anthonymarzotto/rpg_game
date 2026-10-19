@@ -10,7 +10,7 @@ describe('StartScreen Component', () => {
 
     expect(html).toContain('ASTRAL TACTICS');
     expect(html).toContain('New Astral Expedition');
-    expect(html).toContain('v0.4.0');
+    expect(html).toContain('v0.5.0');
   });
 
   it('renders continue button as disabled when canContinue is false', () => {

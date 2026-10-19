@@ -102,19 +102,21 @@ export function createInitialProgression(unitId: string): UnitProgression {
       fighter: 0,
       rogue: 0,
       mage: 0
-    }
+    },
+    milestoneSelections: {}
   };
 }
 
 export interface AdvanceArchetypeOptions {
   readonly attunementId?: WayfarerAttunementId;
   readonly unlockedAbilityId?: string;
+  readonly earnedShardId?: string;
 }
 
 /**
  * Advances a unit by 1 level in the designated archetype.
  * Updates level, points, and appends the unlocked class ID to the constellation.
- * If advancing to an off-node coordinate, records the milestone coordinate key.
+ * If advancing to an off-node coordinate, records the milestone coordinate key and selection ledger.
  */
 export function advanceArchetypeLevel(
   progression: UnitProgression,
@@ -160,6 +162,24 @@ export function advanceArchetypeLevel(
     ? [...existingUnlocked, options.unlockedAbilityId]
     : existingUnlocked;
 
+  const existingSelections = progression.milestoneSelections ?? {};
+  let newSelections = existingSelections;
+  if (!eligibleClass && options?.attunementId) {
+    const reward = options.unlockedAbilityId
+      ? ({ type: 'ABILITY', abilityId: options.unlockedAbilityId } as const)
+      : ({ type: 'SHARD', shardId: options.earnedShardId ?? 'starlight_lens' } as const);
+
+    newSelections = {
+      ...existingSelections,
+      [coordKey]: {
+        coordKey,
+        attunementId: options.attunementId,
+        reward,
+        levelAwarded: nextLevel
+      }
+    };
+  }
+
   return {
     unitId: progression.unitId,
     currentLevel: nextLevel,
@@ -168,7 +188,8 @@ export function advanceArchetypeLevel(
     offNodeMilestones: newMilestones,
     accumulatedXp: progression.accumulatedXp,
     earnedAttunements: newAttunements,
-    unlockedAbilityIds: newUnlocked
+    unlockedAbilityIds: newUnlocked,
+    milestoneSelections: newSelections
   };
 }
 

@@ -54,7 +54,8 @@ describe('Unit Loadout & Active Class Resolution', () => {
         unitId: 'player',
         currentLevel: 1,
         archetypePoints: { fighter: 1, rogue: 0, mage: 0 },
-        constellation: ['warrior']
+        constellation: ['warrior'],
+        milestoneSelections: {}
       },
       loadout: {
         activeClassId: 'warrior',
@@ -81,7 +82,8 @@ describe('Unit Loadout & Active Class Resolution', () => {
         unitId: 'player',
         currentLevel: 1,
         archetypePoints: { fighter: 0, rogue: 1, mage: 0 },
-        constellation: ['thief']
+        constellation: ['thief'],
+        milestoneSelections: {}
       },
       loadout: {
         activeClassId: 'thief',
@@ -103,7 +105,8 @@ describe('Unit Loadout & Active Class Resolution', () => {
         unitId: 'player',
         currentLevel: 1,
         archetypePoints: { fighter: 0, rogue: 0, mage: 1 },
-        constellation: ['wizard']
+        constellation: ['wizard'],
+        milestoneSelections: {}
       },
       loadout: {
         activeClassId: 'wizard',
@@ -127,7 +130,8 @@ describe('Unit Loadout & Active Class Resolution', () => {
         unitId: 'player',
         currentLevel: 2,
         archetypePoints: { fighter: 1, rogue: 1, mage: 0 },
-        constellation: ['warrior', 'thief']
+        constellation: ['warrior', 'thief'],
+        milestoneSelections: {}
       },
       loadout: {
         activeClassId: 'warrior',
@@ -158,7 +162,8 @@ describe('Unit Loadout Validation Rules', () => {
       unitId: 'player',
       currentLevel: 1,
       archetypePoints: { fighter: 1, rogue: 0, mage: 0 },
-      constellation: ['warrior']
+      constellation: ['warrior'],
+      milestoneSelections: {}
     },
     loadout: {
       activeClassId: 'warrior',

@@ -1,12 +1,19 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HeroProgressionDrawer } from './HeroProgressionDrawer';
+import { ConstellationSvg } from '../pyramid/ConstellationSvg';
 import { Unit } from '../../core/types/unit';
+import { UnitProgression } from '../../core/types/class';
 import { CampaignState } from '../../core/campaign/types';
 
 import { createCampaign } from '../../core/campaign/campaignFactory';
 
-function makeMockUnit(overrides: Partial<Unit> = {}): Unit {
+interface MockUnitOverrides extends Omit<Partial<Unit>, 'progression'> {
+  progression?: Partial<UnitProgression>;
+}
+
+function makeMockUnit(overrides: MockUnitOverrides = {}): Unit {
+  const { progression: progressionOverride, ...restOverrides } = overrides;
   return {
     id: 'hero-1',
     name: 'Valerius',
@@ -20,7 +27,9 @@ function makeMockUnit(overrides: Partial<Unit> = {}): Unit {
       currentLevel: 0,
       constellation: [],
       accumulatedXp: { fighter: 120, rogue: 20, mage: 0 },
-      archetypePoints: { fighter: 0, rogue: 0, mage: 0 }
+      archetypePoints: { fighter: 0, rogue: 0, mage: 0 },
+      milestoneSelections: {},
+      ...(progressionOverride as object)
     },
     loadout: {
       activeClassId: 'novice',
@@ -28,7 +37,7 @@ function makeMockUnit(overrides: Partial<Unit> = {}): Unit {
       wildcardPassiveIds: []
     },
     starterAbilityIds: ['strike'],
-    ...overrides
+    ...restOverrides
   } as unknown as Unit;
 }
 
@@ -336,14 +345,17 @@ describe('HeroProgressionDrawer Component', () => {
       />
     );
 
+    expect(html).toContain('◇ Waypoint (1,0,1)');
+    expect(html).toContain('Tier 2');
     expect(html).toContain('✦ Next Waypoint • +1 Force');
-    // Ensure verbose instructions and old bullet text are absent
+    // Ensure verbose instructions, old bullet text, and option lists are absent from floating HUD
     expect(html).not.toContain('ELIGIBLE NEXT LEVEL');
     expect(html).not.toContain('scanner-instruction');
     expect(html).not.toContain('harmonize with this milestone');
+    expect(html).not.toContain('Attunements:');
   });
 
-  it('renders "★ Milestone Attuned (Active)" in scanner HUD when hovering an unlocked waypoint', () => {
+  it('renders streamlined 3-line format in scanner HUD when hovering an attuned waypoint', () => {
     const hero = makeMockUnit({
       progression: {
         unitId: 'hero-1',
@@ -365,9 +377,239 @@ describe('HeroProgressionDrawer Component', () => {
       />
     );
 
-    expect(html).toContain('★ Milestone Attuned (Active)');
-    expect(html).toContain('★ Starlight Waypoint');
+    expect(html).toContain('★ Waypoint (1,1,0)');
+    expect(html).toContain('Tier 2');
+    expect(html).toContain('★ Milestone Attuned');
+    expect(html).not.toContain('Attunements:');
     expect(html).not.toContain('Next Waypoint');
+  });
+
+  it('Task 3.1 & 3.2: renders active selection ring on selected waypoint in ConstellationSvg and triggers onClickWaypoint callback', () => {
+    const progression = {
+      unitId: 'hero-1',
+      currentLevel: 2,
+      constellation: ['warrior'],
+      accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+      archetypePoints: { fighter: 1, rogue: 1, mage: 0 },
+      offNodeMilestones: ['1,1,0'],
+      milestoneSelections: {}
+    };
+
+    // 1. Verify selection ring SVG markup
+    const htmlSelected = renderToStaticMarkup(
+      <ConstellationSvg
+        progression={progression}
+        unlockedSet={new Set(['warrior'])}
+        hoveredClassId={null}
+        constellationPathD=""
+        onHoverNode={vi.fn()}
+        selectedWaypointKey="1,1,0"
+      />
+    );
+    expect(htmlSelected).toContain('waypoint-selected-ring');
+    expect(htmlSelected).toContain('starlight-waypoint unlocked  selected');
+
+    const htmlUnselected = renderToStaticMarkup(
+      <ConstellationSvg
+        progression={progression}
+        unlockedSet={new Set(['warrior'])}
+        hoveredClassId={null}
+        constellationPathD=""
+        onHoverNode={vi.fn()}
+        selectedWaypointKey={null}
+      />
+    );
+    expect(htmlUnselected).not.toContain('waypoint-selected-ring');
+
+    // 2. Verify onClickWaypoint callback fires on waypoint click
+    const onClickWaypoint = vi.fn();
+    const tree = ConstellationSvg({
+      progression,
+      unlockedSet: new Set(['warrior']),
+      hoveredClassId: null,
+      constellationPathD: '',
+      onHoverNode: vi.fn(),
+      selectedWaypointKey: '1,1,0',
+      onClickWaypoint
+    });
+
+    function findByTestId(el: unknown, testId: string): { props: { onClick: () => void } } | null {
+      if (!el || typeof el !== 'object') return null;
+      const maybeNode = el as { props?: { 'data-testid'?: string; children?: unknown; onClick?: () => void } };
+      if (maybeNode.props?.['data-testid'] === testId) return maybeNode as { props: { onClick: () => void } };
+      if (Array.isArray(maybeNode.props?.children)) {
+        for (const child of maybeNode.props.children) {
+          const found = findByTestId(child, testId);
+          if (found) return found;
+        }
+      } else if (maybeNode.props?.children) {
+        return findByTestId(maybeNode.props.children, testId);
+      }
+      return null;
+    }
+
+    const wpNode = findByTestId(tree, 'waypoint-1,1,0');
+    expect(wpNode).toBeTruthy();
+    wpNode?.props.onClick();
+    expect(onClickWaypoint).toHaveBeenCalledWith('1,1,0');
+  });
+
+  it('Task 4.1 & 4.2: renders persistent WaypointInspectorCard with exact attuned selections and shard reward', () => {
+    const hero = makeMockUnit({
+      loadout: {
+        activeClassId: 'warrior',
+        wildcardAbilityIds: [],
+        wildcardPassiveIds: []
+      },
+      progression: {
+        unitId: 'hero-1',
+        currentLevel: 2,
+        constellation: ['warrior'],
+        accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+        archetypePoints: { fighter: 1, rogue: 1, mage: 0 },
+        offNodeMilestones: ['1,1,0'],
+        milestoneSelections: {
+          '1,1,0': {
+            coordKey: '1,1,0',
+            attunementId: 'wayfarer_bastion',
+            reward: { type: 'SHARD', shardId: 'starlight_lens' },
+            levelAwarded: 2
+          }
+        }
+      }
+    });
+    const campaign = makeMockCampaign(hero);
+    const html = renderToStaticMarkup(
+      <HeroProgressionDrawer
+        hero={hero}
+        campaign={campaign}
+        onClose={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+        initialSelectedWaypointKey="1,1,0"
+      />
+    );
+
+    // Inspector card renders in waypoint mode
+    expect(html).toContain('data-testid="drawer-waypoint-inspector-card"');
+    expect(html).not.toContain('data-testid="drawer-class-inspector-card"');
+
+    // Header metadata
+    expect(html).toContain('★ Waypoint (1,1,0)');
+    expect(html).toContain('Tier 2');
+    expect(html).toContain('Level 2');
+    expect(html).toContain('Off-Node Milestone');
+    expect(html).toContain('★ Milestone Attuned');
+
+    // Attuned Defense details
+    expect(html).toContain('data-testid="waypoint-attuned-details"');
+    expect(html).toContain('ATTUNED DEFENSE');
+    expect(html).toContain('Bastion');
+    expect(html).toContain('+6 Max HP, +1 Armor');
+
+    // Augment Shard Specialization details
+    expect(html).toContain('ASTRAL AUGMENT SHARD');
+    expect(html).toContain('Starlight Lens');
+    expect(html).toContain('Socketable into loadout ability slots');
+
+    // Switch back to active class button
+    expect(html).toContain('data-testid="btn-inspect-active-class"');
+    expect(html).toContain('✦ Inspect Active Class (Warrior)');
+  });
+
+  it('Task 4.1 & 4.2: renders persistent WaypointInspectorCard with domain ability unlock when attuned with ability reward', () => {
+    const hero = makeMockUnit({
+      loadout: {
+        activeClassId: 'warrior',
+        wildcardAbilityIds: [],
+        wildcardPassiveIds: []
+      },
+      progression: {
+        unitId: 'hero-1',
+        currentLevel: 2,
+        constellation: ['warrior'],
+        accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+        archetypePoints: { fighter: 1, rogue: 1, mage: 0 },
+        offNodeMilestones: ['1,1,0'],
+        milestoneSelections: {
+          '1,1,0': {
+            coordKey: '1,1,0',
+            attunementId: 'wayfarer_stride',
+            reward: { type: 'ABILITY', abilityId: 'shadow_step' },
+            levelAwarded: 2
+          }
+        }
+      }
+    });
+    const campaign = makeMockCampaign(hero);
+    const html = renderToStaticMarkup(
+      <HeroProgressionDrawer
+        hero={hero}
+        campaign={campaign}
+        onClose={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+        initialSelectedWaypointKey="1,1,0"
+      />
+    );
+
+    expect(html).toContain('ATTUNED DEFENSE');
+    expect(html).toContain('Stride');
+    expect(html).toContain('+2 Evasion, +2 Speed');
+    expect(html).toContain('DOMAIN ABILITY');
+    expect(html).toContain('Shadow Step');
+    expect(html).toContain('Permanent Wildcard');
+  });
+
+  it('Task 4.1 & 4.2: renders persistent WaypointInspectorCard with choice overview when a potential waypoint is selected', () => {
+    const hero = makeMockUnit({
+      progression: {
+        unitId: 'hero-1',
+        currentLevel: 1,
+        constellation: ['wizard'],
+        accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+        archetypePoints: { fighter: 0, rogue: 0, mage: 1 }
+      }
+    });
+    const campaign = makeMockCampaign(hero);
+    const html = renderToStaticMarkup(
+      <HeroProgressionDrawer
+        hero={hero}
+        campaign={campaign}
+        onClose={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+        initialSelectedWaypointKey="1,0,1"
+      />
+    );
+
+    expect(html).toContain('data-testid="drawer-waypoint-inspector-card"');
+    expect(html).not.toContain('data-testid="drawer-class-inspector-card"');
+    expect(html).toContain('◇ Waypoint (1,0,1)');
+    expect(html).toContain('Tier 2');
+    expect(html).toContain('✦ Next Waypoint • +1 Force');
+
+    // Potential details: Abbreviated choice overview
+    expect(html).toContain('data-testid="waypoint-potential-details"');
+    expect(html).toContain('DEFENSIVE ATTUNEMENT (CHOOSE 1)');
+    expect(html).toContain('Bastion');
+    expect(html).toContain('Ward');
+    expect(html).toContain('SPECIALIZATION REWARD (CHOOSE 1)');
+    expect(html).toContain('Domain Ability Draft');
+    expect(html).toContain('Astral Augment Shard');
+  });
+
+  it('Task 4.1: defaults to Class Inspector when no waypoint is selected', () => {
+    const hero = makeMockUnit();
+    const campaign = makeMockCampaign(hero);
+    const html = renderToStaticMarkup(
+      <HeroProgressionDrawer
+        hero={hero}
+        campaign={campaign}
+        onClose={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('data-testid="drawer-class-inspector-card"');
+    expect(html).not.toContain('data-testid="drawer-waypoint-inspector-card"');
   });
 });
 

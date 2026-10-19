@@ -6,8 +6,7 @@
 
 ## 🔨 In Progress
 
-### Attuned Waypoint Selection Display
-- [ ] Show what was selected at an Attuned Waypoint (display the chosen Wayfarer Attunement and/or unlocked Domain Ability / Astral Shard in the Constellation scanner HUD instead of the generic option pool).
+*(None currently in progress — select next item from Next Up)*
 
 ---
 

@@ -111,6 +111,12 @@ describe('Off-Node Progression Integration: Centroid Path & Slot Augments', () =
     expect(hero.progression.offNodeMilestones).toContain('1,1,0');
     expect(hero.progression.earnedAttunements).toContain('wayfarer_stride');
     expect(hero.progression.unlockedAbilityIds).toContain('toxic_shiv');
+    expect(hero.progression.milestoneSelections?.['1,1,0']).toEqual({
+      coordKey: '1,1,0',
+      attunementId: 'wayfarer_stride',
+      reward: { type: 'ABILITY', abilityId: 'toxic_shiv' },
+      levelAwarded: 2
+    });
 
     // Vitals verification: Wayfarer's Stride adds +2 Speed and +2 Evasion
     // Note: Finesse attribute increased by 1 (+2 speed, +1 evasion from scaling), plus Stride (+2 speed, +2 evasion) = +4 speed, +3 evasion total
@@ -161,6 +167,12 @@ describe('Off-Node Progression Integration: Centroid Path & Slot Augments', () =
     expect(hero.progression.offNodeMilestones).toContain('1,1,1');
     expect(hero.progression.earnedAttunements).toContain('wayfarer_zenith');
     expect(hero.loadout.earnedShards).toContain('astral_reach');
+    expect(hero.progression.milestoneSelections?.['1,1,1']).toEqual({
+      coordKey: '1,1,1',
+      attunementId: 'wayfarer_zenith',
+      reward: { type: 'SHARD', shardId: 'astral_reach' },
+      levelAwarded: 3
+    });
 
     // Vitals verification: Wayfarer's Zenith adds +4 HP, +1 Armor, +1 Ward, +1 Speed, +1 Evasion, +1 Resolve
     // Base level up adds +5 HP. Mage point adds +1 Focus (+1 Ward, +1 Resolve)

@@ -140,3 +140,23 @@
   }
 }
 
+.starlight-waypoint.selected .waypoint-visual {
+  transform: scale(1.4);
+}
+
+.starlight-waypoint .waypoint-selected-ring {
+  animation: pulseSelectedWaypoint 1.8s infinite ease-in-out;
+}
+
+@keyframes pulseSelectedWaypoint {
+  0%, 100% {
+    stroke-width: 2px;
+    opacity: 0.85;
+  }
+  50% {
+    stroke-width: 2.8px;
+    opacity: 1;
+  }
+}
+
+
