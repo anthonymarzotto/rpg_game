@@ -19,6 +19,7 @@
 
 ### 3. Combat Tempo & Initiative Balance
 - [ ] **3.1**: Prevent player units from always acting first; introduce enemy initiative variance or roll modifiers to make combat opening rounds dynamic and tense.
+  - One idea would be that on turn 1, if units are tied that there should be some random fudge to untie them, and let that carry through. I'm unsure whether this should show in the UI somehow. For example, with 6 Novices (like in the first Trial), they all reach 100 at the same time. First tiebreaker is speed (I think) which makes sense, however they are still equal. There could be some random fudging or sorting here to try and switch up the tied units. Then, after the first round the units would stay in that order (barring other CTB manipulation).
 - [ ] **3.2**: Investigate Thief/Infiltrator action economy (Thieves cycling fast low-AP skills and getting 2x the actions and XP of heavier classes).
 - [ ] **3.3**: Fix pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp).
 
