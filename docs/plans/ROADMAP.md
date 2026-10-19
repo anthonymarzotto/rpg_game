@@ -44,6 +44,12 @@
    * Final Trial victory screen: Run Summary showing battles won, MVPs, total starlight harvested, and constellation mastery achieved.
 4. **Passive Squad Relics (`src/core/items/`)**:
    * Global run modifiers found during exploration (e.g. *Chrono Hourglass* boosting unspent AP refund, *Sunstone Prism* expanding aura radii).
+5. **Tactical Terrain Hexes & Environmental Hazards (`src/core/grid/terrain.ts`)**:
+   * Expand the hex grid beyond basic obstacles and elevation terraces to support distinct tactical terrain types:
+     * **Hazard Hexes**: Void fissures, magma pools, and toxic miasmas dealing damage or applying status conditions (`BURN`, `POISON`) upon entry or turn end.
+     * **Impeding Terrain**: Astral mire, crystal rubble, and ice sheets increasing movement AP costs (e.g. 2 MP to enter) or inducing involuntary slides.
+     * **Cover & Concealment**: Obscuring mist clouds and dense astral brush screening ranged Line of Sight or conferring defensive evasion bonuses.
+     * **Resonance Glyphs**: Leyline nodes and recovery fonts granting temporary AP, ward recharge, or damage amplification while occupied.
 
 ---
 
