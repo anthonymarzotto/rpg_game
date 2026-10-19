@@ -1,11 +1,11 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { HexCoord } from '../../core/grid/hex';
+import { HexCoord, HexDirection } from '../../core/grid/hex';
 import { Ability } from '../../core/types/ability';
 import { Unit } from '../../core/types/unit';
 import { UnitLoadout } from '../../core/types/loadout';
 import { CombatState, InBattleXp } from '../../core/combat/types';
 import { canMove, canExecuteAbility, getAbilityRangeCoords } from '../../core/combat/validator';
-import { executeMove, executeAbility } from '../../core/combat/resolver';
+import { executeMove, executeSetFacing, executeAbility } from '../../core/combat/resolver';
 import { endActiveTurn } from '../../core/combat/turnClock';
 import {
   EncounterDefinition,
@@ -64,6 +64,7 @@ export function useCombatSimulation({
   );
   const [actionMode, setActionMode] = useState<ActionMode>(initialActionMode ?? 'IDLE');
   const [selectedAbility, setSelectedAbility] = useState<Ability | null>(initialSelectedAbility ?? null);
+  const [facingCompassCoord, setFacingCompassCoord] = useState<HexCoord | null>(null);
   const [hoveredCoord, setHoveredCoord] = useState<HexCoord | null>(null);
   const [diceMode, setDiceMode] = useState<DiceMode>('NORMAL');
 
@@ -80,6 +81,11 @@ export function useCombatSimulation({
     () => (state.activeUnitId ? state.arena.getUnitPosition(state.activeUnitId) : undefined),
     [state]
   );
+
+  // Clear facing compass whenever the active turn or unit changes
+  useEffect(() => {
+    setFacingCompassCoord(null);
+  }, [state.activeUnitId, state.turnNumber]);
 
   // Authoritative interaction phase
   const phase = useMemo<CombatPhase>(() => {
@@ -303,10 +309,16 @@ export function useCombatSimulation({
           executeMove(state, state.activeUnitId, coord);
           addFloatingText('Move', 'buff', coord);
           setActionMode('IDLE');
+          setFacingCompassCoord(coord);
           setState({ ...state, combatLog: [...state.combatLog] });
           checkEncounterProgression(state);
         } else {
           addFloatingText(validation.reason, 'miss', coord);
+        }
+      } else if (actionMode === 'IDLE') {
+        // Clicking an empty tile or outside when compass is active dismisses the compass
+        if (facingCompassCoord) {
+          setFacingCompassCoord(null);
         }
       } else if (actionMode === 'ABILITY' && selectedAbility) {
         const targetUnitId = state.arena.getUnitAt(coord);
@@ -373,6 +385,7 @@ export function useCombatSimulation({
 
     setActionMode('IDLE');
     setSelectedAbility(null);
+    setFacingCompassCoord(null);
     setState({ ...state, combatLog: [...state.combatLog] });
     checkEncounterProgression(state);
   }, [phase, activeCu, activeCoord, state, addFloatingText, checkEncounterProgression]);
@@ -380,6 +393,7 @@ export function useCombatSimulation({
   // Switches action mode from ActionBar
   const selectAction = useCallback(
     (action: Ability | 'MOVE' | null) => {
+      setFacingCompassCoord(null);
       if (action === 'MOVE') {
         setActionMode('MOVE');
         setSelectedAbility(null);
@@ -392,6 +406,16 @@ export function useCombatSimulation({
       }
     },
     []
+  );
+
+  // Directly sets unit facing orientation (0 AP) and retains compass ring for continuous adjustments
+  const handleSelectFacing = useCallback(
+    (direction: HexDirection) => {
+      if (phase !== 'PLAYER_ACTION' || !activeCu) return;
+      executeSetFacing(state, state.activeUnitId, direction);
+      setState({ ...state, combatLog: [...state.combatLog] });
+    },
+    [phase, activeCu, state]
   );
 
   // Selects which squad member to inspect/customize in the victory modal
@@ -415,6 +439,7 @@ export function useCombatSimulation({
       setState(fresh);
       setActionMode('IDLE');
       setSelectedAbility(null);
+      setFacingCompassCoord(null);
       setHoveredCoord(null);
       clearFloatingTexts();
     },
@@ -433,6 +458,7 @@ export function useCombatSimulation({
     setState(fresh);
     setActionMode('IDLE');
     setSelectedAbility(null);
+    setFacingCompassCoord(null);
     setHoveredCoord(null);
     clearFloatingTexts();
   }, [encounter, clearFloatingTexts]);
@@ -457,6 +483,8 @@ export function useCombatSimulation({
     candidateTargetCoords,
     targetPreview,
     movePreview,
+    facingCompassCoord,
+    handleSelectFacing,
     squadSummaries,
     activeSquadUnitId,
     handleSelectSquadUnit,

@@ -191,5 +191,64 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
     expect(html).toContain('>RUINS<');
     expect(html).not.toContain('>BLOCK<');
   });
+
+  it('renders 6-direction facing compass ring when facingCompassCoord matches active unit', () => {
+    const { state } = setupTestState();
+    // In setupTestState, 'p1' is at (-1, 0) and is activeUnitId
+    const onSelectFacing = vi.fn();
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        facingCompassCoord={{ q: -1, r: 0 }}
+        onSelectFacing={onSelectFacing}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    // Compass ring and 6 chevrons are rendered
+    expect(html).toContain('data-testid="facing-compass-ring"');
+    expect(html).toContain('compass-orbit-track');
+    expect(html).toContain('data-testid="facing-chevron-0"');
+    expect(html).toContain('data-testid="facing-chevron-1"');
+    expect(html).toContain('data-testid="facing-chevron-2"');
+    expect(html).toContain('data-testid="facing-chevron-3"');
+    expect(html).toContain('data-testid="facing-chevron-4"');
+    expect(html).toContain('data-testid="facing-chevron-5"');
+
+    // Unit initially faces EAST (0), so chevron 0 is active
+    expect(html).toContain('facing-chevron-group active" data-testid="facing-chevron-0"');
+    // Other chevrons are inactive
+    expect(html).toContain('facing-chevron-group inactive" data-testid="facing-chevron-1"');
+  });
+
+  it('does not render facing compass ring when facingCompassCoord is null or differs from active unit', () => {
+    const { state } = setupTestState();
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        facingCompassCoord={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).not.toContain('data-testid="facing-compass-ring"');
+  });
 });
+
 

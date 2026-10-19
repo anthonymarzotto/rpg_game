@@ -11,6 +11,7 @@ import { createRecruit } from '../units/unitFactory';
 import {
   createCombatState,
   executeMove,
+  executeSetFacing,
   executeAbility,
   isFlankOrRear
 } from './resolver';
@@ -87,6 +88,68 @@ describe('Directional Facing & Combat Arcs', () => {
       // Move East: (0, -1) -> (1, -1)
       executeMove(state, 'hero', { q: 1, r: -1 });
       expect(heroCu.facing).toBe(HEX_DIRECTIONS.EAST);
+    });
+
+    it('executeSetFacing updates orientation for 0 AP during active turn', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+
+      const state = createCombatState(arena, [hero], 'hero');
+      const heroCu = state.units.get('hero')!;
+      const initialAp = heroCu.currentAp;
+
+      expect(heroCu.facing).toBe(HEX_DIRECTIONS.EAST);
+
+      // Pivot to NORTHWEST for 0 AP
+      executeSetFacing(state, 'hero', HEX_DIRECTIONS.NORTHWEST);
+      expect(heroCu.facing).toBe(HEX_DIRECTIONS.NORTHWEST);
+      expect(heroCu.currentAp).toBe(initialAp);
+
+      // Pivot to SOUTHWEST
+      executeSetFacing(state, 'hero', HEX_DIRECTIONS.SOUTHWEST);
+      expect(heroCu.facing).toBe(HEX_DIRECTIONS.SOUTHWEST);
+      expect(heroCu.currentAp).toBe(initialAp);
+    });
+
+    it('executeSetFacing rejects execution for inactive units or invalid directions', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, enemy], 'hero');
+
+      // Attempting to change facing of enemy during hero's turn
+      expect(() => {
+        executeSetFacing(state, 'enemy', HEX_DIRECTIONS.NORTHWEST);
+      }).toThrow(/not active unit/);
+
+      // Attempting to pass invalid direction
+      expect(() => {
+        executeSetFacing(state, 'hero', 6 as any);
+      }).toThrow(/Invalid hex facing direction/);
+    });
+
+    it('executeSetFacing alters tactical combat arcs relative to opponents', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: -1, r: 0 }); // Enemy is to the WEST of Hero
+
+      const state = createCombatState(arena, [hero, enemy], 'hero');
+      const heroCu = state.units.get('hero')!;
+
+      // Hero initially facing EAST (Enemy at WEST is directly in Hero's REAR arc)
+      expect(heroCu.facing).toBe(HEX_DIRECTIONS.EAST);
+      expect(getCombatArc(heroCu.facing, { q: 0, r: 0 }, { q: -1, r: 0 })).toBe('REAR');
+
+      // Hero pivots to face WEST
+      executeSetFacing(state, 'hero', HEX_DIRECTIONS.WEST);
+      expect(heroCu.facing).toBe(HEX_DIRECTIONS.WEST);
+      expect(getCombatArc(heroCu.facing, { q: 0, r: 0 }, { q: -1, r: 0 })).toBe('FRONT');
     });
 
     it('updates unit facing when executing an ability towards a target', () => {

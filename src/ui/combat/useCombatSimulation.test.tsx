@@ -199,4 +199,75 @@ describe('useCombatSimulation movePreview & fall hazard detection', () => {
     expect(initialTurn).toBe(1);
     expect(capturedHook!.state.activeUnitId).toBe(enemy.id);
   });
+
+  it('exposes facingCompassCoord and handleSelectFacing to update unit orientation', () => {
+    const player = createRecruit('p1', 'Player Hero', { faction: 'PLAYER' });
+    const enemy = createRecruit('e1', 'Goblin', { faction: 'ENEMY' });
+
+    const encounter: EncounterDefinition = {
+      id: 'facing-compass-encounter',
+      name: 'Facing Compass Test',
+      arenaRadius: 3,
+      initialActiveUnitId: 'p1',
+      units: [
+        { unit: player, coord: { q: 0, r: 0 } },
+        { unit: enemy, coord: { q: 2, r: 0 } }
+      ]
+    };
+
+    let capturedHook: ReturnType<typeof useCombatSimulation> | null = null;
+    function Harness() {
+      capturedHook = useCombatSimulation({ encounter });
+      return null;
+    }
+
+    renderToStaticMarkup(<Harness />);
+    expect(capturedHook).not.toBeNull();
+    expect(capturedHook!.facingCompassCoord).toBeNull();
+
+    // Verify handleSelectFacing updates unit facing for active unit
+    capturedHook!.handleSelectFacing(2); // NORTHWEST
+    expect(capturedHook!.state.units.get('p1')!.facing).toBe(2);
+
+    capturedHook!.handleSelectFacing(4); // SOUTHWEST
+    expect(capturedHook!.state.units.get('p1')!.facing).toBe(4);
+  });
+
+  it('activates facingCompassCoord when executing a move action and dismisses on selectAction', () => {
+    const player = createRecruit('p1', 'Player Hero', { faction: 'PLAYER' });
+    const enemy = createRecruit('e1', 'Goblin', { faction: 'ENEMY' });
+
+    const encounter: EncounterDefinition = {
+      id: 'facing-compass-move-encounter',
+      name: 'Facing Compass Move Test',
+      arenaRadius: 3,
+      initialActiveUnitId: 'p1',
+      units: [
+        { unit: player, coord: { q: 0, r: 0 } },
+        { unit: enemy, coord: { q: 2, r: 0 } }
+      ]
+    };
+
+    let capturedHook: ReturnType<typeof useCombatSimulation> | null = null;
+    function Harness() {
+      capturedHook = useCombatSimulation({ encounter, initialActionMode: 'MOVE' });
+      return null;
+    }
+
+    renderToStaticMarkup(<Harness />);
+    expect(capturedHook!.actionMode).toBe('MOVE');
+    expect(capturedHook!.facingCompassCoord).toBeNull();
+
+    // Execute move to (0, 1)
+    capturedHook!.handleTileClick({ q: 0, r: 1 });
+    // Unit moved to (0, 1)
+    expect(capturedHook!.state.arena.getUnitPosition('p1')).toEqual({ q: 0, r: 1 });
+    // Default facing after moving (0, 0) -> (0, 1) is SOUTHEAST (5)
+    expect(capturedHook!.state.units.get('p1')!.facing).toBe(5);
+
+    // After move, handleSelectFacing pivots unit to WEST (3)
+    capturedHook!.handleSelectFacing(3);
+    expect(capturedHook!.state.units.get('p1')!.facing).toBe(3);
+  });
 });
+

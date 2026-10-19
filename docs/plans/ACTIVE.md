@@ -17,9 +17,6 @@
 - [ ] **1.2**: Hover tooltips on active condition badges (inspect exact `POISON`, `BURN`, `STEALTH`, `CHALLENGED` effects & durations).
 - [ ] **1.3**: View active skill loadout and remaining AP/CTB in the pinned card.
 
-### 2. Post-Move Facing Selection
-- [ ] **2.1**: After executing a move action, prompt or allow directional facing selection before finalizing the move or spending further AP (prevents inadvertently exposing flank/rear arcs).
-
 ### 3. Combat Tempo & Initiative Balance
 - [ ] **3.1**: Prevent player units from always acting first; introduce enemy initiative variance or roll modifiers to make combat opening rounds dynamic and tense.
 - [ ] **3.2**: Investigate Thief/Infiltrator action economy (Thieves cycling fast low-AP skills and getting 2x the actions and XP of heavier classes).

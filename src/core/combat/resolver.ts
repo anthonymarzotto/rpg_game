@@ -1,6 +1,7 @@
 import { Unit } from '../types/unit';
 import {
   HexCoord,
+  HexDirection,
   HEX_DIRECTIONS,
   getHexesInRange,
   hexEquals,
@@ -322,6 +323,28 @@ export function executeMove(
       remainingAp: cu.currentAp
     }
   });
+}
+
+/**
+ * Sets the active unit's directional facing orientation (costs 0 AP).
+ * Must be executed during the actor's active turn.
+ */
+export function executeSetFacing(
+  state: CombatState,
+  actorUnitId: string,
+  facing: HexDirection
+): void {
+  if (state.activeUnitId !== actorUnitId) {
+    throw new Error(
+      `Cannot set facing for unit ${actorUnitId}: not active unit (active: ${state.activeUnitId})`
+    );
+  }
+  if (facing < 0 || facing > 5 || !Number.isInteger(facing)) {
+    throw new Error(`Invalid hex facing direction: ${facing}. Must be integer between 0 and 5.`);
+  }
+
+  const cu = requireCombatUnit(state, actorUnitId);
+  cu.facing = facing;
 }
 
 

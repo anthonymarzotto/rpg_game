@@ -59,6 +59,8 @@ export function CombatArena({
     candidateTargetCoords,
     targetPreview,
     movePreview,
+    facingCompassCoord,
+    handleSelectFacing,
     squadSummaries,
     activeSquadUnitId,
     handleSelectSquadUnit,
@@ -242,6 +244,8 @@ export function CombatArena({
             floatingTexts={floatingTexts}
             targetPreview={targetPreview}
             movePreview={movePreview}
+            facingCompassCoord={facingCompassCoord}
+            onSelectFacing={handleSelectFacing}
             zoom={fieldZoom}
             onTileClick={handleTileClick}
             onTileHover={setHoveredCoord}
