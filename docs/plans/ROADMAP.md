@@ -89,6 +89,15 @@
 
 ---
 
+## 💡 Future Small Enhancements (Quality of Life & Micro-Polish)
+
+Small, targeted enhancements and visual polish to evaluate in future tuning passes:
+
+* **In-Place Unit Reorientation**: Allow clicking the active player unit token while in `IDLE` mode to open the compass ring and pivot facing for 0 AP at any time during their turn (outside of post-move).
+* **Combat Arc Preview Shading**: Subtly tint the 3 forward hexes (FRONT cone) in cyan and the rear hex (REAR blind spot) in crimson when hovering a directional chevron on the compass ring to visualize defensive coverage.
+
+---
+
 ## 🔮 Future Systems Exploration (Unscheduled)
 
 Broad mechanical concepts to prototype and evaluate after the core run loop is established:
@@ -96,3 +105,4 @@ Broad mechanical concepts to prototype and evaluate after the core run loop is e
 * **Nemeses**: Enemies that flee at low HP threshold, level up, and return in later sectors with higher threat budgets, counter-abilities, and persistent battle history.
 * **Camp Tutoring**: Veterans training Novices in Camp by passing on earned archetype XP while sitting out trials for a set number of rounds.
 * **Wayfarer Aging & Mortality**: Units aging after each skirmish, progressing through age brackets with changing stat modifiers, and eventually retiring into Constellation legends.
+
