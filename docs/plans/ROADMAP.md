@@ -102,7 +102,7 @@ Small, targeted enhancements and visual polish to evaluate in future tuning pass
 
 Broad mechanical concepts to prototype and evaluate after the core run loop is established:
 
-* **Nemeses**: Enemies that flee at low HP threshold, level up, and return in later sectors with higher threat budgets, counter-abilities, and persistent battle history.
+* **Nemeses**: Enemies that flee at low HP threshold, level up, and return in later sectors with higher threat budgets, counter-abilities, and persistent battle history. Upon ascending to Nemesis status, enemies evolve from procedural astral adjective titles (e.g. *Ash Novice* or *Ash Thief*) into true individual names with notorious epithets (e.g. *Vael the Sneaky*).
 * **Camp Tutoring**: Veterans training Novices in Camp by passing on earned archetype XP while sitting out trials for a set number of rounds.
 * **Wayfarer Aging & Mortality**: Units aging after each skirmish, progressing through age brackets with changing stat modifiers, and eventually retiring into Constellation legends.
 

@@ -220,5 +220,31 @@ describe('Procedural Encounter Generator', () => {
       }
     });
   });
+
+  describe('Procedural Enemy Astral Titling & Disambiguation', () => {
+    it('assigns unique astral adjectives across encounter enemy units', () => {
+      const encounter = generateStageEncounter(1, recruitSquad, 42);
+      const enemyUnits = encounter.units.filter((u) => u.unit.faction === 'ENEMY');
+
+      expect(enemyUnits.length).toBeGreaterThanOrEqual(2);
+
+      // Verify all enemy names are unique
+      const names = enemyUnits.map((e) => e.unit.name);
+      const uniqueNames = new Set(names);
+      expect(uniqueNames.size).toBe(enemyUnits.length);
+
+      // Verify each name has an astral adjective prefix and a class name
+      for (const name of names) {
+        const parts = name.split(' ');
+        expect(parts.length).toBeGreaterThanOrEqual(2);
+      }
+    });
+
+    it('allows customName override on createEnemyUnit', () => {
+      const customEnemy = createEnemyUnit('e-custom', 'warrior', undefined, 'Cinder Reaver');
+      expect(customEnemy.name).toBe('Cinder Reaver');
+      expect(customEnemy.loadout.activeClassId).toBe('warrior');
+    });
+  });
 });
 

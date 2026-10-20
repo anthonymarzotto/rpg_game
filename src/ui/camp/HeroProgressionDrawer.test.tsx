@@ -611,6 +611,41 @@ describe('HeroProgressionDrawer Component', () => {
     expect(html).toContain('data-testid="drawer-class-inspector-card"');
     expect(html).not.toContain('data-testid="drawer-waypoint-inspector-card"');
   });
+
+  describe('Hero Renaming', () => {
+    it('renders hero rename trigger button and hero name in header', () => {
+      const hero = makeMockUnit({ name: 'Alden Starfall' });
+      const campaign = makeMockCampaign(hero);
+      const html = renderToStaticMarkup(
+        <HeroProgressionDrawer
+          hero={hero}
+          campaign={campaign}
+          onClose={vi.fn()}
+          onUpdateCampaign={vi.fn()}
+        />
+      );
+
+      expect(html).toContain('data-testid="drawer-hero-name"');
+      expect(html).toContain('Alden Starfall');
+      expect(html).toContain('data-testid="hero-rename-trigger"');
+      expect(html).toContain('✎');
+      expect(html).toContain('title="Rename Hero"');
+    });
+
+    it('validates name constraints (2 to 24 characters, trimming whitespace)', () => {
+      const validateName = (raw: string) => {
+        const trimmed = raw.trim();
+        return trimmed.length >= 2 && trimmed.length <= 24;
+      };
+
+      expect(validateName('   ')).toBe(false);
+      expect(validateName('A')).toBe(false);
+      expect(validateName('Al')).toBe(true);
+      expect(validateName('Alden Voidwalker')).toBe(true);
+      expect(validateName('123456789012345678901234')).toBe(true); // 24 chars
+      expect(validateName('1234567890123456789012345')).toBe(false); // 25 chars
+    });
+  });
 });
 
 

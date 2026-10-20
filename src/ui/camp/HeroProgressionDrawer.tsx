@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { CampaignState } from '../../core/campaign/types';
 import { Unit } from '../../core/types/unit';
 import { Archetype, ArchetypePoints, ClassDefinition } from '../../core/types/class';
@@ -81,6 +81,20 @@ export function HeroProgressionDrawer({
     readonly archetype: Archetype;
     readonly targetPoints: ArchetypePoints;
   } | null>(null);
+
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [draftName, setDraftName] = useState(hero.name);
+  const prevHeroIdRef = useRef(hero.id);
+
+  useEffect(() => {
+    if (prevHeroIdRef.current !== hero.id) {
+      prevHeroIdRef.current = hero.id;
+      setIsRenaming(false);
+      setDraftName(hero.name);
+    } else if (!isRenaming) {
+      setDraftName(hero.name);
+    }
+  }, [hero.id, hero.name, isRenaming]);
 
   const tokenSrc = resolveTokenAssetPath(hero);
   const levelStatus = checkHeroLevelReady(hero);
@@ -545,6 +559,51 @@ export function HeroProgressionDrawer({
     });
   }, [hero, campaign, onUpdateCampaign]);
 
+  const handleStartRename = useCallback(() => {
+    setDraftName(hero.name);
+    setIsRenaming(true);
+  }, [hero.name]);
+
+  const handleCancelRename = useCallback(() => {
+    setDraftName(hero.name);
+    setIsRenaming(false);
+  }, [hero.name]);
+
+  const handleCommitRename = useCallback(() => {
+    const trimmed = draftName.trim();
+    if (trimmed.length >= 2 && trimmed.length <= 24) {
+      if (trimmed !== hero.name) {
+        const updatedHero: Unit = {
+          ...hero,
+          name: trimmed
+        };
+        const nextRoster = campaign.roster.map((u) => (u.id === hero.id ? updatedHero : u));
+        onUpdateCampaign({
+          ...campaign,
+          roster: nextRoster,
+          updatedAt: Date.now()
+        });
+      }
+      setIsRenaming(false);
+    } else {
+      setDraftName(hero.name);
+      setIsRenaming(false);
+    }
+  }, [draftName, hero, campaign, onUpdateCampaign]);
+
+  const handleRenameKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleCommitRename();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        handleCancelRename();
+      }
+    },
+    [handleCommitRename, handleCancelRename]
+  );
+
   return (
     <div className="hero-drawer-backdrop" data-testid="hero-progression-drawer">
       <div className="hero-drawer-panel glass-panel-elevated">
@@ -560,7 +619,52 @@ export function HeroProgressionDrawer({
             </div>
             <div className="drawer-header-titles">
               <div className="drawer-overview-class font-ui">
-                <span className="drawer-overview-name">{hero.name}</span> — Level {hero.progression.currentLevel} {getHeroDisplayTitle(hero)}
+                {isRenaming ? (
+                  <span className="drawer-rename-wrap" data-testid="drawer-rename-wrap">
+                    <input
+                      type="text"
+                      className="drawer-rename-input font-ui"
+                      value={draftName}
+                      onChange={(e) => setDraftName(e.target.value)}
+                      onKeyDown={handleRenameKeyDown}
+                      maxLength={24}
+                      autoFocus
+                      data-testid="hero-rename-input"
+                    />
+                    <button
+                      type="button"
+                      className="btn-rename-save"
+                      onClick={handleCommitRename}
+                      data-testid="hero-rename-save-btn"
+                      title="Confirm Name (Enter)"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-rename-cancel"
+                      onClick={handleCancelRename}
+                      data-testid="hero-rename-cancel-btn"
+                      title="Cancel (Escape)"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ) : (
+                  <span className="drawer-name-row">
+                    <span className="drawer-overview-name" data-testid="drawer-hero-name">{hero.name}</span>
+                    <button
+                      type="button"
+                      className="btn-rename-hero"
+                      onClick={handleStartRename}
+                      data-testid="hero-rename-trigger"
+                      title="Rename Hero"
+                    >
+                      ✎
+                    </button>
+                  </span>
+                )}
+                {' '}— Level {hero.progression.currentLevel} {getHeroDisplayTitle(hero)}
               </div>
             </div>
           </div>

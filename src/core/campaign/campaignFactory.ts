@@ -4,12 +4,9 @@ import { CampaignState, CreateCampaignOptions } from './types';
 import { createRng } from '../prng';
 import { generateStageEncounter } from './encounterGenerator';
 
-export const FANTASY_MALE_NAMES: readonly string[] = [
-  'Alden', 'Brennan', 'Cedric', 'Dorian', 'Eldon',
-  'Gareth', 'Harlan', 'Julian', 'Kieran', 'Lucan',
-  'Marcus', 'Nolan', 'Orin', 'Perrin', 'Roland',
-  'Silas', 'Tristan', 'Valen', 'Warren', 'Zephyr'
-];
+import { generateProceduralRecruitName, MALE_FIRST_NAMES } from '../../data/names';
+
+export const FANTASY_MALE_NAMES: readonly string[] = MALE_FIRST_NAMES;
 
 /**
  * Procedurally generates a fresh Level-0 recruit with a random name and rolled starter abilities.
@@ -19,11 +16,7 @@ export function generateProceduralRecruit(
   rng: () => number,
   usedNames: Set<string>
 ): Unit {
-  // Filter out already used names to avoid duplicate names in the initial squad
-  const availableNames = FANTASY_MALE_NAMES.filter((n) => !usedNames.has(n));
-  const pool = availableNames.length > 0 ? availableNames : FANTASY_MALE_NAMES;
-  const chosenName = pool[Math.floor(rng() * pool.length)];
-
+  const chosenName = generateProceduralRecruitName(rng, usedNames);
   usedNames.add(chosenName);
 
   return createRecruit(id, chosenName, {

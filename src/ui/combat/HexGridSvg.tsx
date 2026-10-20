@@ -501,6 +501,7 @@ export function HexGridSvg({
                     : '#e2e8f0';
             const badgeSymbol = isPlayer ? '🛡️' : isEnemy ? '🎯' : '⚪';
             const hpBarFill = isPlayer ? '#10b981' : hpPercent < 40 ? '#ef4444' : '#f59e0b';
+            const displayName = isPlayer ? cu.unit.name.split(' ')[0] : cu.unit.name;
 
             const tokenAssetSrc = resolveTokenAssetPath(cu.unit, cu.facing);
             const isCandidate = candidateSet.has(toHexKey(pos));
@@ -727,7 +728,7 @@ export function HexGridSvg({
                       textAnchor="middle"
                       className="token-name-label"
                     >
-                      {cu.unit.name.split(' ')[0]}
+                      {displayName}
                     </text>
 
                     {/* Active Status Effects on Standee */}
@@ -873,7 +874,7 @@ export function HexGridSvg({
                       fontWeight="700"
                       textAnchor="middle"
                     >
-                      {cu.unit.name.split(' ')[0]}
+                      {displayName}
                     </text>
 
                     {/* Active Status Effects on Token */}

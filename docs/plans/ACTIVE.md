@@ -9,7 +9,7 @@
 ### 4. Arena & Timeline UX
 - [x] **4.1**: Two-way hover highlight: hovering an initiative queue bubble highlights the hex unit on the field, and hovering a unit highlights their bubble on the timeline.
 - [x] **4.2**: Space out units on the CTB timeline ribbon and display numerical initiative ticks more prominently.
-- [ ] **4.3**: Clear enemy naming: replace generic placeholders with numbered titles (e.g., `Novice 1`, `Novice 2`) or procedural astral names.
+- [x] **4.3**: Clear enemy naming: procedural astral adjective titles (e.g., `Ash Novice`, `Dusk Novice`), modular player recruit First + Title naming, and in-game hero renaming in Camp.
 - [ ] **4.4**: In-combat character card XP gain tracker: display current battle XP gains inline (e.g., `Force: 7 XP (+2)`).
 
 ---

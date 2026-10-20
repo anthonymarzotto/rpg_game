@@ -13,6 +13,7 @@ import { createRecruit } from '../units/unitFactory';
 import { advanceArchetypeLevel } from '../progression/pyramid';
 import { CLASS_REGISTRY, CLASSES_BY_ID } from '../../data/classes';
 import { computeDerivedVitals } from '../units/vitals';
+import { assignEnemyTitles } from '../../data/names';
 
 export type EnemyTier1Class = 'warrior' | 'thief' | 'wizard';
 export type EnemyTier2Class = 'knight' | 'infiltrator' | 'sorcerer';
@@ -35,10 +36,14 @@ export const TIER3_CLASSES: readonly EnemyTier3Class[] = [
 export function createEnemyUnit(
   id: string,
   classId: 'novice' | EnemyTier1Class | EnemyTier2Class | EnemyTier3Class,
-  rng?: () => number
+  rng?: () => number,
+  customName?: string
 ): Unit {
+  const defaultClassName = classId === 'novice' ? 'Novice' : (CLASSES_BY_ID[classId]?.name ?? 'Enemy');
+  const unitName = customName ?? defaultClassName;
+
   if (classId === 'novice') {
-    return createRecruit(id, 'Novice', {
+    return createRecruit(id, unitName, {
       faction: 'ENEMY',
       rng
     });
@@ -52,7 +57,7 @@ export function createEnemyUnit(
   const req = classDef.requirements;
   const level = classDef.totalPoints;
 
-  const recruit = createRecruit(id, classDef.name, {
+  const recruit = createRecruit(id, unitName, {
     faction: 'ENEMY',
     rng
   });
@@ -90,7 +95,7 @@ export function createEnemyUnit(
 
   return {
     ...recruit,
-    name: classDef.name,
+    name: unitName,
     progression,
     baseAttributes,
     effectiveVitals,
@@ -151,7 +156,17 @@ export function assembleEnemySquad(
     squad.push(createEnemyUnit(`enemy-${unitIndex++}`, 'novice', rng));
   }
 
-  return squad;
+  // Assign unique astral adjectives across the squad
+  const squadDescriptors = squad.map((u) => ({
+    id: u.id,
+    className: u.name,
+    unit: u
+  }));
+  const titled = assignEnemyTitles(squadDescriptors, rng);
+  return titled.map((t) => ({
+    ...t.unit,
+    name: t.name
+  }));
 }
 
 /**

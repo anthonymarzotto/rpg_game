@@ -316,6 +316,36 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
     expect(html).not.toContain('unit-hover-halo');
     expect(html).not.toContain('unit-highlighted');
   });
+
+  it('renders primary first name for player units and full title for enemy units on standee plates', () => {
+    const arena = createRadialArena(3);
+    const player = createRecruit('p1', 'Alden Dawnseeker', { faction: 'PLAYER' });
+    const enemy = createRecruit('e1', 'Ash Novice', { faction: 'ENEMY' });
+    arena.setUnitPosition('p1', { q: -1, r: 0 });
+    arena.setUnitPosition('e1', { q: 1, r: 0 });
+    const state = createCombatState(arena, [player, enemy], 'p1');
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    // Player renders first name only
+    expect(html).toContain('>Alden<');
+    expect(html).not.toContain('>Alden Dawnseeker<');
+
+    // Enemy renders full title
+    expect(html).toContain('>Ash Novice<');
+  });
 });
 
 
