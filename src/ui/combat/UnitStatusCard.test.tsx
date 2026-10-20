@@ -100,4 +100,25 @@ describe('UnitStatusCard Component', () => {
     expect(html).toContain('✦ Vantage (+2 Range)');
     expect(html).toContain('advantage-indicator-badge vantage');
   });
+
+  it('renders transient Inspected Unit card when hoveredUnitCu is provided and not targeting', () => {
+    const activeCu = createMockCombatUnit();
+    const hoveredCu = {
+      ...createMockCombatUnit(),
+      unit: createRecruit('enemy-goblin', 'Sneaky Goblin', { faction: 'ENEMY' }),
+      initiativeGauge: 78
+    };
+
+    const html = renderToStaticMarkup(
+      <UnitStatusCard
+        activeCu={activeCu}
+        targetPreview={null}
+        hoveredUnitCu={hoveredCu}
+      />
+    );
+
+    expect(html).toContain('Inspected Unit');
+    expect(html).toContain('Sneaky Goblin');
+    expect(html).toContain('Gauge: 78/100');
+  });
 });

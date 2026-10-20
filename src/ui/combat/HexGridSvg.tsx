@@ -25,6 +25,7 @@ export interface HexGridSvgProps {
   readonly zoom?: number;
   readonly facingCompassCoord?: HexCoord | null;
   readonly onSelectFacing?: (direction: HexDirection) => void;
+  readonly highlightedUnitId?: string | null;
   readonly onTileClick: (coord: HexCoord) => void;
   readonly onTileHover: (coord: HexCoord | null) => void;
 }
@@ -37,6 +38,7 @@ export function HexGridSvg({
   abilityRangeCoords,
   candidateTargetCoords,
   hoveredCoord,
+  highlightedUnitId,
   floatingTexts,
   targetPreview,
   movePreview,
@@ -476,6 +478,7 @@ export function HexGridSvg({
             const isPlayer = faction === 'PLAYER';
             const isEnemy = faction === 'ENEMY';
             const isActiveActor = state.activeUnitId === unitId;
+            const isHighlighted = highlightedUnitId != null && unitId === highlightedUnitId;
             const hpPercent = (cu.currentHp / cu.unit.effectiveVitals.maxHp) * 100;
 
             // Visual theme by faction & active status
@@ -487,13 +490,15 @@ export function HexGridSvg({
                 : isEnemy
                   ? '#f87171'
                   : '#a8a29e';
-            const nameColor = isActiveActor
-              ? '#fef08a'
-              : isPlayer
-                ? '#7dd3fc'
-                : isEnemy
-                  ? '#fca5a5'
-                  : '#e2e8f0';
+            const nameColor = isHighlighted
+              ? '#ffffff'
+              : isActiveActor
+                ? '#fef08a'
+                : isPlayer
+                  ? '#7dd3fc'
+                  : isEnemy
+                    ? '#fca5a5'
+                    : '#e2e8f0';
             const badgeSymbol = isPlayer ? '🛡️' : isEnemy ? '🎯' : '⚪';
             const hpBarFill = isPlayer ? '#10b981' : hpPercent < 40 ? '#ef4444' : '#f59e0b';
 
@@ -582,7 +587,13 @@ export function HexGridSvg({
             ) : null;
 
             return (
-              <g key={unitId} transform={`translate(${x}, ${y})`}>
+              <g
+                key={unitId}
+                transform={`translate(${x}, ${y})`}
+                className={`unit-render-group ${isHighlighted ? 'unit-highlighted' : ''}`}
+                data-testid={`unit-group-${unitId}`}
+                onMouseEnter={() => onTileHover(pos)}
+              >
                 {tokenAssetSrc ? (
                   /* Pixel Token Presentation */
                   <>
@@ -595,6 +606,22 @@ export function HexGridSvg({
                       fill="rgba(0, 0, 0, 0.45)"
                       filter="url(#pedestal-ground-shadow)"
                     />
+
+                    {/* Hover Astral Halo */}
+                    {isHighlighted && (
+                      <ellipse
+                        cx="0"
+                        cy="2"
+                        rx="23.5"
+                        ry="9"
+                        fill={isPlayer ? 'rgba(56, 189, 248, 0.22)' : 'rgba(248, 113, 113, 0.22)'}
+                        stroke={isPlayer ? '#38bdf8' : '#f87171'}
+                        strokeWidth="2.2"
+                        filter={isPlayer ? 'url(#tile-glow-cyan)' : 'url(#tile-glow-amber)'}
+                        className="unit-hover-halo"
+                        data-testid={`unit-hover-halo-${unitId}`}
+                      />
+                    )}
 
                     {/* Active Unit Golden Halo */}
                     {isActiveActor && (
@@ -765,6 +792,19 @@ export function HexGridSvg({
                 ) : (
                   /* Classic Vector Token Fallback */
                   <>
+                    {/* Hover Astral Halo in Vector Fallback */}
+                    {isHighlighted && (
+                      <circle
+                        r="22.5"
+                        fill={isPlayer ? 'rgba(56, 189, 248, 0.22)' : 'rgba(248, 113, 113, 0.22)'}
+                        stroke={isPlayer ? '#38bdf8' : '#f87171'}
+                        strokeWidth="2.2"
+                        filter={isPlayer ? 'url(#tile-glow-cyan)' : 'url(#tile-glow-amber)'}
+                        className="unit-hover-halo"
+                        data-testid={`unit-hover-halo-${unitId}`}
+                      />
+                    )}
+
                     {/* Active Unit Halo in Vector Fallback */}
                     {isActiveActor && (
                       <circle

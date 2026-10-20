@@ -6,7 +6,11 @@
 
 ## 🔨 In Progress
 
-*(None currently in progress — select next item from Next Up)*
+### 4. Arena & Timeline UX
+- [x] **4.1**: Two-way hover highlight: hovering an initiative queue bubble highlights the hex unit on the field, and hovering a unit highlights their bubble on the timeline.
+- [x] **4.2**: Space out units on the CTB timeline ribbon and display numerical initiative ticks more prominently.
+- [ ] **4.3**: Clear enemy naming: replace generic placeholders with numbered titles (e.g., `Novice 1`, `Novice 2`) or procedural astral names.
+- [ ] **4.4**: In-combat character card XP gain tracker: display current battle XP gains inline (e.g., `Force: 7 XP (+2)`).
 
 ---
 
@@ -22,12 +26,6 @@
   - One idea would be that on turn 1, if units are tied that there should be some random fudge to untie them, and let that carry through. I'm unsure whether this should show in the UI somehow. For example, with 6 Novices (like in the first Trial), they all reach 100 at the same time. First tiebreaker is speed (I think) which makes sense, however they are still equal. There could be some random fudging or sorting here to try and switch up the tied units. Then, after the first round the units would stay in that order (barring other CTB manipulation).
 - [ ] **3.2**: Investigate Thief/Infiltrator action economy (Thieves cycling fast low-AP skills and getting 2x the actions and XP of heavier classes).
 - [ ] **3.3**: Fix pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp).
-
-### 4. Arena & Timeline UX
-- [ ] **4.1**: Two-way hover highlight: hovering an initiative queue bubble highlights the hex unit on the field, and hovering a unit highlights their bubble on the timeline.
-- [ ] **4.2**: Space out units on the CTB timeline ribbon and display numerical initiative ticks more prominently.
-- [ ] **4.3**: Clear enemy naming: replace generic placeholders with numbered titles (e.g., `Novice 1`, `Novice 2`) or procedural astral names.
-- [ ] **4.4**: In-combat character card XP gain tracker: display current battle XP gains inline (e.g., `Force: 7 XP (+2)`).
 
 ### 5. AI & Mechanics Edge Cases
 - [ ] **5.1**: Fix Infiltrator `Smoke Veil` edge case: clarify collision/blocking rules while in smoke, and verify AI decision engine doesn't stall when a stealthed unit is adjacent to obstacles/elevation.

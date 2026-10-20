@@ -25,4 +25,28 @@ describe('CombatArena', () => {
     expect(html).toContain('combat-arena-container');
     expect(html).toContain('testbed-top-bar');
   });
+
+  it('renders arena-ribbon-dock with streamlined InitiativeRibbon and UnitStatusCard', () => {
+    const encounter = createNoviceSandboxEncounter();
+
+    const html = renderToStaticMarkup(
+      <CombatArena
+        encounter={encounter}
+        onExit={vi.fn()}
+      />
+    );
+
+    // Initiative Ribbon Dock
+    expect(html).toContain('arena-ribbon-dock');
+    expect(html).toContain('initiative-ribbon-container');
+    expect(html).toContain('title="Initiative Queue"');
+    expect(html).toContain('⏳');
+    expect(html).not.toContain('TURN QUEUE');
+    expect(html).toContain('chip-active');
+    expect(html).toContain('NOW');
+
+    // Unit Status Card Overlay
+    expect(html).toContain('combat-status-overlay');
+    expect(html).toContain('unit-hud-card');
+  });
 });

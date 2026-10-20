@@ -587,6 +587,29 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
+.unit-render-group {
+  cursor: pointer;
+}
+
+.unit-render-group.unit-highlighted .token-name-label {
+  fill: #ffffff !important;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
+}
+
+.unit-hover-halo {
+  animation: unit-halo-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes unit-halo-pulse {
+  0%, 100% {
+    opacity: 0.95;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
 .preview-blocked-msg {
   font-size: 0.75rem;
   color: #fca5a5;

@@ -6,9 +6,15 @@ import './InitiativeRibbon.css';
 
 export interface InitiativeRibbonProps {
   readonly state: CombatState;
+  readonly highlightedUnitId?: string | null;
+  readonly onHoverUnit?: (unitId: string | null) => void;
 }
 
-export function InitiativeRibbon({ state }: InitiativeRibbonProps) {
+export function InitiativeRibbon({
+  state,
+  highlightedUnitId,
+  onHoverUnit
+}: InitiativeRibbonProps) {
   const projectedTurns = useMemo(() => {
     return predictTurnOrder(state, 8);
   }, [state]);
@@ -19,9 +25,8 @@ export function InitiativeRibbon({ state }: InitiativeRibbonProps) {
 
   return (
     <div className="initiative-ribbon-container">
-      <div className="initiative-label-box">
-        <span className="initiative-icon">⏳</span>
-        <span className="initiative-text">TURN QUEUE</span>
+      <div className="initiative-label-box" title="Initiative Queue">
+        <span className="initiative-icon" aria-label="Initiative Queue">⏳</span>
       </div>
 
       <div className="initiative-track">
@@ -30,14 +35,27 @@ export function InitiativeRibbon({ state }: InitiativeRibbonProps) {
           const unit = cu?.unit;
           const tokenSrc = unit ? resolveTokenAssetPath(unit) : null;
           const isPlayer = turn.faction === 'PLAYER';
+          const isHighlighted = highlightedUnitId != null && turn.unitId === highlightedUnitId;
+          const level = unit?.progression?.currentLevel ?? 0;
+          const classId = unit?.loadout?.activeClassId ?? 'novice';
+          const className = classId.charAt(0).toUpperCase() + classId.slice(1);
+          const maxHp = unit?.effectiveVitals.maxHp ?? cu?.currentHp ?? 0;
+          const tooltip = cu
+            ? `${turn.name} • Level ${level} ${className} • HP: ${cu.currentHp}/${maxHp}`
+            : turn.name;
 
           return (
             <div
               key={`${turn.unitId}-${index}`}
               className={`initiative-chip ${
                 turn.isCurrentActive ? 'chip-active' : ''
-              } ${isPlayer ? 'chip-player' : 'chip-enemy'}`}
-              title={`${turn.name} • ${turn.faction} (Initiative: ${Math.round(turn.projectedGauge)})`}
+              } ${isPlayer ? 'chip-player' : 'chip-enemy'} ${
+                isHighlighted ? 'chip-highlighted' : ''
+              }`}
+              onMouseEnter={() => onHoverUnit?.(turn.unitId)}
+              onMouseLeave={() => onHoverUnit?.(null)}
+              data-testid={`initiative-chip-${turn.unitId}-${index}`}
+              title={tooltip}
             >
               <div className="chip-avatar-wrap">
                 {tokenSrc ? (
@@ -56,7 +74,7 @@ export function InitiativeRibbon({ state }: InitiativeRibbonProps) {
                 )}
                 <span className="chip-turn-index">{index + 1}</span>
               </div>
-              <span className="chip-name">{turn.name.split(' ')[0]}</span>
+              <span className="chip-name">{turn.name}</span>
             </div>
           );
         })}

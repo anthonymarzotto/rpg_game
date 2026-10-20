@@ -249,6 +249,73 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
 
     expect(html).not.toContain('data-testid="facing-compass-ring"');
   });
+
+  it('renders astral hover halo and bright white name when highlightedUnitId matches', () => {
+    const { state } = setupTestState();
+
+    // Highlight player 'p1'
+    const playerHtml = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        highlightedUnitId="p1"
+        floatingTexts={[]}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(playerHtml).toContain('data-testid="unit-hover-halo-p1"');
+    expect(playerHtml).toContain('stroke="#38bdf8"');
+    expect(playerHtml).toContain('unit-highlighted');
+    expect(playerHtml).toContain('fill="#ffffff"');
+
+    // Highlight enemy 'e1'
+    const enemyHtml = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        highlightedUnitId="e1"
+        floatingTexts={[]}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(enemyHtml).toContain('data-testid="unit-hover-halo-e1"');
+    expect(enemyHtml).toContain('stroke="#f87171"');
+    expect(enemyHtml).toContain('unit-highlighted');
+  });
+
+  it('does not render astral hover halo when highlightedUnitId is null', () => {
+    const { state } = setupTestState();
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        highlightedUnitId={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).not.toContain('unit-hover-halo');
+    expect(html).not.toContain('unit-highlighted');
+  });
 });
 
 
