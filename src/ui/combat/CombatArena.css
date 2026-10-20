@@ -357,7 +357,7 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   padding: 0.85rem 1rem;
-  width: 250px;
+  width: 270px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
 }
 
@@ -500,6 +500,88 @@
   background: rgba(244, 63, 94, 0.22);
   color: #fda4af;
   border: 1px solid rgba(244, 63, 94, 0.5);
+}
+
+/* In-Battle Archetype XP Progression Tracker */
+.hud-xp-tracker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.hud-xp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+}
+
+.hud-xp-title {
+  color: #94a3b8;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.hud-xp-threshold {
+  color: #cbd5e1;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.hud-xp-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.25rem 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.hud-xp-stat {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.hud-xp-icon {
+  margin-right: 0.15rem;
+}
+
+.hud-xp-stat.attr-force {
+  color: #f87171;
+}
+
+.hud-xp-stat.attr-finesse {
+  color: #34d399;
+}
+
+.hud-xp-stat.attr-focus {
+  color: #a78bfa;
+}
+
+.hud-xp-gain {
+  color: #fbbf24;
+  margin-left: 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.hud-xp-stat.hud-xp-ready {
+  color: #f59e0b;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+
+.hud-xp-ready-glyph {
+  color: #fbbf24;
+  margin-left: 0.15rem;
+  display: inline-block;
+  animation: pulse-ready 1.8s infinite ease-in-out;
 }
 
 .hud-xp-tally {
