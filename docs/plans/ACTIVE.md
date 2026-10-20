@@ -6,11 +6,11 @@
 
 ## 🔨 In Progress
 
-### 4. Arena & Timeline UX
-- [x] **4.1**: Two-way hover highlight: hovering an initiative queue bubble highlights the hex unit on the field, and hovering a unit highlights their bubble on the timeline.
-- [x] **4.2**: Space out units on the CTB timeline ribbon and display numerical initiative ticks more prominently.
-- [x] **4.3**: Clear enemy naming: procedural astral adjective titles (e.g., `Ash Novice`, `Dusk Novice`), modular player recruit First + Title naming, and in-game hero renaming in Camp.
-- [x] **4.4**: In-combat character card XP gain tracker: display current battle XP gains inline (e.g., `Force: 7 XP (+2)`).
+### 3. Combat Tempo & Initiative Balance
+- [ ] **3.1**: Prevent player units from always acting first; introduce enemy initiative variance or roll modifiers to make combat opening rounds dynamic and tense.
+  - One idea would be that on turn 1, if units are tied that there should be some random fudge to untie them, and let that carry through. I'm unsure whether this should show in the UI somehow. For example, with 6 Novices (like in the first Trial), they all reach 100 at the same time. First tiebreaker is speed (I think) which makes sense, however they are still equal. There could be some random fudging or sorting here to try and switch up the tied units. Then, after the first round the units would stay in that order (barring other CTB manipulation).
+- [ ] **3.2**: Investigate Thief/Infiltrator action economy (Thieves cycling fast low-AP skills and getting 2x the actions and XP of heavier classes).
+- [ ] **3.3**: Fix pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp).
 
 ---
 
@@ -20,12 +20,6 @@
 - [ ] **1.1**: Allow clicking/selecting any unit (ally or enemy) to pin their info card during combat.
 - [ ] **1.2**: Hover tooltips on active condition badges (inspect exact `POISON`, `BURN`, `STEALTH`, `CHALLENGED` effects & durations).
 - [ ] **1.3**: View active skill loadout and remaining AP/CTB in the pinned card.
-
-### 3. Combat Tempo & Initiative Balance
-- [ ] **3.1**: Prevent player units from always acting first; introduce enemy initiative variance or roll modifiers to make combat opening rounds dynamic and tense.
-  - One idea would be that on turn 1, if units are tied that there should be some random fudge to untie them, and let that carry through. I'm unsure whether this should show in the UI somehow. For example, with 6 Novices (like in the first Trial), they all reach 100 at the same time. First tiebreaker is speed (I think) which makes sense, however they are still equal. There could be some random fudging or sorting here to try and switch up the tied units. Then, after the first round the units would stay in that order (barring other CTB manipulation).
-- [ ] **3.2**: Investigate Thief/Infiltrator action economy (Thieves cycling fast low-AP skills and getting 2x the actions and XP of heavier classes).
-- [ ] **3.3**: Fix pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp).
 
 ### 5. AI & Mechanics Edge Cases
 - [ ] **5.1**: Fix Infiltrator `Smoke Veil` edge case: clarify collision/blocking rules while in smoke, and verify AI decision engine doesn't stall when a stealthed unit is adjacent to obstacles/elevation.
