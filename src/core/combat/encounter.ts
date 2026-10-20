@@ -36,6 +36,7 @@ export interface EncounterDefinition {
   readonly units: readonly PlacedUnit[];
   readonly initialActiveUnitId?: string;
   readonly objectives?: readonly EncounterObjective[];
+  readonly background?: string;
 }
 
 /**

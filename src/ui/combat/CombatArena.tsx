@@ -17,6 +17,7 @@ import { CombatState } from '../../core/combat/types';
 import { SquadMemberVictorySummary } from './useCombatSimulation';
 import { TrialExportModal } from './TrialExportModal';
 import { TrialErrorBoundary } from './TrialErrorBoundary';
+import { resolveArenaBackground, computeBackgroundTransform } from './arenaBackground';
 import './CombatArena.css';
 
 export interface CombatArenaProps {
@@ -117,6 +118,17 @@ export function CombatArena({
     preloadCombatUnitTokens(combatUnits);
   }, [state.units]);
 
+  // Deterministically resolved procedural astral background and parallax transform
+  const bgConfig = useMemo(
+    () => resolveArenaBackground(activeEncounter.id, activeEncounter.background),
+    [activeEncounter.id, activeEncounter.background]
+  );
+
+  const backgroundTransform = useMemo(
+    () => computeBackgroundTransform(bgConfig, fieldZoom),
+    [bgConfig, fieldZoom]
+  );
+
   return (
     <TrialErrorBoundary
       state={state}
@@ -124,6 +136,19 @@ export function CombatArena({
       onReset={handleResetEncounter}
     >
       <div className="combat-arena-container">
+        {/* Procedural Astral Background Layers */}
+        <div
+          className="arena-backdrop-layer"
+          data-testid="arena-backdrop-layer"
+          style={{
+            backgroundImage: `url(${bgConfig.image})`,
+            transform: backgroundTransform,
+            filter: bgConfig.filter
+          }}
+          aria-hidden="true"
+        />
+        <div className="arena-backdrop-vignette" aria-hidden="true" />
+
         {/* Top Testbed Bar */}
         <div className="testbed-top-bar">
           <div className="testbed-title-block">

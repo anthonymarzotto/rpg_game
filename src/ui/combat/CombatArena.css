@@ -9,12 +9,44 @@
   flex: 1;
   min-height: 0;
   box-sizing: border-box;
-  background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, var(--surface-app-bg) 60%, #030712 100%);
+  background-color: #030712;
   color: #f8fafc;
   overflow: hidden;
   font-family: var(--font-ui);
   user-select: none;
   position: relative;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Procedural Astral Background Layers                                        */
+/* -------------------------------------------------------------------------- */
+.arena-backdrop-layer {
+  position: absolute;
+  inset: -6%;
+  width: 112%;
+  height: 112%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+  z-index: 0;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+.arena-backdrop-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 45%,
+    rgba(15, 23, 42, 0.38) 0%,
+    rgba(7, 11, 22, 0.70) 55%,
+    rgba(3, 7, 18, 0.92) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -28,6 +60,7 @@
   background: var(--surface-panel);
   backdrop-filter: var(--blur-panel);
   border-bottom: 1px solid var(--border-subtle);
+  position: relative;
   z-index: 20;
 }
 
@@ -258,6 +291,7 @@
   height: 100%;
   position: relative;
   overflow: hidden;
+  z-index: 2;
 }
 
 .arena-canvas-container {
@@ -663,6 +697,8 @@
 .arena-ribbon-dock {
   margin-top: 6px;
   margin-bottom: 4px;
+  position: relative;
+  z-index: 15;
 }
 
 .token-name-label {

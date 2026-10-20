@@ -49,4 +49,20 @@ describe('CombatArena', () => {
     expect(html).toContain('combat-status-overlay');
     expect(html).toContain('unit-hud-card');
   });
+
+  it('renders procedural astral backdrop layer and vignette', () => {
+    const encounter = createNoviceSandboxEncounter();
+
+    const html = renderToStaticMarkup(
+      <CombatArena
+        encounter={encounter}
+        onExit={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('arena-backdrop-layer');
+    expect(html).toContain('arena-backdrop-vignette');
+    expect(html).toContain('/assets/backgrounds/background');
+    expect(html).toContain('.webp');
+  });
 });
