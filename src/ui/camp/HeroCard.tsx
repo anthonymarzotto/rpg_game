@@ -60,19 +60,6 @@ export function HeroCard({
         </div>
       </div>
 
-      {/* Attributes: Force / Finesse / Focus */}
-      <div className="hero-card-attributes font-mono">
-        <span className="attr-item force" title="Force">
-          ⚔️ FRC: {unit.baseAttributes.force}
-        </span>
-        <span className="attr-item finesse" title="Finesse">
-          🗡️ FIN: {unit.baseAttributes.finesse}
-        </span>
-        <span className="attr-item focus" title="Focus">
-          🔮 FOC: {unit.baseAttributes.focus}
-        </span>
-      </div>
-
       {/* Level Ready Alert */}
       {levelStatus.isReady && (
         <div className="hero-level-ready-banner font-ui" data-testid="level-ready-banner">
@@ -80,10 +67,12 @@ export function HeroCard({
         </div>
       )}
 
-      {/* Archetype XP Progress Bars */}
+      {/* Discipline Attributes & XP Progress Bars */}
       <div className="hero-card-xp-section font-mono">
         <div className="xp-bar-row">
-          <span className="xp-bar-label fighter">Fighter</span>
+          <span className="xp-bar-label fighter" title="Force Rank">
+            <span className="xp-bar-icon">⚔️</span> Force {unit.baseAttributes.force}
+          </span>
           <div className="xp-bar-track">
             <div
               className="xp-bar-fill fighter"
@@ -94,7 +83,9 @@ export function HeroCard({
         </div>
 
         <div className="xp-bar-row">
-          <span className="xp-bar-label rogue">Rogue</span>
+          <span className="xp-bar-label rogue" title="Finesse Rank">
+            <span className="xp-bar-icon">🗡️</span> Finesse {unit.baseAttributes.finesse}
+          </span>
           <div className="xp-bar-track">
             <div
               className="xp-bar-fill rogue"
@@ -105,7 +96,9 @@ export function HeroCard({
         </div>
 
         <div className="xp-bar-row">
-          <span className="xp-bar-label mage">Mage</span>
+          <span className="xp-bar-label mage" title="Focus Rank">
+            <span className="xp-bar-icon">🔮</span> Focus {unit.baseAttributes.focus}
+          </span>
           <div className="xp-bar-track">
             <div
               className="xp-bar-fill mage"

@@ -20,7 +20,7 @@ export const spellSculptHandler: EffectHandler = {
 
     return {
       events: [],
-      logDetail: ` ✨ [Spell Sculpt: +${bonusRange} Range & +1 AoE Radius on next Mage spell]`
+      logDetail: ` ✨ [Spell Sculpt: +${bonusRange} Range & +1 AoE Radius on next Focus spell]`
     };
   }
 };

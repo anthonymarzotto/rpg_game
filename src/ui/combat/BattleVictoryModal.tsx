@@ -73,20 +73,20 @@ export function BattleVictoryModal({
           </div>
         )}
 
-        {/* Archetype XP Breakdown */}
+        {/* Discipline XP Breakdown */}
         <div>
-          <div className="victory-section-title">Archetype XP Earned ({activeUnit.name})</div>
+          <div className="victory-section-title">Discipline XP Earned ({activeUnit.name})</div>
           <div className="xp-breakdown-row">
             <div className="xp-stat-box fighter">
-              <div className="xp-stat-label">⚔️ Fighter</div>
+              <div className="xp-stat-label">⚔️ Force</div>
               <div className="xp-stat-value">+{earnedXp.fighter} XP</div>
             </div>
             <div className="xp-stat-box rogue">
-              <div className="xp-stat-label">🗡️ Rogue</div>
+              <div className="xp-stat-label">🗡️ Finesse</div>
               <div className="xp-stat-value">+{earnedXp.rogue} XP</div>
             </div>
             <div className="xp-stat-box mage">
-              <div className="xp-stat-label">🔮 Mage</div>
+              <div className="xp-stat-label">🔮 Focus</div>
               <div className="xp-stat-value">+{earnedXp.mage} XP</div>
             </div>
           </div>

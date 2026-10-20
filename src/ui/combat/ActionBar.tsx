@@ -2,6 +2,7 @@ import { Ability } from '../../core/types/ability';
 import { CombatUnit } from '../../core/combat/types';
 import { ActionMode } from './useCombatSimulation';
 import { getEffectiveAbility } from '../../core/combat/modifiers';
+import { formatDisciplineName } from './combatXpUtils';
 
 export interface ActionBarProps {
   readonly activeCu: CombatUnit | undefined;
@@ -97,7 +98,7 @@ export function ActionBar({
             </span>
             <span className="tooltip-tag">
               {isWildcard ? 'Resonant • ' : ''}
-              {effectiveAbility.archetypeTag ?? 'Universal'}
+              {formatDisciplineName(effectiveAbility.archetypeTag)}
             </span>
           </div>
           <div className="tooltip-desc">{effectiveAbility.description}</div>

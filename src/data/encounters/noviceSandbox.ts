@@ -137,10 +137,10 @@ export function createNoviceSandboxEncounter(
     starterAbilityIds: ['strike', 'quick_thrust', 'minor_ward']
   };
 
-  // 4. Enemy Fighter A (adjacent frontline at 1, 0)
+  // 4. Enemy Brute A (adjacent frontline at 1, 0)
   const enemyA = createSandboxEnemy(
     'dummy-a',
-    'Bandit Fighter A',
+    'Bandit Brute A',
     'warrior',
     ['quick_thrust'],
     ['strike', 'quick_thrust'],

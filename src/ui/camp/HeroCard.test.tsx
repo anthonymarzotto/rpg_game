@@ -49,7 +49,9 @@ describe('HeroCard Component', () => {
     expect(html).toContain('Roland');
     expect(html).toContain('Lv 0 Novice');
     expect(html).toContain('20 / 20');
-    expect(html).toContain('FRC: 1');
+    expect(html).toContain('Force 1');
+    expect(html).toContain('Finesse 0');
+    expect(html).toContain('Focus 0');
     expect(html).toContain('Inspect');
     expect(html).not.toContain('✦ ASCENSION READY!');
   });

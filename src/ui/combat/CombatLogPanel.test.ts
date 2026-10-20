@@ -36,12 +36,12 @@ describe('parseCombatLogMessage', () => {
       actorUnitId: 'player-warrior',
       actionId: 'power_strike',
       message:
-        'Alden (Warrior) used Power Strike on Bandit Fighter A: [d20: 16+1 vs DC 11 -> HIT] [Damage: 1d6(4)+0 - 0 Armor -> 4] (HP: 16/20)',
+        'Alden (Warrior) used Power Strike on Bandit Brute A: [d20: 16+1 vs DC 11 -> HIT] [Damage: 1d6(4)+0 - 0 Armor -> 4] (HP: 16/20)',
       metadata: {
         type: 'ATTACK',
         actor: 'Alden (Warrior)',
         ability: 'Power Strike',
-        target: 'Bandit Fighter A',
+        target: 'Bandit Brute A',
         d20: '16+1',
         defenseTarget: 11,
         hitOutcome: 'HIT',
@@ -58,7 +58,7 @@ describe('parseCombatLogMessage', () => {
       expect(parsed.actor).toBe('Alden (Warrior)');
       expect(parsed.isPlayer).toBe(true);
       expect(parsed.ability).toBe('Power Strike');
-      expect(parsed.target).toBe('Bandit Fighter A');
+      expect(parsed.target).toBe('Bandit Brute A');
       expect(parsed.d20).toBe('16+1');
       expect(parsed.defenseTarget).toBe(11);
       expect(parsed.hitOutcome).toBe('HIT');
@@ -106,10 +106,10 @@ describe('parseCombatLogMessage', () => {
       actorUnitId: 'dummy-a',
       actionId: 'strike',
       message:
-        'Bandit Fighter A used Strike on Alden (Warrior): [d20: 4+1 vs DC 13 -> MISS] [Damage: 0 (Miss)] (HP: 20/20)',
+        'Bandit Brute A used Strike on Alden (Warrior): [d20: 4+1 vs DC 13 -> MISS] [Damage: 0 (Miss)] (HP: 20/20)',
       metadata: {
         type: 'ATTACK',
-        actor: 'Bandit Fighter A',
+        actor: 'Bandit Brute A',
         ability: 'Strike',
         target: 'Alden (Warrior)',
         d20: '4+1',
@@ -138,12 +138,12 @@ describe('parseCombatLogMessage', () => {
       actorUnitId: 'player-warrior',
       actionId: 'shield_bash',
       message:
-        'Alden (Warrior) used Shield Bash on Bandit Fighter A: [d20: 15+1 vs DC 11 -> HIT] [Damage: 1d6(5)+1 - 1 Armor -> 5] (HP: 15/20) 💥 [Knockback Collision: Slammed into Map Boundary! Took +1 collision damage.]',
+        'Alden (Warrior) used Shield Bash on Bandit Brute A: [d20: 15+1 vs DC 11 -> HIT] [Damage: 1d6(5)+1 - 1 Armor -> 5] (HP: 15/20) 💥 [Knockback Collision: Slammed into Map Boundary! Took +1 collision damage.]',
       metadata: {
         type: 'ATTACK',
         actor: 'Alden (Warrior)',
         ability: 'Shield Bash',
-        target: 'Bandit Fighter A',
+        target: 'Bandit Brute A',
         d20: '15+1',
         defenseTarget: 11,
         hitOutcome: 'HIT',

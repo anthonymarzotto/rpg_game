@@ -17,7 +17,7 @@ The system SHALL present a slide-over drawer overlay when the player clicks to i
 - **THEN** the drawer dismisses, returning focus to the Camp Hub with all hero adjustments preserved
 
 ### Requirement: In-Camp Level Advancement
-The system SHALL allow players to spend accumulated archetype XP within the progression drawer to level up the inspected unit. When leveling into a canonical class coordinate, the class unlocks in the constellation. When leveling into an off-node coordinate, the unit unlocks a Starlight Waypoint in their constellation path and triggers the Off-Node Choice Modal (Wayfarer Attunement & Milestone Specialization). Advancement buttons in the drawer SHALL preview whether the upcoming level leads to a new Class unlock or an Off-Node Wayfarer Milestone.
+The system SHALL allow players to spend accumulated archetype XP within the progression drawer to level up the inspected unit. When leveling into a canonical class coordinate, the class unlocks in the constellation. When leveling into an off-node coordinate, the unit unlocks a Starlight Waypoint in their constellation path and triggers the Off-Node Choice Modal (Wayfarer Attunement & Milestone Specialization). Advancement buttons in the drawer SHALL preview whether the upcoming level leads to a new Class unlock or an Off-Node Wayfarer Milestone, and SHALL format discipline spend actions using canonical Force, Finesse, and Focus terminology.
 
 #### Scenario: Advancing level in Camp
 - **WHEN** the player clicks an available archetype advancement option for a hero whose accumulated XP meets the requirement and matches a class node in the catalog
@@ -29,7 +29,7 @@ The system SHALL allow players to spend accumulated archetype XP within the prog
 
 #### Scenario: Previewing off-node rewards on spend buttons
 - **WHEN** inspecting a hero in the progression drawer who has enough XP to advance into an off-node coordinate
-- **THEN** the advancement button displays the impending off-node milestone preview (e.g. `🗡️ Ascend: Rogue (+1 Finesse) • ✦ Wayfarer Milestone`)
+- **THEN** the advancement button displays the impending off-node milestone preview (e.g. `🗡️ Ascend: Finesse (+1 Finesse) • ✦ Wayfarer Milestone`)
 
 ### Requirement: In-Camp Wildcard Loadout Customization
 The system SHALL allow players to select and equip unlocked wildcard abilities and passive mastery traits for the inspected hero within the progression drawer.
@@ -55,3 +55,10 @@ The system SHALL render a persistent Inspector panel at the bottom of the Conste
 #### Scenario: Switching selection between class node and waypoint
 - **WHEN** a player clicks a waypoint while a class node is currently pinned, or clicks a class node while a waypoint is pinned
 - **THEN** the star chart highlights the newly selected node with an active halo and the bottom Inspector panel immediately swaps to the corresponding inspection mode
+
+### Requirement: Node Scanner Discipline Indicators
+The system SHALL render requirement and harmonization summaries in the Constellation Node Scanner using standard three-letter discipline abbreviations (`FRC`, `FIN`, `FOC`) to prevent single-letter ambiguity among the Force, Finesse, and Focus disciplines.
+
+#### Scenario: Inspecting node requirements in scanner
+- **WHEN** hovering over a constellation node or starlight waypoint in the star chart
+- **THEN** the scanner renders requirements formatted with three-letter discipline tags (e.g. `2 FRC / 1 FIN / 0 FOC`)

@@ -5,7 +5,7 @@ import { ClassPackage } from '../../core/types/classPackage';
 export const SPELL_SCULPT: Ability = {
   id: 'spell_sculpt',
   name: 'Spell Sculpt',
-  description: 'Primes metamagic stance: next Mage spell executed this turn gains +1 Range and +1 AoE Radius.',
+  description: 'Primes metamagic stance: next Focus spell executed this turn gains +1 Range and +1 AoE Radius.',
   archetypeTag: 'MAGE',
   apCost: 1,
   range: 0,
@@ -25,7 +25,7 @@ export const SPELL_SCULPT: Ability = {
       requiresFollowUp: 'SPELL',
       minTotalAp: 2,
       bonusScore: 35.0,
-      reason: 'Prime Spell Sculpt before casting Mage spell'
+      reason: 'Prime Spell Sculpt before casting Focus spell'
     }
   }
 };

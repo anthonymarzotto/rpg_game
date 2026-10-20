@@ -52,6 +52,10 @@ describe('OffNodeChoiceModal', () => {
     expect(html).toContain("Wayfarer&#x27;s Bastion");
     expect(html).toContain("Wayfarer&#x27;s Stride");
     expect(html).toContain("Wayfarer&#x27;s Ward");
+    expect(html).toContain('FORCE');
+    expect(html).toContain('FINESSE');
+    expect(html).toContain('FOCUS');
+    expect(html).not.toContain('FIGHTER');
     // Not a tri-centroid, so Zenith should not be present
     expect(html).not.toContain("Wayfarer&#x27;s Zenith");
   });

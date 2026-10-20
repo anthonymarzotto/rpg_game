@@ -70,6 +70,8 @@ describe('ActionBar Augment Indicators & Attributions', () => {
     // Standard button checks
     expect(html).toContain('Ignite');
     expect(html).toContain('2 AP');
+    expect(html).toContain('tooltip-tag">Focus</span>');
+    expect(html).not.toContain('tooltip-tag">MAGE</span>');
     expect(html).not.toContain('cost-discounted');
     expect(html).not.toContain('augment-indicator');
     expect(html).not.toContain('augmented');

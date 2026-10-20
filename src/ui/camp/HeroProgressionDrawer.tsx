@@ -28,6 +28,7 @@ import { resolveUnitLoadout } from '../../core/units/loadout';
 import { CLASS_REGISTRY } from '../../data/classes';
 import { getClassPackage, getAbilityById, getPassiveById, MOMENTUM } from '../../data/packages';
 import { OffNodeChoiceModal } from './OffNodeChoiceModal';
+import { formatDisciplineName, formatDisciplineBadge } from '../combat/combatXpUtils';
 import './HeroProgressionDrawer.css';
 
 export interface HeroProgressionDrawerProps {
@@ -722,7 +723,7 @@ export function HeroProgressionDrawer({
                         data-testid="spend-fighter-btn"
                       >
                         <div className="btn-spend-main">
-                          <span>⚔️ Ascend: Fighter (+1 Force)</span>
+                          <span>⚔️ Ascend: Force</span>
                           <span className="btn-spend-preview font-mono">{preview.label}</span>
                         </div>
                         <span className="font-mono">Current: {xp.fighter} XP</span>
@@ -739,7 +740,7 @@ export function HeroProgressionDrawer({
                         data-testid="spend-rogue-btn"
                       >
                         <div className="btn-spend-main">
-                          <span>🗡️ Ascend: Rogue (+1 Finesse)</span>
+                          <span>🗡️ Ascend: Finesse</span>
                           <span className="btn-spend-preview font-mono">{preview.label}</span>
                         </div>
                         <span className="font-mono">Current: {xp.rogue} XP</span>
@@ -756,7 +757,7 @@ export function HeroProgressionDrawer({
                         data-testid="spend-mage-btn"
                       >
                         <div className="btn-spend-main">
-                          <span>🔮 Ascend: Mage (+1 Focus)</span>
+                          <span>🔮 Ascend: Focus</span>
                           <span className="btn-spend-preview font-mono">{preview.label}</span>
                         </div>
                         <span className="font-mono">Current: {xp.mage} XP</span>
@@ -812,9 +813,9 @@ export function HeroProgressionDrawer({
                         </span>
                       </div>
                       <div className="scanner-reqs font-mono">
-                        Harmonization: <span className="req-fighter font-mono">{hoveredWaypointInfo.points.fighter}F</span> /{' '}
-                        <span className="req-rogue font-mono">{hoveredWaypointInfo.points.rogue}R</span> /{' '}
-                        <span className="req-mage font-mono">{hoveredWaypointInfo.points.mage}M</span>
+                        Harmonization: <span className="req-fighter font-mono">{hoveredWaypointInfo.points.fighter} FRC</span> /{' '}
+                        <span className="req-rogue font-mono">{hoveredWaypointInfo.points.rogue} FIN</span> /{' '}
+                        <span className="req-mage font-mono">{hoveredWaypointInfo.points.mage} FOC</span>
                       </div>
                       <div className="scanner-status font-ui">
                         {hoveredWaypointInfo.isUnlocked ? (
@@ -833,9 +834,9 @@ export function HeroProgressionDrawer({
                         <span className="scanner-tier font-mono">Tier {hoveredClassDef.totalPoints}</span>
                       </div>
                       <div className="scanner-reqs font-mono">
-                        Req: <span className="req-fighter font-mono">{hoveredClassDef.requirements.fighter}F</span> /{' '}
-                        <span className="req-rogue font-mono">{hoveredClassDef.requirements.rogue}R</span> /{' '}
-                        <span className="req-mage font-mono">{hoveredClassDef.requirements.mage}M</span>
+                        Req: <span className="req-fighter font-mono">{hoveredClassDef.requirements.fighter} FRC</span> /{' '}
+                        <span className="req-rogue font-mono">{hoveredClassDef.requirements.rogue} FIN</span> /{' '}
+                        <span className="req-mage font-mono">{hoveredClassDef.requirements.mage} FOC</span>
                       </div>
                       <div className="scanner-status font-ui">
                         {isHoveredUnlocked ? (
@@ -1205,9 +1206,7 @@ export function HeroProgressionDrawer({
                   {eligibleWildcardAbilities
                     .filter((a) => a.id !== currentWildcard2)
                     .map((a) => {
-                      const archLabel = a.archetypeTag
-                        ? a.archetypeTag.charAt(0).toUpperCase() + a.archetypeTag.slice(1).toLowerCase()
-                        : 'Universal';
+                      const archLabel = formatDisciplineName(a.archetypeTag);
                       return (
                         <option key={a.id} value={a.id}>
                           {a.name} ({archLabel} · {a.apCost} AP)
@@ -1222,7 +1221,7 @@ export function HeroProgressionDrawer({
                     <div className="drawer-tactical-slot-card">
                       <div className="slot-card-header font-ui">
                         <span className={`slot-tag ${effectiveAbility.archetypeTag?.toLowerCase() ?? 'fighter'} font-mono`}>
-                          {effectiveAbility.archetypeTag ?? 'RESONANT'}
+                          {formatDisciplineBadge(effectiveAbility.archetypeTag)}
                         </span>
                         <span className="slot-name font-display">{effectiveAbility.name}</span>
                         <span className="slot-ap font-mono">{effectiveAbility.apCost} AP</span>
@@ -1256,9 +1255,7 @@ export function HeroProgressionDrawer({
                   {eligibleWildcardAbilities
                     .filter((a) => a.id !== currentWildcard1)
                     .map((a) => {
-                      const archLabel = a.archetypeTag
-                        ? a.archetypeTag.charAt(0).toUpperCase() + a.archetypeTag.slice(1).toLowerCase()
-                        : 'Universal';
+                      const archLabel = formatDisciplineName(a.archetypeTag);
                       return (
                         <option key={a.id} value={a.id}>
                           {a.name} ({archLabel} · {a.apCost} AP)
@@ -1273,7 +1270,7 @@ export function HeroProgressionDrawer({
                     <div className="drawer-tactical-slot-card">
                       <div className="slot-card-header font-ui">
                         <span className={`slot-tag ${effectiveAbility.archetypeTag?.toLowerCase() ?? 'fighter'} font-mono`}>
-                          {effectiveAbility.archetypeTag ?? 'RESONANT'}
+                          {formatDisciplineBadge(effectiveAbility.archetypeTag)}
                         </span>
                         <span className="slot-name font-display">{effectiveAbility.name}</span>
                         <span className="slot-ap font-mono">{effectiveAbility.apCost} AP</span>

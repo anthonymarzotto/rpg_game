@@ -1,6 +1,40 @@
 import { CombatUnit } from '../../core/combat/types';
 import { LEVEL_XP_THRESHOLDS } from '../../core/config/balance';
 import { MAX_LEVEL } from '../../core/progression/pyramid';
+import { Archetype } from '../../core/types/class';
+
+/**
+ * Maps an internal archetype identifier ('FIGHTER' | 'ROGUE' | 'MAGE') to its canonical
+ * user-facing Discipline name ('Force' | 'Finesse' | 'Focus').
+ */
+export function formatDisciplineName(arch?: Archetype | string | null): string {
+  if (!arch) return 'Universal';
+  const upper = arch.toUpperCase();
+  if (upper === 'FIGHTER') return 'Force';
+  if (upper === 'ROGUE') return 'Finesse';
+  if (upper === 'MAGE') return 'Focus';
+  return arch;
+}
+
+/**
+ * Maps an internal archetype identifier to its canonical three-letter shorthand ('FRC' | 'FIN' | 'FOC').
+ */
+export function formatDisciplineShort(arch?: Archetype | string | null): string {
+  if (!arch) return 'UNI';
+  const upper = arch.toUpperCase();
+  if (upper === 'FIGHTER') return 'FRC';
+  if (upper === 'ROGUE') return 'FIN';
+  if (upper === 'MAGE') return 'FOC';
+  return arch;
+}
+
+/**
+ * Maps an internal archetype identifier to its canonical uppercase badge ('FORCE' | 'FINESSE' | 'FOCUS').
+ */
+export function formatDisciplineBadge(arch?: Archetype | string | null): string {
+  return formatDisciplineName(arch).toUpperCase();
+}
+
 
 export interface AttributeXpProgress {
   readonly attribute: 'Force' | 'Finesse' | 'Focus';

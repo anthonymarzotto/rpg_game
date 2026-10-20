@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { getCombatUnitXpSummary } from './combatXpUtils';
+import {
+  getCombatUnitXpSummary,
+  formatDisciplineName,
+  formatDisciplineShort,
+  formatDisciplineBadge
+} from './combatXpUtils';
 import { CombatUnit } from '../../core/combat/types';
 import { createRecruit } from '../../core/units/unitFactory';
 
@@ -189,4 +194,59 @@ describe('combatXpUtils', () => {
       expect(attr.isReady).toBe(false);
     }
   });
+
+  describe('formatDisciplineName', () => {
+    it('maps FIGHTER and fighter to Force', () => {
+      expect(formatDisciplineName('FIGHTER')).toBe('Force');
+      expect(formatDisciplineName('fighter')).toBe('Force');
+    });
+
+    it('maps ROGUE and rogue to Finesse', () => {
+      expect(formatDisciplineName('ROGUE')).toBe('Finesse');
+      expect(formatDisciplineName('rogue')).toBe('Finesse');
+    });
+
+    it('maps MAGE and mage to Focus', () => {
+      expect(formatDisciplineName('MAGE')).toBe('Focus');
+      expect(formatDisciplineName('mage')).toBe('Focus');
+    });
+
+    it('handles undefined or null by returning Universal', () => {
+      expect(formatDisciplineName(undefined)).toBe('Universal');
+      expect(formatDisciplineName(null)).toBe('Universal');
+    });
+
+    it('passes through unrecognized custom labels', () => {
+      expect(formatDisciplineName('TRI_HYBRID')).toBe('TRI_HYBRID');
+    });
+  });
+
+  describe('formatDisciplineShort', () => {
+    it('maps archetype tags to standard 3-letter abbreviations', () => {
+      expect(formatDisciplineShort('FIGHTER')).toBe('FRC');
+      expect(formatDisciplineShort('fighter')).toBe('FRC');
+      expect(formatDisciplineShort('ROGUE')).toBe('FIN');
+      expect(formatDisciplineShort('rogue')).toBe('FIN');
+      expect(formatDisciplineShort('MAGE')).toBe('FOC');
+      expect(formatDisciplineShort('mage')).toBe('FOC');
+    });
+
+    it('handles undefined or custom tags', () => {
+      expect(formatDisciplineShort(undefined)).toBe('UNI');
+      expect(formatDisciplineShort('OTHER')).toBe('OTHER');
+    });
+  });
+
+  describe('formatDisciplineBadge', () => {
+    it('returns uppercase canonical discipline badges', () => {
+      expect(formatDisciplineBadge('FIGHTER')).toBe('FORCE');
+      expect(formatDisciplineBadge('fighter')).toBe('FORCE');
+      expect(formatDisciplineBadge('ROGUE')).toBe('FINESSE');
+      expect(formatDisciplineBadge('rogue')).toBe('FINESSE');
+      expect(formatDisciplineBadge('MAGE')).toBe('FOCUS');
+      expect(formatDisciplineBadge('mage')).toBe('FOCUS');
+      expect(formatDisciplineBadge(undefined)).toBe('UNIVERSAL');
+    });
+  });
 });
+

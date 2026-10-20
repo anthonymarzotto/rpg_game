@@ -7,6 +7,7 @@ import {
   ALL_ASTRAL_SHARDS,
   getEligibleDomainUnlocks
 } from '../../core/progression/harmonization';
+import { formatDisciplineName, formatDisciplineBadge } from '../combat/combatXpUtils';
 import './OffNodeChoiceModal.css';
 
 export interface OffNodeChoiceModalProps {
@@ -126,7 +127,7 @@ export const OffNodeChoiceModal: React.FC<OffNodeChoiceModalProps> = ({
                     >
                       <div className="offnode-card-top">
                         <span className="offnode-card-icon">{attunement.icon}</span>
-                        <span className="offnode-card-tag font-mono">{attunement.archetype}</span>
+                        <span className="offnode-card-tag font-mono">{formatDisciplineBadge(attunement.archetype)}</span>
                       </div>
                       <h4 className="offnode-card-name font-display">{attunement.name}</h4>
                       <p className="offnode-card-deltas font-mono">{attunement.description}</p>
@@ -169,7 +170,7 @@ export const OffNodeChoiceModal: React.FC<OffNodeChoiceModalProps> = ({
                 <div className="offnode-ability-list">
                   {eligibleDomainAbilities.length === 0 ? (
                     <div className="offnode-empty-msg font-ui">
-                      No unlearned {archetype} domain abilities available at Tier ≤ {targetLevel}.
+                      No unlearned {formatDisciplineName(archetype)} domain abilities available at Tier ≤ {targetLevel}.
                       Please select an Astral Augment Shard instead.
                     </div>
                   ) : (

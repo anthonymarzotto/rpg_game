@@ -143,7 +143,7 @@ describe('HeroProgressionDrawer Component', () => {
       />
     );
 
-    expect(html).toContain('Ascend: Rogue (+1 Finesse)');
+    expect(html).toContain('Ascend: Finesse');
     expect(html).toContain('✦ Wayfarer Milestone');
   });
 
@@ -168,10 +168,10 @@ describe('HeroProgressionDrawer Component', () => {
     );
 
     expect(html).toContain('Ascension Ready: Channel 1 Astral Discipline Point');
-    expect(html).toContain('Ascend: Fighter (+1 Force)');
+    expect(html).toContain('Ascend: Force');
     expect(html).toContain('Current: 5 XP');
-    expect(html).not.toContain('Ascend: Rogue');
-    expect(html).not.toContain('Ascend: Mage');
+    expect(html).not.toContain('Ascend: Finesse');
+    expect(html).not.toContain('Ascend: Focus');
   });
 
   it('hides Level Ready allocation CTA when hero does not have enough XP', () => {
@@ -348,6 +348,9 @@ describe('HeroProgressionDrawer Component', () => {
     expect(html).toContain('◇ Waypoint (1,0,1)');
     expect(html).toContain('Tier 2');
     expect(html).toContain('✦ Next Waypoint • +1 Force');
+    expect(html).toContain('1 FRC');
+    expect(html).toContain('1 FOC');
+    expect(html).not.toContain('1F /');
     // Ensure verbose instructions, old bullet text, and option lists are absent from floating HUD
     expect(html).not.toContain('ELIGIBLE NEXT LEVEL');
     expect(html).not.toContain('scanner-instruction');
