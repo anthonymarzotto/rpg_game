@@ -254,3 +254,62 @@ export function getHexLine(from: HexCoord, to: HexCoord): HexCoord[] {
 
   return results;
 }
+
+export interface HexRayStep {
+  readonly t: number;
+  readonly hexes: readonly HexCoord[];
+  readonly isEdge: boolean;
+}
+
+/**
+ * Computes all intermediate ray steps between from and to (inclusive).
+ * For each step t = i / n, uses dual anti-symmetric cube rounding:
+ * If the interpolated point lies along a shared edge between two hexes,
+ * both candidate flanking hexes are returned.
+ * If the point is inside a single hex, a single candidate hex is returned.
+ */
+export function getHexRaySteps(from: HexCoord, to: HexCoord): HexRayStep[] {
+  const n = hexDistance(from, to);
+  if (n === 0) {
+    return [{ t: 0, hexes: [from], isEdge: false }];
+  }
+
+  const a = axialToCube(from);
+  const b = axialToCube(to);
+
+  // Dual anti-symmetric perturbations
+  // Vector (1e-6, 2e-6, -3e-6) guarantees non-zero dot products with all 6 hex boundary planes
+  const eps1 = { x: 1e-6, y: 2e-6, z: -3e-6 };
+  const eps2 = { x: -1e-6, y: -2e-6, z: 3e-6 };
+
+  const steps: HexRayStep[] = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    if (i === 0) {
+      steps.push({ t: 0, hexes: [from], isEdge: false });
+      continue;
+    }
+    if (i === n) {
+      steps.push({ t: 1, hexes: [to], isEdge: false });
+      continue;
+    }
+
+    const px = a.x + (b.x - a.x) * t;
+    const py = a.y + (b.y - a.y) * t;
+    const pz = a.z + (b.z - a.z) * t;
+
+    const c1 = cubeRound({ x: px + eps1.x, y: py + eps1.y, z: pz + eps1.z });
+    const c2 = cubeRound({ x: px + eps2.x, y: py + eps2.y, z: pz + eps2.z });
+
+    const h1 = cubeToAxial(c1);
+    const h2 = cubeToAxial(c2);
+
+    if (h1.q === h2.q && h1.r === h2.r) {
+      steps.push({ t, hexes: [h1], isEdge: false });
+    } else {
+      steps.push({ t, hexes: [h1, h2], isEdge: true });
+    }
+  }
+
+  return steps;
+}

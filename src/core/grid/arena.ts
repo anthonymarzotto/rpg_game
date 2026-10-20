@@ -3,7 +3,7 @@ import {
   toHexKey,
   hexDistance,
   getHexNeighbors,
-  getHexLine,
+  getHexRaySteps,
   hexAdd,
   getDirectionBetween,
   POINTY_HEX_DIRECTIONS
@@ -329,77 +329,118 @@ export class Arena {
       };
     }
 
-    const line = getHexLine(from, to);
-    if (line.length <= 2) {
+    const dist = hexDistance(from, to);
+    if (dist <= 1) {
       // Adjacent hexes always have direct Line-of-Sight
       return null;
     }
 
-    const n = line.length - 1;
+    const steps = getHexRaySteps(from, to);
     const hFrom = fromTile.elevation;
     const hTo = toTile.elevation;
-    const EPSILON = 1e-5;
 
-    // Check intermediate hexes (excluding source and target)
-    for (let i = 1; i < n; i++) {
-      const stepCoord = line[i];
-      const stepTile = this.getTile(stepCoord);
+    // Check intermediate steps (excluding source step 0 and target step dist)
+    for (let i = 1; i < steps.length - 1; i++) {
+      const step = steps[i];
+      const hRay = hFrom + step.t * (hTo - hFrom);
 
-      const t = i / n;
-      const hRay = hFrom + t * (hTo - hFrom);
-
-      // Void / missing tile blocks LoS
-      if (!stepTile) {
-        return {
-          coord: stepCoord,
-          type: 'VOID',
-          elevation: 0,
-          rayElevation: hRay
-        };
-      }
-
-      // 1. Obstacle blocks if at or above ray elevation
-      if (!stepTile.isWalkable) {
-        if (stepTile.elevation >= hRay - EPSILON) {
-          return {
-            coord: stepCoord,
-            type: 'OBSTACLE',
-            elevation: stepTile.elevation,
-            rayElevation: hRay,
-            label: stepTile.label
-          };
+      if (step.hexes.length === 1) {
+        const obs = this.evaluateTileLoSObstruction(step.hexes[0], hRay, options);
+        if (obs) {
+          return obs;
         }
-      }
+      } else {
+        // Shared-edge step with dual flanking hexes:
+        // Line-of-Sight is only blocked if BOTH flanking hexes are obstructed!
+        const obsA = this.evaluateTileLoSObstruction(step.hexes[0], hRay, options);
+        const obsB = this.evaluateTileLoSObstruction(step.hexes[1], hRay, options);
 
-      // 2. Terrain strictly higher than ray blocks (hills)
-      if (stepTile.elevation > hRay + EPSILON) {
-        return {
-          coord: stepCoord,
-          type: 'HILL',
-          elevation: stepTile.elevation,
-          rayElevation: hRay,
-          label: stepTile.label
-        };
-      }
-
-      // 3. Intervening screening unit blocks if at or above ray elevation
-      if (stepTile.occupiedByUnitId) {
-        const isScreening = options?.isUnitScreening
-          ? options.isUnitScreening(stepTile.occupiedByUnitId)
-          : true;
-        if (isScreening && stepTile.elevation >= hRay - EPSILON) {
-          return {
-            coord: stepCoord,
-            type: 'UNIT',
-            elevation: stepTile.elevation,
-            rayElevation: hRay,
-            occupiedByUnitId: stepTile.occupiedByUnitId
-          };
+        if (obsA && obsB) {
+          // Both sides obstructed -> corridor completely closed
+          return this.pickPrimaryLoSObstruction(obsA, obsB);
         }
       }
     }
 
     return null;
+  }
+
+  private evaluateTileLoSObstruction(
+    coord: HexCoord,
+    hRay: number,
+    options?: LineOfSightOptions
+  ): LineOfSightObstruction | null {
+    const tile = this.getTile(coord);
+    const EPSILON = 1e-5;
+
+    // Void / missing tile blocks LoS
+    if (!tile) {
+      return {
+        coord,
+        type: 'VOID',
+        elevation: 0,
+        rayElevation: hRay
+      };
+    }
+
+    // 1. Obstacle blocks if at or above ray elevation
+    if (!tile.isWalkable) {
+      if (tile.elevation >= hRay - EPSILON) {
+        return {
+          coord,
+          type: 'OBSTACLE',
+          elevation: tile.elevation,
+          rayElevation: hRay,
+          label: tile.label
+        };
+      }
+    }
+
+    // 2. Terrain strictly higher than ray blocks (hills)
+    if (tile.elevation > hRay + EPSILON) {
+      return {
+        coord,
+        type: 'HILL',
+        elevation: tile.elevation,
+        rayElevation: hRay,
+        label: tile.label
+      };
+    }
+
+    // 3. Intervening screening unit blocks if at or above ray elevation
+    if (tile.occupiedByUnitId) {
+      const isScreening = options?.isUnitScreening
+        ? options.isUnitScreening(tile.occupiedByUnitId)
+        : true;
+      if (isScreening && tile.elevation >= hRay - EPSILON) {
+        return {
+          coord,
+          type: 'UNIT',
+          elevation: tile.elevation,
+          rayElevation: hRay,
+          occupiedByUnitId: tile.occupiedByUnitId
+        };
+      }
+    }
+
+    return null;
+  }
+
+  private pickPrimaryLoSObstruction(
+    a: LineOfSightObstruction,
+    b: LineOfSightObstruction
+  ): LineOfSightObstruction {
+    const priority = (type: LineOfSightObstruction['type']): number => {
+      switch (type) {
+        case 'OBSTACLE': return 4;
+        case 'HILL': return 3;
+        case 'UNIT': return 2;
+        case 'VOID': return 1;
+        default: return 0;
+      }
+    };
+
+    return priority(a.type) >= priority(b.type) ? a : b;
   }
 
   /**

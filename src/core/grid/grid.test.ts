@@ -10,7 +10,8 @@ import {
   getHexNeighbors,
   getHexRing,
   getHexesInRange,
-  getHexLine
+  getHexLine,
+  getHexRaySteps
 } from './hex';
 import { Arena, HexTile } from './arena';
 import { createRadialArena } from './templates';
@@ -75,6 +76,30 @@ describe('Hex Grid Coordinate Mathematics (Pointy-Topped)', () => {
     expect(line[1]).toEqual({ q: 1, r: 0 });
     expect(line[2]).toEqual({ q: 2, r: 0 });
     expect(line[3]).toEqual({ q: 3, r: 0 });
+  });
+
+  it('identifies interior and shared-edge steps with dual opposite-epsilon cube rounding', () => {
+    // 1. Cardinal ray passes through hex interiors (no shared edges)
+    const cardinalSteps = getHexRaySteps({ q: 0, r: 0 }, { q: 2, r: 0 });
+    expect(cardinalSteps).toHaveLength(3);
+    expect(cardinalSteps[1].isEdge).toBe(false);
+    expect(cardinalSteps[1].hexes).toEqual([{ q: 1, r: 0 }]);
+
+    // 2. Off-axis ray (Leander -> Theron) passes directly along the shared edge between (2, -3) and (2, -2)
+    const edgeSteps = getHexRaySteps({ q: 3, r: -3 }, { q: 1, r: -2 });
+    expect(edgeSteps).toHaveLength(3);
+    expect(edgeSteps[1].isEdge).toBe(true);
+    expect(edgeSteps[1].hexes).toHaveLength(2);
+    // Both flanking hexes are present
+    expect(edgeSteps[1].hexes).toContainEqual({ q: 2, r: -3 });
+    expect(edgeSteps[1].hexes).toContainEqual({ q: 2, r: -2 });
+
+    // 3. Reciprocal symmetry: Theron -> Leander identifies the exact same two flanking hexes
+    const reverseSteps = getHexRaySteps({ q: 1, r: -2 }, { q: 3, r: -3 });
+    expect(reverseSteps).toHaveLength(3);
+    expect(reverseSteps[1].isEdge).toBe(true);
+    expect(reverseSteps[1].hexes).toContainEqual({ q: 2, r: -3 });
+    expect(reverseSteps[1].hexes).toContainEqual({ q: 2, r: -2 });
   });
 });
 
@@ -249,6 +274,64 @@ describe('Arena Spatial Engine', () => {
     arena.setTile({ coord: intermediate, elevation: 1, isWalkable: true });
     arena.setTile({ coord: target, elevation: 0, isWalkable: true });
     expect(arena.hasLineOfSight(source, target)).toBe(false);
+  });
+
+  it('evaluates dual-hex edge traversal Line-of-Sight permissively and symmetrically', () => {
+    const arena = createRadialArena(3);
+    const leander: HexCoord = { q: 3, r: -3 };
+    const theron: HexCoord = { q: 1, r: -2 };
+    const flankA: HexCoord = { q: 2, r: -3 };
+    const flankB: HexCoord = { q: 2, r: -2 };
+
+    // 1. Both flanking hexes are empty -> LoS is clear
+    expect(arena.hasLineOfSight(leander, theron)).toBe(true);
+    expect(arena.hasLineOfSight(theron, leander)).toBe(true);
+
+    // 2. Exact user scenario: Enemy occupies flankA (2, -3), flankB (2, -2) is open
+    // Permissive dual-hex traversal allows LoS through the open flank
+    arena.setUnitPosition('enemy-2', flankA);
+    expect(arena.hasLineOfSight(leander, theron)).toBe(true);
+    expect(arena.hasLineOfSight(theron, leander)).toBe(true);
+
+    // 3. Mirror scenario: Unit on flankB, flankA is open -> still clear
+    arena.removeUnit('enemy-2');
+    arena.setUnitPosition('enemy-2', flankB);
+    expect(arena.hasLineOfSight(leander, theron)).toBe(true);
+    expect(arena.hasLineOfSight(theron, leander)).toBe(true);
+
+    // 4. Solid obstacle on one flank, unit on other flank -> BOTH blocked -> LoS blocked!
+    arena.setTile({ coord: flankA, elevation: 0, isWalkable: false, label: 'RUINS' });
+    expect(arena.hasLineOfSight(leander, theron)).toBe(false);
+    expect(arena.hasLineOfSight(theron, leander)).toBe(false);
+    // Obstruction priority attributes to solid obstacle over unit
+    const obs = arena.getLineOfSightObstruction(leander, theron);
+    expect(obs?.type).toBe('OBSTACLE');
+    expect(obs?.label).toBe('RUINS');
+
+    // 5. Units on both flanks -> BOTH blocked -> LoS blocked!
+    arena.setTile({ coord: flankA, elevation: 0, isWalkable: true });
+    arena.setUnitPosition('enemy-1', flankA);
+    expect(arena.hasLineOfSight(leander, theron)).toBe(false);
+    expect(arena.hasLineOfSight(theron, leander)).toBe(false);
+
+    // Clean up units
+    arena.removeUnit('enemy-1');
+    arena.removeUnit('enemy-2');
+
+    // 6. 3D Elevation along edge:
+    // Leander at elevation 2, Theron at elevation 0. Ray height at midpoint is 1.0.
+    arena.setTile({ coord: leander, elevation: 2, isWalkable: true });
+    arena.setTile({ coord: theron, elevation: 0, isWalkable: true });
+    // flankA has hill at elevation 2 (H_tile 2 > hRay 1.0 -> blocked on flankA)
+    // flankB is terrace at elevation 1 (H_tile 1 <= hRay 1.0 -> clear on flankB)
+    arena.setTile({ coord: flankA, elevation: 2, isWalkable: true });
+    arena.setTile({ coord: flankB, elevation: 1, isWalkable: true });
+    // Because flankB slope matches ray, LoS is clear through flankB!
+    expect(arena.hasLineOfSight(leander, theron)).toBe(true);
+
+    // If flankB is also elevated to 2 (both flanks are hills above ray height 1.0) -> blocked!
+    arena.setTile({ coord: flankB, elevation: 2, isWalkable: true });
+    expect(arena.hasLineOfSight(leander, theron)).toBe(false);
   });
 
   describe('Knockback & Wall-Slam Collision', () => {

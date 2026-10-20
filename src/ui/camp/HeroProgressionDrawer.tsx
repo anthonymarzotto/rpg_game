@@ -40,7 +40,7 @@ export interface HeroProgressionDrawerProps {
   readonly initialSelectedWaypointKey?: string | null;
 }
 
-export function getNeededArchetype(
+function getNeededArchetype(
   targetPoints: ArchetypePoints,
   currentPoints: ArchetypePoints
 ): 'Force' | 'Finesse' | 'Focus' | null {
