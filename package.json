@@ -9,7 +9,8 @@
     "deploy": "npm run build && gh-pages -d dist",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "sim": "vitest run src/core/combat/simulation.test.ts"
   },
   "dependencies": {
     "idb-keyval": "^6.2.1",

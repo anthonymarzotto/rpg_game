@@ -1,4 +1,4 @@
-import { Unit } from '../types/unit';
+import { Unit, Faction } from '../types/unit';
 import {
   HexCoord,
   HexDirection,

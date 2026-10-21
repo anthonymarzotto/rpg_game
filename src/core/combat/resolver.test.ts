@@ -8,8 +8,7 @@ describe('createCombatState Initiative Seeding', () => {
   it('seeds initiativeGauge and initialInitiativeRoll with a 1d20 roll', () => {
     const arena = createRadialArena(3);
     const hero = createRecruit('campaign-hero-1', 'Hero');
-    const goblin = createRecruit('enemy-goblin-1', 'Goblin');
-    goblin.faction = 'ENEMY';
+    const goblin = createRecruit('enemy-goblin-1', 'Goblin', { faction: 'ENEMY' });
 
     // Mock roller that returns 14 for hero and 7 for goblin
     const mockRoller = new MockDiceRoller({ d20Rolls: [14, 7] });
@@ -26,8 +25,7 @@ describe('createCombatState Initiative Seeding', () => {
   it('records an opening combat log event for initiative rolls', () => {
     const arena = createRadialArena(3);
     const hero = createRecruit('campaign-hero-1', 'Hero');
-    const goblin = createRecruit('enemy-goblin-1', 'Goblin');
-    goblin.faction = 'ENEMY';
+    const goblin = createRecruit('enemy-goblin-1', 'Goblin', { faction: 'ENEMY' });
 
     const mockRoller = new MockDiceRoller({ d20Rolls: [18, 5] });
 
@@ -65,10 +63,8 @@ describe('createCombatState Initiative Seeding', () => {
 
   it('resolves exact speed and gauge ties by favoring player units', () => {
     const arena = createRadialArena(3);
-    const playerUnit = createRecruit('campaign-unit', 'Player Hero');
-    playerUnit.faction = 'PLAYER';
-    const enemyUnit = createRecruit('enemy-unit', 'Enemy Fiend');
-    enemyUnit.faction = 'ENEMY';
+    const playerUnit = createRecruit('campaign-unit', 'Player Hero', { faction: 'PLAYER' });
+    const enemyUnit = createRecruit('enemy-unit', 'Enemy Fiend', { faction: 'ENEMY' });
 
     // Both units roll identical initiative (15)
     const mockRoller = new MockDiceRoller({ d20Rolls: [15, 15] });
@@ -82,10 +78,8 @@ describe('createCombatState Initiative Seeding', () => {
 
   it('allows an enemy with higher roll or higher speed to act first', () => {
     const arena = createRadialArena(3);
-    const playerUnit = createRecruit('campaign-unit', 'Slow Player');
-    playerUnit.faction = 'PLAYER';
-    const enemyUnit = createRecruit('enemy-unit', 'Fast Enemy');
-    enemyUnit.faction = 'ENEMY';
+    const playerUnit = createRecruit('campaign-unit', 'Slow Player', { faction: 'PLAYER' });
+    const enemyUnit = createRecruit('enemy-unit', 'Fast Enemy', { faction: 'ENEMY' });
 
     // Player rolls 2, Enemy rolls 19
     const mockRoller = new MockDiceRoller({ d20Rolls: [2, 19] });
