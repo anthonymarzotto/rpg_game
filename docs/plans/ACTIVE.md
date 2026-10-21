@@ -11,6 +11,10 @@
 - [ ] **3.2**: Investigate Thief/Infiltrator action economy (Thieves cycling fast low-AP skills and getting 2x the actions and XP of heavier classes).
 - [ ] **3.3**: Fix pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp).
 
+### BUGS
+- [ ] Background does not load on GitHub pages deployment. Not bundled?
+- [ ] Initiative card in Combat Log is not formatted nicely.
+
 ---
 
 ## 🎯 Next Up (Immediate Combat & UX Tuning)
@@ -23,6 +27,9 @@
 ### 5. AI & Mechanics Edge Cases
 - [ ] **5.1**: Fix Infiltrator `Smoke Veil` edge case: clarify collision/blocking rules while in smoke, and verify AI decision engine doesn't stall when a stealthed unit is adjacent to obstacles/elevation.
 - [ ] **5.2**: Restrict dev-mode debug shortcuts/overlays to `localhost` environments only.
+
+### 6. Investigations
+- [ ] The Cat Burglar's Rooftop Vault sounds cool, but in practice it isn't actually giving very much utility. It only helps when the unit is physically blocked, in which case it functions very much like Shadow Step. Maybe this belongs more as a passive, where the regular Move gets modified to all moving to any hex within normal range.
 
 ---
 
