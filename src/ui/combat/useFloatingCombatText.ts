@@ -2,11 +2,12 @@ import { useState, useCallback } from 'react';
 import { HexCoord } from '../../core/grid/hex';
 import { CombatState, AbilityResolution, CombatEvent, HitOutcome } from '../../core/combat/types';
 import { Ability } from '../../core/types/ability';
+import { predictTurnOrder } from '../../core/combat/turnClock';
 
 export interface FloatingText {
   readonly id: string;
   readonly text: string;
-  readonly type: 'damage' | 'crit' | 'graze' | 'miss' | 'xp' | 'buff' | 'slam';
+  readonly type: 'damage' | 'crit' | 'graze' | 'miss' | 'xp' | 'buff' | 'slam' | 'initiative';
   readonly coord: HexCoord;
 }
 
@@ -46,6 +47,54 @@ export function resolveDamageFloatingText(
     text: `${prefix}-${event.amount}`,
     textType
   };
+}
+
+/**
+ * Emits opening floating combat text for all units with an initial initiative roll,
+ * ordered sequentially by upcoming turn order and staggered by delay.
+ */
+export function collectInitiativeFloatingTexts(
+  state: CombatState,
+  staggerMs = 250
+): Array<{ text: string; type: FloatingText['type']; coord: HexCoord; delay: number }> {
+  const result: Array<{ text: string; type: FloatingText['type']; coord: HexCoord; delay: number }> = [];
+
+  // Sort units according to turn order lookahead so initiative rolls pop in sequence of action
+  const turnOrder = predictTurnOrder(state, state.units.size);
+  const seenUnits = new Set<string>();
+  const orderedUnitIds: string[] = [];
+
+  for (const entry of turnOrder) {
+    if (!seenUnits.has(entry.unitId)) {
+      seenUnits.add(entry.unitId);
+      orderedUnitIds.push(entry.unitId);
+    }
+  }
+
+  // Fallback for any units not in the lookahead
+  for (const unitId of state.units.keys()) {
+    if (!seenUnits.has(unitId)) {
+      seenUnits.add(unitId);
+      orderedUnitIds.push(unitId);
+    }
+  }
+
+  orderedUnitIds.forEach((unitId, index) => {
+    const cu = state.units.get(unitId);
+    if (cu && cu.initialInitiativeRoll !== undefined) {
+      const coord = state.arena.getUnitPosition(unitId);
+      if (coord) {
+        result.push({
+          text: `🎲 ${cu.initialInitiativeRoll}`,
+          type: 'initiative',
+          coord,
+          delay: index * staggerMs
+        });
+      }
+    }
+  });
+
+  return result;
 }
 
 /**

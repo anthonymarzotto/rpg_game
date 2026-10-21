@@ -282,7 +282,14 @@ describe('Phase 1.2: Foundational Abilities & Passive Mechanics', () => {
       arena.setUnitPosition('warrior', { q: 0, r: 0 });
       arena.setUnitPosition('thief', { q: 1, r: 0 });
 
-      const state = createCombatState(arena, [warrior, thief]);
+      const state = createCombatState(
+        arena,
+        [warrior, thief],
+        undefined,
+        undefined,
+        undefined,
+        new MockDiceRoller({ d20Rolls: [0, 0] })
+      );
 
       const warriorCu = state.units.get('warrior')!;
       const thiefCu = state.units.get('thief')!;

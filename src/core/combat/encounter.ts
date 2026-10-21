@@ -3,6 +3,7 @@ import { HexCoord, HexDirection } from '../grid/hex';
 import { createRadialArena } from '../grid/templates';
 import { CombatState, EncounterObjective } from './types';
 import { createCombatState } from './resolver';
+import { DiceRoller } from './dice';
 export { applyPreEncounterSetup } from './resolver';
 
 /**
@@ -42,7 +43,10 @@ export interface EncounterDefinition {
 /**
  * Instantiates a concrete CombatState from an EncounterDefinition.
  */
-export function buildEncounterState(definition: EncounterDefinition): CombatState {
+export function buildEncounterState(
+  definition: EncounterDefinition,
+  diceRoller?: DiceRoller
+): CombatState {
   const radius = definition.arenaRadius ?? 3;
   const arena = createRadialArena(radius);
 
@@ -72,7 +76,8 @@ export function buildEncounterState(definition: EncounterDefinition): CombatStat
     units,
     definition.initialActiveUnitId,
     undefined,
-    definition.objectives
+    definition.objectives,
+    diceRoller
   );
   for (const placed of definition.units) {
     if (placed.facing !== undefined) {

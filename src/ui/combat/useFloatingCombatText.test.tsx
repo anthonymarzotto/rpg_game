@@ -230,3 +230,36 @@ describe('useFloatingCombatText: collectResolutionFloatingTexts', () => {
     expect(teleportItem?.coord).toEqual({ q: 2, r: 0 });
   });
 });
+
+describe('useFloatingCombatText: collectInitiativeFloatingTexts', () => {
+  it('collects initiative floating text for units with initialInitiativeRoll', async () => {
+    const { collectInitiativeFloatingTexts } = await import('./useFloatingCombatText');
+    const { createRadialArena } = await import('../../core/grid/templates');
+    const { createRecruit } = await import('../../core/units/unitFactory');
+    const { createCombatState } = await import('../../core/combat/resolver');
+    const { MockDiceRoller } = await import('../../core/combat/dice');
+
+    const arena = createRadialArena(3);
+    const hero = createRecruit('hero-1', 'Hero');
+    const goblin = createRecruit('goblin-1', 'Goblin');
+    arena.setUnitPosition('hero-1', { q: 0, r: 0 });
+    arena.setUnitPosition('goblin-1', { q: 1, r: 0 });
+
+    const roller = new MockDiceRoller({ d20Rolls: [17, 8] });
+    const state = createCombatState(arena, [hero, goblin], undefined, undefined, undefined, roller);
+
+    const items = collectInitiativeFloatingTexts(state);
+    expect(items).toHaveLength(2);
+
+    const heroFloat = items.find((i) => i.coord.q === 0 && i.coord.r === 0);
+    const goblinFloat = items.find((i) => i.coord.q === 1 && i.coord.r === 0);
+
+    expect(heroFloat?.text).toBe('🎲 17');
+    expect(heroFloat?.type).toBe('initiative');
+    expect(heroFloat?.delay).toBe(0);
+    expect(goblinFloat?.text).toBe('🎲 8');
+    expect(goblinFloat?.type).toBe('initiative');
+    expect(goblinFloat?.delay).toBe(250);
+  });
+});
+

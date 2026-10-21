@@ -156,6 +156,8 @@ export interface CombatUnit {
   currentHp: number;
   currentAp: number;
   initiativeGauge: number;
+  /** Initial 1d20 initiative roll at battle start */
+  initialInitiativeRoll?: number;
   isDefeated: boolean;
   inBattleXp: InBattleXp;
   activeModifiers: ActiveModifier[];

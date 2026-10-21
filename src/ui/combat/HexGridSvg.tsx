@@ -974,6 +974,10 @@ export function HexGridSvg({
           } else if (ft.type === 'buff') {
             color = '#38bdf8';
             size = '11';
+          } else if (ft.type === 'initiative') {
+            color = '#38bdf8';
+            weight = '800';
+            size = '13';
           }
 
           return (

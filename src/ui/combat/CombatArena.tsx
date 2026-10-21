@@ -49,6 +49,8 @@ export function CombatArena({
     aiSpeed,
     setAiSpeed,
     hostileActionStatus,
+    isOpeningInitiativeActive,
+    skipOpeningInitiative,
     actionMode,
     selectedAbility,
     hoveredCoord,
@@ -275,7 +277,11 @@ export function CombatArena({
           />
 
           {/* Center SVG Hex Arena */}
-          <div className="arena-canvas-container" onWheel={handleCanvasWheel}>
+          <div
+            className="arena-canvas-container"
+            onWheel={handleCanvasWheel}
+            onClick={isOpeningInitiativeActive ? skipOpeningInitiative : undefined}
+          >
             <HexGridSvg
               state={state}
               reachableCoords={reachableCoords}
@@ -305,7 +311,7 @@ export function CombatArena({
         {phase === 'HOSTILE_TURN' ? (
           <EnemyTurnBanner
             activeCu={activeCu}
-            actionDescription={hostileActionStatus}
+            actionDescription={isOpeningInitiativeActive ? 'Rolling initiative...' : hostileActionStatus}
           />
         ) : (
           <ActionBar

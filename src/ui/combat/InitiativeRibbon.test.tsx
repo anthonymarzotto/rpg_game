@@ -88,4 +88,23 @@ describe('InitiativeRibbon Component', () => {
     expect(html).not.toContain('(Initiative:');
     expect(html).not.toContain('CTB');
   });
+
+  it('renders turn order matching seeded 1d20 initiative rolls on encounter start', async () => {
+    const { MockDiceRoller } = await import('../../core/combat/dice');
+    const arena = createRadialArena(3);
+    const hero = createRecruit('campaign-hero', 'Hero', { faction: 'PLAYER' });
+    const bandit = createRecruit('enemy-bandit', 'Bandit', { faction: 'ENEMY' });
+    arena.setUnitPosition('campaign-hero', { q: -1, r: 0 });
+    arena.setUnitPosition('enemy-bandit', { q: 1, r: 0 });
+
+    // Bandit rolls 19, Hero rolls 2 -> Bandit acts first!
+    const mockRoller = new MockDiceRoller({ d20Rolls: [2, 19] });
+    const state = createCombatState(arena, [hero, bandit], undefined, undefined, undefined, mockRoller);
+
+    const html = renderToStaticMarkup(<InitiativeRibbon state={state} />);
+    expect(state.activeUnitId).toBe('enemy-bandit');
+    expect(html).toContain('chip-active');
+    expect(html).toContain('Bandit');
+  });
 });
+

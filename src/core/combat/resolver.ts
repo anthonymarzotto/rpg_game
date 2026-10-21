@@ -20,7 +20,7 @@ import {
   HitOutcome
 } from './types';
 import { canMove, canExecuteAbility } from './validator';
-import { getEffectiveMove } from './effectiveVitals';
+import { getEffectiveMove, getEffectiveSpeed } from './effectiveVitals';
 import { getEffectiveAbility } from './modifiers';
 import { isFlankOrRear } from './flanking';
 import { DiceRoller, SeededDiceRoller, RollAdvantage } from './dice';
@@ -28,7 +28,7 @@ import {
   COMBAT_RESOLUTION_CONFIG,
   ACTION_ECONOMY_CONFIG
 } from '../config/balance';
-import { advanceTurnClock } from './turnClock';
+import { advanceTurnClock, predictTurnOrder } from './turnClock';
 import { resolveAttackRoll, calculateElevationAttackModifier } from './attackRoll';
 import { resolveDamage, resolveFallDamage } from './damageEngine';
 import { executeAbilityEffects, defaultEffectRegistry, EffectContext } from './effects';
@@ -169,6 +169,63 @@ export function applyPreEncounterSetup(state: CombatState): void {
 }
 
 /**
+ * Applies an anti-alpha-strike guardrail ensuring that no single faction
+ * takes more than Math.ceil(squadSize / 2) consecutive opening turns at encounter start.
+ */
+export function applyInitiativeGuardrail(state: CombatState, maxConsecutive?: number): void {
+  const livingUnits = Array.from(state.units.values()).filter((cu) => !cu.isDefeated);
+  const playerUnits = livingUnits.filter((cu) => cu.faction === 'PLAYER');
+  const enemyUnits = livingUnits.filter((cu) => cu.faction === 'ENEMY');
+
+  if (playerUnits.length === 0 || enemyUnits.length === 0) {
+    return;
+  }
+
+  const squadSize = Math.max(playerUnits.length, enemyUnits.length);
+  const limit = maxConsecutive ?? Math.ceil(squadSize / 2);
+
+  const checkCount = limit + 1;
+  const opening = predictTurnOrder(state, checkCount);
+  if (opening.length < checkCount) {
+    return;
+  }
+
+  const streakFaction = opening[0].faction;
+  const isStreak = opening.slice(0, checkCount).every((entry) => entry.faction === streakFaction);
+
+  if (isStreak) {
+    const opposingFaction: Faction = streakFaction === 'PLAYER' ? 'ENEMY' : 'PLAYER';
+    const streakingUnitId = opening[limit].unitId;
+    const streakingCu = state.units.get(streakingUnitId);
+    if (!streakingCu) return;
+
+    const opposingCandidates = (opposingFaction === 'PLAYER' ? playerUnits : enemyUnits)
+      .slice()
+      .sort((a, b) => b.initiativeGauge - a.initiativeGauge);
+
+    if (opposingCandidates.length > 0) {
+      const bestOpposing = opposingCandidates[0];
+      const speedOpp = getEffectiveSpeed(bestOpposing);
+      const speedStreak = getEffectiveSpeed(streakingCu);
+
+      const ticks = Math.max(
+        1,
+        Math.ceil((ACTION_ECONOMY_CONFIG.gaugeTurnThreshold - streakingCu.initiativeGauge) / speedStreak)
+      );
+      const streakFinalGauge = streakingCu.initiativeGauge + ticks * speedStreak;
+
+      const neededGauge = Math.max(
+        bestOpposing.initiativeGauge,
+        streakFinalGauge + 1 - ticks * speedOpp
+      );
+
+      bestOpposing.initiativeGauge = neededGauge;
+      bestOpposing.initialInitiativeRoll = neededGauge;
+    }
+  }
+}
+
+/**
  * Initializes a new combat state container with living units placed in the arena.
  */
 export function createCombatState(
@@ -176,21 +233,27 @@ export function createCombatState(
   units: readonly Unit[],
   initialActiveUnitId?: string,
   loadoutProviders: LoadoutLookupProviders = defaultLoadoutProviders,
-  objectives?: readonly EncounterObjective[]
+  objectives?: readonly EncounterObjective[],
+  diceRoller: DiceRoller = defaultDiceRoller
 ): CombatState {
   const combatUnits = new Map<string, CombatUnit>();
+  const shouldRollInitiative = !initialActiveUnitId;
 
   for (const unit of units) {
     const resolved = unit.loadout
       ? resolveUnitLoadout(unit, loadoutProviders)
       : undefined;
 
+    const initialRoll = shouldRollInitiative ? diceRoller.rollD20() : undefined;
+    const initialGauge = initialRoll ?? 0;
+
     combatUnits.set(unit.id, {
       unit,
       faction: unit.faction,
       currentHp: unit.effectiveVitals.maxHp,
       currentAp: 0,
-      initiativeGauge: 0,
+      initiativeGauge: initialGauge,
+      initialInitiativeRoll: initialRoll,
       isDefeated: false,
       inBattleXp: { fighter: 0, rogue: 0, mage: 0 },
       activeModifiers: [],
@@ -213,9 +276,34 @@ export function createCombatState(
     aiDecisionLog: []
   };
 
-
   // Pre-encounter setup pass: seed initial state (e.g. +25 initiative for Tactical Vanguard)
   applyPreEncounterSetup(state);
+
+  // Apply anti-alpha-strike guardrail if rolling initiative naturally
+  if (shouldRollInitiative) {
+    applyInitiativeGuardrail(state);
+  }
+
+  if (shouldRollInitiative) {
+    const rollSummaries: string[] = [];
+    for (const cu of combatUnits.values()) {
+      if (cu.initialInitiativeRoll !== undefined) {
+        rollSummaries.push(`${cu.unit.name} (${cu.initialInitiativeRoll})`);
+      }
+    }
+    if (rollSummaries.length > 0) {
+      state.combatLog.push({
+        turnNumber: 0,
+        actorUnitId: '',
+        actionId: 'initiative',
+        message: `Combat begins! Initiative rolled: ${rollSummaries.join(', ')}`,
+        metadata: {
+          type: 'GENERIC',
+          text: `Initiative rolled: ${rollSummaries.join(', ')}`
+        }
+      });
+    }
+  }
 
   if (initialActiveUnitId && combatUnits.has(initialActiveUnitId)) {
     state.activeUnitId = initialActiveUnitId;

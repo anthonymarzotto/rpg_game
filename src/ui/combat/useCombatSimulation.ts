@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { HexCoord, HexDirection } from '../../core/grid/hex';
 import { Ability } from '../../core/types/ability';
 import { Unit } from '../../core/types/unit';
@@ -13,7 +13,7 @@ import {
 } from '../../core/combat/encounter';
 import { TargetPreview, computeTargetPreview } from '../../core/combat/targetPreview';
 import { DiceMode, DevDiceRoller } from './devDice';
-import { useFloatingCombatText } from './useFloatingCombatText';
+import { useFloatingCombatText, collectInitiativeFloatingTexts, FloatingText } from './useFloatingCombatText';
 import {
   AISpeedMode,
   PACING_PRESETS,
@@ -67,6 +67,16 @@ export function useCombatSimulation({
   const [facingCompassCoord, setFacingCompassCoord] = useState<HexCoord | null>(null);
   const [hoveredCoord, setHoveredCoord] = useState<HexCoord | null>(null);
   const [diceMode, setDiceMode] = useState<DiceMode>('NORMAL');
+  const isOpeningInitiativeActiveRef = useRef<boolean>(true);
+  const [isOpeningInitiativeActive, setIsOpeningInitiativeActiveState] = useState<boolean>(true);
+
+  const setIsOpeningInitiativeActive = useCallback((active: boolean) => {
+    isOpeningInitiativeActiveRef.current = active;
+    setIsOpeningInitiativeActiveState(active);
+  }, []);
+
+  const openingTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const pendingInitiativeItemsRef = useRef<Array<{ text: string; type: FloatingText['type']; coord: HexCoord }>>([]);
 
   const {
     floatingTexts,
@@ -74,6 +84,18 @@ export function useCombatSimulation({
     clearFloatingTexts,
     dispatchResolutionFeedback
   } = useFloatingCombatText();
+
+  const skipOpeningInitiative = useCallback(() => {
+    for (const t of openingTimeoutsRef.current) {
+      clearTimeout(t);
+    }
+    openingTimeoutsRef.current = [];
+    for (const item of pendingInitiativeItemsRef.current) {
+      addFloatingText(item.text, item.type, item.coord);
+    }
+    pendingInitiativeItemsRef.current = [];
+    setIsOpeningInitiativeActive(false);
+  }, [addFloatingText, setIsOpeningInitiativeActive]);
 
   // Active unit currently taking their turn
   const activeCu = useMemo(() => state.units.get(state.activeUnitId), [state]);
@@ -86,6 +108,51 @@ export function useCombatSimulation({
   useEffect(() => {
     setFacingCompassCoord(null);
   }, [state.activeUnitId, state.turnNumber]);
+
+  // Spawn opening initiative floating text sequentially on mount / encounter reset
+  useEffect(() => {
+    for (const t of openingTimeoutsRef.current) {
+      clearTimeout(t);
+    }
+    openingTimeoutsRef.current = [];
+
+    const items = collectInitiativeFloatingTexts(state);
+    if (items.length === 0) {
+      setIsOpeningInitiativeActive(false);
+      return;
+    }
+
+    setIsOpeningInitiativeActive(true);
+    pendingInitiativeItemsRef.current = [...items];
+
+    items.forEach((item) => {
+      if (item.delay === 0) {
+        addFloatingText(item.text, item.type, item.coord);
+        pendingInitiativeItemsRef.current = pendingInitiativeItemsRef.current.filter((i) => i !== item);
+      } else {
+        const timer = setTimeout(() => {
+          addFloatingText(item.text, item.type, item.coord);
+          pendingInitiativeItemsRef.current = pendingInitiativeItemsRef.current.filter((i) => i !== item);
+        }, item.delay);
+        openingTimeoutsRef.current.push(timer);
+      }
+    });
+
+    const maxDelay = Math.max(...items.map((i) => i.delay), 0);
+    const finishTimer = setTimeout(() => {
+      setIsOpeningInitiativeActive(false);
+      openingTimeoutsRef.current = [];
+      pendingInitiativeItemsRef.current = [];
+    }, maxDelay + 250);
+    openingTimeoutsRef.current.push(finishTimer);
+
+    return () => {
+      for (const t of openingTimeoutsRef.current) {
+        clearTimeout(t);
+      }
+      openingTimeoutsRef.current = [];
+    };
+  }, [encounterSession, addFloatingText]);
 
   // Authoritative interaction phase
   const phase = useMemo<CombatPhase>(() => {
@@ -190,7 +257,12 @@ export function useCombatSimulation({
 
   // Reactive asynchronous hostile turn sequencer
   useEffect(() => {
-    if (phase !== 'HOSTILE_TURN' || !state.activeUnitId || state.outcome !== 'IN_PROGRESS') {
+    if (
+      phase !== 'HOSTILE_TURN' ||
+      !state.activeUnitId ||
+      state.outcome !== 'IN_PROGRESS' ||
+      isOpeningInitiativeActive
+    ) {
       setHostileActionStatus(null);
       return;
     }
@@ -293,6 +365,7 @@ export function useCombatSimulation({
     state.outcome,
     aiSpeed,
     encounterSession,
+    isOpeningInitiativeActive,
     addFloatingText,
     dispatchResolutionFeedback,
     checkEncounterProgression
@@ -301,6 +374,13 @@ export function useCombatSimulation({
   // Dispatches tactical intent on tile click
   const handleTileClick = useCallback(
     (coord: HexCoord) => {
+      if (isOpeningInitiativeActiveRef.current) {
+        skipOpeningInitiative();
+        if (actionMode === 'IDLE') {
+          return;
+        }
+      }
+
       if (phase !== 'PLAYER_ACTION' || !activeCu || !activeCoord) return;
 
       if (actionMode === 'MOVE') {
@@ -369,6 +449,8 @@ export function useCombatSimulation({
       selectedAbility,
       state,
       diceMode,
+      isOpeningInitiativeActive,
+      skipOpeningInitiative,
       addFloatingText,
       dispatchResolutionFeedback,
       checkEncounterProgression
@@ -377,6 +459,9 @@ export function useCombatSimulation({
 
   // End Turn with unspent AP refund and hand off to next unit
   const handleEndTurn = useCallback(() => {
+    if (isOpeningInitiativeActive) {
+      skipOpeningInitiative();
+    }
     if (phase !== 'PLAYER_ACTION' || !activeCu) return;
     const unspent = activeCu.currentAp;
     addFloatingText(`+${unspent * 20} Initiative`, 'buff', activeCoord ?? { q: 0, r: 0 });
@@ -388,11 +473,23 @@ export function useCombatSimulation({
     setFacingCompassCoord(null);
     setState({ ...state, combatLog: [...state.combatLog] });
     checkEncounterProgression(state);
-  }, [phase, activeCu, activeCoord, state, addFloatingText, checkEncounterProgression]);
+  }, [
+    phase,
+    activeCu,
+    activeCoord,
+    state,
+    isOpeningInitiativeActive,
+    skipOpeningInitiative,
+    addFloatingText,
+    checkEncounterProgression
+  ]);
 
   // Switches action mode from ActionBar
   const selectAction = useCallback(
     (action: Ability | 'MOVE' | null) => {
+      if (isOpeningInitiativeActive) {
+        skipOpeningInitiative();
+      }
       setFacingCompassCoord(null);
       if (action === 'MOVE') {
         setActionMode('MOVE');
@@ -405,7 +502,7 @@ export function useCombatSimulation({
         setSelectedAbility(null);
       }
     },
-    []
+    [isOpeningInitiativeActive, skipOpeningInitiative]
   );
 
   // Directly sets unit facing orientation (0 AP) and retains compass ring for continuous adjustments
@@ -429,6 +526,13 @@ export function useCombatSimulation({
   // Resets the arena encounter
   const handleRematch = useCallback(
     (_configuredLoadout?: UnitLoadout) => {
+      for (const t of openingTimeoutsRef.current) {
+        clearTimeout(t);
+      }
+      openingTimeoutsRef.current = [];
+      pendingInitiativeItemsRef.current = [];
+      setIsOpeningInitiativeActive(true);
+
       setIsVictoryModalOpen(false);
       setIsDefeatModalOpen(false);
       setSquadSummaries([]);
@@ -448,6 +552,13 @@ export function useCombatSimulation({
 
   // Full reset back to encounter start
   const handleResetEncounter = useCallback(() => {
+    for (const t of openingTimeoutsRef.current) {
+      clearTimeout(t);
+    }
+    openingTimeoutsRef.current = [];
+    pendingInitiativeItemsRef.current = [];
+    setIsOpeningInitiativeActive(true);
+
     setSquadSummaries([]);
     setIsVictoryModalOpen(false);
     setIsDefeatModalOpen(false);
@@ -471,6 +582,10 @@ export function useCombatSimulation({
     aiSpeed,
     setAiSpeed,
     hostileActionStatus,
+    get isOpeningInitiativeActive() {
+      return isOpeningInitiativeActiveRef.current;
+    },
+    skipOpeningInitiative,
     actionMode,
     selectedAbility,
     hoveredCoord,

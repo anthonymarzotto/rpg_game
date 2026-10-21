@@ -269,5 +269,95 @@ describe('useCombatSimulation movePreview & fall hazard detection', () => {
     capturedHook!.handleSelectFacing(3);
     expect(capturedHook!.state.units.get('p1')!.facing).toBe(3);
   });
+
+  it('manages isOpeningInitiativeActive lifecycle and provides click-to-skip', () => {
+    const player = createRecruit('p1', 'Player Hero', { faction: 'PLAYER' });
+    const enemy = createRecruit('e1', 'Goblin', { faction: 'ENEMY' });
+
+    const encounter: EncounterDefinition = {
+      id: 'initiative-skip-encounter',
+      name: 'Initiative Skip Test',
+      arenaRadius: 3,
+      initialActiveUnitId: 'p1',
+      units: [
+        { unit: player, coord: { q: 0, r: 0 } },
+        { unit: enemy, coord: { q: 2, r: 0 } }
+      ]
+    };
+
+    capturedEffects.length = 0;
+
+    let capturedHook: ReturnType<typeof useCombatSimulation> | null = null;
+    function Harness() {
+      capturedHook = useCombatSimulation({ encounter });
+      return null;
+    }
+
+    renderToStaticMarkup(<Harness />);
+    expect(capturedHook).not.toBeNull();
+    // Opening initiative is active at start
+    expect(capturedHook!.isOpeningInitiativeActive).toBe(true);
+
+    // Clicking a tile in IDLE mode invokes skipOpeningInitiative
+    capturedHook!.handleTileClick({ q: 1, r: 0 });
+    expect(capturedHook!.isOpeningInitiativeActive).toBe(false);
+
+    // Direct skipOpeningInitiative call remains idempotent
+    capturedHook!.skipOpeningInitiative();
+    expect(capturedHook!.isOpeningInitiativeActive).toBe(false);
+  });
+
+  it('holds hostile AI sequencer execution while isOpeningInitiativeActive is true', () => {
+    const baseEnemy = createRecruit('e1', 'Hostile Orc', { faction: 'ENEMY' });
+    const enemy = {
+      ...baseEnemy,
+      effectiveVitals: { ...baseEnemy.effectiveVitals, speed: 10 }
+    };
+    const basePlayer = createRecruit('p1', 'Player Hero', { faction: 'PLAYER' });
+    const player = {
+      ...basePlayer,
+      effectiveVitals: { ...basePlayer.effectiveVitals, speed: 6 }
+    };
+
+    const encounter: EncounterDefinition = {
+      id: 'hostile-hold-encounter',
+      name: 'Hostile Hold Test',
+      arenaRadius: 3,
+      initialActiveUnitId: enemy.id,
+      units: [
+        { unit: enemy, coord: { q: 0, r: 0 } },
+        { unit: player, coord: { q: 2, r: 0 } }
+      ]
+    };
+
+    capturedEffects.length = 0;
+
+    let capturedHook: ReturnType<typeof useCombatSimulation> | null = null;
+    function Harness() {
+      capturedHook = useCombatSimulation({ encounter });
+      return null;
+    }
+
+    renderToStaticMarkup(<Harness />);
+    expect(capturedHook).not.toBeNull();
+    expect(capturedHook!.phase).toBe('HOSTILE_TURN');
+    expect(capturedHook!.isOpeningInitiativeActive).toBe(true);
+
+    // Find the hostile sequencer effect
+    const hostileEffect = capturedEffects.find(
+      (e) =>
+        e.deps &&
+        e.deps.includes(capturedHook!.state.activeUnitId) &&
+        e.deps.includes(capturedHook!.state.turnNumber) &&
+        e.deps.includes(capturedHook!.isOpeningInitiativeActive)
+    );
+    expect(hostileEffect).toBeDefined();
+
+    // Executing the effect while isOpeningInitiativeActive is true should return undefined (held/paused)
+    const cleanup = hostileEffect!.fn();
+    expect(cleanup).toBeUndefined();
+    expect(capturedHook!.hostileActionStatus).toBeNull();
+  });
 });
+
 

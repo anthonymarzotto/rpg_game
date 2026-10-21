@@ -98,7 +98,7 @@ describe('Tier 3 Berserker Core Mechanics', () => {
       const flankEnemy1 = createRecruit('e2', 'Flank Enemy 1');
       const flankEnemy2 = createRecruit('e3', 'Flank Enemy 2');
 
-      const state = createCombatState(arena, [hero, primaryEnemy, flankEnemy1, flankEnemy2]);
+      const state = createCombatState(arena, [hero, primaryEnemy, flankEnemy1, flankEnemy2], 'hero');
       (hero as any).baseAttributes = { force: 2, finesse: 0, focus: 0 };
 
       // Set positions:
