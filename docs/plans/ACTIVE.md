@@ -6,8 +6,7 @@
 
 ## 🔨 In Progress
 
-### 3. CTB Curve & Speed Tuning
-- [x] **3.1**: Tune the CTB speed scaling curve and audit CTB-delay abilities (tuned Finesse speed scaling to +1 Speed/Finesse in `src/core/config/balance.ts`; updated `Stand and Deliver!` to roll vs Resolve with 20 CTB delay in `src/data/packages/highwayman.ts`, and updated `resolver.ts` so non-damage abilities with defense targets execute attack rolls).
+*(None currently in progress)*
 
 ---
 
@@ -22,7 +21,7 @@
 - [ ] **2.1**: Fix Infiltrator `Smoke Veil` AI loop & edge case: ensure AI decision engine assigns 0 score to stealth abilities if the actor is already in `STEALTH` (avoid artificial `oncePerTurn` cooldowns), and clarify collision/blocking rules while in smoke.
 - [ ] **2.2**: Restrict dev-mode debug shortcuts/overlays to `localhost` environments only.
 - [ ] **2.3**: The Cat Burglar's Rooftop Vault sounds cool, but in practice it isn't actually giving very much utility. It only helps when the unit is physically blocked, in which case it functions very much like Shadow Step. Maybe this belongs more as a passive, where the regular Move gets modified to all moving to any hex within normal range.
-- [ ] **2.4**: Assess `Sneak Attack` and `Poppet Needle` for AP cost and function: evaluate potency and dice scaling rather than restricting multi-action player agency with `oncePerTurn`.
+- [ ] **2.4**: Assess `Sneak Attack`, `Poppet Needle`, and `Baleful Hex` for AP cost, potency, and debuff scaling: evaluate damage and CTB-delay scaling against low-Resolve units rather than restricting player agency with `oncePerTurn`; address Witch's self-contained 93.5% squad win rate.
 - [ ] **2.5**: Evaluate support/control abilities (`Stand and Deliver!`, `Flash Powder`) in 3v3 team scenarios: assess whether multi-target debuffing across separate foes functions well with allied follow-up without needing `oncePerTurn` restrictions.
 - [ ] **2.6**: AI awareness of enemy count & duplicate skill targeting deprioritization: incorporate living enemy count into AI decision-making (e.g. deprioritize control/setup primers when only 1 foe remains) and add a general scoring penalty against casting the same non-damage or debuff skill on the same target multiple times within a single turn. Specifically addresses:
   * **Highwayman** repeatedly casting `Stand and Deliver!` on the same target (1,477 casts in duels) instead of following up with `Point-Blank Buckshot`.
@@ -35,6 +34,8 @@
 - [ ] **2.8**: AI Threat Scoring & High-Ground Disruption:
   * Add target threat weighting to AI decision engine to target high-damage backline casters (Warlock, Witch) even when low-ground vertical penalties reduce hit probability.
   * Add displacement / `KNOCKBACK` utility scoring against units holding High Ground Vantage (prioritize shoving perched snipers off cliffs for fall impact damage and vantage disruption).
+- [ ] **2.9**: Highwayman Tactical Role & Survivability Audit: assess why Highwayman suffers a bottom-tier 34% win rate and 14% survival (23.2 damage taken) even with resonant options; evaluate mid-range self-peel (e.g. backward recoil on buckshot or evasion on Stand and Deliver!) and range-1 vs range-2 kit flow.
+- [ ] **2.10**: Infiltrator Kit Identity vs. Resonant Cannibalization: investigate why Infiltrator abandons its own authored kit (Toxic Shiv had only 9 casts) in favor of Thief's resonant Sneak Attack (131 casts) and Shadow Step (210 casts); evaluate poison tick scaling and vulnerability payoff.
 
 ### 4. Enemy Threat Calibration & Pre-Ascension Snapshot
 - [ ] **5.1**: Investigate pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp). Balance against the player's ability to scout and plan for upcoming incursions rather than rubber-banding on deploy; re-evaluate alongside Horizon 2 sector map nodes.
@@ -49,3 +50,7 @@
    * *Observation*: Knight average soak in 3v3 was only 2.3. With 2 Armor and 0 Ward, magical damage (Warlock, Witch, Wizard, Sorcerer) completely bypasses mitigation, while physical attacks often shred or bypass armor. Consider exploring protective scaling (e.g. base Ward, or armor/soak bonuses against `CHALLENGED` foes).
 3. **Wildcard Loadout Impact on Combat Dynamics**:
    * *Observation*: In campaign generation (`createEnemyUnit`), enemies receive `wildcardPassiveIds: ['momentum']` and up to 2 starter abilities. Pure-kit benchmarks without wildcards hide natural synergies—e.g. Force units getting Advantage from `Momentum` after moving, or Cavalier using `Shield Bash` (1-hex knockback) to re-enable `Lance Charge` in close melee. Consider benchmark profiles that include standard starter wildcards.
+4. **Cavalier Kit Flow: Inherent Spacing vs. Wildcard Synergy**:
+   * *Observation*: Cavalier win rate rose from 38.1% to 50.0% and misses halved to 10.5% when equipped with Shield Bash (61 casts) and Momentum, breaking its range-1 lockout. Consider whether Cavalier needs an innate spacing mechanic in its base kit (e.g. minor shove or step) or if relying on brawler wildcards is the intended progression payoff.
+5. **Varied Resonant Loadouts for Generated Enemies**:
+   * *Observation*: Generated enemies in encounters currently receive a static wildcard passive (Momentum) and starter abilities. Implement a "level up" generation system where enemies dynamically draw realistic resonant abilities and passives from their unlocked constellation path with randomized variation across encounters rather than a static list.

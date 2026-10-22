@@ -25,6 +25,66 @@ export const ALL_AUTHORED_CLASS_IDS = [
 
 export type AuthoredClassId = typeof ALL_AUTHORED_CLASS_IDS[number];
 
+export interface ResonantLoadoutConfig {
+  readonly wildcardAbilityIds: readonly string[];
+  readonly wildcardPassiveIds: readonly string[];
+}
+
+/**
+ * Authentic, thematic resonant builds reflecting unlocked pyramid constellation paths
+ * and starter pools for all 12 authored classes.
+ */
+export const DEFAULT_CLASS_RESONANT_LOADOUTS: Readonly<Record<string, ResonantLoadoutConfig>> = {
+  warrior: {
+    wildcardAbilityIds: ['shield_bash', 'throw_dart'],
+    wildcardPassiveIds: ['momentum']
+  },
+  knight: {
+    wildcardAbilityIds: ['shield_bash', 'brace'],
+    wildcardPassiveIds: ['unyielding']
+  },
+  cavalier: {
+    wildcardAbilityIds: ['shield_bash', 'skirmish'],
+    wildcardPassiveIds: ['momentum']
+  },
+  berserker: {
+    wildcardAbilityIds: ['shield_bash', 'spark'],
+    wildcardPassiveIds: ['momentum']
+  },
+  thief: {
+    wildcardAbilityIds: ['throw_dart', 'shield_bash'],
+    wildcardPassiveIds: ['momentum']
+  },
+  infiltrator: {
+    wildcardAbilityIds: ['sneak_attack', 'shadow_step'],
+    wildcardPassiveIds: ['quickstep']
+  },
+  highwayman: {
+    wildcardAbilityIds: ['smoke_veil', 'shield_bash'],
+    wildcardPassiveIds: ['quickstep']
+  },
+  'cat-burglar': {
+    wildcardAbilityIds: ['sneak_attack', 'smoke_veil'],
+    wildcardPassiveIds: ['quickstep']
+  },
+  wizard: {
+    wildcardAbilityIds: ['minor_ward', 'skirmish'],
+    wildcardPassiveIds: ['momentum']
+  },
+  sorcerer: {
+    wildcardAbilityIds: ['spark', 'minor_ward'],
+    wildcardPassiveIds: ['arcane_aegis']
+  },
+  warlock: {
+    wildcardAbilityIds: ['brace', 'spark'],
+    wildcardPassiveIds: ['arcane_aegis']
+  },
+  witch: {
+    wildcardAbilityIds: ['skirmish', 'minor_ward'],
+    wildcardPassiveIds: ['quickstep']
+  }
+};
+
 export interface ClassSquadTelemetry {
   readonly classId: string;
   readonly name: string;
@@ -78,6 +138,14 @@ export interface ClassSquadTelemetry {
   aoeTotalHits: number;
   aoeCasts: number;
   avgAoeTargetsHit: number;
+
+  // Resonant vs. Kit Ability Tracking
+  kitAbilityActions: number;
+  resonantAbilityActions: number;
+  totalAbilityActions: number;
+  resonantUsagePercent: number;
+  kitAbilityUsages: Record<string, number>;
+  resonantAbilityUsages: Record<string, number>;
 }
 
 export interface SquadSimulationOptions {
@@ -88,6 +156,8 @@ export interface SquadSimulationOptions {
   readonly fixedTeamA?: readonly string[];
   readonly fixedTeamB?: readonly string[];
   readonly enableElevationTopography?: boolean;
+  readonly enableResonantLoadouts?: boolean;
+  readonly customResonantLoadouts?: Record<string, ResonantLoadoutConfig>;
 }
 
 export interface SquadSimulationResult {
@@ -143,7 +213,13 @@ function initializeTelemetry(classId: string): ClassSquadTelemetry {
     controlAbilityTargets: {},
     aoeTotalHits: 0,
     aoeCasts: 0,
-    avgAoeTargetsHit: 0
+    avgAoeTargetsHit: 0,
+    kitAbilityActions: 0,
+    resonantAbilityActions: 0,
+    totalAbilityActions: 0,
+    resonantUsagePercent: 0,
+    kitAbilityUsages: {},
+    resonantAbilityUsages: {}
   };
 }
 
@@ -201,8 +277,21 @@ export function runSquadSimulation(options?: SquadSimulationOptions): SquadSimul
       : undefined;
 
     // 3. Instantiate Units
+    const enableResonant = options?.enableResonantLoadouts ?? true;
+
     const teamAUnits: PlacedUnit[] = teamAClasses.map((classId, idx) => {
-      const unit = createSimulatedCombatant({ classId }, 'PLAYER', `A${idx + 1}`);
+      const resConfig = enableResonant
+        ? options?.customResonantLoadouts?.[classId] ?? DEFAULT_CLASS_RESONANT_LOADOUTS[classId]
+        : undefined;
+      const unit = createSimulatedCombatant(
+        {
+          classId,
+          wildcardAbilityIds: resConfig?.wildcardAbilityIds,
+          wildcardPassiveIds: resConfig?.wildcardPassiveIds
+        },
+        'PLAYER',
+        `A${idx + 1}`
+      );
       return {
         unit,
         coord: playerSpawns[idx],
@@ -211,7 +300,18 @@ export function runSquadSimulation(options?: SquadSimulationOptions): SquadSimul
     });
 
     const teamBUnits: PlacedUnit[] = teamBClasses.map((classId, idx) => {
-      const unit = createSimulatedCombatant({ classId }, 'ENEMY', `B${idx + 1}`);
+      const resConfig = enableResonant
+        ? options?.customResonantLoadouts?.[classId] ?? DEFAULT_CLASS_RESONANT_LOADOUTS[classId]
+        : undefined;
+      const unit = createSimulatedCombatant(
+        {
+          classId,
+          wildcardAbilityIds: resConfig?.wildcardAbilityIds,
+          wildcardPassiveIds: resConfig?.wildcardPassiveIds
+        },
+        'ENEMY',
+        `B${idx + 1}`
+      );
       return {
         unit,
         coord: enemySpawns[idx],
@@ -310,8 +410,17 @@ export function runSquadSimulation(options?: SquadSimulationOptions): SquadSimul
           executeAiAction(state, activeId, action, diceRoller);
         } else if (action.type === 'ABILITY') {
           const abId = action.ability.id;
+          const isResonant = cu.unit.loadout?.wildcardAbilityIds?.includes(abId) ?? false;
           if (tActor) {
             tActor.abilityUsages[abId] = (tActor.abilityUsages[abId] ?? 0) + 1;
+            tActor.totalAbilityActions++;
+            if (isResonant) {
+              tActor.resonantAbilityActions++;
+              tActor.resonantAbilityUsages[abId] = (tActor.resonantAbilityUsages[abId] ?? 0) + 1;
+            } else {
+              tActor.kitAbilityActions++;
+              tActor.kitAbilityUsages[abId] = (tActor.kitAbilityUsages[abId] ?? 0) + 1;
+            }
           }
 
           // Evaluate attack elevation delta
@@ -492,6 +601,12 @@ export function runSquadSimulation(options?: SquadSimulationOptions): SquadSimul
     const turns = t.totalTurns;
     t.highGroundTurnPercent = turns > 0 ? Math.round((t.turnsOnHighGround / turns) * 1000) / 10 : 0;
     t.avgAoeTargetsHit = t.aoeCasts > 0 ? Math.round((t.aoeTotalHits / t.aoeCasts) * 10) / 10 : 0;
+
+    const totalActs = t.kitAbilityActions + t.resonantAbilityActions;
+    t.totalAbilityActions = totalActs;
+    t.resonantUsagePercent = totalActs > 0
+      ? Math.round((t.resonantAbilityActions / totalActs) * 1000) / 10
+      : 0;
   }
 
   return {
@@ -541,6 +656,29 @@ export function formatSquadSimulationReport(result: SquadSimulationResult): stri
     const aoeStr = c.aoeCasts > 0 ? `${c.avgAoeTargetsHit.toFixed(1)} (${c.aoeCasts} casts)` : 'N/A';
     lines.push(
       `${pad(c.name, 12)} | ${pad(c.totalAttacks, 10)} | ${pad(c.critPercent.toFixed(1) + '%', 6)} | ${pad(c.hitPercent.toFixed(1) + '%', 6)} | ${pad(c.grazePercent.toFixed(1) + '%', 7)} | ${pad(c.missPercent.toFixed(1) + '%', 6)} | ${pad(c.vantageAttackPercent.toFixed(1) + '%', 13)} | ${aoeStr}`
+    );
+  }
+
+  lines.push('---------------------------------------------------------------------------------------------------------');
+  lines.push('\nRESONANT VS. KIT ABILITY USAGE BREAKDOWN');
+  lines.push('---------------------------------------------------------------------------------------------------------');
+  lines.push('Class        | Total Casts | Kit Casts (%)       | Resonant Casts (%)  | Resonant Abilities Used');
+  lines.push('---------------------------------------------------------------------------------------------------------');
+
+  for (const c of ranked) {
+    const pad = (str: string | number, len: number) => String(str).padEnd(len);
+    const kitPercentStr = c.totalAbilityActions > 0
+      ? ((c.kitAbilityActions / c.totalAbilityActions) * 100).toFixed(1) + '%'
+      : '0.0%';
+    const kitStr = `${c.kitAbilityActions} (${kitPercentStr})`;
+    const resStr = `${c.resonantAbilityActions} (${c.resonantUsagePercent.toFixed(1)}%)`;
+
+    const resonantDetails = Object.entries(c.resonantAbilityUsages)
+      .map(([abId, count]) => `${abId}: ${count}`)
+      .join(', ');
+
+    lines.push(
+      `${pad(c.name, 12)} | ${pad(c.totalAbilityActions, 11)} | ${pad(kitStr, 19)} | ${pad(resStr, 19)} | ${resonantDetails || 'None'}`
     );
   }
 
