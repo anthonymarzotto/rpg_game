@@ -17,13 +17,16 @@ export interface ArenaBackgroundConfig {
   readonly filter?: string;
 }
 
+const rawBase = typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL ? import.meta.env.BASE_URL : './';
+const BASE_URL = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
+
 /**
  * Curated list of high-resolution pixel art astral background assets.
  */
 export const ARENA_BACKGROUNDS = [
-  '/assets/backgrounds/background1.webp', // Constellations & dual-tone nebulae
-  '/assets/backgrounds/background2.webp', // Planetary ring & distant exoplanet
-  '/assets/backgrounds/background3.webp'  // Cosmic astral rift singularity
+  `${BASE_URL}assets/backgrounds/background1.webp`, // Constellations & dual-tone nebulae
+  `${BASE_URL}assets/backgrounds/background2.webp`, // Planetary ring & distant exoplanet
+  `${BASE_URL}assets/backgrounds/background3.webp`  // Cosmic astral rift singularity
 ] as const;
 
 /**
@@ -62,9 +65,14 @@ export function resolveArenaBackground(
 
   let image: string;
   if (customBackground) {
-    image = customBackground.startsWith('/')
-      ? customBackground
-      : `/assets/backgrounds/${customBackground}`;
+    if (customBackground.startsWith('http://') || customBackground.startsWith('https://') || customBackground.startsWith('data:')) {
+      image = customBackground;
+    } else {
+      const clean = customBackground.replace(/^\.?\//, '');
+      image = clean.startsWith('assets/')
+        ? `${BASE_URL}${clean}`
+        : `${BASE_URL}assets/backgrounds/${clean}`;
+    }
   } else {
     const bgIndex = (seed >>> 0) % ARENA_BACKGROUNDS.length;
     image = ARENA_BACKGROUNDS[bgIndex];

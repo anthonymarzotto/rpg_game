@@ -283,21 +283,29 @@ export function createCombatState(
   }
 
   if (shouldRollInitiative) {
-    const rollSummaries: string[] = [];
+    const rollDetails: Array<{ unitName: string; roll: number; isPlayer: boolean }> = [];
     for (const cu of combatUnits.values()) {
       if (cu.initialInitiativeRoll !== undefined) {
-        rollSummaries.push(`${cu.unit.name} (${cu.initialInitiativeRoll})`);
+        rollDetails.push({
+          unitName: cu.unit.name,
+          roll: cu.initialInitiativeRoll,
+          isPlayer: (cu.faction ?? cu.unit.faction ?? 'PLAYER') === 'PLAYER'
+        });
       }
     }
-    if (rollSummaries.length > 0) {
+    // Sort descending so highest initiative (acting first) is listed first
+    rollDetails.sort((a, b) => b.roll - a.roll);
+
+    if (rollDetails.length > 0) {
+      const rollSummaries = rollDetails.map((r) => `${r.unitName} (${r.roll})`);
       state.combatLog.push({
         turnNumber: 0,
         actorUnitId: '',
         actionId: 'initiative',
         message: `Combat begins! Initiative rolled: ${rollSummaries.join(', ')}`,
         metadata: {
-          type: 'GENERIC',
-          text: `Initiative rolled: ${rollSummaries.join(', ')}`
+          type: 'INITIATIVE',
+          rolls: rollDetails
         }
       });
     }

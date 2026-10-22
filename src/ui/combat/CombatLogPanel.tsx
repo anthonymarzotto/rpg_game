@@ -60,6 +60,16 @@ export type ParsedLogEntry =
       rawMessage: string;
     }
   | {
+      type: 'INITIATIVE';
+      turn: number;
+      rolls: readonly {
+        readonly unitName: string;
+        readonly roll: number;
+        readonly isPlayer: boolean;
+      }[];
+      rawMessage: string;
+    }
+  | {
       type: 'FAULT';
       turn: number;
       actor: string;
@@ -151,6 +161,34 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       targetHp: meta.targetHp,
       targetMaxHp: meta.targetMaxHp,
       secondaryDetail: meta.secondaryDetail ?? '',
+      rawMessage: msg
+    };
+  }
+
+  if (meta?.type === 'INITIATIVE') {
+    return {
+      type: 'INITIATIVE',
+      turn,
+      rolls: meta.rolls,
+      rawMessage: msg
+    };
+  }
+
+  if (entry.actionId === 'initiative' || msg.includes('Initiative rolled:')) {
+    const rollMatches = Array.from(msg.matchAll(/([^(,]+)\s*\((\d+)\)/g));
+    const parsedRolls = rollMatches.map((m) => {
+      const name = m[1].replace(/.*Initiative rolled:\s*/, '').trim();
+      const roll = parseInt(m[2], 10);
+      const isPlayer =
+        !name.toLowerCase().includes('goblin') &&
+        !name.toLowerCase().includes('bandit') &&
+        !name.toLowerCase().includes('enemy');
+      return { unitName: name, roll, isPlayer };
+    });
+    return {
+      type: 'INITIATIVE',
+      turn,
+      rolls: parsedRolls,
       rawMessage: msg
     };
   }
@@ -458,6 +496,34 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
                     <div className="log-fault-reason">
                       {entry.reason}
                     </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (entry.type === 'INITIATIVE') {
+              return (
+                <div
+                  key={idx}
+                  className={`log-card log-initiative-card ${isNewest ? 'entry-fresh' : ''}`}
+                >
+                  <div className="log-card-header">
+                    <span className="log-turn-pill log-turn-init">START</span>
+                    <span className="log-initiative-badge">🎲 INITIATIVE</span>
+                    <span className="log-initiative-title">Opening Turn Order</span>
+                  </div>
+                  <div className="log-initiative-grid">
+                    {entry.rolls.map((r, rIdx) => (
+                      <div
+                        key={rIdx}
+                        className={`initiative-roll-chip ${r.isPlayer ? 'chip-player' : 'chip-enemy'}`}
+                        title={`${r.unitName}: rolled ${r.roll}`}
+                      >
+                        <span className="roll-rank">#{rIdx + 1}</span>
+                        <span className="roll-name">{r.unitName}</span>
+                        <span className="roll-value">🎲 {r.roll}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               );

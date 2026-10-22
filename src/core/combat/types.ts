@@ -219,6 +219,14 @@ export type CombatLogMetadata =
       readonly secondaryDetail?: string;
     }
   | {
+      readonly type: 'INITIATIVE';
+      readonly rolls: readonly {
+        readonly unitName: string;
+        readonly roll: number;
+        readonly isPlayer: boolean;
+      }[];
+    }
+  | {
       readonly type: 'GENERIC';
       readonly actor?: string;
       readonly text?: string;

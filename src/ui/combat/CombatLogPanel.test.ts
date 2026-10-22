@@ -351,5 +351,77 @@ describe('parseCombatLogMessage', () => {
     expect(html).toContain('Spark');
     expect(html).toContain('Destination is not reachable');
   });
+
+  it('parses structured INITIATIVE log entry and renders formatted initiative card', () => {
+    const entry: CombatLogEntry = {
+      turnNumber: 0,
+      actorUnitId: '',
+      actionId: 'initiative',
+      message: 'Combat begins! Initiative rolled: Alden (18), Goblin Scout (9)',
+      metadata: {
+        type: 'INITIATIVE',
+        rolls: [
+          { unitName: 'Alden', roll: 18, isPlayer: true },
+          { unitName: 'Goblin Scout', roll: 9, isPlayer: false }
+        ]
+      }
+    };
+
+    const parsed = parseCombatLogMessage(entry);
+    expect(parsed.type).toBe('INITIATIVE');
+    if (parsed.type === 'INITIATIVE') {
+      expect(parsed.rolls).toHaveLength(2);
+      expect(parsed.rolls[0].unitName).toBe('Alden');
+      expect(parsed.rolls[0].roll).toBe(18);
+      expect(parsed.rolls[0].isPlayer).toBe(true);
+      expect(parsed.rolls[1].unitName).toBe('Goblin Scout');
+      expect(parsed.rolls[1].roll).toBe(9);
+      expect(parsed.rolls[1].isPlayer).toBe(false);
+    }
+
+    const html = renderToStaticMarkup(
+      React.createElement(CombatLogPanel, {
+        logEntries: [entry],
+        turnNumber: 1
+      })
+    );
+
+    expect(html).toContain('log-initiative-card');
+    expect(html).toContain('log-turn-init');
+    expect(html).toContain('START');
+    expect(html).toContain('🎲 INITIATIVE');
+    expect(html).toContain('Opening Turn Order');
+    expect(html).toContain('chip-player');
+    expect(html).toContain('Alden');
+    expect(html).toContain('🎲 18');
+    expect(html).toContain('chip-enemy');
+    expect(html).toContain('Goblin Scout');
+    expect(html).toContain('🎲 9');
+  });
+
+  it('parses unstructured initiative message fallback gracefully', () => {
+    const entry: CombatLogEntry = {
+      turnNumber: 0,
+      actorUnitId: '',
+      actionId: 'initiative',
+      message: 'Combat begins! Initiative rolled: Alden (20), Brenna (15), Bandit (8)',
+      metadata: {
+        type: 'GENERIC',
+        text: 'Initiative rolled: Alden (20), Brenna (15), Bandit (8)'
+      }
+    };
+
+    const parsed = parseCombatLogMessage(entry);
+    expect(parsed.type).toBe('INITIATIVE');
+    if (parsed.type === 'INITIATIVE') {
+      expect(parsed.rolls).toHaveLength(3);
+      expect(parsed.rolls[0].unitName).toBe('Alden');
+      expect(parsed.rolls[0].roll).toBe(20);
+      expect(parsed.rolls[0].isPlayer).toBe(true);
+      expect(parsed.rolls[2].unitName).toBe('Bandit');
+      expect(parsed.rolls[2].roll).toBe(8);
+      expect(parsed.rolls[2].isPlayer).toBe(false);
+    }
+  });
 });
 

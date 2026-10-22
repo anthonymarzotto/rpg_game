@@ -11,8 +11,8 @@
 - [x] **3.2**: Investigate Thief/Infiltrator action economy (Thieves cycling fast low-AP skills and getting 2x the actions and XP of heavier classes). (Resolved via pooled Party XP Bank in `party-xp-bank`; CTB pacing & speed scaling tracked in 7.1).
 
 ### BUGS
-- [ ] Background does not load on GitHub pages deployment. Not bundled?
-- [ ] Initiative card in Combat Log is not formatted nicely.
+- [x] Background does not load on GitHub pages deployment. Not bundled? (Fixed via `BASE_URL` asset path prefixing in `arenaBackground.ts` for relative subpath hosting).
+- [x] Initiative card in Combat Log is not formatted nicely. (Fixed with dedicated `.log-initiative-card` presenting opening rolls in turn-order chips with player/enemy color-coding and `START` badge).
 
 ---
 
