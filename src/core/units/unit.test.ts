@@ -31,8 +31,8 @@ describe('Unit Stats & Derived Vitals', () => {
   it('scales Speed, Evasion, and Move with Finesse', () => {
     const vitals = computeDerivedVitals({ force: 0, finesse: 3, focus: 0 }, 0);
 
-    // Speed: 10 + (3 * 2) = 16
-    expect(vitals.speed).toBe(16);
+    // Speed: 10 + (3 * 1) = 13
+    expect(vitals.speed).toBe(13);
     // Evasion: 10 + 3 = 13
     expect(vitals.evasion).toBe(13);
     // Move: 3 + floor(3 / 3) = 4

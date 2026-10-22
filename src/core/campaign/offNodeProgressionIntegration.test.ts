@@ -119,8 +119,8 @@ describe('Off-Node Progression Integration: Centroid Path & Slot Augments', () =
     });
 
     // Vitals verification: Wayfarer's Stride adds +2 Speed and +2 Evasion
-    // Note: Finesse attribute increased by 1 (+2 speed, +1 evasion from scaling), plus Stride (+2 speed, +2 evasion) = +4 speed, +3 evasion total
-    expect(hero.effectiveVitals.speed).toBe(vitalsL1.speed + 4);
+    // Note: Finesse attribute increased by 1 (+1 speed, +1 evasion from scaling), plus Stride (+2 speed, +2 evasion) = +3 speed, +3 evasion total
+    expect(hero.effectiveVitals.speed).toBe(vitalsL1.speed + 3);
     expect(hero.effectiveVitals.evasion).toBe(vitalsL1.evasion + 3);
     expect(getHeroDisplayTitle(hero)).toBe('Warrior • Wayfarer I');
 

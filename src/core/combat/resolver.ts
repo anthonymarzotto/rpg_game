@@ -573,8 +573,8 @@ export function executeAbility(
     }
   }
 
-  // 1. Support / Buff abilities (DamageType === 'NONE')
-  if (effectiveAbility.damageType === 'NONE') {
+  // 1. Support / Buff abilities (DamageType === 'NONE' and uncontested/no defense target)
+  if (effectiveAbility.damageType === 'NONE' && (effectiveAbility.defenseTarget === 'NONE' || !effectiveAbility.defenseTarget)) {
     // AoE aura / blast resolution (friendly buffs or hostile utility/displacement)
     if (effectiveAbility.aoeRadius && effectiveAbility.aoeRadius > 0) {
       const centerCoord =
@@ -990,11 +990,12 @@ export function executeAbility(
   const secondaryDetail = [effectResult.logDetail ?? '', splashDetail].filter(Boolean).join('');
   const auraDetail = auraEval.attackRollPenalty > 0 ? ` [Aura Penalty: -${auraEval.attackRollPenalty} (${auraEval.sourceAuraNames.join(', ')})]` : '';
   const elevDetail = elevMod.description ? ` [Elevation: ${elevMod.description}]` : '';
+  const damageDetail = effectiveAbility.damageType !== 'NONE' ? ` [Damage: ${damageResult.damageBreakdown}]` : '';
   state.combatLog.push({
     turnNumber: state.turnNumber,
     actorUnitId,
     actionId: ability.id,
-    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${rollResult.d20}+${rollResult.modifier} vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}]${elevDetail}${auraDetail} [Damage: ${damageResult.damageBreakdown}] (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})${secondaryDetail}`,
+    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${rollResult.d20}+${rollResult.modifier} vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}]${elevDetail}${auraDetail}${damageDetail} (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})${secondaryDetail}`,
     metadata: {
       type: 'ATTACK',
       actor: actorCu.unit.name,

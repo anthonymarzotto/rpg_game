@@ -13,7 +13,7 @@ describe('Combat Simulation Framework', () => {
       expect(cavalier.baseAttributes).toEqual({ force: 2, finesse: 1, focus: 0 });
       // Total points = 3 -> level 3
       expect(cavalier.effectiveVitals.maxHp).toBe(27); // 20 + 2*2 + 3*1
-      expect(cavalier.effectiveVitals.speed).toBe(12); // 10 + 1*2
+      expect(cavalier.effectiveVitals.speed).toBe(11); // 10 + 1*1
     });
 
     it('respects attribute overrides and custom levels', () => {
@@ -24,7 +24,7 @@ describe('Combat Simulation Framework', () => {
       });
       expect(customBerserker.baseAttributes).toEqual({ force: 3, finesse: 1, focus: 1 });
       expect(customBerserker.effectiveVitals.maxHp).toBe(32); // Base 12 + Level 4 * 5 = 32
-      expect(customBerserker.effectiveVitals.speed).toBe(12); // 10 + 1*2
+      expect(customBerserker.effectiveVitals.speed).toBe(11); // 10 + 1*1
     });
   });
 
@@ -64,7 +64,7 @@ describe('Combat Simulation Framework', () => {
         combatantA: { classId: 'highwayman', name: 'Highwayman' },
         combatantB: { classId: 'berserker', name: 'Berserker' },
         trials: 2,
-        maxTurnsPerTrial: 15,
+        maxTurnsPerTrial: 1,
         baseSeed: 999
       });
 

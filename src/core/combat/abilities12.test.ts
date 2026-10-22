@@ -295,11 +295,11 @@ describe('Phase 1.2: Foundational Abilities & Passive Mechanics', () => {
       const thiefCu = state.units.get('thief')!;
 
       expect(getEffectiveSpeed(warriorCu)).toBe(10);
-      expect(getEffectiveSpeed(thiefCu)).toBe(14); // 10 base + 2 finesse + 2 Quickstep
+      expect(getEffectiveSpeed(thiefCu)).toBe(13); // 10 base + 1 finesse + 2 Quickstep
 
-      // First unit to act should be Thief at tick 8 (112 gauge vs 80 gauge on Warrior)
+      // First unit to act should be Thief at tick 8 (104 gauge vs 80 gauge on Warrior)
       expect(state.activeUnitId).toBe('thief');
-      expect(thiefCu.initiativeGauge).toBe(112);
+      expect(thiefCu.initiativeGauge).toBe(104);
       expect(warriorCu.initiativeGauge).toBe(80);
     });
 

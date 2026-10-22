@@ -7,7 +7,7 @@
 ## 🔨 In Progress
 
 ### 3. CTB Curve & Speed Tuning
-- [ ] **3.1**: Tune the CTB speed scaling curve and audit CTB-delay abilities (e.g., Finesse granting +2 Speed vs +0 for Force/Focus creates extreme turn disparities in long fights; audit abilities like `Stand and Deliver!` to ensure `oncePerTurn` restrictions prevent infinite lockouts).
+- [x] **3.1**: Tune the CTB speed scaling curve and audit CTB-delay abilities (tuned Finesse speed scaling to +1 Speed/Finesse in `src/core/config/balance.ts`; updated `Stand and Deliver!` to roll vs Resolve with 20 CTB delay in `src/data/packages/highwayman.ts`, and updated `resolver.ts` so non-damage abilities with defense targets execute attack rolls).
 
 ---
 

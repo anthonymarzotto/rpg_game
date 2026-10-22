@@ -32,17 +32,18 @@ export const POINT_BLANK_BUCKSHOT: Ability = {
 export const STAND_AND_DELIVER: Ability = {
   id: 'stand_and_deliver',
   name: 'Stand and Deliver!',
-  description: 'A theatrical hold-up at gunpoint, delaying target CTB initiative by 30 ticks and divesting them of -2 Armor for 2 turns.',
+  description: 'A theatrical hold-up at gunpoint, rolling vs Resolve to delay target CTB initiative by 20 ticks and divest them of -2 Armor for 2 turns.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 2,
   targetType: 'SINGLE_TARGET',
-  defenseTarget: 'NONE',
+  defenseTarget: 'RESOLVE',
+  attackModifierAttribute: 'finesse',
   damageType: 'NONE',
   effects: [
     {
       type: 'CTB_DELAY',
-      magnitude: 30
+      magnitude: 20
     },
     {
       type: 'STAT_MODIFIER',
@@ -59,6 +60,7 @@ export const STAND_AND_DELIVER: Ability = {
       requiresFollowUp: 'PHYSICAL_ATTACK',
       minTotalAp: 3,
       bonusScore: 30.0,
+      scaleWithFollowUpDamage: true,
       reason: 'Prime armor shred before physical strike',
       preferredProfiles: ['SKIRMISHER']
     }

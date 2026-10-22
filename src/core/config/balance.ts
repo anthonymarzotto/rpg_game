@@ -20,7 +20,7 @@ export const RECRUIT_BASE_VITALS = {
 export const STAT_SCALING_RATES = {
   hpPerForce: 0,
   hpPerLevel: 5,
-  speedPerFinesse: 2,
+  speedPerFinesse: 1,
   moveFinesseDivisor: 3
 } as const;
 

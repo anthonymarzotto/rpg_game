@@ -229,13 +229,14 @@ describe('Tier 3 Highwayman Class Package Integration', () => {
       hwmCu.currentAp = 3;
       knightCu.initiativeGauge = 50;
 
-      const result = executeAbility(state, 'hwm', STAND_AND_DELIVER, { targetUnitId: 'knight' });
+      const dice = new MockDiceRoller({ d20Rolls: [15] });
+      const result = executeAbility(state, 'hwm', STAND_AND_DELIVER, { targetUnitId: 'knight' }, dice);
 
-      expect(result.type).toBe('BUFF');
+      expect(result.type).toBe('ATTACK');
       expect(hwmCu.currentAp).toBe(2); // 3 - 1 = 2
 
-      // CTB delay check: 50 - 30 = 20
-      expect(knightCu.initiativeGauge).toBe(20);
+      // CTB delay check: 50 - 20 = 30
+      expect(knightCu.initiativeGauge).toBe(30);
 
       // Armor modifier check: -2 Armor for 2 turns
       const armorMod = knightCu.activeModifiers.find((m) => m.stat === 'armor');
@@ -382,10 +383,11 @@ describe('Tier 3 Highwayman Class Package Integration', () => {
       enemyCu.initiativeGauge = 80;
 
       // Action 1: Stand and Deliver! (1 AP)
-      const res1 = executeAbility(state, 'hwm', STAND_AND_DELIVER, { targetUnitId: 'enemy' });
-      expect(res1.type).toBe('BUFF');
+      const dice1 = new MockDiceRoller({ d20Rolls: [15] });
+      const res1 = executeAbility(state, 'hwm', STAND_AND_DELIVER, { targetUnitId: 'enemy' }, dice1);
+      expect(res1.type).toBe('ATTACK');
       expect(hwmCu.currentAp).toBe(2);
-      expect(enemyCu.initiativeGauge).toBe(50); // 80 - 30 = 50
+      expect(enemyCu.initiativeGauge).toBe(60); // 80 - 20 = 60
       // Armor reduced from 2 to 0
       const armorMod = enemyCu.activeModifiers.find((m) => m.stat === 'armor');
       expect(armorMod?.value).toBe(-2);
