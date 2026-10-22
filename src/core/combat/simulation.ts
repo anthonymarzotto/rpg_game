@@ -7,6 +7,7 @@ import { CLASS_CATALOG } from '../../data/classes';
 import { buildEncounterState, EncounterDefinition } from './encounter';
 import { executeAiTurn } from '../ai/decisionEngine';
 import { SeededDiceRoller } from './dice';
+import { InBattleXp } from './types';
 
 export interface SimulationCombatantConfig {
   readonly id?: string;
@@ -57,6 +58,10 @@ export interface SimulationResult {
   readonly timeoutRatePercent: number;
   readonly combatantA: CombatantMetrics;
   readonly combatantB: CombatantMetrics;
+  readonly partyXpPool: {
+    readonly total: InBattleXp;
+    readonly avgPerTrial: InBattleXp;
+  };
 }
 
 /**
@@ -128,6 +133,9 @@ export function runCombatSimulation(options: CombatSimulationOptions): Simulatio
   let totalXpCurB = 0;
   let totalXpDirAA = 0;
   let totalXpDirAB = 0;
+  let totalPartyFighter = 0;
+  let totalPartyRogue = 0;
+  let totalPartyMage = 0;
 
   const usagesA: Record<string, number> = {};
   const usagesB: Record<string, number> = {};
@@ -216,6 +224,10 @@ export function runCombatSimulation(options: CombatSimulationOptions): Simulatio
     } else {
       timeouts++;
     }
+
+    totalPartyFighter += state.partyXpPool?.fighter ?? 0;
+    totalPartyRogue += state.partyXpPool?.rogue ?? 0;
+    totalPartyMage += state.partyXpPool?.mage ?? 0;
   }
 
   const avgTurnsPerTrial = trials > 0 ? Math.round((totalTurns / trials) * 10) / 10 : 0;
@@ -272,7 +284,19 @@ export function runCombatSimulation(options: CombatSimulationOptions): Simulatio
       totalXpCurB,
       totalXpDirAB,
       usagesB
-    )
+    ),
+    partyXpPool: {
+      total: {
+        fighter: totalPartyFighter,
+        rogue: totalPartyRogue,
+        mage: totalPartyMage
+      },
+      avgPerTrial: {
+        fighter: trials > 0 ? Math.round((totalPartyFighter / trials) * 10) / 10 : 0,
+        rogue: trials > 0 ? Math.round((totalPartyRogue / trials) * 10) / 10 : 0,
+        mage: trials > 0 ? Math.round((totalPartyMage / trials) * 10) / 10 : 0
+      }
+    }
   };
 }
 
@@ -309,6 +333,8 @@ export function formatSimulationReport(result: SimulationResult): string {
     `  - XP (Current):  ${cB.avgXpCurrent} avg / duel (${cB.totalXpCurrent} total)`,
     `  - XP (Dir A):    ${cB.avgXpDirectionA} avg / duel (${cB.totalXpDirectionA} total)`,
     `  - Top Abilities: ${formatAbilities(cB.abilityUsages)}`,
+    '--------------------------------------------------------------------------------',
+    `Shared Party XP Pool: FRC ${result.partyXpPool.total.fighter} (${result.partyXpPool.avgPerTrial.fighter} avg) | FIN ${result.partyXpPool.total.rogue} (${result.partyXpPool.avgPerTrial.rogue} avg) | FOC ${result.partyXpPool.total.mage} (${result.partyXpPool.avgPerTrial.mage} avg)`,
     '================================================================================'
   ].join('\n');
 }

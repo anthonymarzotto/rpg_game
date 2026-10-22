@@ -65,4 +65,19 @@ describe('CombatArena', () => {
     expect(html).toContain('/assets/backgrounds/background');
     expect(html).toContain('.webp');
   });
+
+  it('omits legacy BattleVictoryModal in campaign mode with onVictory provided', () => {
+    const encounter = createNoviceSandboxEncounter();
+
+    const html = renderToStaticMarkup(
+      <CombatArena
+        encounter={encounter}
+        onVictory={vi.fn()}
+        onExit={vi.fn()}
+      />
+    );
+
+    expect(html).not.toContain('victory-modal-backdrop');
+    expect(html).not.toContain('Trial Triumph!');
+  });
 });

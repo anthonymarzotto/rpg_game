@@ -275,6 +275,7 @@ export interface CombatState {
   outcome: CombatOutcome;
   readonly objectives?: readonly EncounterObjective[];
   aiDecisionLog?: AIDecisionTrace[];
+  partyXpPool: InBattleXp;
 }
 
 /**
@@ -298,6 +299,7 @@ export interface SerializedCombatState {
   readonly outcome: CombatOutcome;
   readonly objectives?: readonly EncounterObjective[];
   readonly aiDecisionLog?: readonly AIDecisionTrace[];
+  readonly partyXpPool?: InBattleXp;
   readonly exportedAt?: number;
 }
 

@@ -85,9 +85,28 @@ export function resolveCampaignVictory(
 }
 
 /**
+ * Calculates the retained party XP pool based on battle outcome:
+ * - Victory: 100% of earned pool
+ * - Defeat: 50% of earned pool (Math.floor(x * 0.5))
+ */
+export function calculateRetainedPartyXp(
+  pool: InBattleXp,
+  outcome: 'VICTORY' | 'DEFEAT'
+): InBattleXp {
+  if (outcome === 'VICTORY') {
+    return { ...pool };
+  }
+  return {
+    fighter: Math.floor((pool.fighter ?? 0) * 0.5),
+    rogue: Math.floor((pool.rogue ?? 0) * 0.5),
+    mage: Math.floor((pool.mage ?? 0) * 0.5)
+  };
+}
+
+/**
  * Reconciles campaign state following a battle defeat:
  * - Restores all squad members to full HP
- * - Discards any in-battle XP earned during the failed attempt
+ * - Credits player-allocated shares from the 50% retained party XP pool into each unit's accumulatedXp
  * - Preserves stage index and current encounter for retry or reroll
  * - Records defeat in campaign history
  */
@@ -95,10 +114,30 @@ export function resolveCampaignDefeat(
   state: CampaignState,
   result: CampaignBattleResult
 ): CampaignState {
+  const updatedRoster = state.roster.map((unit) => {
+    const gains = result.unitXpGains?.[unit.id];
+    if (!gains) return unit;
+    const currentXp = unit.progression.accumulatedXp ?? { fighter: 0, rogue: 0, mage: 0 };
+    const updatedXp: ArchetypePoints = {
+      fighter: currentXp.fighter + (gains.fighter ?? 0),
+      rogue: currentXp.rogue + (gains.rogue ?? 0),
+      mage: currentXp.mage + (gains.mage ?? 0)
+    };
+
+    return {
+      ...unit,
+      progression: {
+        ...unit.progression,
+        accumulatedXp: updatedXp
+      }
+    };
+  });
+
   const now = Date.now();
 
   return {
     ...state,
+    roster: updatedRoster,
     updatedAt: now,
     history: {
       victories: state.history.victories,

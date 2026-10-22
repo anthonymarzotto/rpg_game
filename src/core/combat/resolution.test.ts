@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createRadialArena } from '../grid/templates';
 import { HEX_DIRECTIONS } from '../grid/hex';
 import { createRecruit } from '../units/unitFactory';
-import { createCombatState, executeAbility } from './resolver';
+import { createCombatState, executeAbility, executeMove } from './resolver';
 import { resolveAttackRoll, getAttackRollModifier, getAbilityModifier } from './attackRoll';
 import { resolveDamage } from './damageEngine';
 import { MockDiceRoller } from './dice';
@@ -374,7 +374,8 @@ describe('Attack & Ability Resolution Outcomes', () => {
         expect(result.details.damageDealt).toBe(7);
       }
       expect(targetCu.currentHp).toBe(target.effectiveVitals.maxHp - 7);
-      expect(warriorCu.inBattleXp.fighter).toBe(1);
+      expect(warriorCu.inBattleXp.fighter).toBe(2);
+      expect(state.partyXpPool.fighter).toBe(2);
     });
 
     it('executes Wizard Arcane Blast dealing primary magic damage and collateral AoE splash', () => {
@@ -774,6 +775,121 @@ describe('Attack & Ability Resolution Outcomes', () => {
         expect(selfLog.metadata.ability).toBe('Minor Ward');
         expect(selfLog.metadata.target).toBeUndefined();
       }
+    });
+  });
+
+  describe('Party XP Pool & AP Scaling', () => {
+    const oneApFighter: Ability = {
+      id: 'test_1ap_fighter',
+      name: 'Test 1AP Fighter',
+      description: 'Test',
+      apCost: 1,
+      range: 1,
+      targetType: 'SINGLE_TARGET',
+      defenseTarget: 'EVASION',
+      damageType: 'PHYSICAL',
+      effects: [
+        {
+          type: 'DAMAGE',
+          damageProfile: { count: 1, sides: 4, modifierAttribute: 'force' }
+        }
+      ],
+      archetypeTag: 'FIGHTER'
+    };
+
+    const twoApRogue: Ability = {
+      id: 'test_2ap_rogue',
+      name: 'Test 2AP Rogue',
+      description: 'Test',
+      apCost: 2,
+      range: 1,
+      targetType: 'SINGLE_TARGET',
+      defenseTarget: 'EVASION',
+      damageType: 'PHYSICAL',
+      effects: [
+        {
+          type: 'DAMAGE',
+          damageProfile: { count: 1, sides: 6, modifierAttribute: 'finesse' }
+        }
+      ],
+      archetypeTag: 'ROGUE'
+    };
+
+    const threeApMage: Ability = {
+      id: 'test_3ap_mage',
+      name: 'Test 3AP Mage',
+      description: 'Test',
+      apCost: 3,
+      range: 1,
+      targetType: 'SINGLE_TARGET',
+      defenseTarget: 'RESOLVE',
+      damageType: 'MAGICAL',
+      effects: [
+        {
+          type: 'DAMAGE',
+          damageProfile: { count: 2, sides: 6, modifierAttribute: 'focus' }
+        }
+      ],
+      archetypeTag: 'MAGE'
+    };
+
+    it('awards 1 XP for 1 AP, 2 XP for 2 AP, and 3 XP for 3 AP abilities into state.partyXpPool', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const goblin = createRecruit('goblin', 'Goblin', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('goblin', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, goblin], 'hero');
+      const dice = new MockDiceRoller({ d20Rolls: [15, 15, 15], damageRolls: [2, 3, 5] });
+
+      expect(state.partyXpPool).toEqual({ fighter: 0, rogue: 0, mage: 0 });
+
+      // Execute 1 AP Fighter ability -> +1 Fighter XP
+      executeAbility(state, 'hero', oneApFighter, { targetUnitId: 'goblin' }, dice);
+      expect(state.partyXpPool.fighter).toBe(1);
+
+      // Execute 2 AP Rogue ability -> +2 Rogue XP
+      state.units.get('hero')!.currentAp = 5;
+      executeAbility(state, 'hero', twoApRogue, { targetUnitId: 'goblin' }, dice);
+      expect(state.partyXpPool.rogue).toBe(2);
+
+      // Execute 3 AP Mage ability -> +3 Mage XP
+      state.units.get('hero')!.currentAp = 5;
+      executeAbility(state, 'hero', threeApMage, { targetUnitId: 'goblin' }, dice);
+      expect(state.partyXpPool.mage).toBe(3);
+
+      expect(state.partyXpPool).toEqual({ fighter: 1, rogue: 2, mage: 3 });
+    });
+
+    it('awards 0 XP for move actions', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+
+      const state = createCombatState(arena, [hero], 'hero');
+      expect(state.partyXpPool).toEqual({ fighter: 0, rogue: 0, mage: 0 });
+
+      executeMove(state, 'hero', { q: 1, r: 0 });
+      expect(state.partyXpPool).toEqual({ fighter: 0, rogue: 0, mage: 0 });
+    });
+
+    it('awards 0 party XP when enemy units execute abilities', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const goblin = createRecruit('goblin', 'Goblin', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('goblin', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, goblin], 'goblin');
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [2] });
+
+      expect(state.partyXpPool).toEqual({ fighter: 0, rogue: 0, mage: 0 });
+
+      executeAbility(state, 'goblin', twoApRogue, { targetUnitId: 'hero' }, dice);
+      expect(state.partyXpPool).toEqual({ fighter: 0, rogue: 0, mage: 0 });
     });
   });
 });

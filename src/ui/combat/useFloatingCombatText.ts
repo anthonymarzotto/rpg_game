@@ -3,6 +3,7 @@ import { HexCoord } from '../../core/grid/hex';
 import { CombatState, AbilityResolution, CombatEvent, HitOutcome } from '../../core/combat/types';
 import { Ability } from '../../core/types/ability';
 import { predictTurnOrder } from '../../core/combat/turnClock';
+import { formatDisciplineName } from './combatXpUtils';
 
 export interface FloatingText {
   readonly id: string;
@@ -179,14 +180,20 @@ export function collectResolutionFloatingTexts(
     });
   }
 
-  // XP Gain Float
+  // XP Gain Float (awarded to shared party pool on player ability execution)
   if (selectedAbility.archetypeTag && playerCoord) {
-    result.push({
-      text: `+1 ${selectedAbility.archetypeTag} XP`,
-      type: 'xp',
-      coord: playerCoord,
-      delay: 300
-    });
+    const actorCu = state.units.get(state.activeUnitId);
+    const isPlayer = !actorCu || (actorCu.unit.faction ?? actorCu.faction ?? 'PLAYER') === 'PLAYER';
+    if (isPlayer) {
+      const xpAmount = Math.max(1, selectedAbility.apCost ?? 1);
+      const discipline = formatDisciplineName(selectedAbility.archetypeTag);
+      result.push({
+        text: `+${xpAmount} ${discipline} XP`,
+        type: 'xp',
+        coord: playerCoord,
+        delay: 300
+      });
+    }
   }
 
   return result;

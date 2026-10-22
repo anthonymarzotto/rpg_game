@@ -41,7 +41,8 @@ function createTestState(actor: CombatUnit, target: CombatUnit): CombatState {
     activeUnitId: actor.unit.id,
     turnNumber: 1,
     combatLog: [],
-    outcome: 'IN_PROGRESS'
+    outcome: 'IN_PROGRESS',
+    partyXpPool: { fighter: 0, rogue: 0, mage: 0 }
   };
 }
 

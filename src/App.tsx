@@ -142,15 +142,17 @@ export function App() {
 
   // Combat Reconciliation Actions
   const handleCombatVictory = useCallback(
-    (result: { state: CombatState }) => {
+    (result: { state: CombatState; unitXpGains?: Record<string, InBattleXp> }) => {
       if (!campaignState) {
         setCurrentView('CAMP');
         return;
       }
-      const unitXpGains: Record<string, InBattleXp> = {};
-      for (const [unitId, combatUnit] of result.state.units) {
-        if (combatUnit.unit.faction === 'PLAYER') {
-          unitXpGains[unitId] = combatUnit.inBattleXp;
+      let unitXpGains: Record<string, InBattleXp> = result.unitXpGains ?? {};
+      if (Object.keys(unitXpGains).length === 0) {
+        for (const [unitId, combatUnit] of result.state.units) {
+          if ((combatUnit.faction ?? combatUnit.unit.faction ?? 'PLAYER') === 'PLAYER') {
+            unitXpGains[unitId] = combatUnit.inBattleXp;
+          }
         }
       }
       const battleResult: CampaignBattleResult = {
@@ -167,22 +169,16 @@ export function App() {
   );
 
   const handleCombatDefeat = useCallback(
-    (result: { state: CombatState }) => {
+    (result: { state: CombatState; unitXpGains?: Record<string, InBattleXp> }) => {
       if (!campaignState) {
         setCurrentView('CAMP');
         return;
-      }
-      const unitXpGains: Record<string, InBattleXp> = {};
-      for (const [unitId, combatUnit] of result.state.units) {
-        if (combatUnit.unit.faction === 'PLAYER') {
-          unitXpGains[unitId] = combatUnit.inBattleXp;
-        }
       }
       const battleResult: CampaignBattleResult = {
         encounterId: campaignState.currentEncounter?.id ?? `stage-${campaignState.stage}`,
         encounterName: campaignState.currentEncounter?.name ?? `Stage ${campaignState.stage}`,
         outcome: 'DEFEAT',
-        unitXpGains
+        unitXpGains: result.unitXpGains ?? {}
       };
       const nextCampaign = resolveCampaignDefeat(campaignState, battleResult);
       setCampaignState(nextCampaign);

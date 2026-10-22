@@ -9,7 +9,6 @@ import {
   getEffectiveSpeed
 } from '../../core/combat/effectiveVitals';
 import { getClassBadgePalette } from './tokenAssets';
-import { getCombatUnitXpSummary } from './combatXpUtils';
 
 export interface UnitStatusCardProps {
   readonly activeCu: CombatUnit | undefined;
@@ -83,43 +82,6 @@ function formatRoleTitle(cu: CombatUnit): string {
   const classId = cu.unit.loadout?.activeClassId ?? 'novice';
   const className = classId.charAt(0).toUpperCase() + classId.slice(1);
   return `Level ${level} ${className}`;
-}
-
-function renderXpTracker(cu: CombatUnit) {
-  const faction = cu.faction ?? cu.unit.faction;
-  if (faction !== 'PLAYER') return null;
-
-  const xpSummary = getCombatUnitXpSummary(cu);
-
-  return (
-    <div className="hud-xp-tracker" data-testid="hud-xp-tracker">
-      <div className="hud-xp-header font-mono">
-        <span className="hud-xp-title">XP PROGRESS</span>
-        <span className="hud-xp-threshold">
-          {xpSummary.isMaxLevel ? 'MAX' : `Next Level: ${xpSummary.threshold} XP`}
-        </span>
-      </div>
-      <div className="hud-xp-stats font-ui">
-        {xpSummary.attributes.map((attr) => (
-          <span
-            key={attr.attribute}
-            className={`hud-xp-stat ${attr.className} ${attr.isReady ? 'hud-xp-ready' : ''}`}
-            title={
-              attr.isReady
-                ? `${attr.attribute}: ${attr.total}/${xpSummary.threshold} XP — Ascension Ready in Camp!`
-                : `${attr.attribute}: ${attr.total}${xpSummary.isMaxLevel ? '' : `/${xpSummary.threshold}`} XP`
-            }
-          >
-            <span className="hud-xp-icon">{attr.icon}</span> {attr.shortLabel} {attr.total}
-            {attr.inBattle > 0 && (
-              <span className="hud-xp-gain"> (+{attr.inBattle})</span>
-            )}
-            {attr.isReady && <span className="hud-xp-ready-glyph"> ✦</span>}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 export function UnitStatusCard({
@@ -251,9 +213,6 @@ export function UnitStatusCard({
             })}
           </div>
         )}
-
-        {/* In-Combat Character Card XP Gain Tracker */}
-        {renderXpTracker(activeCu)}
       </div>
 
       {/* 2. Target Hover Preview Card */}
@@ -432,9 +391,6 @@ export function UnitStatusCard({
               WRD: <b>{getEffectiveWard(hoveredUnitCu)}</b>
             </div>
           </div>
-
-          {/* Inspected Unit XP Tracker (for Allied Units) */}
-          {renderXpTracker(hoveredUnitCu)}
         </div>
       )}
     </div>

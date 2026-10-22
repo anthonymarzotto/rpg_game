@@ -1,0 +1,403 @@
+.harvest-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 7, 13, 0.88);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  animation: fadeInHarvest 0.2s ease-out;
+}
+
+@keyframes fadeInHarvest {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.harvest-modal-card {
+  width: 92%;
+  max-width: 780px;
+  max-height: 92vh;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #111827 0%, #0a0d14 100%);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(245, 158, 11, 0.15);
+  border-radius: 14px;
+  padding: 1.5rem;
+  color: #f3f4f6;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Header */
+.harvest-header {
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.75rem;
+}
+
+.harvest-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  padding: 0.2rem 0.75rem;
+  border-radius: 9999px;
+  margin-bottom: 0.35rem;
+}
+
+.harvest-badge.victory {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.harvest-badge.defeat {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.harvest-header h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  color: #f9fafb;
+}
+
+.harvest-header p {
+  margin: 0.25rem 0 0;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+/* Pool Ribbon */
+.harvest-pool-ribbon {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: rgba(17, 24, 39, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 0.85rem 1.1rem;
+}
+
+.pool-ribbon-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.pool-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: #9ca3af;
+}
+
+.pool-subtext {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.pool-pills {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pool-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: rgba(31, 41, 55, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pool-pill-fighter.has-xp {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.pool-pill-rogue.has-xp {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+}
+
+.pool-pill-mage.has-xp {
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.12);
+  color: #c4b5fd;
+}
+
+.pool-pill.empty {
+  opacity: 0.5;
+  color: #6b7280;
+}
+
+.pill-total {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.pool-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.btn-harvest-action {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.btn-autofill {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fde68a;
+}
+
+.btn-autofill:hover {
+  background: rgba(245, 158, 11, 0.3);
+}
+
+.btn-reset {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #d1d5db;
+}
+
+.btn-reset:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Squad Grid */
+.harvest-squad-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.harvest-unit-card {
+  background: rgba(17, 24, 39, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: border-color 0.15s ease;
+}
+
+.harvest-unit-card:hover {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.unit-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 0.6rem;
+}
+
+.unit-card-token {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  image-rendering: pixelated;
+}
+
+.unit-card-token-fallback {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: #1f2937;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #fbbf24;
+}
+
+.unit-card-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.unit-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #f3f4f6;
+}
+
+.unit-class-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: 0.05em;
+}
+
+/* Stepper Rows */
+.unit-stepper-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stepper-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+}
+
+.stepper-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: 55px;
+}
+
+.stepper-tag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.stepper-fighter .stepper-tag { color: #fca5a5; }
+.stepper-rogue .stepper-tag { color: #6ee7b7; }
+.stepper-mage .stepper-tag { color: #c4b5fd; }
+
+.stepper-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-step {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: #f3f4f6;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.btn-step:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-step:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.stepper-value {
+  min-width: 26px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #9ca3af;
+}
+
+.stepper-value.allocated {
+  color: #fbbf24;
+}
+
+.stepper-projected {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.projected-val {
+  font-weight: 700;
+  color: #e5e7eb;
+}
+
+/* Footer */
+.harvest-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 1rem;
+  gap: 1rem;
+}
+
+.harvest-footer-status {
+  flex: 1;
+  font-size: 0.85rem;
+}
+
+.status-warning {
+  color: #f59e0b;
+}
+
+
+.btn-harvest-confirm {
+  padding: 0.65rem 1.4rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.btn-harvest-confirm.btn-victory {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #111827;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+}
+
+.btn-harvest-confirm.btn-defeat {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+}
+
+.btn-harvest-confirm:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}

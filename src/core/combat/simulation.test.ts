@@ -47,12 +47,15 @@ describe('Combat Simulation Framework', () => {
       // Verify XP metrics tracked
       expect(result.combatantA.totalXpCurrent).toBeGreaterThan(0);
       expect(result.combatantA.totalXpDirectionA).toBeGreaterThanOrEqual(result.combatantA.totalXpCurrent);
+      expect(result.partyXpPool).toBeDefined();
+      expect(result.partyXpPool.total.fighter + result.partyXpPool.total.rogue + result.partyXpPool.total.mage).toBeGreaterThan(0);
 
       // Formatted report verification
       const report = formatSimulationReport(result);
       expect(report).toContain('COMBAT BALANCE SIMULATION REPORT');
       expect(report).toContain('Combatant A: Cavalier (cavalier)');
       expect(report).toContain('Combatant B: Highwayman (highwayman)');
+      expect(report).toContain('Shared Party XP Pool:');
     });
 
     it('detects timeouts and reports them without artificially awarding wins', () => {

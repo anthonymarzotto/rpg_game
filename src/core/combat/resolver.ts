@@ -24,10 +24,7 @@ import { getEffectiveMove, getEffectiveSpeed } from './effectiveVitals';
 import { getEffectiveAbility } from './modifiers';
 import { isFlankOrRear } from './flanking';
 import { DiceRoller, SeededDiceRoller, RollAdvantage } from './dice';
-import {
-  COMBAT_RESOLUTION_CONFIG,
-  ACTION_ECONOMY_CONFIG
-} from '../config/balance';
+import { ACTION_ECONOMY_CONFIG } from '../config/balance';
 import { advanceTurnClock, predictTurnOrder } from './turnClock';
 import { resolveAttackRoll, calculateElevationAttackModifier } from './attackRoll';
 import { resolveDamage, resolveFallDamage } from './damageEngine';
@@ -273,7 +270,8 @@ export function createCombatState(
     combatLog: [],
     outcome: 'IN_PROGRESS',
     objectives,
-    aiDecisionLog: []
+    aiDecisionLog: [],
+    partyXpPool: { fighter: 0, rogue: 0, mage: 0 }
   };
 
   // Pre-encounter setup pass: seed initial state (e.g. +25 initiative for Tactical Vanguard)
@@ -542,13 +540,29 @@ export function executeAbility(
     actorCu.facing = getDirectionBetween(actorCoord, targetCoord);
   }
 
-  // Award In-Battle Archetype XP on execution
-  if (effectiveAbility.archetypeTag === 'FIGHTER') {
-    actorCu.inBattleXp.fighter += COMBAT_RESOLUTION_CONFIG.xpPerAction;
-  } else if (effectiveAbility.archetypeTag === 'ROGUE') {
-    actorCu.inBattleXp.rogue += COMBAT_RESOLUTION_CONFIG.xpPerAction;
-  } else if (effectiveAbility.archetypeTag === 'MAGE') {
-    actorCu.inBattleXp.mage += COMBAT_RESOLUTION_CONFIG.xpPerAction;
+  // Award In-Battle Archetype XP to shared party pool on player ability execution
+  const isPlayer = (actorCu.unit.faction ?? actorCu.faction ?? 'PLAYER') === 'PLAYER';
+  if (isPlayer) {
+    const xpEarned = Math.max(1, effectiveAbility.apCost ?? 1);
+    if (effectiveAbility.archetypeTag === 'FIGHTER') {
+      state.partyXpPool = {
+        ...state.partyXpPool,
+        fighter: state.partyXpPool.fighter + xpEarned
+      };
+      actorCu.inBattleXp.fighter += xpEarned;
+    } else if (effectiveAbility.archetypeTag === 'ROGUE') {
+      state.partyXpPool = {
+        ...state.partyXpPool,
+        rogue: state.partyXpPool.rogue + xpEarned
+      };
+      actorCu.inBattleXp.rogue += xpEarned;
+    } else if (effectiveAbility.archetypeTag === 'MAGE') {
+      state.partyXpPool = {
+        ...state.partyXpPool,
+        mage: state.partyXpPool.mage + xpEarned
+      };
+      actorCu.inBattleXp.mage += xpEarned;
+    }
   }
 
   // 1. Support / Buff abilities (DamageType === 'NONE')

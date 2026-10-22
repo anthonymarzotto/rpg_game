@@ -78,7 +78,8 @@ describe('Cat-burglar Integration & Abilities', () => {
         activeUnitId: 'burglar',
         turnNumber: 1,
         combatLog: [],
-        outcome: 'IN_PROGRESS'
+        outcome: 'IN_PROGRESS',
+        partyXpPool: { fighter: 0, rogue: 0, mage: 0 }
       };
 
       const result = executeAbility(state, 'burglar', ROOFTOP_VAULT, {
@@ -113,7 +114,8 @@ describe('Cat-burglar Integration & Abilities', () => {
         activeUnitId: 'burglar',
         turnNumber: 1,
         combatLog: [],
-        outcome: 'IN_PROGRESS'
+        outcome: 'IN_PROGRESS',
+        partyXpPool: { fighter: 0, rogue: 0, mage: 0 }
       };
 
       const result = executeAbility(state, 'burglar', ROOFTOP_VAULT, {
@@ -150,7 +152,8 @@ describe('Cat-burglar Integration & Abilities', () => {
         activeUnitId: 'burglar',
         turnNumber: 1,
         combatLog: [],
-        outcome: 'IN_PROGRESS'
+        outcome: 'IN_PROGRESS',
+        partyXpPool: { fighter: 0, rogue: 0, mage: 0 }
       };
 
       // Force high roll for solid hit
@@ -195,7 +198,8 @@ describe('Cat-burglar Integration & Abilities', () => {
         activeUnitId: 'burglar',
         turnNumber: 1,
         combatLog: [],
-        outcome: 'IN_PROGRESS'
+        outcome: 'IN_PROGRESS',
+        partyXpPool: { fighter: 0, rogue: 0, mage: 0 }
       };
 
       // Finesse 10 vs Evasion 18: diff = -8. d20 = 7 -> score = 17 -> Graze (Evasion - 5 to Evasion - 1)
@@ -234,7 +238,8 @@ describe('Cat-burglar Integration & Abilities', () => {
         activeUnitId: 'burglar',
         turnNumber: 1,
         combatLog: [],
-        outcome: 'IN_PROGRESS'
+        outcome: 'IN_PROGRESS',
+        partyXpPool: { fighter: 0, rogue: 0, mage: 0 }
       };
 
       executeMove(state, 'burglar', { q: 1, r: 0 });
@@ -280,7 +285,8 @@ describe('Cat-burglar Integration & Abilities', () => {
         activeUnitId: 'burglar',
         turnNumber: 1,
         combatLog: [],
-        outcome: 'IN_PROGRESS'
+        outcome: 'IN_PROGRESS',
+        partyXpPool: { fighter: 0, rogue: 0, mage: 0 }
       };
 
       const result = executeAbility(state, 'burglar', FLASH_POWDER, {

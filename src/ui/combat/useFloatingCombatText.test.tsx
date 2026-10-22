@@ -229,6 +229,65 @@ describe('useFloatingCombatText: collectResolutionFloatingTexts', () => {
     expect(teleportItem).toBeDefined();
     expect(teleportItem?.coord).toEqual({ q: 2, r: 0 });
   });
+
+  it('formats floating XP using Force/Finesse/Focus discipline names and scales by AP cost', async () => {
+    const { collectResolutionFloatingTexts } = await import('./useFloatingCombatText');
+    const { createRadialArena } = await import('../../core/grid/templates');
+    const { createRecruit } = await import('../../core/units/unitFactory');
+    const { createCombatState } = await import('../../core/combat/resolver');
+
+    const arena = createRadialArena(3);
+    const hero = createRecruit('hero', 'Hero');
+    const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+    arena.setUnitPosition('hero', { q: 0, r: 0 });
+    arena.setUnitPosition('enemy', { q: 1, r: 0 });
+    const state = createCombatState(arena, [hero, enemy], 'hero');
+
+    const twoApRogueAbility = {
+      id: 'test_2ap_rogue',
+      name: 'Twin Strike',
+      description: 'Test',
+      apCost: 2,
+      range: 1,
+      targetType: 'SINGLE_TARGET' as const,
+      defenseTarget: 'EVASION' as const,
+      damageType: 'PHYSICAL' as const,
+      archetypeTag: 'ROGUE' as const,
+      effects: []
+    };
+
+    const resolution = {
+      type: 'ATTACK' as const,
+      details: {
+        hitOutcome: 'SOLID_HIT' as const,
+        d20Roll: 15,
+        modifier: 2,
+        totalAttackScore: 17,
+        defenseTargetScore: 10,
+        rawDamage: 4,
+        mitigation: 0,
+        damageDealt: 4,
+        damageBreakdown: '4 Physical',
+        effectsApplied: [],
+        events: []
+      }
+    };
+
+    const items = collectResolutionFloatingTexts(
+      state,
+      resolution,
+      twoApRogueAbility,
+      { q: 1, r: 0 },
+      { q: 0, r: 0 },
+      { q: 1, r: 0 },
+      'enemy'
+    );
+
+    const xpFloat = items.find((i) => i.type === 'xp');
+    expect(xpFloat).toBeDefined();
+    expect(xpFloat?.text).toBe('+2 Finesse XP');
+    expect(xpFloat?.coord).toEqual({ q: 0, r: 0 });
+  });
 });
 
 describe('useFloatingCombatText: collectInitiativeFloatingTexts', () => {

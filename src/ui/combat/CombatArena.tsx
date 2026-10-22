@@ -7,23 +7,23 @@ import { ActionBar } from './ActionBar';
 import { EnemyTurnBanner } from './EnemyTurnBanner';
 import { UnitStatusCard } from './UnitStatusCard';
 import { CombatLogPanel } from './CombatLogPanel';
-import { BattleVictoryModal } from './BattleVictoryModal';
 import { BattleDefeatModal } from './BattleDefeatModal';
 import { InitiativeRibbon } from './InitiativeRibbon';
 import { preloadCombatUnitTokens } from './tokenAssets';
 import { AISpeedMode } from './asyncTurnSequencer';
 import { EncounterDefinition } from '../../core/combat/encounter';
-import { CombatState } from '../../core/combat/types';
+import { CombatState, InBattleXp } from '../../core/combat/types';
 import { SquadMemberVictorySummary } from './useCombatSimulation';
 import { TrialExportModal } from './TrialExportModal';
 import { TrialErrorBoundary } from './TrialErrorBoundary';
+import { HarvestDistributionModal } from './HarvestDistributionModal';
 import { resolveArenaBackground, computeBackgroundTransform } from './arenaBackground';
 import './CombatArena.css';
 
 export interface CombatArenaProps {
   readonly encounter?: EncounterDefinition;
-  readonly onVictory?: (result: { state: CombatState; summaries?: readonly SquadMemberVictorySummary[] }) => void;
-  readonly onDefeat?: (result: { state: CombatState }) => void;
+  readonly onVictory?: (result: { state: CombatState; unitXpGains?: Record<string, InBattleXp>; summaries?: readonly SquadMemberVictorySummary[] }) => void;
+  readonly onDefeat?: (result: { state: CombatState; unitXpGains?: Record<string, InBattleXp> }) => void;
   readonly onExit?: () => void;
 }
 
@@ -36,6 +36,8 @@ export function CombatArena({
   const [fieldZoom, setFieldZoom] = useState<number>(1.0);
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [ribbonHoveredUnitId, setRibbonHoveredUnitId] = useState<string | null>(null);
+  const [isHarvestModalOpen, setIsHarvestModalOpen] = useState<boolean>(false);
+  const [harvestOutcome, setHarvestOutcome] = useState<'VICTORY' | 'DEFEAT'>('VICTORY');
 
   const activeEncounter = useMemo(
     () => encounter ?? createNoviceSandboxEncounter(),
@@ -66,17 +68,25 @@ export function CombatArena({
     facingCompassCoord,
     handleSelectFacing,
     squadSummaries,
-    activeSquadUnitId,
-    handleSelectSquadUnit,
     isVictoryModalOpen,
     setIsVictoryModalOpen,
     isDefeatModalOpen,
+    setIsDefeatModalOpen,
     selectAction,
     handleTileClick,
     handleEndTurn,
     handleRematch,
     handleResetEncounter
   } = useCombatSimulation({ encounter: activeEncounter });
+
+  const isCampaignVictory = isVictoryModalOpen;
+  const isCampaignDefeat = Boolean(onDefeat && isDefeatModalOpen);
+  const effectiveHarvestModalOpen = isHarvestModalOpen || isCampaignVictory || isCampaignDefeat;
+  const effectiveHarvestOutcome: 'VICTORY' | 'DEFEAT' = isCampaignDefeat
+    ? 'DEFEAT'
+    : isCampaignVictory
+      ? 'VICTORY'
+      : harvestOutcome;
 
   const handleCanvasWheel = (e: React.WheelEvent) => {
     // Smooth mouse-wheel field zoom
@@ -113,6 +123,13 @@ export function CombatArena({
       .filter((cu) => cu.faction === 'PLAYER')
       .map((cu) => ({ unit: cu.unit, earnedXp: cu.inBattleXp }));
   }, [squadSummaries, state.units]);
+
+  // Deployed squad units for harvest distribution
+  const deployedSquadUnits = useMemo(() => {
+    return Array.from(state.units.values())
+      .filter((cu) => (cu.faction ?? cu.unit.faction ?? 'PLAYER') === 'PLAYER')
+      .map((cu) => cu.unit);
+  }, [state.units]);
 
   // Preload token sprites strictly for active combatants to eliminate rotation lag
   useEffect(() => {
@@ -242,6 +259,18 @@ export function CombatArena({
 
           {/* Global Controls */}
           <div className="testbed-actions">
+            {state.outcome !== 'IN_PROGRESS' && (onVictory || onDefeat) && !effectiveHarvestModalOpen && (
+              <button
+                type="button"
+                className="btn-testbed harvest-reopen-btn font-ui"
+                onClick={() => {
+                  setHarvestOutcome(state.outcome === 'DEFEAT' ? 'DEFEAT' : 'VICTORY');
+                  setIsHarvestModalOpen(true);
+                }}
+              >
+                ✦ Harvest Spoils
+              </button>
+            )}
             <button
               type="button"
               className="btn-testbed export-btn font-ui"
@@ -323,31 +352,39 @@ export function CombatArena({
           />
         )}
 
-        {/* Post-Battle Victory Modal */}
-        <BattleVictoryModal
-          isOpen={isVictoryModalOpen}
-          squadMembers={squadSummaries}
-          activeSquadUnitId={activeSquadUnitId}
-          onSelectSquadUnit={handleSelectSquadUnit}
-          onRematch={handleRematch}
-          onDismiss={() => setIsVictoryModalOpen(false)}
-          onProceedToCamp={
-            onVictory
-              ? () => onVictory({ state })
-              : undefined
-          }
-        />
+        {/* Post-Battle Defeat Modal (used in standalone dev sandbox when onDefeat callback is omitted) */}
+        {!onDefeat && (
+          <BattleDefeatModal
+            isOpen={isDefeatModalOpen}
+            squadMembers={playerSquadUnits}
+            onRetry={handleResetEncounter}
+          />
+        )}
 
-        {/* Post-Battle Defeat Modal */}
-        <BattleDefeatModal
-          isOpen={isDefeatModalOpen}
-          squadMembers={playerSquadUnits}
-          onRetry={handleResetEncounter}
-          onRetreatToCamp={
-            onDefeat
-              ? () => onDefeat({ state })
-              : undefined
-          }
+        {/* Post-Battle Party XP Harvest & Allocation Modal */}
+        <HarvestDistributionModal
+          isOpen={effectiveHarvestModalOpen}
+          outcome={effectiveHarvestOutcome}
+          squadUnits={deployedSquadUnits}
+          earnedPool={state.partyXpPool ?? { fighter: 0, rogue: 0, mage: 0 }}
+          onConfirm={(allocations) => {
+            setIsHarvestModalOpen(false);
+            setIsVictoryModalOpen(false);
+            setIsDefeatModalOpen(false);
+            if (effectiveHarvestOutcome === 'VICTORY') {
+              if (onVictory) {
+                onVictory({ state, unitXpGains: allocations, summaries: squadSummaries });
+              } else {
+                handleRematch();
+              }
+            } else {
+              if (onDefeat) {
+                onDefeat({ state, unitXpGains: allocations });
+              } else {
+                handleResetEncounter();
+              }
+            }
+          }}
         />
 
         {/* Trial Export & Diagnostics Modal */}

@@ -106,5 +106,19 @@ describe('InitiativeRibbon Component', () => {
     expect(html).toContain('chip-active');
     expect(html).toContain('Bandit');
   });
+
+  it('renders shared party pool badge with Force, Finesse, and Focus XP counters', () => {
+    const { state } = setupTestState();
+    state.partyXpPool = { fighter: 3, rogue: 2, mage: 1 };
+
+    const html = renderToStaticMarkup(<InitiativeRibbon state={state} />);
+    expect(html).toContain('ribbon-party-xp');
+    expect(html).toContain('⚡');
+    expect(html).toContain('data-testid="ribbon-xp-frc"');
+    expect(html).toContain('3');
+    expect(html).toContain('2');
+    expect(html).toContain('1');
+    expect(html).toContain('Squad Combat XP Pool: 3 Force, 2 Finesse, 1 Focus');
+  });
 });
 

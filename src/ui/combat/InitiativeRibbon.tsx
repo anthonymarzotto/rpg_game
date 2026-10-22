@@ -79,6 +79,21 @@ export function InitiativeRibbon({
           );
         })}
       </div>
+
+      {/* Compact Shared Party XP Pool Badge */}
+      {state.partyXpPool && (
+        <div
+          className="ribbon-party-xp"
+          data-testid="ribbon-party-xp"
+          title={`Squad Combat XP Pool: ${state.partyXpPool.fighter} Force, ${state.partyXpPool.rogue} Finesse, ${state.partyXpPool.mage} Focus`}
+        >
+          <span className="party-xp-icon" aria-label="Party XP Pool">⚡</span>
+          <span className="party-xp-tag">XP:</span>
+          <span className="xp-pill xp-frc" data-testid="ribbon-xp-frc">{state.partyXpPool.fighter}</span>
+          <span className="xp-pill xp-fin" data-testid="ribbon-xp-fin">{state.partyXpPool.rogue}</span>
+          <span className="xp-pill xp-foc" data-testid="ribbon-xp-foc">{state.partyXpPool.mage}</span>
+        </div>
+      )}
     </div>
   );
 }

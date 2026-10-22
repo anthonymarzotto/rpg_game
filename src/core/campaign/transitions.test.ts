@@ -3,6 +3,7 @@ import { createCampaign } from './campaignFactory';
 import {
   resolveCampaignVictory,
   resolveCampaignDefeat,
+  calculateRetainedPartyXp,
   allocateCampArchetypePoint,
   updateCampUnitLoadout,
   setCampActiveSquad,
@@ -11,6 +12,16 @@ import {
 } from './transitions';
 
 describe('Campaign State Transitions & Lifecycle Reducers', () => {
+  it('calculateRetainedPartyXp: retains 100% on victory and 50% (floored) on defeat', () => {
+    const pool = { fighter: 5, rogue: 4, mage: 1 };
+
+    const victoryRetained = calculateRetainedPartyXp(pool, 'VICTORY');
+    expect(victoryRetained).toEqual({ fighter: 5, rogue: 4, mage: 1 });
+
+    const defeatRetained = calculateRetainedPartyXp(pool, 'DEFEAT');
+    expect(defeatRetained).toEqual({ fighter: 2, rogue: 2, mage: 0 });
+  });
+
   it('resolves campaign victory: banks XP, advances stage, logs history, pre-generates next battle', () => {
     const initial = createCampaign({ seed: 100 });
     const hero1 = initial.roster[0];
@@ -47,16 +58,18 @@ describe('Campaign State Transitions & Lifecycle Reducers', () => {
     expect(nextState.currentEncounter!.id).toContain('stage-2');
   });
 
-  it('resolves campaign defeat: reverts in-battle XP, preserves stage, logs history', () => {
+  it('resolves campaign defeat: preserves stage, credits distributed 50% retained XP, logs history', () => {
     const initial = createCampaign({ seed: 200 });
     const hero1 = initial.roster[0];
+    const rawPool = { fighter: 6, rogue: 3, mage: 0 };
+    const retainedPool = calculateRetainedPartyXp(rawPool, 'DEFEAT'); // { fighter: 3, rogue: 1, mage: 0 }
 
     const battleResult = {
       encounterId: 'stage-1-battle',
       encounterName: 'Trial by Fire',
       outcome: 'DEFEAT' as const,
       unitXpGains: {
-        [hero1.id]: { fighter: 4, rogue: 0, mage: 0 }
+        [hero1.id]: retainedPool
       }
     };
 
@@ -68,11 +81,11 @@ describe('Campaign State Transitions & Lifecycle Reducers', () => {
     expect(nextState.history.records).toHaveLength(1);
     expect(nextState.history.records[0].outcome).toBe('DEFEAT');
 
-    // XP gained in the failed fight is discarded
+    // 50% retained XP allocated to hero1 is credited into accumulatedXp
     const updatedHero1 = nextState.roster.find((u) => u.id === hero1.id)!;
     expect(updatedHero1.progression.accumulatedXp).toEqual({
-      fighter: 0,
-      rogue: 0,
+      fighter: 3,
+      rogue: 1,
       mage: 0
     });
   });

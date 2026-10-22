@@ -4,6 +4,7 @@ import { createCampaign } from './campaignFactory';
 import {
   resolveCampaignVictory,
   resolveCampaignDefeat,
+  calculateRetainedPartyXp,
   allocateCampArchetypePoint,
   updateCampUnitLoadout,
   regenerateCurrentStageEncounter
@@ -82,12 +83,14 @@ describe('Campaign End-to-End Headless Integration Flow', () => {
     const stage2Encounter = campaign.currentEncounter!;
     expect(stage2Encounter.id).toContain('stage-2');
 
+    // Party earned 2 Mage XP before falling; 50% (1 XP) is salvaged and allocated to recruitC
+    const retainedPool = calculateRetainedPartyXp({ fighter: 0, rogue: 0, mage: 2 }, 'DEFEAT');
     const stage2DefeatResult = {
       encounterId: stage2Encounter.id,
       encounterName: stage2Encounter.name,
       outcome: 'DEFEAT' as const,
       unitXpGains: {
-        [recruitC.id]: { fighter: 0, rogue: 0, mage: 2 } // Earned 2 XP before falling
+        [recruitC.id]: retainedPool
       }
     };
 
@@ -96,9 +99,9 @@ describe('Campaign End-to-End Headless Integration Flow', () => {
     expect(campaign.history.victories).toBe(1);
     expect(campaign.history.defeats).toBe(1);
 
-    // XP gained in failed attempt was discarded
+    // 50% of XP gained in failed attempt (1 Mage XP) is retained: 3 + 1 = 4
     const cAfterDefeat = campaign.roster.find((u) => u.id === recruitC.id)!;
-    expect(cAfterDefeat.progression.accumulatedXp!.mage).toBe(3);
+    expect(cAfterDefeat.progression.accumulatedXp!.mage).toBe(4);
 
     // 5. Retry Stage 2 (or Reroll with New Battle)
     campaign = regenerateCurrentStageEncounter(campaign, 2024);
@@ -109,7 +112,7 @@ describe('Campaign End-to-End Headless Integration Flow', () => {
       encounterName: campaign.currentEncounter!.name,
       outcome: 'VICTORY' as const,
       unitXpGains: {
-        [recruitC.id]: { fighter: 0, rogue: 0, mage: 4 } // Gains 4 Mage XP
+        [recruitC.id]: { fighter: 0, rogue: 0, mage: 3 } // Gains 3 Mage XP (4 + 3 = 7)
       }
     };
 

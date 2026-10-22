@@ -80,7 +80,8 @@ function createTestCombatState(arena: CombatState['arena'], cus: CombatUnit[]): 
     turnNumber: 1,
     combatLog: [],
     outcome: 'IN_PROGRESS',
-    objectives: []
+    objectives: [],
+    partyXpPool: { fighter: 0, rogue: 0, mage: 0 }
   };
 }
 

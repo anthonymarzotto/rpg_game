@@ -8,8 +8,7 @@
 
 ### 3. Combat Tempo & Initiative Balance
 - [x] **3.1**: Prevent player units from always acting first; introduce enemy initiative variance or roll modifiers to make combat opening rounds dynamic and tense. (Completed via 1d20 starting initiative rolls, battlefield floating text, and opening combat log announcement in `combat-initiative-rolling` change).
-- [ ] **3.2**: Investigate Thief/Infiltrator action economy (Thieves cycling fast low-AP skills and getting 2x the actions and XP of heavier classes).
-- [ ] **3.3**: Fix pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp).
+- [x] **3.2**: Investigate Thief/Infiltrator action economy (Thieves cycling fast low-AP skills and getting 2x the actions and XP of heavier classes). (Resolved via pooled Party XP Bank in `party-xp-bank`; CTB pacing & speed scaling tracked in 7.1).
 
 ### BUGS
 - [ ] Background does not load on GitHub pages deployment. Not bundled?
@@ -30,6 +29,12 @@
 
 ### 6. Investigations
 - [ ] The Cat Burglar's Rooftop Vault sounds cool, but in practice it isn't actually giving very much utility. It only helps when the unit is physically blocked, in which case it functions very much like Shadow Step. Maybe this belongs more as a passive, where the regular Move gets modified to all moving to any hex within normal range.
+
+### 7. CTB Curve & Speed Tuning
+- [ ] **7.1**: Tune the CTB speed scaling curve and audit CTB-delay abilities (e.g., Finesse granting +2 Speed vs +0 for Force/Focus creates extreme turn disparities in long fights; audit abilities like `Stand and Deliver!` to ensure `oncePerTurn` restrictions prevent infinite lockouts).
+
+### 8. Enemy Threat Calibration & Pre-Ascension Snapshot
+- [ ] **8.1**: Investigate pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp). Balance against the player's ability to scout and plan for upcoming incursions rather than rubber-banding on deploy; re-evaluate alongside Horizon 2 sector map nodes.
 
 ---
 
