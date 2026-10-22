@@ -28,6 +28,13 @@
   * **Highwayman** repeatedly casting `Stand and Deliver!` on the same target (1,477 casts in duels) instead of following up with `Point-Blank Buckshot`.
   * **Cat-Burglar** repeatedly spamming `Flash Powder` on the same target (900 casts in duels) instead of striking with `Pilfer`.
   * **Infiltrator** repeatedly casting `Smoke Veil` on self while already in `STEALTH` (1,278 casts in duels).
+- [ ] **2.7**: AI scoring support for unselected/underused kit abilities:
+  * Add AoE splash evaluation to `computeAbilityMetrics` for single-target blast abilities (e.g. Wizard's `Arcane Blast`).
+  * Add hostile `SLOW` debuff evaluation in `scoreDebuffAndUtility` for abilities like `Frostbite`.
+  * Add `RETREAT_STEP` tactical disengagement scoring for hit-and-run abilities like `Skirmish`.
+- [ ] **2.8**: AI Threat Scoring & High-Ground Disruption:
+  * Add target threat weighting to AI decision engine to target high-damage backline casters (Warlock, Witch) even when low-ground vertical penalties reduce hit probability.
+  * Add displacement / `KNOCKBACK` utility scoring against units holding High Ground Vantage (prioritize shoving perched snipers off cliffs for fall impact damage and vantage disruption).
 
 ### 4. Enemy Threat Calibration & Pre-Ascension Snapshot
 - [ ] **5.1**: Investigate pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp). Balance against the player's ability to scout and plan for upcoming incursions rather than rubber-banding on deploy; re-evaluate alongside Horizon 2 sector map nodes.
@@ -38,3 +45,7 @@
 
 1. **Shard Stats in Combat Manifest**:
    * **1.1** *Observation*: Combat Manifest in the Unit Info dialog doesn't always reflect updated values from equipped shards (e.g. Bloodbound Shard modifying damage/dice description). Verify text evaluation vs runtime effect pipeline.
+2. **Knight Survivability & Soak**:
+   * *Observation*: Knight average soak in 3v3 was only 2.3. With 2 Armor and 0 Ward, magical damage (Warlock, Witch, Wizard, Sorcerer) completely bypasses mitigation, while physical attacks often shred or bypass armor. Consider exploring protective scaling (e.g. base Ward, or armor/soak bonuses against `CHALLENGED` foes).
+3. **Wildcard Loadout Impact on Combat Dynamics**:
+   * *Observation*: In campaign generation (`createEnemyUnit`), enemies receive `wildcardPassiveIds: ['momentum']` and up to 2 starter abilities. Pure-kit benchmarks without wildcards hide natural synergies—e.g. Force units getting Advantage from `Momentum` after moving, or Cavalier using `Shield Bash` (1-hex knockback) to re-enable `Lance Charge` in close melee. Consider benchmark profiles that include standard starter wildcards.
