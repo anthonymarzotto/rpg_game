@@ -19,9 +19,15 @@
 - [ ] **1.3**: View active skill loadout and remaining AP/CTB in the pinned card.
 
 ### 2. AI & Mechanics Edge Cases
-- [ ] **2.1**: Fix Infiltrator `Smoke Veil` edge case: clarify collision/blocking rules while in smoke, and verify AI decision engine doesn't stall when a stealthed unit is adjacent to obstacles/elevation.
+- [ ] **2.1**: Fix Infiltrator `Smoke Veil` AI loop & edge case: ensure AI decision engine assigns 0 score to stealth abilities if the actor is already in `STEALTH` (avoid artificial `oncePerTurn` cooldowns), and clarify collision/blocking rules while in smoke.
 - [ ] **2.2**: Restrict dev-mode debug shortcuts/overlays to `localhost` environments only.
 - [ ] **2.3**: The Cat Burglar's Rooftop Vault sounds cool, but in practice it isn't actually giving very much utility. It only helps when the unit is physically blocked, in which case it functions very much like Shadow Step. Maybe this belongs more as a passive, where the regular Move gets modified to all moving to any hex within normal range.
+- [ ] **2.4**: Assess `Sneak Attack` and `Poppet Needle` for AP cost and function: evaluate potency and dice scaling rather than restricting multi-action player agency with `oncePerTurn`.
+- [ ] **2.5**: Evaluate support/control abilities (`Stand and Deliver!`, `Flash Powder`) in 3v3 team scenarios: assess whether multi-target debuffing across separate foes functions well with allied follow-up without needing `oncePerTurn` restrictions.
+- [ ] **2.6**: AI awareness of enemy count & duplicate skill targeting deprioritization: incorporate living enemy count into AI decision-making (e.g. deprioritize control/setup primers when only 1 foe remains) and add a general scoring penalty against casting the same non-damage or debuff skill on the same target multiple times within a single turn. Specifically addresses:
+  * **Highwayman** repeatedly casting `Stand and Deliver!` on the same target (1,477 casts in duels) instead of following up with `Point-Blank Buckshot`.
+  * **Cat-Burglar** repeatedly spamming `Flash Powder` on the same target (900 casts in duels) instead of striking with `Pilfer`.
+  * **Infiltrator** repeatedly casting `Smoke Veil` on self while already in `STEALTH` (1,278 casts in duels).
 
 ### 4. Enemy Threat Calibration & Pre-Ascension Snapshot
 - [ ] **5.1**: Investigate pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp). Balance against the player's ability to scout and plan for upcoming incursions rather than rubber-banding on deploy; re-evaluate alongside Horizon 2 sector map nodes.
