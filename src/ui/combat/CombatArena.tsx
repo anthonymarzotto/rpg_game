@@ -18,6 +18,7 @@ import { TrialExportModal } from './TrialExportModal';
 import { TrialErrorBoundary } from './TrialErrorBoundary';
 import { HarvestDistributionModal } from './HarvestDistributionModal';
 import { resolveArenaBackground, computeBackgroundTransform } from './arenaBackground';
+import { isLocalhost } from '../../core/config/environment';
 import './CombatArena.css';
 
 export interface CombatArenaProps {
@@ -236,25 +237,27 @@ export function CombatArena({
               ))}
             </div>
 
-            {/* Dev Dice Roll Overrides */}
-            <div className="dev-dice-controls">
-              <span className="dev-label">🎲 Dice:</span>
-              {(['NORMAL', 'FORCE_CRIT', 'FORCE_GRAZE', 'FORCE_MISS'] as DiceMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  className={`btn-dice-mode ${diceMode === mode ? 'active' : ''}`}
-                  onClick={() => setDiceMode(mode)}
-                >
-                  {mode === 'NORMAL'
-                    ? 'Random'
-                    : mode === 'FORCE_CRIT'
-                      ? 'Nat 20'
-                      : mode === 'FORCE_GRAZE'
-                        ? 'Graze'
-                        : 'Miss'}
-                </button>
-              ))}
-            </div>
+            {/* Dev Dice Roll Overrides (Localhost only) */}
+            {isLocalhost() && (
+              <div className="dev-dice-controls">
+                <span className="dev-label">🎲 Dice:</span>
+                {(['NORMAL', 'FORCE_CRIT', 'FORCE_GRAZE', 'FORCE_MISS'] as DiceMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    className={`btn-dice-mode ${diceMode === mode ? 'active' : ''}`}
+                    onClick={() => setDiceMode(mode)}
+                  >
+                    {mode === 'NORMAL'
+                      ? 'Random'
+                      : mode === 'FORCE_CRIT'
+                        ? 'Nat 20'
+                        : mode === 'FORCE_GRAZE'
+                          ? 'Graze'
+                          : 'Miss'}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Global Controls */}

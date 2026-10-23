@@ -29,6 +29,7 @@ import { CLASS_REGISTRY } from '../../data/classes';
 import { getClassPackage, getAbilityById, getPassiveById, MOMENTUM } from '../../data/packages';
 import { OffNodeChoiceModal } from './OffNodeChoiceModal';
 import { formatDisciplineName, formatDisciplineBadge } from '../combat/combatXpUtils';
+import { isLocalhost } from '../../core/config/environment';
 import './HeroProgressionDrawer.css';
 
 export interface HeroProgressionDrawerProps {
@@ -681,15 +682,17 @@ export function HeroProgressionDrawer({
           </div>
 
           <div className="drawer-header-right">
-            <button
-              type="button"
-              className="btn-dev-grant-xp font-mono"
-              onClick={handleDevGrantXp}
-              data-testid="hero-drawer-dev-xp-btn"
-              title="Developer Mode: Grant +10 XP to all disciplines for instant level up testing"
-            >
-              ⚡ +10 XP (Dev)
-            </button>
+            {isLocalhost() && (
+              <button
+                type="button"
+                className="btn-dev-grant-xp font-mono"
+                onClick={handleDevGrantXp}
+                data-testid="hero-drawer-dev-xp-btn"
+                title="Developer Mode: Grant +10 XP to all disciplines for instant level up testing"
+              >
+                ⚡ +10 XP (Dev)
+              </button>
+            )}
             <button
               type="button"
               className="hero-drawer-close-btn"

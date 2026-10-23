@@ -8,7 +8,7 @@
 
 ### 2. AI & Mechanics Edge Cases
 - [x] **2.1**: Fix Infiltrator `Smoke Veil` AI loop & edge case: ensure AI decision engine assigns 0 score to stealth abilities if the actor is already in `STEALTH` (avoid artificial `oncePerTurn` cooldowns), and clarify collision/blocking rules while in smoke.
-- [ ] **2.2**: Restrict dev-mode debug shortcuts/overlays to `localhost` environments only.
+- [x] **2.2**: Restrict dev-mode debug shortcuts/overlays to `localhost` environments only. (Implemented: `isLocalhost` environment helper gates floating dev menu in `App.tsx`, dev banner, `dev-dice-controls` in `CombatArena.tsx`, and `btn-dev-grant-xp` in `HeroProgressionDrawer.tsx`; added `~` and `Ctrl+Shift+D` localhost-only keyboard shortcuts).
 - [ ] **2.3**: The Cat Burglar's Rooftop Vault sounds cool, but in practice it isn't actually giving very much utility. It only helps when the unit is physically blocked, in which case it functions very much like Shadow Step. Maybe this belongs more as a passive, where the regular Move gets modified to all moving to any hex within normal range.
 - [ ] **2.4**: Assess `Sneak Attack`, `Poppet Needle`, and `Baleful Hex` for AP cost, potency, and debuff scaling: evaluate damage and CTB-delay scaling against low-Resolve units rather than restricting player agency with `oncePerTurn`; address Witch's self-contained 93.5% squad win rate.
 - [ ] **2.5**: Evaluate support/control abilities (`Stand and Deliver!`, `Flash Powder`) in 3v3 team scenarios: assess whether multi-target debuffing across separate foes functions well with allied follow-up without needing `oncePerTurn` restrictions.

@@ -23,6 +23,7 @@ import {
   importCampaignJson
 } from './core/storage/exportImport';
 import { SaveSlotId, SlotSummary } from './core/storage/types';
+import { isLocalhost } from './core/config/environment';
 import './App.css';
 
 export type AppView = 'START' | 'CAMP' | 'ARENA' | 'DEV_SANDBOX';
@@ -33,6 +34,7 @@ export function App() {
   const [activeSlotId, setActiveSlotId] = useState<SaveSlotId | null>(null);
   const [slotSummaries, setSlotSummaries] = useState<readonly SlotSummary[]>([]);
   const [isDevMenuOpen, setIsDevMenuOpen] = useState<boolean>(false);
+  const isDevEnvironment = isLocalhost();
 
   // Refresh slot metadata summaries from storage
   const refreshSlots = useCallback(async () => {
@@ -47,6 +49,28 @@ export function App() {
   useEffect(() => {
     refreshSlots();
   }, [refreshSlots]);
+
+  // Dev keyboard shortcuts: ` (Backtick) or Ctrl+Shift+D to toggle dev menu on localhost only
+  useEffect(() => {
+    if (!isDevEnvironment) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === '`' &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.metaKey &&
+        !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
+      ) {
+        setIsDevMenuOpen((prev) => !prev);
+      } else if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+        setIsDevMenuOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDevEnvironment]);
 
   // Start Screen Actions
   const handleNewGame = useCallback(async () => {
@@ -192,59 +216,61 @@ export function App() {
 
   return (
     <div className="app-root">
-      {/* Discreet floating developer controls */}
-      <div className="app-dev-controls">
-        <button
-          type="button"
-          className="app-dev-toggle-btn font-mono"
-          onClick={() => setIsDevMenuOpen((prev) => !prev)}
-          data-testid="app-dev-toggle-btn"
-          title="Toggle Developer & Sandbox Modes"
-        >
-          🛠️ Dev Modes ▾
-        </button>
+      {/* Discreet floating developer controls (Localhost only) */}
+      {isDevEnvironment && (
+        <div className="app-dev-controls">
+          <button
+            type="button"
+            className="app-dev-toggle-btn font-mono"
+            onClick={() => setIsDevMenuOpen((prev) => !prev)}
+            data-testid="app-dev-toggle-btn"
+            title="Toggle Developer & Sandbox Modes (Localhost only, ` or Ctrl+Shift+D)"
+          >
+            🛠️ Dev Modes ▾
+          </button>
 
-        {isDevMenuOpen && (
-          <div className="app-dev-menu" data-testid="app-dev-menu">
-            <button
-              type="button"
-              className={`app-dev-menu-item ${currentView === 'START' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentView('START');
-                setIsDevMenuOpen(false);
-              }}
-            >
-              🏠 Portal
-            </button>
-            <button
-              type="button"
-              className={`app-dev-menu-item ${currentView === 'CAMP' ? 'active' : ''}`}
-              onClick={() => {
-                if (!campaignState) {
-                  setCampaignState(createCampaign());
-                }
-                setCurrentView('CAMP');
-                setIsDevMenuOpen(false);
-              }}
-            >
-              ⛺ Astral Hub
-            </button>
-            <button
-              type="button"
-              className={`app-dev-menu-item ${currentView === 'DEV_SANDBOX' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentView('DEV_SANDBOX');
-                setIsDevMenuOpen(false);
-              }}
-            >
-              ⚔️ Astral Trial
-            </button>
-          </div>
-        )}
-      </div>
+          {isDevMenuOpen && (
+            <div className="app-dev-menu" data-testid="app-dev-menu">
+              <button
+                type="button"
+                className={`app-dev-menu-item ${currentView === 'START' ? 'active' : ''}`}
+                onClick={() => {
+                  setCurrentView('START');
+                  setIsDevMenuOpen(false);
+                }}
+              >
+                🏠 Portal
+              </button>
+              <button
+                type="button"
+                className={`app-dev-menu-item ${currentView === 'CAMP' ? 'active' : ''}`}
+                onClick={() => {
+                  if (!campaignState) {
+                    setCampaignState(createCampaign());
+                  }
+                  setCurrentView('CAMP');
+                  setIsDevMenuOpen(false);
+                }}
+              >
+                ⛺ Astral Hub
+              </button>
+              <button
+                type="button"
+                className={`app-dev-menu-item ${currentView === 'DEV_SANDBOX' ? 'active' : ''}`}
+                onClick={() => {
+                  setCurrentView('DEV_SANDBOX');
+                  setIsDevMenuOpen(false);
+                }}
+              >
+                ⚔️ Astral Trial
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Dev Mode Banner when in isolated sandbox views */}
-      {currentView === 'DEV_SANDBOX' && (
+      {/* Dev Mode Banner when in isolated sandbox views (Localhost only) */}
+      {isDevEnvironment && currentView === 'DEV_SANDBOX' && (
         <div className="app-dev-banner font-ui">
           <span>🛠️ Developer Mode: Standalone Astral Trial</span>
           <button
