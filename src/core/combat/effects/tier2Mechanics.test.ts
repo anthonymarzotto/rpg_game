@@ -284,6 +284,8 @@ describe('Tier 2 Combat Engine Mechanics', () => {
     const state = createCombatState(arena, [infiltrator, enemy], 'infiltrator');
     const infCu = state.units.get('infiltrator')!;
     const enemyCu = state.units.get('enemy')!;
+    // Set enemy facing away (East, 0) so Infiltrator at (0, 0) is in enemy's rear arc, avoiding turn-start front-arc unmasking
+    enemyCu.facing = 0;
 
     // Turn 1: Infiltrator casts Smoke Veil (1 AP, 1-turn duration)
     executeAbility(state, 'infiltrator', SMOKE_VEIL);

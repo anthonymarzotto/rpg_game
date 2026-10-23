@@ -98,7 +98,7 @@ The AI decision system SHALL evaluate any ability declaring primer metadata by c
 - **THEN** the primer ability does not receive the primer bonus score
 
 ### Requirement: Universal Modifier Non-Redundancy Guards
-The AI decision system SHALL evaluate target active modifiers and active conditions before selecting abilities that apply stat debuffs, buffs, or conditions. The AI SHALL assign zero score to effects that attempt to re-apply an active modifier to a stat already modified in the same direction, or attempt to inflict `CHALLENGED` on a target already challenged by the actor. Additionally, abilities with zero base damage and zero primary utility SHALL NOT receive auxiliary tactical positioning scores (focus-fire or standoff bonuses) that would cause them to clear the AP conservation threshold.
+The AI decision system SHALL evaluate target active modifiers and active conditions before selecting abilities that apply stat debuffs, buffs, or conditions. The AI SHALL assign zero score to effects that attempt to re-apply an active modifier to a stat already modified in the same direction, attempt to inflict `CHALLENGED` on a target already challenged by the actor, or attempt to apply `STEALTH` to an actor that currently possesses an active `STEALTH` condition. Additionally, abilities with zero base damage and zero primary utility SHALL NOT receive auxiliary tactical positioning scores (focus-fire or standoff bonuses) that would cause them to clear the AP conservation threshold.
 
 #### Scenario: Hostile attack-roll debuff not repeated on debuffed enemy
 - **WHEN** an enemy combatant currently has an active negative attack-roll modifier
@@ -108,14 +108,18 @@ The AI decision system SHALL evaluate target active modifiers and active conditi
 - **WHEN** an enemy combatant currently has an active `CHALLENGED` condition where `sourceUnitId` matches the actor's ID
 - **THEN** the AI assigns zero utility to abilities applying `CHALLENGED` against that enemy
 
+#### Scenario: Allied defensive buff not repeated on buffed ally
+- **WHEN** a friendly combatant currently has an active positive modifier on armor, ward, or evasion
+- **THEN** the AI assigns zero utility to re-applying that same positive stat buff on that target
+
+#### Scenario: Smoke Veil not repeated when already stealthed
+- **WHEN** an AI-controlled actor currently has an active `STEALTH` condition
+- **THEN** the AI assigns zero utility to `Smoke Veil` and any other ability whose primary effect is applying `STEALTH` to self
+
 #### Scenario: Zero-damage zero-utility debuffs do not clear AP conservation
 - **WHEN** an ability evaluates with zero damage and zero net utility against valid targets
 - **THEN** auxiliary scores for focus-fire and standoff are zeroed
 - **THEN** total action score remains below the AP conservation threshold (4.0), causing the actor to conserve remaining AP
-
-#### Scenario: Allied defensive buff not repeated on buffed ally
-- **WHEN** a friendly combatant currently has an active positive modifier on armor, ward, or evasion
-- **THEN** the AI assigns zero utility to re-applying that same positive stat buff on that target
 
 ### Requirement: Turn Execution Resilience and Action Validation Fallback
 The AI decision and execution system SHALL validate candidate actions using authoritative engine rules (`canMove` for movement and `canExecuteAbility` for abilities) before execution, and SHALL evaluate ability affordability against effective AP costs (`getEffectiveAbility().apCost`). If an action fails validation or encounters an execution error during an AI turn, the system SHALL NOT throw an unhandled exception or abort the turn sequencer. Instead, the system SHALL record a diagnostic log entry, halt further action attempts for that turn, conserve remaining unspent AP for CTB recovery, and guarantee via a `try / finally` contract that `endActiveTurn` is executed so the CTB initiative clock advances to the next unit.

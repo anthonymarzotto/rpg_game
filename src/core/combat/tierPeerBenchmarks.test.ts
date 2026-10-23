@@ -1,6 +1,5 @@
 import { describe, it } from 'vitest';
 import { runCombatSimulation, SimulationResult } from './simulation';
-import { CLASS_PACKAGES } from '../../data/packages';
 
 interface TierClassInfo {
   classId: string;

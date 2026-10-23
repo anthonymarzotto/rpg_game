@@ -137,6 +137,39 @@ describe('Condition Registry', () => {
       );
       expect(outcome?.removeCondition).toBe(true);
     });
+
+    it('onTakeDamage breaks stealth on direct attack or burn damage, but preserves it on poison DoT', () => {
+      const rogue = createMockUnit('rogue-1', 'PLAYER');
+      const condition: ActiveCondition = {
+        type: 'STEALTH',
+        durationTurns: 2,
+        sourceUnitId: rogue.unit.id
+      };
+
+      // Direct attack damage breaks stealth
+      const attackOutcome = stealthDef.onTakeDamage?.(condition, rogue, {
+        damageAmount: 5,
+        damageType: 'PHYSICAL',
+        reason: 'ATTACK'
+      });
+      expect(attackOutcome?.removeCondition).toBe(true);
+
+      // Burn damage breaks stealth
+      const burnOutcome = stealthDef.onTakeDamage?.(condition, rogue, {
+        damageAmount: 2,
+        damageType: 'MAGICAL',
+        reason: 'BURN'
+      });
+      expect(burnOutcome?.removeCondition).toBe(true);
+
+      // Poison DoT does NOT break stealth
+      const poisonOutcome = stealthDef.onTakeDamage?.(condition, rogue, {
+        damageAmount: 2,
+        damageType: 'PHYSICAL',
+        reason: 'POISON'
+      });
+      expect(poisonOutcome).toBeUndefined();
+    });
   });
 
   describe('POISON and BURN', () => {

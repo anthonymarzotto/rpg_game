@@ -517,6 +517,52 @@ describe('Attack & Ability Resolution Outcomes', () => {
       expect(infCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(false);
     });
 
+    it('breaks STEALTH on a unit when it suffers direct damage or AoE splash', () => {
+      const arena = createRadialArena(3);
+      const attacker = createRecruit('attacker', 'Wizard', { faction: 'PLAYER' });
+      const primaryTarget = createRecruit('primary', 'Goblin', { faction: 'ENEMY' });
+      const stealthedNeighbor = createRecruit('stealthed', 'Infiltrator', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('attacker', { q: 0, r: 0 });
+      arena.setUnitPosition('primary', { q: 2, r: 0 });
+      arena.setUnitPosition('stealthed', { q: 2, r: 1 }); // Adjacent to primary target
+
+      const state = createCombatState(arena, [attacker, primaryTarget, stealthedNeighbor], 'attacker');
+      const stealthCu = state.units.get('stealthed')!;
+      stealthCu.activeConditions.push({
+        type: 'STEALTH',
+        durationTurns: 2,
+        sourceUnitId: 'stealthed'
+      });
+
+      // Wizard casts Arcane Blast (aoeRadius = 1) at primary target
+      const arcaneBlast: Ability = {
+        id: 'arcane_blast',
+        name: 'Arcane Blast',
+        description: 'Blast',
+        archetypeTag: 'MAGE',
+        targetType: 'SINGLE_TARGET',
+        defenseTarget: 'RESOLVE',
+        range: 3,
+        apCost: 1,
+        aoeRadius: 1,
+        damageType: 'MAGICAL',
+        effects: [
+          {
+            type: 'DAMAGE',
+            damageProfile: { count: 1, sides: 6, modifierAttribute: 'focus' }
+          }
+        ]
+      };
+
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [4, 3] });
+      executeAbility(state, 'attacker', arcaneBlast, { targetUnitId: 'primary' }, dice);
+
+      // Stealthed neighbor took collateral splash damage and STEALTH is broken!
+      expect(stealthCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(false);
+      expect(state.combatLog.some((l) => l.message.includes("Infiltrator's STEALTH was broken by taking damage"))).toBe(true);
+    });
+
     it('imposes Disadvantage when CHALLENGED and attacking a unit other than the challenger', () => {
       const arena = createRadialArena(3);
       const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
@@ -890,6 +936,116 @@ describe('Attack & Ability Resolution Outcomes', () => {
 
       executeAbility(state, 'goblin', twoApRogue, { targetUnitId: 'hero' }, dice);
       expect(state.partyXpPool).toEqual({ fighter: 0, rogue: 0, mage: 0 });
+    });
+  });
+
+  describe('Movement Step Front-Arc Stealth Detection & Interruption', () => {
+    it('halts movement when an opposing stealthed unit enters front arc, unmasks enemy without rotating them, and allows follow-up attack', () => {
+      const arena = createRadialArena(4);
+      const hero = createRecruit('hero', 'Alden', { faction: 'PLAYER' });
+      const infiltrator = createRecruit('infiltrator', 'Infiltrator', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('hero', { q: -2, r: 0 });
+      arena.setUnitPosition('infiltrator', { q: 0, r: 0 });
+
+      const state = createCombatState(arena, [hero, infiltrator], 'hero');
+      const heroCu = state.units.get('hero')!;
+      const infCu = state.units.get('infiltrator')!;
+
+      // Infiltrator is stealthed and facing Northwest (2)
+      infCu.facing = 2;
+      infCu.activeConditions.push({
+        type: 'STEALTH',
+        durationTurns: 2,
+        sourceUnitId: 'infiltrator'
+      });
+
+      expect(heroCu.currentAp).toBe(3);
+      expect(infCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
+
+      // Hero moves East towards (0, -1) via intermediate step (-1, 0).
+      // At (-1, 0), hero faces East (0). Infiltrator at (0, 0) is distance 1 in hero's direct FRONT arc.
+      executeMove(state, 'hero', { q: 0, r: -1 });
+
+      // Movement must halt at (-1, 0)
+      expect(arena.getUnitPosition('hero')).toEqual({ q: -1, r: 0 });
+      expect(heroCu.facing).toBe(0); // Facing East towards the spotted enemy
+      expect(heroCu.currentAp).toBe(2); // 1 AP consumed for move
+      expect(heroCu.hexesMovedThisTurn).toBe(1);
+
+      // Infiltrator STEALTH removed, but facing strictly preserved (no auto-turn)
+      expect(infCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(false);
+      expect(infCu.facing).toBe(2);
+
+      // Combat log records detection and interrupted move
+      expect(
+        state.combatLog.some((l) =>
+          l.message.includes('Alden spotted Infiltrator in their direct field of view! Stealth broken!')
+        )
+      ).toBe(true);
+      expect(state.combatLog.some((l) => l.actionId === 'move_interrupted')).toBe(true);
+
+      // Follow-up action: Hero immediately attacks unmasked enemy with remaining 2 AP
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [5] });
+      const attackRes = executeAbility(state, 'hero', STRIKE, { targetUnitId: 'infiltrator' }, dice);
+
+      expect(heroCu.currentAp).toBe(1);
+      expect(attackRes.type).toBe('ATTACK');
+      if (attackRes.type === 'ATTACK') {
+        expect(attackRes.details.hitOutcome).toBe('SOLID_HIT');
+      }
+      expect(infCu.currentHp).toBeLessThan(infCu.unit.effectiveVitals.maxHp);
+    });
+
+    it('does not interrupt movement and preserves STEALTH when enemy is in flank arc', () => {
+      const arena = createRadialArena(4);
+      const hero = createRecruit('hero', 'Alden', { faction: 'PLAYER' });
+      const infiltrator = createRecruit('infiltrator', 'Infiltrator', { faction: 'ENEMY' });
+
+      // Hero starts at (0, -1) and moves East to (1, -1).
+      // Step direction is East (0).
+      // From (1, -1), infiltrator at (0, 0) is at direction Southwest (4), which is in the FLANK arc.
+      arena.setUnitPosition('hero', { q: 0, r: -1 });
+      arena.setUnitPosition('infiltrator', { q: 0, r: 0 });
+
+      const state = createCombatState(arena, [hero, infiltrator], 'hero');
+      const infCu = state.units.get('infiltrator')!;
+      infCu.activeConditions.push({
+        type: 'STEALTH',
+        durationTurns: 2,
+        sourceUnitId: 'infiltrator'
+      });
+
+      executeMove(state, 'hero', { q: 1, r: -1 });
+
+      // Hero completed full movement to destination
+      expect(arena.getUnitPosition('hero')).toEqual({ q: 1, r: -1 });
+      // Enemy at (0, 0) was in FLANK arc relative to hero's East facing (0) -> remains stealthed
+      expect(infCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
+    });
+
+    it('does not halt movement or unmask allied stealthed units', () => {
+      const arena = createRadialArena(4);
+      const hero = createRecruit('hero', 'Alden', { faction: 'PLAYER' });
+      const alliedRogue = createRecruit('ally', 'Shadow', { faction: 'PLAYER' });
+
+      arena.setUnitPosition('hero', { q: -2, r: 0 });
+      arena.setUnitPosition('ally', { q: -1, r: -1 });
+
+      const state = createCombatState(arena, [hero, alliedRogue], 'hero');
+      const allyCu = state.units.get('ally')!;
+      allyCu.activeConditions.push({
+        type: 'STEALTH',
+        durationTurns: 2,
+        sourceUnitId: 'ally'
+      });
+
+      // Hero moves to (-1, 0)
+      executeMove(state, 'hero', { q: -1, r: 0 });
+
+      expect(arena.getUnitPosition('hero')).toEqual({ q: -1, r: 0 });
+      // Ally remains stealthed
+      expect(allyCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
     });
   });
 });

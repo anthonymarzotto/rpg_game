@@ -12,6 +12,7 @@ import {
 } from './decisionEngine';
 import { SeededDiceRoller } from '../combat/dice';
 import { STRIKE } from '../../data/packages/novice';
+import { SMOKE_VEIL } from '../../data/packages/infiltrator';
 
 function createMockUnit(
   id: string,
@@ -1062,6 +1063,39 @@ describe('Headless AI Decision Engine', () => {
       expect(mutableState.aiDecisionLog.length).toBeGreaterThan(0);
       expect(mutableState.aiDecisionLog[0].actorUnitId).toBe(enemy.id);
       expect(mutableState.aiDecisionLog[0].chosenAction).toBeDefined();
+    });
+
+    it('assigns zero utility to Smoke Veil when actor already has active STEALTH (prevents loop)', () => {
+      const arena = createRadialArena(3);
+      const infiltrator = createMockUnit('infiltrator', 'Hostile Infiltrator', 'ENEMY', {
+        activeClassId: 'infiltrator',
+        starterAbilityIds: ['smoke_veil']
+      });
+      const hero = createMockUnit('hero', 'Player Hero', 'PLAYER', { maxHp: 50 });
+
+      arena.setUnitPosition(infiltrator.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 2, r: 0 }); // Distance 2: hero out of melee reach
+
+      const state = createCombatState(arena, [infiltrator, hero], infiltrator.id);
+      const infCu = state.units.get(infiltrator.id)!;
+      (infCu as { abilities: readonly any[] }).abilities = [SMOKE_VEIL];
+
+      // Give infiltrator active STEALTH condition
+      infCu.activeConditions.push({
+        type: 'STEALTH',
+        durationTurns: 1,
+        sourceUnitId: infiltrator.id
+      });
+
+      const action = decideNextAction(state, infiltrator.id);
+      // Since actor already has STEALTH, Smoke Veil cannot be scored or chosen
+      if (action.type === 'ABILITY') {
+        expect(action.ability.id).not.toBe('smoke_veil');
+      }
+    });
+
+    it('asserts Smoke Veil has no artificial oncePerTurn restriction to preserve player/AI multi-action combos', () => {
+      expect(SMOKE_VEIL.oncePerTurn).toBeFalsy();
     });
   });
 });

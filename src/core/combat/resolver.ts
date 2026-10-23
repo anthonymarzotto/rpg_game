@@ -9,7 +9,7 @@ import {
   getDirectionBetween,
   getHexLine
 } from '../grid/hex';
-import { Arena } from '../grid/arena';
+import { Arena, calculateRawFallDamage } from '../grid/arena';
 import { Ability } from '../types/ability';
 import {
   CombatState,
@@ -35,7 +35,7 @@ import { resolveUnitLoadout, LoadoutLookupProviders } from '../units/loadout';
 import { getClassPackage, getAbilityById, getPassiveById } from '../../data/packages';
 import { PassiveTriggerHook } from '../types/passive';
 import { evaluateTargetAuras } from './auras';
-import { getConditionDefinition } from './conditions';
+import { getConditionDefinition, evaluateFrontArcDetection } from './conditions';
 
 const defaultDiceRoller = new SeededDiceRoller();
 
@@ -132,15 +132,17 @@ export function triggerPassiveHook(
           events.push(...result.events);
         }
         if (result.logDetail) {
+          const detail = result.logDetail.trim();
           state.combatLog.push({
             turnNumber: state.turnNumber,
             actorUnitId: actorCu.unit.id,
             actionId: passive.id,
-            message: `${actorCu.unit.name}'s ${passive.name} triggered:${result.logDetail}`,
+            message: `${actorCu.unit.name}'s ${passive.name} triggered: ${detail}`,
             metadata: {
-              type: 'GENERIC',
+              type: 'PASSIVE',
               actor: actorCu.unit.name,
-              text: `${passive.name} triggered: ${result.logDetail}`
+              passiveName: passive.name,
+              effectDetail: detail
             }
           });
         }
@@ -346,23 +348,38 @@ export function executeMove(
   const effectiveMove = getEffectiveMove(cu);
   const pathInfo = prevPos ? state.arena.findPath(prevPos, destination, effectiveMove) : undefined;
 
-  const stepsMoved = pathInfo && pathInfo.path.length > 1
-    ? pathInfo.path.length - 1
-    : (prevPos ? hexDistance(prevPos, destination) : 1);
-  cu.hexesMovedThisTurn = (cu.hexesMovedThisTurn ?? 0) + stepsMoved;
+  const fullPath = pathInfo && pathInfo.path.length > 0
+    ? pathInfo.path
+    : (prevPos ? [prevPos, destination] : [destination]);
 
-  if (pathInfo && pathInfo.path.length >= 2) {
-    cu.facing = getDirectionBetween(pathInfo.path[pathInfo.path.length - 2], destination);
-  } else if (prevPos) {
-    cu.facing = getDirectionBetween(prevPos, destination);
+  let currentCoord = prevPos ?? destination;
+  let stepsTaken = 0;
+  let accumulatedFallDamage = 0;
+  let interrupted = false;
+
+  for (let i = 1; i < fullPath.length; i++) {
+    const prevStep = fullPath[i - 1];
+    const nextStep = fullPath[i];
+    cu.facing = getDirectionBetween(prevStep, nextStep);
+    const dh = state.arena.getElevation(nextStep) - state.arena.getElevation(prevStep);
+    accumulatedFallDamage += calculateRawFallDamage(dh);
+    currentCoord = nextStep;
+    stepsTaken++;
+
+    const detected = evaluateFrontArcDetection(state, actorUnitId, currentCoord, cu.facing, 'MOVE');
+    if (detected.length > 0) {
+      interrupted = true;
+      break;
+    }
   }
 
+  cu.hexesMovedThisTurn = (cu.hexesMovedThisTurn ?? 0) + stepsTaken;
   cu.currentAp -= 1;
-  state.arena.setUnitPosition(actorUnitId, destination);
+  state.arena.setUnitPosition(actorUnitId, currentCoord);
 
   // If the path included a plunging ledge drop, apply direct unmitigated fall damage
-  if (pathInfo && pathInfo.fallDamage > 0) {
-    const actualFallDamage = resolveFallDamage(cu, pathInfo.fallDamage);
+  if (accumulatedFallDamage > 0) {
+    const actualFallDamage = resolveFallDamage(cu, accumulatedFallDamage);
     if (actualFallDamage > 0) {
       const fallEvent: CombatEvent = {
         type: 'DAMAGE',
@@ -405,18 +422,33 @@ export function executeMove(
     applyCombatEvents(state, moveEvents);
   }
 
-  state.combatLog.push({
-    turnNumber: state.turnNumber,
-    actorUnitId,
-    actionId: 'move',
-    message: `${cu.unit.name} moved to (${destination.q}, ${destination.r}). [Remaining AP: ${cu.currentAp}]`,
-    metadata: {
-      type: 'MOVE',
-      actor: cu.unit.name,
-      coord: { q: destination.q, r: destination.r },
-      remainingAp: cu.currentAp
-    }
-  });
+  if (interrupted) {
+    state.combatLog.push({
+      turnNumber: state.turnNumber,
+      actorUnitId,
+      actionId: 'move_interrupted',
+      message: `${cu.unit.name} moved to (${currentCoord.q}, ${currentCoord.r}) and was interrupted by spotting a hidden enemy! [Remaining AP: ${cu.currentAp}]`,
+      metadata: {
+        type: 'MOVE',
+        actor: cu.unit.name,
+        coord: { q: currentCoord.q, r: currentCoord.r },
+        remainingAp: cu.currentAp
+      }
+    });
+  } else {
+    state.combatLog.push({
+      turnNumber: state.turnNumber,
+      actorUnitId,
+      actionId: 'move',
+      message: `${cu.unit.name} moved to (${destination.q}, ${destination.r}). [Remaining AP: ${cu.currentAp}]`,
+      metadata: {
+        type: 'MOVE',
+        actor: cu.unit.name,
+        coord: { q: destination.q, r: destination.r },
+        remainingAp: cu.currentAp
+      }
+    });
+  }
 }
 
 /**
@@ -451,6 +483,40 @@ function applyCombatEvents(state: CombatState, events: readonly CombatEvent[]): 
       const cu = state.units.get(event.targetUnitId);
       if (cu && !cu.isDefeated) {
         cu.currentHp = Math.max(0, cu.currentHp - event.amount);
+
+        // Dispatch damage event to active conditions via onTakeDamage
+        if (event.amount > 0 && cu.activeConditions && cu.activeConditions.length > 0) {
+          cu.activeConditions = cu.activeConditions.filter((cond) => {
+            const def = getConditionDefinition(cond.type);
+            const reaction = def?.onTakeDamage?.(
+              cond,
+              cu,
+              {
+                damageAmount: event.amount,
+                damageType: event.damageType,
+                reason: event.reason,
+                sourceUnitId: event.sourceUnitId
+              },
+              state
+            );
+            if (reaction?.removeCondition) {
+              state.combatLog.push({
+                turnNumber: state.turnNumber,
+                actorUnitId: cu.unit.id,
+                actionId: 'condition_removed',
+                message: `${cu.unit.name}'s ${cond.type} was broken by taking damage!`,
+                metadata: {
+                  type: 'GENERIC',
+                  actor: cu.unit.name,
+                  text: `${cond.type} broken by damage`
+                }
+              });
+              return false;
+            }
+            return true;
+          });
+        }
+
         if (cu.currentHp === 0) {
           cu.isDefeated = true;
           state.arena.removeUnit(event.targetUnitId);

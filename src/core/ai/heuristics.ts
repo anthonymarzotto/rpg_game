@@ -352,6 +352,15 @@ export function scoreBuffAbility(
     }
   }
 
+  // Guard against re-applying active conditions (e.g. STEALTH)
+  const conditionEffect = ability.effects?.find((e) => e.type === 'CONDITION');
+  if (
+    conditionEffect?.conditionType &&
+    targetCu.activeConditions.some((c) => c.type === conditionEffect.conditionType)
+  ) {
+    return { score: 0 };
+  }
+
   // Find distance to closest living hostile unit
   let minHostileDist = Infinity;
   for (const h of hostileUnits) {

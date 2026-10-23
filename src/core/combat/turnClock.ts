@@ -3,7 +3,7 @@ import { getEffectiveSpeed } from './effectiveVitals';
 import { ACTION_ECONOMY_CONFIG } from '../config/balance';
 import { evaluateEncounterOutcome } from './objectives';
 import { onTurnStartPassives } from './passives';
-import { getConditionDefinition } from './conditions';
+import { getConditionDefinition, evaluateFrontArcDetection } from './conditions';
 import { Faction } from '../types/unit';
 
 /**
@@ -178,6 +178,12 @@ export function advanceTurnClock(state: CombatState): string {
     // Grant standard 3 AP
     nextActive.currentAp = ACTION_ECONOMY_CONFIG.standardApPerTurn;
     onTurnStartPassives(nextActive);
+
+    // Evaluate front-arc detection for any opposing stealthed units in direct field of view
+    const nextActivePos = state.arena.getUnitPosition(nextActive.unit.id);
+    if (nextActivePos) {
+      evaluateFrontArcDetection(state, nextActive.unit.id, nextActivePos, nextActive.facing, 'TURN_START');
+    }
 
     // Decrement durations on active unit's modifiers and purge expired ones
     nextActive.activeModifiers.forEach((m) => {

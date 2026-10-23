@@ -119,7 +119,10 @@ describe('UnitStatusCard Component', () => {
     );
 
     expect(html).toContain('Inspected Unit');
+    expect(html).toContain('preview-target-title');
     expect(html).toContain('Sneaky Goblin');
+    expect(html).toContain('unit-role-badge');
+    expect(html).toContain('Level 0 Novice');
     expect(html).toContain('Gauge: 78/100');
     // Per-unit XP progress bars are removed from in-combat cards in favor of the shared party pool ribbon
     expect(html).not.toContain('hud-xp-tracker');

@@ -87,4 +87,37 @@ describe('Combat Movement & AP Deduction', () => {
 
     expect(heroCu.currentHp).toBe(initialHp - 12);
   });
+
+  it('reproduces Turn 6 scenario: Hollow Novice facing Silas at turn start, then moving towards Rowan', () => {
+    const arena = createRadialArena(4);
+    // Obstacle at (0, -2)
+    arena.setTile({ coord: { q: 0, r: -2 }, elevation: 0, isWalkable: false });
+
+    const silas = createRecruit('silas', 'Silas', { faction: 'PLAYER' });
+    const rowan = createRecruit('rowan', 'Rowan', { faction: 'PLAYER' });
+    const hollow = createRecruit('hollow', 'Hollow Novice', { faction: 'ENEMY' });
+
+    arena.setUnitPosition('silas', { q: 1, r: -2 });
+    arena.setUnitPosition('rowan', { q: -1, r: -2 });
+    arena.setUnitPosition('hollow', { q: 2, r: -2 });
+
+    const state = createCombatState(arena, [silas, rowan, hollow], 'hollow');
+    const silasCu = state.units.get('silas')!;
+    const rowanCu = state.units.get('rowan')!;
+    const hollowCu = state.units.get('hollow')!;
+
+    silasCu.activeConditions.push({ type: 'STEALTH', durationTurns: 1, sourceUnitId: 'silas' });
+    rowanCu.activeConditions.push({ type: 'STEALTH', durationTurns: 1, sourceUnitId: 'rowan' });
+    hollowCu.facing = 3; // Facing West
+
+    // Move hollow to (0, -3)
+    executeMove(state, 'hollow', { q: 0, r: -3 });
+
+    // Moving to (0, -3) did NOT unmask Silas (Silas was in flank/rear during the move path)
+    expect(silasCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
+    // Stepping to (0, -3) facing West halted at (0, -3) because Rowan at (-1, -2) was spotted in front arc
+    expect(rowanCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(false);
+    expect(arena.getUnitPosition('hollow')).toEqual({ q: 0, r: -3 });
+    expect(state.combatLog.some((l) => l.actionId === 'move_interrupted')).toBe(true);
+  });
 });

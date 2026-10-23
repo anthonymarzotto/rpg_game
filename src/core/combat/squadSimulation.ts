@@ -1,4 +1,4 @@
-import { HexCoord, hexDistance, HEX_DIRECTIONS, getHexesInRange } from '../grid/hex';
+import { hexDistance, HEX_DIRECTIONS, getHexesInRange } from '../grid/hex';
 import { CLASS_CATALOG } from '../../data/classes';
 import { createSimulatedCombatant } from './simulation';
 import { buildEncounterState, EncounterDefinition, PlacedUnit } from './encounter';

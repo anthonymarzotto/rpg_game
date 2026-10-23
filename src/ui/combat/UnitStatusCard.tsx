@@ -312,7 +312,7 @@ export function UnitStatusCard({
             </span>
           </div>
           <div className="preview-target-name">
-            {hoveredUnitCu.unit.name}{' '}
+            <span className="preview-target-title">{hoveredUnitCu.unit.name}</span>
             <span
               className="unit-role-badge"
               style={{

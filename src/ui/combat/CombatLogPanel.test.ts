@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { parseCombatLogMessage, CombatLogPanel } from './CombatLogPanel';
+import { parseCombatLogMessage, CombatLogPanel, formatPassiveDetail } from './CombatLogPanel';
 import { CombatLogEntry } from '../../core/combat/types';
 
 describe('parseCombatLogMessage', () => {
@@ -422,6 +422,207 @@ describe('parseCombatLogMessage', () => {
       expect(parsed.rolls[2].roll).toBe(8);
       expect(parsed.rolls[2].isPlayer).toBe(false);
     }
+  });
+
+  describe('PASSIVE cards (Elusive Stride and other innate traits)', () => {
+    it('formats bracketed passive details cleanly', () => {
+      expect(formatPassiveDetail(' 📊 [Stat Modifier: +2 EVASION for 1 turn(s)]')).toBe(
+        '📊 +2 EVASION for 1 turn(s)'
+      );
+      expect(formatPassiveDetail(' ⏩ [Initiative Boost: +15 CTB Gauge]')).toBe(
+        '⏩ +15 CTB Gauge'
+      );
+      expect(formatPassiveDetail(' 🛡️ [Armor Buff: +2 Armor for 1 turn(s)]')).toBe(
+        '🛡️ +2 Armor for 1 turn(s)'
+      );
+      expect(formatPassiveDetail('+2 Evasion')).toBe('+2 Evasion');
+    });
+
+    it('parses typed PASSIVE metadata and renders a dedicated passive card', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 2,
+        actorUnitId: 'player-infiltrator',
+        actionId: 'elusive_stride',
+        message: "Lyra (Infiltrator)'s Elusive Stride triggered: 📊 [Stat Modifier: +2 EVASION for 1 turn(s)]",
+        metadata: {
+          type: 'PASSIVE',
+          actor: 'Lyra (Infiltrator)',
+          passiveName: 'Elusive Stride',
+          effectDetail: '📊 [Stat Modifier: +2 EVASION for 1 turn(s)]'
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.type).toBe('PASSIVE');
+      if (parsed.type === 'PASSIVE') {
+        expect(parsed.actor).toBe('Lyra (Infiltrator)');
+        expect(parsed.isPlayer).toBe(true);
+        expect(parsed.passiveName).toBe('Elusive Stride');
+        expect(parsed.effectDetail).toContain('+2 EVASION');
+      }
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 2
+        })
+      );
+
+      expect(html).toContain('log-passive-card');
+      expect(html).toContain('player-card');
+      expect(html).toContain('⚡ PASSIVE');
+      expect(html).toContain('Lyra (Infiltrator)');
+      expect(html).toContain('Elusive Stride');
+      expect(html).toContain('passive-effect-chip');
+      expect(html).toContain('📊 +2 EVASION for 1 turn(s)');
+    });
+
+    it('parses unstructured passive trigger message fallback into PASSIVE card', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 3,
+        actorUnitId: 'enemy-stalker',
+        actionId: 'elusive_stride',
+        message: "Shadow Infiltrator's Elusive Stride triggered: 📊 [Stat Modifier: +2 EVASION for 1 turn(s)]",
+        metadata: {
+          type: 'GENERIC',
+          actor: 'Shadow Infiltrator',
+          text: 'Elusive Stride triggered: 📊 [Stat Modifier: +2 EVASION for 1 turn(s)]'
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.type).toBe('PASSIVE');
+      if (parsed.type === 'PASSIVE') {
+        expect(parsed.actor).toBe('Shadow Infiltrator');
+        expect(parsed.isPlayer).toBe(false);
+        expect(parsed.passiveName).toBe('Elusive Stride');
+      }
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 3
+        })
+      );
+
+      expect(html).toContain('log-passive-card');
+      expect(html).toContain('enemy-card');
+      expect(html).toContain('⚡ PASSIVE');
+      expect(html).toContain('Shadow Infiltrator');
+    });
+  });
+
+  describe('DETECTION cards (SPOTTED! events)', () => {
+    it('parses typed DETECTION metadata and renders SPOTTED! card for enemy spotting player', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 4,
+        actorUnitId: 'enemy-novice',
+        actionId: 'stealth_spotted',
+        message: '⚠️ Spotted! Hollow Novice spotted Lyra in their direct field of view! Stealth broken!',
+        metadata: {
+          type: 'DETECTION',
+          actor: 'Hollow Novice',
+          target: 'Lyra',
+          targetUnitId: 'player-infiltrator',
+          isTurnStart: false
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.type).toBe('DETECTION');
+      if (parsed.type === 'DETECTION') {
+        expect(parsed.actor).toBe('Hollow Novice');
+        expect(parsed.target).toBe('Lyra');
+        expect(parsed.isPlayer).toBe(false);
+        expect(parsed.isTargetPlayer).toBe(true);
+        expect(parsed.isTurnStart).toBe(false);
+      }
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 4
+        })
+      );
+
+      expect(html).toContain('log-detection-card');
+      expect(html).toContain('enemy-card');
+      expect(html).toContain('👁️ SPOTTED!');
+      expect(html).toContain('Mid-Move');
+      expect(html).toContain('Hollow Novice');
+      expect(html).toContain('Lyra');
+      expect(html).toContain('STEALTH BROKEN');
+      expect(html).toContain('Detected in front arc field of view!');
+    });
+
+    it('parses turn-start detection and handles player spotting enemy', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 5,
+        actorUnitId: 'player-infiltrator',
+        actionId: 'stealth_spotted_turn_start',
+        message: '⚠️ [Turn Start] Lyra spotted Shadow Infiltrator D in their direct field of view! Stealth broken!',
+        metadata: {
+          type: 'DETECTION',
+          actor: 'Lyra',
+          target: 'Shadow Infiltrator D',
+          targetUnitId: 'enemy-infiltrator',
+          isTurnStart: true
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.type).toBe('DETECTION');
+      if (parsed.type === 'DETECTION') {
+        expect(parsed.isPlayer).toBe(true);
+        expect(parsed.isTargetPlayer).toBe(false);
+        expect(parsed.isTurnStart).toBe(true);
+      }
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 5
+        })
+      );
+
+      expect(html).toContain('log-detection-card');
+      expect(html).toContain('player-card');
+      expect(html).toContain('Turn Start');
+      expect(html).toContain('Shadow Infiltrator D');
+    });
+
+    it('parses unstructured stealth spotted message fallback into DETECTION card', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 6,
+        actorUnitId: 'enemy-novice',
+        actionId: 'stealth_spotted',
+        message: '⚠️ Spotted! Hollow Novice spotted Lyra in their direct field of view! Stealth broken!',
+        metadata: {
+          type: 'GENERIC',
+          actor: 'Hollow Novice',
+          text: 'Spotted Lyra in direct field of view! Stealth broken!'
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.type).toBe('DETECTION');
+      if (parsed.type === 'DETECTION') {
+        expect(parsed.actor).toBe('Hollow Novice');
+        expect(parsed.target).toBe('Lyra');
+        expect(parsed.isTurnStart).toBe(false);
+      }
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 6
+        })
+      );
+
+      expect(html).toContain('log-detection-card');
+      expect(html).toContain('👁️ SPOTTED!');
+      expect(html).toContain('STEALTH BROKEN');
+    });
   });
 });
 

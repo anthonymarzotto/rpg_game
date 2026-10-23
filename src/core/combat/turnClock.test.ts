@@ -156,4 +156,69 @@ describe('CTB Turn Clock Advancement & Unspent AP Recovery', () => {
     expect(heroCu.abilityModifiers[0].id).toBe('temp_boost');
     expect(heroCu.abilityModifiers[0].durationTurns).toBe(1);
   });
+
+  describe('Facing-Aware Stealth Detection at Turn Start', () => {
+    it('reveals opposing stealthed unit when positioned in active unit FRONT arc at range 1', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Infiltrator', { faction: 'ENEMY' });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 }); // Direct East (+1, 0, Direction 0)
+
+      const state = createCombatState(arena, [hero, enemy], 'enemy');
+      const heroCu = state.units.get('hero')!;
+      const enemyCu = state.units.get('enemy')!;
+
+      heroCu.facing = 0; // Facing East (directly toward enemy at {q: 1, r: 0})
+      enemyCu.facing = 0; // Enemy facing East (Hero is looking at enemy's rear/back)
+
+      // Enemy has STEALTH
+      enemyCu.activeConditions.push({
+        type: 'STEALTH',
+        durationTurns: 2,
+        sourceUnitId: 'enemy'
+      });
+
+      // Advance turn to Hero
+      heroCu.initiativeGauge = 100;
+      enemyCu.initiativeGauge = 0;
+      endActiveTurn(state, 0);
+
+      expect(state.activeUnitId).toBe('hero');
+      // Enemy was in Hero's FRONT arc -> STEALTH removed!
+      expect(enemyCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(false);
+      // Enemy facing was preserved (not auto-rotated)
+      expect(enemyCu.facing).toBe(0);
+      // Log entry emitted
+      expect(state.combatLog.some((l) => l.message.includes('Alden spotted Infiltrator in their direct field of view'))).toBe(true);
+    });
+
+    it('preserves STEALTH when positioned in active unit REAR or FLANK arc at range 1', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Infiltrator', { faction: 'ENEMY' });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: -1, r: 0 }); // Direct West (-1, 0, Direction 3)
+
+      const state = createCombatState(arena, [hero, enemy], 'enemy');
+      const heroCu = state.units.get('hero')!;
+      const enemyCu = state.units.get('enemy')!;
+
+      heroCu.facing = 0; // Facing East (Hero looking away from enemy at {q: -1, r: 0})
+      enemyCu.activeConditions.push({
+        type: 'STEALTH',
+        durationTurns: 2,
+        sourceUnitId: 'enemy'
+      });
+
+      // Advance turn to Hero
+      heroCu.initiativeGauge = 100;
+      enemyCu.initiativeGauge = 0;
+      endActiveTurn(state, 0);
+
+      expect(state.activeUnitId).toBe('hero');
+      // Enemy was in Hero's REAR arc (blind spot) -> STEALTH preserved!
+      expect(enemyCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
+    });
+  });
 });

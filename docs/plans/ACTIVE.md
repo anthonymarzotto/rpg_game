@@ -6,19 +6,8 @@
 
 ## 🔨 In Progress
 
-*(None currently in progress)*
-
----
-
-## 🎯 Next Up (Immediate Combat & UX Tuning)
-
-### 1. In-Combat Unit Inspection & Effect Tooltips
-- [ ] **1.1**: Allow clicking/selecting any unit (ally or enemy) to pin their info card during combat.
-- [ ] **1.2**: Hover tooltips on active condition badges (inspect exact `POISON`, `BURN`, `STEALTH`, `CHALLENGED` effects & durations).
-- [ ] **1.3**: View active skill loadout and remaining AP/CTB in the pinned card.
-
 ### 2. AI & Mechanics Edge Cases
-- [ ] **2.1**: Fix Infiltrator `Smoke Veil` AI loop & edge case: ensure AI decision engine assigns 0 score to stealth abilities if the actor is already in `STEALTH` (avoid artificial `oncePerTurn` cooldowns), and clarify collision/blocking rules while in smoke.
+- [x] **2.1**: Fix Infiltrator `Smoke Veil` AI loop & edge case: ensure AI decision engine assigns 0 score to stealth abilities if the actor is already in `STEALTH` (avoid artificial `oncePerTurn` cooldowns), and clarify collision/blocking rules while in smoke.
 - [ ] **2.2**: Restrict dev-mode debug shortcuts/overlays to `localhost` environments only.
 - [ ] **2.3**: The Cat Burglar's Rooftop Vault sounds cool, but in practice it isn't actually giving very much utility. It only helps when the unit is physically blocked, in which case it functions very much like Shadow Step. Maybe this belongs more as a passive, where the regular Move gets modified to all moving to any hex within normal range.
 - [ ] **2.4**: Assess `Sneak Attack`, `Poppet Needle`, and `Baleful Hex` for AP cost, potency, and debuff scaling: evaluate damage and CTB-delay scaling against low-Resolve units rather than restricting player agency with `oncePerTurn`; address Witch's self-contained 93.5% squad win rate.
@@ -36,9 +25,23 @@
   * Add displacement / `KNOCKBACK` utility scoring against units holding High Ground Vantage (prioritize shoving perched snipers off cliffs for fall impact damage and vantage disruption).
 - [ ] **2.9**: Highwayman Tactical Role & Survivability Audit: assess why Highwayman suffers a bottom-tier 34% win rate and 14% survival (23.2 damage taken) even with resonant options; evaluate mid-range self-peel (e.g. backward recoil on buckshot or evasion on Stand and Deliver!) and range-1 vs range-2 kit flow.
 - [ ] **2.10**: Infiltrator Kit Identity vs. Resonant Cannibalization: investigate why Infiltrator abandons its own authored kit (Toxic Shiv had only 9 casts) in favor of Thief's resonant Sneak Attack (131 casts) and Shadow Step (210 casts); evaluate poison tick scaling and vulnerability payoff.
+- [ ] **2.11**: Make Arcane Blast target a hex. Targeted square gets full damage, surrounding squares get splash.
+- [ ] **2.12**: Assess breaking CHALLENGE status if damaged by an enemy other than the challenger.
+
+---
+
+## 🎯 Next Up (Immediate Combat & UX Tuning)
+
+### 1. In-Combat Unit Inspection & Effect Tooltips
+- [ ] **1.1**: Allow clicking/selecting any unit (ally or enemy) to pin their info card during combat.
+- [ ] **1.2**: Hover tooltips on active condition badges (inspect exact `POISON`, `BURN`, `STEALTH`, `CHALLENGED` effects & durations).
+- [ ] **1.3**: View active skill loadout and remaining AP/CTB in the pinned card.
 
 ### 4. Enemy Threat Calibration & Pre-Ascension Snapshot
-- [ ] **5.1**: Investigate pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp). Balance against the player's ability to scout and plan for upcoming incursions rather than rubber-banding on deploy; re-evaluate alongside Horizon 2 sector map nodes.
+- [ ] **4.1**: Investigate pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp). Balance against the player's ability to scout and plan for upcoming incursions rather than rubber-banding on deploy; re-evaluate alongside Horizon 2 sector map nodes.
+
+### 5. UX Updates
+- [ ] **5.1**: Higlight movement path
 
 ---
 

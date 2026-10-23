@@ -79,12 +79,42 @@ export type ParsedLogEntry =
       rawMessage: string;
     }
   | {
+      type: 'PASSIVE';
+      turn: number;
+      actor: string;
+      isPlayer: boolean;
+      passiveName: string;
+      effectDetail: string;
+      rawMessage: string;
+    }
+  | {
+      type: 'DETECTION';
+      turn: number;
+      actor: string;
+      isPlayer: boolean;
+      target: string;
+      isTargetPlayer: boolean;
+      isTurnStart: boolean;
+      rawMessage: string;
+    }
+  | {
       type: 'GENERIC';
       turn: number;
       actor: string;
       isPlayer: boolean;
       rawMessage: string;
     };
+
+export function formatPassiveDetail(detail: string): string {
+  if (!detail) return '';
+  const match = detail.match(/^(.*?)\s*\[(?:Stat Modifier:\s*|.*?:\s*)?(.*?)\]\s*$/);
+  if (match) {
+    const icon = match[1]?.trim() || '✨';
+    const content = match[2]?.trim();
+    return `${icon} ${content}`.trim();
+  }
+  return detail.trim();
+}
 
 export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
   if (!entry) {
@@ -174,6 +204,35 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
     };
   }
 
+  if (meta?.type === 'PASSIVE') {
+    return {
+      type: 'PASSIVE',
+      turn,
+      actor: meta.actor || actorUnitId,
+      isPlayer,
+      passiveName: meta.passiveName,
+      effectDetail: meta.effectDetail ?? '',
+      rawMessage: msg
+    };
+  }
+
+  if (meta?.type === 'DETECTION') {
+    const isTargetPlayer = meta.targetUnitId
+      ? meta.targetUnitId.startsWith('player')
+      : !isPlayer;
+
+    return {
+      type: 'DETECTION',
+      turn,
+      actor: meta.actor || actorUnitId,
+      isPlayer,
+      target: meta.target,
+      isTargetPlayer,
+      isTurnStart: Boolean(meta.isTurnStart),
+      rawMessage: msg
+    };
+  }
+
   if (entry.actionId === 'initiative' || msg.includes('Initiative rolled:')) {
     const rollMatches = Array.from(msg.matchAll(/([^(,]+)\s*\((\d+)\)/g));
     const parsedRolls = rollMatches.map((m) => {
@@ -204,6 +263,53 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       isPlayer,
       actionName: rawActionName || 'Action',
       reason: msg,
+      rawMessage: msg
+    };
+  }
+
+  if (
+    entry.actionId === 'stealth_spotted' ||
+    entry.actionId === 'stealth_spotted_turn_start' ||
+    (msg.includes('spotted') && msg.includes('field of view'))
+  ) {
+    const isTurnStart =
+      entry.actionId === 'stealth_spotted_turn_start' || msg.includes('[Turn Start]');
+    const spottedMatch = msg.match(
+      /(?:⚠️\s*(?:\[Turn Start\]\s*|Spotted!\s*))?(.+?)\s+spotted\s+(.+?)\s+in their direct field of view/i
+    );
+    const actor = spottedMatch ? spottedMatch[1].trim() : meta?.actor || actorUnitId;
+    const target = spottedMatch ? spottedMatch[2].trim() : 'Unknown';
+    const isTargetPlayer = !isPlayer;
+
+    return {
+      type: 'DETECTION',
+      turn,
+      actor,
+      isPlayer,
+      target,
+      isTargetPlayer,
+      isTurnStart,
+      rawMessage: msg
+    };
+  }
+
+  const passiveMatch = msg.match(/^(.+?)'s\s+(.+?)\s+triggered:(.*)$/i);
+  if (passiveMatch || (meta?.text && meta.text.includes('triggered:'))) {
+    const actor = passiveMatch ? passiveMatch[1].trim() : meta?.actor || actorUnitId;
+    const rawPassiveName = passiveMatch
+      ? passiveMatch[2].trim()
+      : meta?.text?.split('triggered:')[0]?.trim() || 'Passive';
+    const effectDetail = passiveMatch
+      ? passiveMatch[3].trim()
+      : meta?.text?.split('triggered:')[1]?.trim() || '';
+
+    return {
+      type: 'PASSIVE',
+      turn,
+      actor,
+      isPlayer,
+      passiveName: rawPassiveName,
+      effectDetail,
       rawMessage: msg
     };
   }
@@ -525,6 +631,73 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
                       </div>
                     ))}
                   </div>
+                </div>
+              );
+            }
+
+            if (entry.type === 'DETECTION') {
+              return (
+                <div
+                  key={idx}
+                  className={`log-card log-detection-card ${entry.isPlayer ? 'player-card' : 'enemy-card'} ${
+                    isNewest ? 'entry-fresh' : ''
+                  }`}
+                >
+                  <div className="log-card-header">
+                    <span className="log-turn-pill">T{entry.turn}</span>
+                    <span className="log-spotted-badge">👁️ SPOTTED!</span>
+                    <span className="log-detection-context">
+                      {entry.isTurnStart ? 'Turn Start' : 'Mid-Move'}
+                    </span>
+                    <span className={`log-actor-name ${entry.isPlayer ? 'actor-player' : 'actor-enemy'}`}>
+                      {entry.actor}
+                    </span>
+                  </div>
+
+                  <div className="log-card-body">
+                    <div className="log-target-line">
+                      <span className="target-arrow">→</span>
+                      <span className="detection-desc">Spotted</span>
+                      <span className={`target-name ${entry.isTargetPlayer ? 'actor-player' : 'actor-enemy'}`}>
+                        👤 {entry.target}
+                      </span>
+                      <span className="log-stealth-broken-badge">STEALTH BROKEN</span>
+                    </div>
+                  </div>
+
+                  <div className="log-card-secondary log-detection-footer">
+                    <span className="secondary-icon">🎯</span>
+                    <span className="secondary-text">Detected in front arc field of view!</span>
+                  </div>
+                </div>
+              );
+            }
+
+            if (entry.type === 'PASSIVE') {
+              const displayDetail = formatPassiveDetail(entry.effectDetail);
+              return (
+                <div
+                  key={idx}
+                  className={`log-card log-passive-card ${entry.isPlayer ? 'player-card' : 'enemy-card'} ${
+                    isNewest ? 'entry-fresh' : ''
+                  }`}
+                >
+                  <div className="log-card-header">
+                    <span className="log-turn-pill">T{entry.turn}</span>
+                    <span className="log-passive-badge">⚡ PASSIVE</span>
+                    <span className={`log-actor-name ${entry.isPlayer ? 'actor-player' : 'actor-enemy'}`}>
+                      {entry.actor}
+                    </span>
+                    <span className="log-ability-name">✨ {entry.passiveName}</span>
+                  </div>
+
+                  {displayDetail && (
+                    <div className="log-card-body">
+                      <div className="log-passive-detail">
+                        <span className="passive-effect-chip">{displayDetail}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             }

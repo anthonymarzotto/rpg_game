@@ -87,11 +87,11 @@ export function createNoviceSandboxEncounter(
     starterAbilityIds: ['strike', 'quick_thrust', 'spark']
   };
 
-  // 2. Lyra (Thief - Flanker)
+  // 2. Lyra (Infiltrator - Stealth & Flanking)
   const lyraAttrs = { force: 0, finesse: 1, focus: 0 };
   const lyra: Unit = {
     id: 'player-thief',
-    name: 'Lyra (Thief)',
+    name: 'Lyra (Infiltrator)',
     gender: 'female',
     race: 'human',
     faction: 'PLAYER',
@@ -99,17 +99,17 @@ export function createNoviceSandboxEncounter(
       unitId: 'player-thief',
       currentLevel: 1,
       archetypePoints: { fighter: 0, rogue: 1, mage: 0 },
-      constellation: ['thief'],
+      constellation: ['infiltrator'],
       milestoneSelections: {}
     },
     baseAttributes: lyraAttrs,
     effectiveVitals: computeDerivedVitals(lyraAttrs, 1),
     loadout: {
-      activeClassId: 'thief',
-      wildcardAbilityIds: ['strike', 'spark'],
+      activeClassId: 'infiltrator',
+      wildcardAbilityIds: ['sneak_attack', 'strike'],
       wildcardPassiveIds: ['momentum']
     },
-    starterAbilityIds: ['strike', 'throw_dart', 'spark']
+    starterAbilityIds: ['smoke_veil', 'toxic_shiv', 'expose_weakness', 'sneak_attack']
   };
 
   // 3. Vael (Wizard - Arcane Support / Blaster)
@@ -134,7 +134,7 @@ export function createNoviceSandboxEncounter(
       wildcardAbilityIds: ['minor_ward', 'strike'],
       wildcardPassiveIds: ['momentum']
     },
-    starterAbilityIds: ['strike', 'quick_thrust', 'minor_ward']
+    starterAbilityIds: ['spark', 'arcane_blast', 'minor_ward']
   };
 
   // 4. Enemy Brute A (adjacent frontline at 1, 0)
@@ -167,13 +167,13 @@ export function createNoviceSandboxEncounter(
     { maxHp: 20, speed: 7, ward: 2, resolve: 12, armor: 0 }
   );
 
-  // 7. Distant Scout D (at -2, 1)
+  // 7. Enemy Infiltrator D (at 3, -2)
   const enemyD = createSandboxEnemy(
     'dummy-d',
-    'Distant Scout D',
-    'thief',
-    ['throw_dart', 'strike'],
-    ['throw_dart'],
+    'Shadow Infiltrator D',
+    'infiltrator',
+    ['smoke_veil', 'toxic_shiv'],
+    ['smoke_veil', 'toxic_shiv', 'sneak_attack'],
     { maxHp: 20, speed: 8, evasion: 11, ward: 1, armor: 0 }
   );
 

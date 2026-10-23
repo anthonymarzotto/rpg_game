@@ -227,6 +227,19 @@ export type CombatLogMetadata =
       }[];
     }
   | {
+      readonly type: 'PASSIVE';
+      readonly actor: string;
+      readonly passiveName: string;
+      readonly effectDetail?: string;
+    }
+  | {
+      readonly type: 'DETECTION';
+      readonly actor: string;
+      readonly target: string;
+      readonly targetUnitId?: string;
+      readonly isTurnStart?: boolean;
+    }
+  | {
       readonly type: 'GENERIC';
       readonly actor?: string;
       readonly text?: string;
