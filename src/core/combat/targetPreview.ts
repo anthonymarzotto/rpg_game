@@ -125,7 +125,7 @@ export function computeAbilityMetrics(
   if (flankEffect) {
     // Check if attacker arc is Flank/Rear or if an allied pincer exists
     if (combatArc === 'FLANK' || combatArc === 'REAR' || isFlankOrRear(state, actorUnitId, targetUnitId)) {
-      isFlankAdvantage = flankEffect.grantsAdvantage !== false;
+      isFlankAdvantage = Boolean(flankEffect.grantsAdvantage);
       bonusDamageProfile = flankEffect.bonusDamage;
     }
   }

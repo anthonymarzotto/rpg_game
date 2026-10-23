@@ -6,7 +6,7 @@ describe('Squad Combat Benchmarks (3v3 Mixed Tiers)', () => {
     const result = runSquadSimulation({
       matches: 100,
       maxTurnsPerMatch: 80,
-      arenaRadius: 3,
+      arenaRadius: 4,
       enableElevationTopography: true,
       baseSeed: 991122
     });

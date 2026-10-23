@@ -8,27 +8,23 @@ import { createCampaign } from './core/campaign/campaignFactory';
 import { Unit } from './core/types/unit';
 import { CampaignState } from './core/campaign/types';
 
+import { createRecruit } from './core/units/unitFactory';
+
 function makeMockUnit(): Unit {
+  const recruit = createRecruit('hero-1', 'Valerius', { faction: 'PLAYER' });
   return {
-    id: 'hero-1',
-    name: 'Valerius',
-    gender: 'male',
-    race: 'human',
-    faction: 'PLAYER',
+    ...recruit,
     baseAttributes: { force: 2, finesse: 1, focus: 0 },
-    effectiveVitals: { maxHp: 24, maxAp: 3, movement: 3, armor: 0, defenseDc: 10 },
-    loadout: {
-      activeClassId: 'novice',
-      wildcardAbilityIds: [],
-      wildcardPassiveIds: []
+    effectiveVitals: {
+      ...recruit.effectiveVitals,
+      maxHp: 24,
+      maxAp: 3,
+      move: 3,
+      armor: 0
     },
-    starterAbilityIds: ['strike'],
     progression: {
-      unitId: 'hero-1',
-      currentLevel: 0,
-      constellation: [],
-      accumulatedXp: { fighter: 10, rogue: 0, mage: 0 },
-      archetypePoints: { fighter: 0, rogue: 0, mage: 0 }
+      ...recruit.progression,
+      accumulatedXp: { fighter: 10, rogue: 0, mage: 0 }
     }
   };
 }

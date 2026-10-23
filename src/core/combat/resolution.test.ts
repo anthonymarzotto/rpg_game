@@ -476,18 +476,50 @@ describe('Attack & Ability Resolution Outcomes', () => {
       const targetCu = state.units.get('target')!;
       targetCu.facing = HEX_DIRECTIONS.SOUTHEAST;
 
-      // Sneak Attack rolls with Advantage (rolls 2 d20s: 8 and 16 -> takes 16)
+      // Sneak Attack rolls standard d20 without Advantage (no free Advantage from flank alone)
       // Damage: 1d4 (3) + 1d6 (5) + 1 Force = 9
+      const dice = new MockDiceRoller({ d20Rolls: [16], damageRolls: [3, 5] });
+      const result = executeAbility(state, 'thief', SNEAK_ATTACK, { targetUnitId: 'target' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.d20Roll).toBe(16);
+        expect(result.details.hitOutcome).toBe('SOLID_HIT');
+        expect(result.details.damageDealt).toBe(9); // 3 (1d4) + 5 (1d6) + 1 (Force) - 0 (Armor)
+        expect(result.details.damageBreakdown).toContain('1d4+1d6');
+      }
+    });
+
+    it('grants Advantage on Sneak Attack when attacking from STEALTH', () => {
+      const arena = createRadialArena(3);
+      const thief = createRecruit('thief', 'Thief', { faction: 'PLAYER' });
+      const flankedTarget = createRecruit('target', 'Target', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('thief', { q: 0, r: 0 });
+      arena.setUnitPosition('target', { q: 0, r: 1 });
+
+      const state = createCombatState(arena, [thief, flankedTarget], 'thief');
+      const targetCu = state.units.get('target')!;
+      targetCu.facing = HEX_DIRECTIONS.SOUTHEAST;
+
+      // Give thief STEALTH condition
+      const thiefCu = state.units.get('thief')!;
+      thiefCu.activeConditions.push({
+        type: 'STEALTH',
+        durationTurns: 1,
+        sourceUnitId: 'thief'
+      });
+
+      // Sneak Attack from stealth rolls with Advantage (rolls 8 and 16 -> takes 16)
       const dice = new MockDiceRoller({ d20Rolls: [8, 16], damageRolls: [3, 5] });
       const result = executeAbility(state, 'thief', SNEAK_ATTACK, { targetUnitId: 'target' }, dice);
 
       expect(result.type).toBe('ATTACK');
       if (result.type === 'ATTACK') {
         expect(result.details.d20Roll).toBe(16); // Advantage picked higher roll
-        expect(result.details.hitOutcome).toBe('SOLID_HIT'); // 16 + 3 = 19 vs 10 DC (needs >= 20 for crit)
-        expect(result.details.damageDealt).toBe(9); // 3 (1d4) + 5 (1d6) + 1 (Force) - 0 (Armor)
-        expect(result.details.damageBreakdown).toContain('1d4+1d6');
+        expect(result.details.damageDealt).toBe(8); // 3 (1d4) + 5 (1d6) + 0 Force
       }
+      expect(thiefCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(false);
     });
 
     it('grants Advantage when attacking from STEALTH and breaks stealth after attack', () => {

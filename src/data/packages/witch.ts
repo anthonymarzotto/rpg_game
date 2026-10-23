@@ -5,7 +5,7 @@ import { ClassPackage } from '../../core/types/classPackage';
 export const BALEFUL_HEX: Ability = {
   id: 'baleful_hex',
   name: 'Baleful Hex',
-  description: 'Utters a baleful curse dealing 1d4 + Focus magical damage vs Resolve, inflicting POISON for 2 turns (2 damage/turn) and delaying target CTB initiative by 20 ticks.',
+  description: 'Utters a baleful curse against target Resolve, inflicting POISON for 2 turns (2 damage/turn) and delaying target CTB initiative by 20 ticks.',
   archetypeTag: 'MAGE',
   apCost: 1,
   range: 3,
@@ -14,14 +14,6 @@ export const BALEFUL_HEX: Ability = {
   attackModifierAttribute: 'focus',
   damageType: 'MAGICAL',
   effects: [
-    {
-      type: 'DAMAGE',
-      damageProfile: {
-        count: 1,
-        sides: 4,
-        modifierAttribute: 'focus'
-      }
-    },
     {
       type: 'CONDITION',
       conditionType: 'POISON',
@@ -38,9 +30,9 @@ export const BALEFUL_HEX: Ability = {
 export const POPPET_NEEDLE: Ability = {
   id: 'poppet_needle',
   name: 'Poppet Needle',
-  description: 'Drives a pin into a sympathetic effigy, dealing 1d6 + Focus magical damage vs Resolve, forcing the target to face 180° away from the caster, and inflicting -2 Resolve for 2 turns.',
+  description: 'Drives a pin into a sympathetic effigy, dealing 2d4 + Focus magical damage vs Resolve, forcing the target to face 180° away from the caster, and inflicting -2 Resolve for 2 turns.',
   archetypeTag: 'MAGE',
-  apCost: 1,
+  apCost: 2,
   range: 3,
   targetType: 'SINGLE_TARGET',
   defenseTarget: 'RESOLVE',
@@ -50,8 +42,8 @@ export const POPPET_NEEDLE: Ability = {
     {
       type: 'DAMAGE',
       damageProfile: {
-        count: 1,
-        sides: 6,
+        count: 2,
+        sides: 4,
         modifierAttribute: 'focus'
       }
     },
@@ -73,7 +65,7 @@ export const POPPET_NEEDLE: Ability = {
 export const WITCHS_TALISMAN: Ability = {
   id: 'witchs_talisman',
   name: "Witch's Talisman",
-  description: 'Bestows an occult talisman upon an ally within 2 hexes, granting an immediate +25 CTB initiative boost and +2 Speed for 1 turn.',
+  description: 'Bestows an occult talisman upon an ally within 2 hexes, granting +2 Speed and +2 Ward for 1 turn.',
   archetypeTag: 'MAGE',
   apCost: 1,
   range: 2,
@@ -82,9 +74,10 @@ export const WITCHS_TALISMAN: Ability = {
   damageType: 'NONE',
   effects: [
     {
-      type: 'INITIATIVE_BOOST',
+      type: 'WARD_BUFF',
+      magnitude: 2,
+      durationTurns: 1,
       targetScope: 'TARGET',
-      magnitude: 25,
       applyOn: 'ALWAYS'
     },
     {

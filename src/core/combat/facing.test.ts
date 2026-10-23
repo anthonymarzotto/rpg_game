@@ -296,21 +296,21 @@ describe('Directional Facing & Combat Arcs', () => {
 
       const preview = computeTargetPreview(state, 'thief', SNEAK_ATTACK, { q: 1, r: 0 })!;
       expect(preview.combatArc).toBe('REAR');
-      expect(preview.isFlankAdvantage).toBe(true);
+      expect(preview.isFlankAdvantage).toBe(false);
       expect(preview.diceDescription).toContain('+1d6');
 
-      // Attack rolls with Advantage (rolls 5 and 18 -> takes 18) and adds 1d4 + 1d6 damage (3 + 5 = 8)
-      const dice = new MockDiceRoller({ d20Rolls: [5, 18], damageRolls: [3, 5] });
+      // Attack rolls standard d20 and adds 1d4 + 1d6 damage (3 + 5 = 8)
+      const dice = new MockDiceRoller({ d20Rolls: [18], damageRolls: [3, 5] });
       const result = executeAbility(state, 'thief', SNEAK_ATTACK, { targetUnitId: 'dummy' }, dice);
 
       expect(result.type).toBe('ATTACK');
       if (result.type === 'ATTACK') {
-        expect(result.details.d20Roll).toBe(18); // Advantage picked 18
+        expect(result.details.d20Roll).toBe(18);
         expect(result.details.damageDealt).toBe(8); // 3 (1d4) + 5 (1d6)
       }
     });
 
-    it('flank attack (lateral angle) grants Sneak Attack Advantage and +1d6 damage', () => {
+    it('flank attack (lateral angle) grants +1d6 precision damage without free Advantage', () => {
       const arena = createRadialArena(3);
       const thief = createRecruit('thief', 'Thief');
       const dummy = createRecruit('dummy', 'Dummy');
@@ -326,7 +326,8 @@ describe('Directional Facing & Combat Arcs', () => {
 
       const preview = computeTargetPreview(state, 'thief', SNEAK_ATTACK, { q: 1, r: 0 })!;
       expect(preview.combatArc).toBe('FLANK');
-      expect(preview.isFlankAdvantage).toBe(true);
+      expect(preview.isFlankAdvantage).toBe(false);
+      expect(preview.diceDescription).toContain('+1d6');
     });
 
     it('allied pincer triggers flanking even when attacking from the front arc', () => {

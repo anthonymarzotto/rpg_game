@@ -371,9 +371,10 @@ export function scoreBuffAbility(
     }
   }
 
-  // 2. INITIATIVE_BOOST evaluation (e.g. Witch's Talisman)
+  // 2. INITIATIVE_BOOST or Witch's Talisman (Speed/Ward buff) evaluation
   const initiativeEffect = ability.effects?.find((e) => e.type === 'INITIATIVE_BOOST');
-  if (initiativeEffect) {
+  const isTalisman = ability.id === 'witchs_talisman' || Boolean(initiativeEffect);
+  if (isTalisman) {
     if (isSelf) return { score: 0 };
     if (targetCu.initiativeGauge >= 80) return { score: 0 };
 
@@ -589,6 +590,22 @@ export function scoreDebuffAndUtility(
   if (forcesFacingAway) {
     score += profile === 'SKIRMISHER' ? 10.0 : 7.0;
     reasons.push('Force target facing 180° away');
+
+    // Check if target is adjacent to a friendly unit (threatening frontline)
+    let threatensAlly = false;
+    for (const u of state.units.values()) {
+      if (!u.isDefeated && u.faction === actorCu.faction && u.unit.id !== actorCu.unit.id) {
+        const uPos = state.arena.getUnitPosition(u.unit.id);
+        if (uPos && hexDistance(targetCoord, uPos) <= 1) {
+          threatensAlly = true;
+          break;
+        }
+      }
+    }
+    if (threatensAlly) {
+      score += profile === 'SUPPORT' ? 24.0 : 16.0;
+      reasons.push('Neutralize frontline threat (turn away from engaged ally)');
+    }
   }
 
   // 5. CONDITION: CHALLENGED & Self-Evasion (e.g. Flamboyant Flourish)

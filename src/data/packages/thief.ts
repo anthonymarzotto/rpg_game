@@ -6,7 +6,7 @@ import { SKIRMISH } from './novice';
 export const SNEAK_ATTACK: Ability = {
   id: 'sneak_attack',
   name: 'Sneak Attack',
-  description: 'A precise strike dealing 1d4 damage, gaining Advantage and +1d6 precision damage when striking from a flank or rear.',
+  description: 'A precise strike dealing 1d4 damage, gaining +1d6 precision damage when striking from a flank or rear.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 1,
@@ -27,8 +27,7 @@ export const SNEAK_ATTACK: Ability = {
         count: 1,
         sides: 6,
         modifierAttribute: 'force'
-      },
-      grantsAdvantage: true
+      }
     }
   ]
 };

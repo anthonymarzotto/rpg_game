@@ -748,7 +748,7 @@ describe('Headless AI Decision Engine', () => {
       arena.setUnitPosition(ally.id, { q: 0, r: 0 });
 
       const state = createCombatState(arena, [witch, ally, hero], witch.id);
-      state.units.get(witch.id)!.currentAp = 1;
+      state.units.get(witch.id)!.currentAp = 2;
 
       const action = decideNextAction(state, witch.id);
       expect(action.type).toBe('ABILITY');

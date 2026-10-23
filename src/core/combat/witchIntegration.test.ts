@@ -125,7 +125,7 @@ describe('Tier 3 Witch Class Package Integration', () => {
   });
 
   describe('Baleful Hex Execution (Poison & CTB Delay)', () => {
-    it('consumes 1 AP, deals 1d4 + Focus magical damage vs Resolve, inflicts POISON and delays CTB by 20', () => {
+    it('consumes 1 AP, inflicts POISON and delays CTB by 20 with 0 direct damage vs Resolve', () => {
       const arena = createRadialArena(3);
       const witch = createCustomUnit('witch', 'Morgana', {
         activeClassId: 'witch',
@@ -146,14 +146,14 @@ describe('Tier 3 Witch Class Package Integration', () => {
       witchCu.currentAp = 3;
       enemyCu.initiativeGauge = 50;
 
-      // Roll 12 on d20 + 3 Focus = 15 vs 10 Resolve (SOLID_HIT), roll 3 on d4 -> 3 + 3 = 6 damage
-      const dice = new MockDiceRoller({ d20Rolls: [12], damageRolls: [3] });
+      // Roll 12 on d20 + 3 Focus = 15 vs 10 Resolve (SOLID_HIT) -> 0 direct damage
+      const dice = new MockDiceRoller({ d20Rolls: [12] });
       const result = executeAbility(state, 'witch', BALEFUL_HEX, { targetUnitId: 'enemy' }, dice);
 
       expect(result.type).toBe('ATTACK');
       if (result.type === 'ATTACK') {
         expect(result.details.hitOutcome).toBe('SOLID_HIT');
-        expect(result.details.damageDealt).toBe(6);
+        expect(result.details.damageDealt).toBe(0);
       }
       expect(witchCu.currentAp).toBe(2);
 
@@ -165,6 +165,40 @@ describe('Tier 3 Witch Class Package Integration', () => {
 
       // Verify CTB Delay applied: 50 - 20 = 30
       expect(enemyCu.initiativeGauge).toBe(30);
+    });
+
+    it('negates secondary effects (Poison and CTB Delay) on Graze', () => {
+      const arena = createRadialArena(3);
+      const witch = createCustomUnit('witch', 'Morgana', {
+        activeClassId: 'witch',
+        baseAttributes: { force: 0, finesse: 0, focus: 0 }
+      });
+      const enemy = createCustomUnit('enemy', 'Goblin', {
+        faction: 'ENEMY',
+        resolve: 10,
+        ward: 0
+      });
+
+      arena.setUnitPosition('witch', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [witch, enemy], 'witch');
+      const enemyCu = state.units.get('enemy')!;
+      enemyCu.initiativeGauge = 50;
+
+      // Roll 6 on d20 + 0 Focus = 6 vs 10 Resolve (GRAZE)
+      const dice = new MockDiceRoller({ d20Rolls: [6] });
+      const result = executeAbility(state, 'witch', BALEFUL_HEX, { targetUnitId: 'enemy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.hitOutcome).toBe('GRAZE');
+        expect(result.details.damageDealt).toBe(0);
+      }
+
+      // Secondary effects negated on Graze
+      expect(enemyCu.activeConditions.some((c) => c.type === 'POISON')).toBe(false);
+      expect(enemyCu.initiativeGauge).toBe(50);
     });
 
     it('validates range constraints (max range 3)', () => {
@@ -185,7 +219,7 @@ describe('Tier 3 Witch Class Package Integration', () => {
   });
 
   describe('Poppet Needle Execution (Facing Reversal & Resolve Shred)', () => {
-    it('consumes 1 AP, deals 1d6 + Focus magical damage, rotates target 180 degrees away, and shreds Resolve by -2', () => {
+    it('consumes 2 AP, deals 2d4 + Focus magical damage, rotates target 180 degrees away, and shreds Resolve by -2', () => {
       const arena = createRadialArena(3);
       const witch = createCustomUnit('witch', 'Morgana', {
         activeClassId: 'witch',
@@ -206,16 +240,16 @@ describe('Tier 3 Witch Class Package Integration', () => {
       witchCu.currentAp = 3;
       enemyCu.facing = HEX_DIRECTIONS.WEST; // Initially facing Witch
 
-      // Roll 11 + 4 Focus = 15 vs 10 Resolve (SOLID_HIT), roll 4 on d6 -> (4 + 4) - 1 ward = 7 damage
-      const dice = new MockDiceRoller({ d20Rolls: [11], damageRolls: [4] });
+      // Roll 11 + 4 Focus = 15 vs 10 Resolve (SOLID_HIT), roll 7 on 2d4 (3+4) -> (7 + 4) - 1 ward = 10 damage
+      const dice = new MockDiceRoller({ d20Rolls: [11], damageRolls: [7] });
       const result = executeAbility(state, 'witch', POPPET_NEEDLE, { targetUnitId: 'enemy' }, dice);
 
       expect(result.type).toBe('ATTACK');
       if (result.type === 'ATTACK') {
         expect(result.details.hitOutcome).toBe('SOLID_HIT');
-        expect(result.details.damageDealt).toBe(7);
+        expect(result.details.damageDealt).toBe(10);
       }
-      expect(witchCu.currentAp).toBe(2);
+      expect(witchCu.currentAp).toBe(1); // 3 - 2 = 1 AP
 
       // Facing reversal: direction from (1, 0) to (0, 0) is WEST (3).
       // Opposite direction is EAST (0): ((3 + 3) % 6) = 0.
@@ -230,7 +264,7 @@ describe('Tier 3 Witch Class Package Integration', () => {
   });
 
   describe("Witch's Talisman Execution (Allied Haste)", () => {
-    it('consumes 1 AP, targets an ally within range 2, grants +25 CTB ticks and +2 Speed for 1 turn', () => {
+    it('consumes 1 AP, targets an ally within range 2, grants +2 Speed and +2 Ward for 1 turn', () => {
       const arena = createRadialArena(3);
       const witch = createCustomUnit('witch', 'Morgana', { activeClassId: 'witch' });
       const knight = createCustomUnit('knight', 'Galahad', { activeClassId: 'knight' });
@@ -250,14 +284,20 @@ describe('Tier 3 Witch Class Package Integration', () => {
       expect(result.type).toBe('BUFF');
       expect(witchCu.currentAp).toBe(2);
 
-      // Knight gains +25 CTB ticks
-      expect(knightCu.initiativeGauge).toBe(35);
+      // Knight does not gain CTB ticks (now Speed + Ward)
+      expect(knightCu.initiativeGauge).toBe(10);
 
       // Knight gains +2 Speed for 1 turn
       const speedMod = knightCu.activeModifiers.find((m) => m.stat === 'speed');
       expect(speedMod).toBeDefined();
       expect(speedMod?.value).toBe(2);
       expect(speedMod?.durationTurns).toBe(1);
+
+      // Knight gains +2 Ward for 1 turn
+      const wardMod = knightCu.activeModifiers.find((m) => m.stat === 'ward');
+      expect(wardMod).toBeDefined();
+      expect(wardMod?.value).toBe(2);
+      expect(wardMod?.durationTurns).toBe(1);
     });
   });
 
@@ -347,7 +387,7 @@ describe('Tier 3 Witch Class Package Integration', () => {
   });
 
   describe('Turn Combo Execution (3 AP Support/Offense Loop)', () => {
-    it('executes Witchs Talisman on ally, Poppet Needle on enemy, and Baleful Hex on enemy in a single 3 AP turn', () => {
+    it('executes Witchs Talisman on ally (1 AP) and Poppet Needle on enemy (2 AP) in a single 3 AP turn', () => {
       const arena = createRadialArena(3);
       const witch = createCustomUnit('witch', 'Morgana', {
         activeClassId: 'witch',
@@ -364,22 +404,26 @@ describe('Tier 3 Witch Class Package Integration', () => {
       const witchCu = state.units.get('witch')!;
       witchCu.currentAp = 3;
 
-      const dice = new MockDiceRoller({ d20Rolls: [15, 15], damageRolls: [4, 3] });
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3, 4] });
 
       // Action 1: Buff knight with talisman (1 AP)
       executeAbility(state, 'witch', WITCHS_TALISMAN, { targetUnitId: 'knight' }, dice);
       expect(witchCu.currentAp).toBe(2);
 
-      // Action 2: Poppet Needle on enemy (1 AP)
+      // Action 2: Poppet Needle on enemy (2 AP)
       executeAbility(state, 'witch', POPPET_NEEDLE, { targetUnitId: 'enemy' }, dice);
-      expect(witchCu.currentAp).toBe(1);
-
-      // Action 3: Baleful Hex on enemy (1 AP)
-      executeAbility(state, 'witch', BALEFUL_HEX, { targetUnitId: 'enemy' }, dice);
       expect(witchCu.currentAp).toBe(0);
 
-      // All 3 actions resolved successfully
-      expect(state.combatLog.length).toBeGreaterThanOrEqual(3);
+      // Both actions resolved successfully using all 3 AP
+      expect(state.combatLog.length).toBeGreaterThanOrEqual(2);
+
+      // Next turn: Poppet Needle (2 AP) + Baleful Hex (1 AP) combo
+      witchCu.currentAp = 3;
+      const diceTurn2 = new MockDiceRoller({ d20Rolls: [15, 15], damageRolls: [2, 3] });
+      executeAbility(state, 'witch', POPPET_NEEDLE, { targetUnitId: 'enemy' }, diceTurn2);
+      expect(witchCu.currentAp).toBe(1);
+      executeAbility(state, 'witch', BALEFUL_HEX, { targetUnitId: 'enemy' }, diceTurn2);
+      expect(witchCu.currentAp).toBe(0);
     });
   });
 });

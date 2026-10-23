@@ -864,7 +864,7 @@ export function executeAbility(
   if (flankEffect) {
     const isFlanked = isFlankOrRear(state, actorUnitId, targetCu.unit.id);
     if (isFlanked) {
-      if (flankEffect.grantsAdvantage !== false) {
+      if (Boolean(flankEffect.grantsAdvantage)) {
         rollAdvantage = 'ADVANTAGE';
       }
       bonusDamageProfile = flankEffect.bonusDamage;
