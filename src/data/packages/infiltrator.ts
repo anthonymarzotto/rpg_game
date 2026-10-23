@@ -28,7 +28,7 @@ export const EXPOSE_WEAKNESS: Ability = {
 export const SMOKE_VEIL: Ability = {
   id: 'smoke_veil',
   name: 'Smoke Veil',
-  description: 'Vanishes into a dense cloud of smoke, gaining STEALTH for 1 turn. Attacking from stealth grants Advantage and breaks stealth.',
+  description: 'Vanishes into a dense cloud of smoke, gaining STEALTH until attacking, taking damage, or being spotted. Attacking from stealth grants Advantage and breaks stealth.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 0,

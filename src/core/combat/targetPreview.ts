@@ -74,13 +74,16 @@ export function computeAbilityMetrics(
     return null;
   }
 
-  const targetUnitId = state.arena.getUnitAt(targetCoord);
+  const effectiveAbility = getEffectiveAbility(ability, actorCu.abilityModifiers);
+
+  const targetUnitId =
+    effectiveAbility.targetType === 'SELF'
+      ? actorUnitId
+      : state.arena.getUnitAt(targetCoord);
   if (!targetUnitId) return null;
 
   const targetCu = state.units.get(targetUnitId);
   if (!targetCu || targetCu.isDefeated) return null;
-
-  const effectiveAbility = getEffectiveAbility(ability, actorCu.abilityModifiers);
 
   const actorElevation = state.arena.getElevation(effectiveOrigin);
   const targetElevation = state.arena.getElevation(targetCoord);

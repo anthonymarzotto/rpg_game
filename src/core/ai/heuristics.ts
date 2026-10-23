@@ -409,6 +409,47 @@ export function scoreBuffAbility(
     };
   }
 
+  // 3. STEALTH self-buff evaluation (e.g. Smoke Veil)
+  if (isSelf && conditionEffect?.conditionType === 'STEALTH') {
+    let stealthScore = 6.0;
+    const reasons: string[] = ['Vanish into stealth'];
+
+    const remainingAp = actorCu.currentAp - ability.apCost;
+    if (remainingAp >= 1) {
+      // Offensive primer / infiltration approach:
+      // Unit enters stealth and still has AP to act (Move + Strike, Move + Debuff, or direct Strike)
+      if (minHostileDist <= 2) {
+        stealthScore += 24.0;
+        reasons.push('Stealth offensive setup (Advantage strike)');
+      } else if (minHostileDist <= 4) {
+        stealthScore += 18.0;
+        reasons.push('Infiltration approach (stealth before closing in)');
+      } else if (minHostileDist <= 6) {
+        stealthScore += 8.0;
+        reasons.push('Stalk approaching enemies under concealment');
+      }
+    } else {
+      // Turn-ending defensive vanish:
+      // Unit has exhausted other actions and uses their final AP to end the turn in stealth.
+      // Provides strong survivability without overriding high-value finishing blows.
+      if (minHostileDist <= 1) {
+        stealthScore += 14.0;
+        reasons.push('Turn-end vanish (break melee threat / untargetable)');
+      } else if (minHostileDist <= 3) {
+        stealthScore += 12.0;
+        reasons.push('Turn-end vanish (shield against impending attacks)');
+      } else if (minHostileDist <= 5) {
+        stealthScore += 6.0;
+        reasons.push('Turn-end concealment');
+      }
+    }
+
+    return {
+      score: Math.round(stealthScore * 10) / 10,
+      reason: reasons.join('; ')
+    };
+  }
+
   const maxHp = targetCu.unit.effectiveVitals.maxHp;
   const missingHp = Math.max(0, maxHp - targetCu.currentHp);
   const healthDeficitRatio = maxHp > 0 ? missingHp / maxHp : 0;

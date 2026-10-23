@@ -274,7 +274,7 @@ describe('Tier 2 Combat Engine Mechanics', () => {
     expect(canExecuteAbility(state, 'hero', SPELL_SCULPT).valid).toBe(true);
   });
 
-  it('keeps STEALTH active through enemy turns, untargetable by enemies, and purges at start of next turn', () => {
+  it('keeps STEALTH active through enemy turns, untargetable by enemies, and persists until attacking', () => {
     const arena = createRadialArena(3);
     const infiltrator = createRecruit('infiltrator', 'Infiltrator', { faction: 'PLAYER' });
     const enemy = createRecruit('enemy', 'Goblin', { faction: 'ENEMY' });
@@ -287,7 +287,7 @@ describe('Tier 2 Combat Engine Mechanics', () => {
     // Set enemy facing away (East, 0) so Infiltrator at (0, 0) is in enemy's rear arc, avoiding turn-start front-arc unmasking
     enemyCu.facing = 0;
 
-    // Turn 1: Infiltrator casts Smoke Veil (1 AP, 1-turn duration)
+    // Turn 1: Infiltrator casts Smoke Veil
     executeAbility(state, 'infiltrator', SMOKE_VEIL);
     expect(infCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
 
@@ -323,7 +323,11 @@ describe('Tier 2 Combat Engine Mechanics', () => {
     endActiveTurn(state, 0);
 
     expect(state.activeUnitId).toBe('infiltrator');
-    // 1-turn Stealth purges at the start of Infiltrator's next turn (like Ward)
+    // Stealth persists past the start of Infiltrator's next turn until broken by attacking
+    expect(infCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
+
+    // Infiltrator attacks from stealth -> breaks stealth
+    executeAbility(state, 'infiltrator', enemyAttack, { targetUnitId: 'enemy' });
     expect(infCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(false);
   });
 });

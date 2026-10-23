@@ -540,14 +540,18 @@ export function decideNextActionWithTrace(
         }
       }
 
-      // Check if moving here enables a follow-up buff on an ally this turn
+      // Check if moving here enables a follow-up buff on an ally or self this turn
       for (const ability of cu.abilities) {
         const effectiveAbility = getEffectiveAbility(ability, cu.abilityModifiers);
         if (remainingAp < effectiveAbility.apCost) continue;
-        if (ability.targetType !== 'ALLY' && ability.damageType !== 'NONE') continue;
+        if (ability.targetType !== 'ALLY' && ability.targetType !== 'SELF' && ability.damageType !== 'NONE') continue;
 
         for (const allyCu of alliedUnits) {
-          const allyCoord = state.arena.getUnitPosition(allyCu.unit.id);
+          const isSelf = allyCu.unit.id === actorUnitId;
+          if (ability.targetType === 'SELF' && !isSelf) continue;
+          if (ability.targetType === 'ALLY' && isSelf) continue;
+
+          const allyCoord = isSelf ? candCoord : state.arena.getUnitPosition(allyCu.unit.id);
           if (!allyCoord) continue;
 
           const metrics = computeAbilityMetrics(

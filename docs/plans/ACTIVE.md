@@ -15,7 +15,7 @@
 - [ ] **2.6**: AI awareness of enemy count & duplicate skill targeting deprioritization: incorporate living enemy count into AI decision-making (e.g. deprioritize control/setup primers when only 1 foe remains) and add a general scoring penalty against casting the same non-damage or debuff skill on the same target multiple times within a single turn. Specifically addresses:
   * **Highwayman** repeatedly casting `Stand and Deliver!` on the same target (1,477 casts in duels) instead of following up with `Point-Blank Buckshot`.
   * **Cat-Burglar** repeatedly spamming `Flash Powder` on the same target (900 casts in duels) instead of striking with `Pilfer`.
-  * **Infiltrator** repeatedly casting `Smoke Veil` on self while already in `STEALTH` (1,278 casts in duels).
+  * [x] **Infiltrator** repeatedly casting `Smoke Veil` on self while already in `STEALTH`: resolved via active condition guard in `scoreBuffAbility`.
 - [ ] **2.7**: AI scoring support for unselected/underused kit abilities:
   * Add AoE splash evaluation to `computeAbilityMetrics` for single-target blast abilities (e.g. Wizard's `Arcane Blast`).
   * Add hostile `SLOW` debuff evaluation in `scoreDebuffAndUtility` for abilities like `Frostbite`.
@@ -24,9 +24,10 @@
   * Add target threat weighting to AI decision engine to target high-damage backline casters (Warlock, Witch) even when low-ground vertical penalties reduce hit probability.
   * Add displacement / `KNOCKBACK` utility scoring against units holding High Ground Vantage (prioritize shoving perched snipers off cliffs for fall impact damage and vantage disruption).
 - [ ] **2.9**: Highwayman Tactical Role & Survivability Audit: assess why Highwayman suffers a bottom-tier 34% win rate and 14% survival (23.2 damage taken) even with resonant options; evaluate mid-range self-peel (e.g. backward recoil on buckshot or evasion on Stand and Deliver!) and range-1 vs range-2 kit flow.
-- [ ] **2.10**: Infiltrator Kit Identity vs. Resonant Cannibalization: investigate why Infiltrator abandons its own authored kit (Toxic Shiv had only 9 casts) in favor of Thief's resonant Sneak Attack (131 casts) and Shadow Step (210 casts); evaluate poison tick scaling and vulnerability payoff.
+- [x] **2.10**: Infiltrator Kit Identity vs. Resonant Cannibalization: investigated and resolved. Discovered `Shadow Step` teleport lookahead (+30–45 score) dominates 1-AP choices when equipped as a wildcard; fixed engine Move + Self-Buff gap and added turn-end vanish/approach heuristics, elevating `Smoke Veil` usage 15x (19–31 targets) and `Expose Weakness` to 97 targets.
 - [ ] **2.11**: Make Arcane Blast target a hex. Targeted square gets full damage, surrounding squares get splash.
 - [ ] **2.12**: Assess breaking CHALLENGE status if damaged by an enemy other than the challenger.
+- [x] **2.13**: Assess if Smoke Veil's STEALTH should last until an attack and persist past turn start. (Implemented: STEALTH persists across turn starts until broken by attack, damage, or front-arc detection; AI scores turn-ending vanish and infiltration approach; Move + Self-Buff engine gap fixed).
 
 ---
 

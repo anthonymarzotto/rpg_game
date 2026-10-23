@@ -141,9 +141,11 @@ export function advanceTurnClock(state: CombatState): string {
       nextActive.currentHp = Math.max(0, nextActive.currentHp - dotDamageTotal);
     }
 
-    // Decrement durations on active unit's conditions and purge expired ones
+    // Decrement durations on active unit's conditions and purge expired ones (STEALTH persists until broken)
     nextActive.activeConditions.forEach((c) => {
-      c.durationTurns -= 1;
+      if (c.type !== 'STEALTH') {
+        c.durationTurns -= 1;
+      }
     });
     nextActive.activeConditions = nextActive.activeConditions.filter(
       (c) => c.durationTurns > 0
