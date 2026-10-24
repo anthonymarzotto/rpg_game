@@ -1,0 +1,29 @@
+{
+  "group_id": "82b10b5a-da4e-4f61-964d-6867da3a49b8",
+  "objects": [
+    {
+      "id": "1dc921f9-ff30-45e2-945d-0c73551de051",
+      "name": "base",
+      "prompt": "Ancient crumbling stone broken pillars acting as a dense obstacle. Weathered gray stone, moss, ivy climbing the cracks, and rubble piled across the tile surface.",
+      "size": {
+        "width": 68,
+        "height": 68
+      },
+      "directions": 8,
+      "view": "low top-down",
+      "rotations": {
+        "south": "rotations/south.png",
+        "south-east": "rotations/south-east.png",
+        "east": "rotations/east.png",
+        "north-east": "rotations/north-east.png",
+        "north": "rotations/north.png",
+        "north-west": "rotations/north-west.png",
+        "west": "rotations/west.png",
+        "south-west": "rotations/south-west.png"
+      },
+      "animations": {}
+    }
+  ],
+  "export_version": "1.1",
+  "export_date": "2026-10-24T02:20:13.079658"
+}
