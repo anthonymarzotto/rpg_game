@@ -144,9 +144,11 @@ export function decideNextActionWithTrace(
           profile
         );
 
-        const hasPrimaryValue = metrics.expectedDamage > 0 || utility.score > 0;
+        const effectiveDamage = kill.score + damageScore + vulnScore;
+        const hasPrimaryValue = effectiveDamage > 0 || utility.score > 0;
+        const effectiveFlank = effectiveDamage > 0 ? flank.score : 0;
         const totalScore = hasPrimaryValue
-          ? kill.score + damageScore + vulnScore + flank.score + focusScore + standoff + utility.score
+          ? effectiveDamage + effectiveFlank + focusScore + standoff + utility.score
           : 0;
 
         if (totalScore <= 0) continue;
@@ -154,7 +156,7 @@ export function decideNextActionWithTrace(
         const reasons: string[] = [];
         if (utility.reason) reasons.push(utility.reason);
         if (kill.reason) reasons.push(kill.reason);
-        if (flank.reason) reasons.push(flank.reason);
+        if (effectiveFlank > 0 && flank.reason) reasons.push(flank.reason);
         if (reasons.length === 0) {
           reasons.push(`Strike ${targetCu.unit.name} (Exp Dmg: ${metrics.expectedDamage})`);
         }
@@ -438,6 +440,10 @@ export function decideNextActionWithTrace(
       for (const ability of cu.abilities) {
         const effectiveAbility = getEffectiveAbility(ability, cu.abilityModifiers);
         if (remainingAp < effectiveAbility.apCost) continue;
+        // Defensive or melee contingency abilities are emergency responses when engaged, not offensive move-in attacks
+        if (ability.aiHint?.role === 'DEFENSIVE' || ability.aiHint?.meleeContingency) {
+          continue;
+        }
         if (ability.targetType === 'SINGLE_TARGET') {
           for (const targetCu of hostileUnits) {
             const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);

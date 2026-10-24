@@ -187,8 +187,8 @@ describe('Class Packages & Catalog Verification', () => {
     expect(HIGHWAYMAN_PACKAGE.signatureAbility.range).toBe(2);
     expect(HIGHWAYMAN_PACKAGE.domainAbilities.map((a) => a.id)).toEqual(['stand_and_deliver', 'gallant_flourish']);
     expect(HIGHWAYMAN_PACKAGE.passive.id).toBe('highway_toll');
-    expect(HIGHWAYMAN_PACKAGE.passive.targetArmorBonus?.minArmor).toBe(1);
-    expect(HIGHWAYMAN_PACKAGE.passive.targetArmorBonus?.flatDamageBonus).toBe(2);
+    expect(HIGHWAYMAN_PACKAGE.passive.targetForceBonus?.requireTargetForceExceedsActor).toBe(true);
+    expect(HIGHWAYMAN_PACKAGE.passive.targetForceBonus?.flatDamageBonus).toBe(2);
     expect(HIGHWAYMAN_PACKAGE.aiProfile).toBe('SKIRMISHER');
 
     expect(getAbilityById('point_blank_buckshot')).toBeDefined();

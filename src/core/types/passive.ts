@@ -47,6 +47,17 @@ export interface TargetArmorBonusEffect {
   readonly damageTypeFilter?: DamageType;
 }
 
+export interface TargetForceBonusEffect {
+  /** If true, requires target base Force attribute to be strictly greater than actor base Force */
+  readonly requireTargetForceExceedsActor?: boolean;
+  /** Minimum target base Force required (e.g. 2) if requireTargetForceExceedsActor is not specified */
+  readonly minForce?: number;
+  /** Flat bonus damage added to attacks when target meets force condition */
+  readonly flatDamageBonus: number;
+  /** Optional filter constraint for damage type (e.g. only PHYSICAL attacks) */
+  readonly damageTypeFilter?: DamageType;
+}
+
 export interface PassiveAuraEffect {
   /** Effective radius in hexes for the aura */
   readonly radius: number;
@@ -81,6 +92,8 @@ export interface PassiveTrait {
   readonly healthThreshold?: HealthThresholdEffect;
   /** Conditional damage bonus active when target effective armor meets threshold */
   readonly targetArmorBonus?: TargetArmorBonusEffect;
+  /** Conditional damage bonus active when target Force meets threshold or exceeds actor Force */
+  readonly targetForceBonus?: TargetForceBonusEffect;
   /** Target-centric or proximity-based aura active on the battlefield */
   readonly aura?: PassiveAuraEffect;
   /** Optional filter constraint for trigger (e.g. only on MAGICAL critical hits) */

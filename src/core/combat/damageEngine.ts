@@ -48,9 +48,12 @@ export function resolveDamage(
     }
   }
 
-  // Check target armor threshold passives (e.g. Highway Toll +2 flat damage against armored targets)
+  // Check target armor / force threshold passives (e.g. Highway Toll)
   if (actorCu.passives) {
     const targetArmor = getEffectiveArmor(targetCu);
+    const actorForce = actorCu.unit.baseAttributes.force;
+    const targetForce = targetCu.unit.baseAttributes.force;
+
     for (const passive of actorCu.passives) {
       if (passive.targetArmorBonus) {
         if (targetArmor >= passive.targetArmorBonus.minArmor) {
@@ -59,6 +62,21 @@ export function resolveDamage(
             passive.targetArmorBonus.damageTypeFilter === ability.damageType
           ) {
             flatBonus += passive.targetArmorBonus.flatDamageBonus;
+          }
+        }
+      }
+
+      if (passive.targetForceBonus) {
+        const meetsCondition = passive.targetForceBonus.requireTargetForceExceedsActor
+          ? targetForce > actorForce
+          : targetForce >= (passive.targetForceBonus.minForce ?? 1);
+
+        if (meetsCondition) {
+          if (
+            !passive.targetForceBonus.damageTypeFilter ||
+            passive.targetForceBonus.damageTypeFilter === ability.damageType
+          ) {
+            flatBonus += passive.targetForceBonus.flatDamageBonus;
           }
         }
       }

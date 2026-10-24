@@ -70,7 +70,7 @@ export const STAND_AND_DELIVER: Ability = {
 export const GALLANT_FLOURISH: Ability = {
   id: 'gallant_flourish',
   name: 'Gallant Flourish',
-  description: 'A dashing rapier strike dealing 1d4 + Finesse physical damage vs Evasion and granting self +2 Evasion for 1 turn.',
+  description: 'A dashing rapier strike dealing 1d4 + Finesse physical damage vs Evasion, granting self +2 Evasion for 1 turn, and taking an evasive retreat step 1 hex away.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 1,
@@ -95,17 +95,31 @@ export const GALLANT_FLOURISH: Ability = {
       statModifiers: {
         evasion: 2
       }
+    },
+    {
+      type: 'RETREAT_STEP',
+      magnitude: 1,
+      targetScope: 'SELF',
+      applyOn: 'ALWAYS'
     }
-  ]
+  ],
+  aiHint: {
+    role: 'DEFENSIVE',
+    meleeContingency: {
+      preferredProfiles: ['SKIRMISHER'],
+      bonusScore: 25.0,
+      reason: 'Melee contingency: Gallant Flourish rapier strike and tactical disengage'
+    }
+  }
 };
 
 export const HIGHWAY_TOLL: PassiveTrait = {
   id: 'highway_toll',
   name: 'Highway Toll',
-  description: 'Extorting the wealthy grants +2 flat physical damage on attacks against targets with positive Armor (> 0).',
+  description: 'Extorting the wealthy grants +2 flat physical damage on attacks against targets with higher base Force than the attacker.',
   hook: 'ALWAYS',
-  targetArmorBonus: {
-    minArmor: 1,
+  targetForceBonus: {
+    requireTargetForceExceedsActor: true,
     flatDamageBonus: 2,
     damageTypeFilter: 'PHYSICAL'
   }

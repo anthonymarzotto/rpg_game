@@ -325,5 +325,54 @@ describe('Phase 1.3: Passive Trait Evaluation Pipeline', () => {
       expect(result.rawDamage).toBe(4);
     });
   });
+
+  describe('Target Force Passive Evaluation', () => {
+    const HIGHWAY_TOLL_FORCE_MOCK = {
+      id: 'highway_toll_force_mock',
+      name: 'Highway Toll Force Mock',
+      description: '+2 flat physical damage vs targets with Force > actor Force',
+      hook: 'ALWAYS' as const,
+      targetForceBonus: {
+        requireTargetForceExceedsActor: true,
+        flatDamageBonus: 2,
+        damageTypeFilter: 'PHYSICAL' as const
+      }
+    };
+
+    it('adds flat damage bonus when target Force exceeds actor Force, even if target Armor is 0', () => {
+      // Actor has Force 1
+      const actorCu = createTestCombatUnit([HIGHWAY_TOLL_FORCE_MOCK]);
+      actorCu.unit.baseAttributes = { force: 1, finesse: 2, focus: 0 };
+
+      // Target has Force 2, but Armor 0 (e.g. shredded)
+      const targetCu = createTestCombatUnit();
+      targetCu.unit.baseAttributes = { force: 2, finesse: 1, focus: 0 };
+      targetCu.unit.effectiveVitals.armor = 0;
+
+      const mockDice = new MockDiceRoller({ damageRolls: [4] });
+      // STRIKE: 1d6 + Force (1 Force) = 5 base + 2 (Highway Toll) = 7 raw. 0 Armor.
+      const result = resolveDamage('SOLID_HIT', STRIKE, actorCu, targetCu, mockDice);
+
+      expect(result.rawDamage).toBe(7);
+      expect(result.damageDealt).toBe(7);
+      expect(result.damageBreakdown).toContain('+3');
+    });
+
+    it('does not add flat damage bonus when target Force is equal or lower than actor Force', () => {
+      // Actor has Force 2
+      const actorCu = createTestCombatUnit([HIGHWAY_TOLL_FORCE_MOCK]);
+      actorCu.unit.baseAttributes = { force: 2, finesse: 2, focus: 0 };
+
+      // Target has Force 1
+      const targetCu = createTestCombatUnit();
+      targetCu.unit.baseAttributes = { force: 1, finesse: 2, focus: 0 };
+
+      const mockDice = new MockDiceRoller({ damageRolls: [4] });
+      // STRIKE: 1d6 + Force (2 Force) = 6 base. No Highway Toll.
+      const result = resolveDamage('SOLID_HIT', STRIKE, actorCu, targetCu, mockDice);
+
+      expect(result.rawDamage).toBe(6);
+    });
+  });
 });
 

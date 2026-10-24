@@ -289,6 +289,36 @@ describe('Tier 3 Highwayman Class Package Integration', () => {
       expect(evasionMod).toBeDefined();
       expect(evasionMod?.value).toBe(2);
       expect(evasionMod?.durationTurns).toBe(1);
+
+      // Check evasive retreat displacement (from (0,0) away from enemy at (1,0) to (-1,0))
+      expect(arena.getUnitPosition('hwm')).toEqual({ q: -1, r: 0 });
+    });
+
+    it('safely skips retreat displacement when destination tile is obstructed', () => {
+      const arena = createRadialArena(3);
+      const hwm = createCustomUnit('hwm', 'Highwayman', {
+        activeClassId: 'highwayman',
+        baseAttributes: { force: 0, finesse: 2, focus: 0 }
+      });
+      const enemy = createCustomUnit('enemy', 'Foe', { evasion: 10 });
+      const obstacleUnit = createCustomUnit('blocker', 'Blocker');
+
+      arena.setUnitPosition('hwm', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+      arena.setUnitPosition('blocker', { q: -1, r: 0 }); // Blocks retreat destination
+
+      const state = createCombatState(arena, [hwm, enemy, obstacleUnit], 'hwm');
+      const hwmCu = state.units.get('hwm')!;
+      hwmCu.currentAp = 3;
+
+      const dice = new MockDiceRoller({ d20Rolls: [14], damageRolls: [3] });
+      const result = executeAbility(state, 'hwm', GALLANT_FLOURISH, { targetUnitId: 'enemy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      // Damage and buff still applied
+      expect(hwmCu.activeModifiers.some((m) => m.stat === 'evasion' && m.value === 2)).toBe(true);
+      // Unit remains at (0, 0) because retreat was blocked
+      expect(arena.getUnitPosition('hwm')).toEqual({ q: 0, r: 0 });
     });
 
     it('rejects execution when target is beyond melee range 1', () => {
@@ -306,25 +336,30 @@ describe('Tier 3 Highwayman Class Package Integration', () => {
   });
 
   describe('Highway Toll Passive Trait', () => {
-    it('adds +2 flat physical damage when target has effective Armor >= 1', () => {
+    it('adds +2 flat physical damage when target base Force exceeds Highwayman Force (even if target Armor is 0)', () => {
       const arena = createRadialArena(3);
       const hwm = createCustomUnit('hwm', 'Highwayman', {
         activeClassId: 'highwayman',
-        baseAttributes: { force: 0, finesse: 2, focus: 0 }
+        baseAttributes: { force: 1, finesse: 2, focus: 0 }
       });
-      const armoredEnemy = createCustomUnit('armoredEnemy', 'Knight', { evasion: 10, armor: 2 });
+      // Higher-force enemy (Force 2) with 2 Armor
+      const heavyEnemy = createCustomUnit('heavyEnemy', 'Knight', {
+        evasion: 10,
+        armor: 2,
+        baseAttributes: { force: 2, finesse: 0, focus: 0 }
+      });
 
       arena.setUnitPosition('hwm', { q: 0, r: 0 });
-      arena.setUnitPosition('armoredEnemy', { q: 1, r: 0 });
+      arena.setUnitPosition('heavyEnemy', { q: 1, r: 0 });
 
-      const state = createCombatState(arena, [hwm, armoredEnemy], 'hwm');
+      const state = createCombatState(arena, [hwm, heavyEnemy], 'hwm');
       const hwmCu = state.units.get('hwm')!;
       hwmCu.currentAp = 3;
 
       // Gallant Flourish: 1d4(3) + 2 Finesse + 2 Highway Toll = 7 raw.
       // 2 Armor mitigation. Dealt: 7 - 2 = 5.
       const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3] });
-      const result = executeAbility(state, 'hwm', GALLANT_FLOURISH, { targetUnitId: 'armoredEnemy' }, dice);
+      const result = executeAbility(state, 'hwm', GALLANT_FLOURISH, { targetUnitId: 'heavyEnemy' }, dice);
 
       expect(result.type).toBe('ATTACK');
       if (result.type === 'ATTACK') {
@@ -335,25 +370,30 @@ describe('Tier 3 Highwayman Class Package Integration', () => {
       }
     });
 
-    it('does not add damage bonus when target has 0 Armor', () => {
+    it('does not add damage bonus when target base Force is equal or lower than Highwayman Force', () => {
       const arena = createRadialArena(3);
       const hwm = createCustomUnit('hwm', 'Highwayman', {
         activeClassId: 'highwayman',
-        baseAttributes: { force: 0, finesse: 2, focus: 0 }
+        baseAttributes: { force: 1, finesse: 2, focus: 0 }
       });
-      const unarmoredEnemy = createCustomUnit('unarmoredEnemy', 'Peasant', { evasion: 10, armor: 0 });
+      // Lower-force enemy (Force 0)
+      const lightEnemy = createCustomUnit('lightEnemy', 'Peasant', {
+        evasion: 10,
+        armor: 0,
+        baseAttributes: { force: 0, finesse: 1, focus: 0 }
+      });
 
       arena.setUnitPosition('hwm', { q: 0, r: 0 });
-      arena.setUnitPosition('unarmoredEnemy', { q: 1, r: 0 });
+      arena.setUnitPosition('lightEnemy', { q: 1, r: 0 });
 
-      const state = createCombatState(arena, [hwm, unarmoredEnemy], 'hwm');
+      const state = createCombatState(arena, [hwm, lightEnemy], 'hwm');
       const hwmCu = state.units.get('hwm')!;
       hwmCu.currentAp = 3;
 
       // Gallant Flourish: 1d4(3) + 2 Finesse = 5 raw.
       // 0 Armor mitigation. Dealt: 5.
       const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3] });
-      const result = executeAbility(state, 'hwm', GALLANT_FLOURISH, { targetUnitId: 'unarmoredEnemy' }, dice);
+      const result = executeAbility(state, 'hwm', GALLANT_FLOURISH, { targetUnitId: 'lightEnemy' }, dice);
 
       expect(result.type).toBe('ATTACK');
       if (result.type === 'ATTACK') {

@@ -127,6 +127,7 @@ export function scoreVulnerability(
   metrics: AbilityMetrics,
   vulnerabilityWeight: number
 ): number {
+  if (!metrics.isDamaging || metrics.expectedDamage <= 0) return 0;
   let score = 0;
   // High hit probability bonus
   if (metrics.toHitChance >= 70) {
@@ -216,6 +217,22 @@ export function scorePrimerAbility(
   // Guard: if actor already has this pending ability modifier active, do not re-prime
   if (actorCu.abilityModifiers?.some((m) => m.id === ability.id)) {
     return { score: 0 };
+  }
+
+  // Guard: if ability inflicts negative stat debuffs on target and all provided hostile units already have those debuffs active, do not re-prime
+  const statMod = ability.effects?.find((e) => e.type === 'STAT_MODIFIER' && (!e.targetScope || e.targetScope === 'TARGET'));
+  if (statMod?.statModifiers) {
+    const unprimedHostiles = hostileUnits.filter((h) => {
+      return Object.entries(statMod.statModifiers!).some(([statKey, rawVal]) => {
+        if (typeof rawVal === 'number' && rawVal < 0) {
+          return !h.activeModifiers.some((m) => m.stat === statKey && m.value < 0);
+        }
+        return false;
+      });
+    });
+    if (unprimedHostiles.length === 0) {
+      return { score: 0 };
+    }
   }
 
   // Profile preference filter (if defined, actor profile must match)
@@ -557,11 +574,12 @@ export function scoreDebuffAndUtility(
     // Universal non-redundancy guard:
     // If an ability applies negative stat debuffs, but all of them are already active on the target,
     // and the ability deals no damage, do not repeat/spam the debuff.
+    // Secondary CTB_DELAY on non-damaging debuffs does NOT bypass this non-redundancy guard.
     if (hasNegativeStatMod && !hasApplicableDebuff && ability.damageType === 'NONE' && !ability.effects?.some((e) => e.type === 'DAMAGE')) {
-      const hasOtherUtility = ability.effects?.some(
-        (e) => e.type === 'CTB_DELAY' || e.type === 'KNOCKBACK' || e.type === 'RUSH_CHARGE'
+      const hasDisplacementUtility = ability.effects?.some(
+        (e) => e.type === 'KNOCKBACK' || e.type === 'RUSH_CHARGE'
       );
-      if (!hasOtherUtility) {
+      if (!hasDisplacementUtility) {
         return { score: 0 };
       }
     }
@@ -576,7 +594,40 @@ export function scoreDebuffAndUtility(
     }
   }
 
-  // 3c. Self INITIATIVE_BOOST siphon on attacks (e.g. Pilfer)
+  // 3b. Self defensive / stat buffs on attacks (e.g. Gallant Flourish +2 Evasion, Flamboyant Flourish +2 Evasion)
+  const selfBuff = ability.effects?.find((e) => e.type === 'STAT_MODIFIER' && e.targetScope === 'SELF');
+  if (selfBuff?.statModifiers) {
+    for (const [statKey, rawVal] of Object.entries(selfBuff.statModifiers)) {
+      if (typeof rawVal === 'number' && rawVal > 0) {
+        const hasExistingBuff = actorCu.activeModifiers.some(
+          (m) => m.stat === statKey && m.value > 0
+        );
+        if (!hasExistingBuff) {
+          if (statKey === 'evasion') {
+            score += dist === 1 ? 10.0 : 6.0;
+            reasons.push(`Self defensive evasion boost (+${rawVal})`);
+          } else {
+            score += 6.0;
+            reasons.push(`Self ${statKey} buff (+${rawVal})`);
+          }
+        }
+      }
+    }
+  }
+
+  // 3c. RETREAT_STEP disengage utility (e.g. Gallant Flourish, Skirmish)
+  const currentActorPos = state.arena.getUnitPosition(actorCu.unit.id);
+  const isCurrentlyInMelee = currentActorPos ? hexDistance(currentActorPos, targetCoord) === 1 : dist === 1;
+
+  const hasRetreatStep = ability.effects?.some((e) => e.type === 'RETREAT_STEP');
+  if (hasRetreatStep && dist === 1 && isCurrentlyInMelee) {
+    if (profile === 'SKIRMISHER' || profile === 'SNIPER') {
+      score += 12.0;
+      reasons.push('Tactical disengage retreat step to standoff range');
+    }
+  }
+
+  // 3d. Self INITIATIVE_BOOST siphon on attacks (e.g. Pilfer)
   const selfInitBoost = ability.effects?.find(
     (e) => e.type === 'INITIATIVE_BOOST' && e.targetScope === 'SELF'
   );
@@ -608,7 +659,7 @@ export function scoreDebuffAndUtility(
     }
   }
 
-  // 5. CONDITION: CHALLENGED & Self-Evasion (e.g. Flamboyant Flourish)
+  // 5. CONDITION: CHALLENGED (e.g. Flamboyant Flourish)
   const inflictsChallenged = ability.effects?.some(
     (e) => e.type === 'CONDITION' && e.conditionType === 'CHALLENGED'
   );
@@ -620,15 +671,8 @@ export function scoreDebuffAndUtility(
       score += 18.0;
       reasons.push('Taunt target with Challenged');
 
-      // Check if ability also grants self defensive buffs (e.g. Flamboyant Flourish +2 Evasion)
-      const selfBuff = ability.effects?.find((e) => e.type === 'STAT_MODIFIER' && e.targetScope === 'SELF');
-      if (selfBuff) {
-        score += 8.0;
-        reasons.push('Self defensive evasion boost');
-      }
-
       if (profile === 'BRAWLER') {
-        score += 8.0;
+        score += 16.0;
         reasons.push('Brawler frontline engagement control');
       }
     }
@@ -655,7 +699,7 @@ export function scoreDebuffAndUtility(
   }
 
   // 7. Declarative Melee contingency evaluation (e.g. Pact Blade)
-  if (ability.aiHint?.meleeContingency && dist === 1) {
+  if (ability.aiHint?.meleeContingency && dist === 1 && isCurrentlyInMelee) {
     const contingency = ability.aiHint.meleeContingency;
     const targetArmor = targetCu.unit.effectiveVitals.armor;
     const matchesProfile = !contingency.preferredProfiles || contingency.preferredProfiles.includes(profile);

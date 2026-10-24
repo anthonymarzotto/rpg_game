@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "sim": "vitest run src/core/combat/simulation.test.ts"
+    "sim": "vitest run src/core/combat/simulation.test.ts",
+    "sim:matrix": "vitest run src/core/combat/crossClassMatchups.test.ts",
+    "sim:support": "vitest run src/core/combat/supportSynergy.test.ts"
   },
   "dependencies": {
     "idb-keyval": "^6.2.1",

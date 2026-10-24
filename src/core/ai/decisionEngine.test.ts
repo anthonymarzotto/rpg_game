@@ -615,7 +615,7 @@ describe('Headless AI Decision Engine', () => {
       expect(cavCu.activeModifiers.some((m) => m.stat === 'evasion' && m.value > 0)).toBe(true);
     });
 
-    it('highwayman skirmisher primes Stand and Deliver! before Point-Blank Buckshot on armored foe', () => {
+    it('highwayman skirmisher primes Stand and Deliver! before Point-Blank Buckshot on armored foe at range 2', () => {
       const arena = createRadialArena(3);
       const highwayman = createMockUnit('hw-enemy', 'Hostile Highwayman', 'ENEMY', {
         activeClassId: 'highwayman',
@@ -629,21 +629,44 @@ describe('Headless AI Decision Engine', () => {
       });
 
       arena.setUnitPosition(highwayman.id, { q: 0, r: 0 });
-      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 2, r: 0 }); // Range 2 standoff
 
       const state = createCombatState(arena, [highwayman, hero], highwayman.id);
       const roller = new SeededDiceRoller(42);
       const actions = executeAiTurn(state, highwayman.id, { diceRoller: roller });
 
-      expect(actions.length).toBe(2);
-      expect(actions[0].type).toBe('ABILITY');
-      if (actions[0].type === 'ABILITY') {
-        expect(actions[0].ability.id).toBe('stand_and_deliver');
-      }
-      expect(actions[1].type).toBe('ABILITY');
-      if (actions[1].type === 'ABILITY') {
-        expect(actions[1].ability.id).toBe('point_blank_buckshot');
-      }
+      const abilityActions = actions.filter((a) => a.type === 'ABILITY');
+      expect(abilityActions.length).toBe(2);
+      expect(abilityActions[0].ability.id).toBe('stand_and_deliver');
+      expect(abilityActions[1].ability.id).toBe('point_blank_buckshot');
+    });
+
+    it('highwayman skirmisher executes Gallant Flourish melee contingency with retreat step when engaged at distance 1', () => {
+      const arena = createRadialArena(3);
+      const highwayman = createMockUnit('hw-enemy', 'Hostile Highwayman', 'ENEMY', {
+        activeClassId: 'highwayman',
+        baseAttributes: { force: 10, finesse: 14, focus: 10 }
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50,
+        armor: 2,
+        resolve: 10,
+        evasion: 10
+      });
+
+      arena.setUnitPosition(highwayman.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 }); // Distance 1 melee contact
+
+      const state = createCombatState(arena, [highwayman, hero], highwayman.id);
+      const roller = new SeededDiceRoller(42);
+      const actions = executeAiTurn(state, highwayman.id, { diceRoller: roller });
+
+      const abilityActions = actions.filter((a) => a.type === 'ABILITY');
+      // Should execute Gallant Flourish in the turn sequence
+      expect(abilityActions.some((a) => a.ability.id === 'gallant_flourish')).toBe(true);
+
+      // And Highwayman retreats away from (1, 0) to (-1, 0)
+      expect(arena.getUnitPosition(highwayman.id)).toEqual({ q: -1, r: 0 });
     });
 
     it('warlock sniper repels adjacent enemy with Eldritch Blast knockback spacing', () => {
