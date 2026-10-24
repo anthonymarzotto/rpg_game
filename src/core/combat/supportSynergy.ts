@@ -1,4 +1,4 @@
-import { hexDistance, HEX_DIRECTIONS } from '../grid/hex';
+import { HEX_DIRECTIONS, HexDirection } from '../grid/hex';
 import { createSimulatedCombatant } from './simulation';
 import { buildEncounterState, EncounterDefinition, PlacedUnit } from './encounter';
 import { getDeploymentZones, generateArenaTerrain } from '../campaign/encounterGenerator';
@@ -6,7 +6,7 @@ import { decideNextActionWithTrace, executeAiAction } from '../ai/decisionEngine
 import { endActiveTurn } from './turnClock';
 import { SeededDiceRoller } from './dice';
 import { createRng } from '../prng';
-import { DEFAULT_CLASS_RESONANT_LOADOUTS, ALL_AUTHORED_CLASS_IDS } from './squadSimulation';
+import { DEFAULT_CLASS_RESONANT_LOADOUTS } from './squadSimulation';
 import { MATCHUP_CLASSES, ClassMatchupProfile } from './crossClassMatchups';
 
 export interface DuoMetrics {
@@ -125,7 +125,7 @@ function simulate2v2Trial(options: {
     unitId: string,
     faction: 'PLAYER' | 'ENEMY',
     coord: { q: number; r: number },
-    facing: number
+    facing: HexDirection
   ): PlacedUnit => {
     const resConfig = DEFAULT_CLASS_RESONANT_LOADOUTS[classId];
     const unit = createSimulatedCombatant(

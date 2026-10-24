@@ -63,7 +63,7 @@ export interface ConditionDefinition {
   readonly onAfterAction?: (
     condition: ActiveCondition,
     actor: CombatUnit,
-    action: { type: 'ATTACK'; ability: Ability; target: CombatUnit },
+    action: { type: 'ATTACK'; ability: Ability; target?: CombatUnit },
     result?: unknown
   ) => AfterActionResult | undefined;
   readonly onTakeDamage?: (

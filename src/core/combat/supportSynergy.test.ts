@@ -4,8 +4,7 @@ import * as path from 'path';
 import {
   runSupportSynergyBenchmark,
   formatSupportSynergyReport,
-  formatSupportSynergyMarkdown,
-  DEFAULT_2V2_GAUNTLET
+  formatSupportSynergyMarkdown
 } from './supportSynergy';
 
 describe('2v2 Support Synergy Benchmark', () => {

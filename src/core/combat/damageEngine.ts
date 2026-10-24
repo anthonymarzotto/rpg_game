@@ -92,7 +92,9 @@ export function resolveDamage(
     };
   }
 
-  const modifier = getAbilityModifier(actorCu, ability);
+  const modifier = damageProfile
+    ? (damageProfile.modifierAttribute ? (actorCu.unit.baseAttributes[damageProfile.modifierAttribute] ?? 0) : 0)
+    : getAbilityModifier(actorCu, ability);
   let rolledDice = 0;
   let maximizedVal = 0;
   let formulaPrefix = '';

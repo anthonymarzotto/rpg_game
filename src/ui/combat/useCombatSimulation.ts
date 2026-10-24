@@ -410,7 +410,7 @@ export function useCombatSimulation({
         if (validation.valid) {
           const targetCoordBefore = targetUnitId
             ? state.arena.getUnitPosition(targetUnitId)
-            : undefined;
+            : coord;
 
           // Dev dice overrides apply only to player actions
           const roller = new DevDiceRoller(diceMode);
@@ -436,7 +436,7 @@ export function useCombatSimulation({
           setSelectedAbility(null);
           setState({ ...state, combatLog: [...state.combatLog] });
           checkEncounterProgression(state);
-        } else if (targetUnitId) {
+        } else {
           addFloatingText(validation.reason, 'miss', coord);
         }
       }

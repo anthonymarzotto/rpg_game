@@ -3,6 +3,7 @@ import { createRadialArena } from '../grid/templates';
 import { createRecruit } from '../units/unitFactory';
 import { createCombatState } from './resolver';
 import { STRIKE, SPARK, QUICK_THRUST } from '../../data/abilities';
+import { ARCANE_BLAST } from '../../data/packages/wizard';
 import { computeTargetPreview } from './targetPreview';
 import { PassiveTrait } from '../types/passive';
 
@@ -254,5 +255,66 @@ describe('Target Preview Calculation', () => {
     expect(preview!.rollAdvantage).toBe('NORMAL');
     // Base p = (21 - 10)/20 = 55%
     expect(preview!.toHitChance).toBe(55);
+  });
+
+  it('computes target preview for ground-targeted Arcane Blast on an empty hex catching multiple enemies', () => {
+    const arena = createRadialArena(3);
+    const wizard = createRecruit('wizard', 'Wizard', { faction: 'PLAYER' });
+    (wizard as any).baseAttributes = { force: 0, finesse: 0, focus: 4 };
+
+    const enemyA = createRecruit('enemyA', 'Enemy A', { faction: 'ENEMY' });
+    const enemyB = createRecruit('enemyB', 'Enemy B', { faction: 'ENEMY' });
+    (enemyA as any).effectiveVitals = { ...enemyA.effectiveVitals, resolve: 12, ward: 1 };
+    (enemyB as any).effectiveVitals = { ...enemyB.effectiveVitals, resolve: 14, ward: 0 };
+
+    arena.setUnitPosition('wizard', { q: 0, r: 0 });
+    // Empty hex at (2, 0)
+    arena.setUnitPosition('enemyA', { q: 2, r: -1 }); // dist 1 to (2, 0)
+    arena.setUnitPosition('enemyB', { q: 2, r: 1 });  // dist 1 to (2, 0)
+
+    const state = createCombatState(arena, [wizard, enemyA, enemyB], 'wizard');
+
+    const preview = computeTargetPreview(state, 'wizard', ARCANE_BLAST, { q: 2, r: 0 });
+    expect(preview).not.toBeNull();
+    expect(preview!.targetName).toContain('Ground Blast (2 targets)');
+    expect(preview!.damageRange).toContain('(Splash)');
+    expect(preview!.splashUnits).toHaveLength(2);
+
+    const splashA = preview!.splashUnits!.find((s) => s.targetUnitId === 'enemyA');
+    const splashB = preview!.splashUnits!.find((s) => s.targetUnitId === 'enemyB');
+    expect(splashA).toBeDefined();
+    expect(splashB).toBeDefined();
+    expect(splashA!.isAlly).toBe(false);
+    expect(splashB!.isAlly).toBe(false);
+    expect(splashA!.targetDefense).toBe(12);
+    expect(splashB!.targetDefense).toBe(14);
+    // Expected damage is combined across hostiles
+    expect(preview!.expectedDamage).toBeGreaterThan(0);
+  });
+
+  it('computes direct damage and secondary splash units including friendly fire ally warning', () => {
+    const arena = createRadialArena(3);
+    const wizard = createRecruit('wizard', 'Wizard', { faction: 'PLAYER' });
+    (wizard as any).baseAttributes = { force: 0, finesse: 0, focus: 4 };
+
+    const targetEnemy = createRecruit('target', 'Main Target', { faction: 'ENEMY' });
+    const ally = createRecruit('ally', 'Allied Rogue', { faction: 'PLAYER' });
+
+    arena.setUnitPosition('wizard', { q: 0, r: 0 });
+    arena.setUnitPosition('target', { q: 2, r: 0 }); // Center target
+    arena.setUnitPosition('ally', { q: 2, r: 1 });   // Splash ring
+
+    const state = createCombatState(arena, [wizard, targetEnemy, ally], 'wizard');
+
+    const preview = computeTargetPreview(state, 'wizard', ARCANE_BLAST, { q: 2, r: 0 });
+    expect(preview).not.toBeNull();
+    expect(preview!.targetUnitId).toBe('target');
+    expect(preview!.targetName).toBe('Main Target');
+    expect(preview!.splashUnits).toHaveLength(1);
+
+    const allySplash = preview!.splashUnits![0];
+    expect(allySplash.targetUnitId).toBe('ally');
+    expect(allySplash.targetName).toBe('Allied Rogue');
+    expect(allySplash.isAlly).toBe(true);
   });
 });

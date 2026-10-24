@@ -170,29 +170,43 @@ export function canExecuteAbility(
   const actorElevation = state.arena.getElevation(actorCoord);
 
   if (effectiveAbility.targetType === 'HEX') {
-    if (!target?.coord) {
+    const destCoord = target?.coord ?? (target?.targetUnitId ? state.arena.getUnitPosition(target.targetUnitId) : undefined);
+    if (!destCoord) {
       return { valid: false, reason: 'Missing destination coordinate for hex-targeted ability.' };
     }
-    const dist = hexDistance(actorCoord, target.coord);
+    const dist = hexDistance(actorCoord, destCoord);
     const rangeError = validateElevationReachAndRange(
       actorElevation,
-      state.arena.getElevation(target.coord),
+      state.arena.getElevation(destCoord),
       effectiveAbility,
       cu,
       dist
     );
     if (rangeError) return rangeError;
-    const destTile = state.arena.getTile(target.coord);
+    const destTile = state.arena.getTile(destCoord);
     if (!destTile) {
-      return { valid: false, reason: `Destination (${target.coord.q}, ${target.coord.r}) does not exist in arena.` };
+      return { valid: false, reason: `Destination (${destCoord.q}, ${destCoord.r}) does not exist in arena.` };
     }
     if (!destTile.isWalkable) {
-      return { valid: false, reason: `Destination (${target.coord.q}, ${target.coord.r}) is not walkable.` };
+      return { valid: false, reason: `Destination (${destCoord.q}, ${destCoord.r}) is not walkable.` };
     }
     const isAoE = (effectiveAbility.aoeRadius ?? 0) > 0;
     if (!isAoE && destTile.occupiedByUnitId) {
-      return { valid: false, reason: `Destination (${target.coord.q}, ${target.coord.r}) is already occupied.` };
+      return { valid: false, reason: `Destination (${destCoord.q}, ${destCoord.r}) is already occupied.` };
     }
+
+    const isDamaging = effectiveAbility.damageType !== 'NONE';
+    const isTeleport = effectiveAbility.effects?.some((e) => e.type === 'TELEPORT');
+    if (isDamaging && !isTeleport && dist > 1) {
+      const obstruction = state.arena.getLineOfSightObstruction(actorCoord, destCoord, {
+        isUnitScreening: (unitId) =>
+          !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
+      });
+      if (obstruction) {
+        return { valid: false, reason: formatLoSObstructionReason(state, obstruction) };
+      }
+    }
+
     return { valid: true };
   }
 

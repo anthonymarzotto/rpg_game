@@ -63,6 +63,11 @@ export type CombatEvent =
       readonly type: 'CTB_DELAY';
       readonly targetUnitId: string;
       readonly amount: number;
+    }
+  | {
+      readonly type: 'MISS';
+      readonly targetUnitId: string;
+      readonly reason?: string;
     };
 
 /**
@@ -184,14 +189,14 @@ export type CombatLogMetadata =
       readonly type: 'ATTACK';
       readonly actor: string;
       readonly ability: string;
-      readonly target: string;
+      readonly target?: string;
       readonly d20: string;
-      readonly defenseTarget: number;
+      readonly defenseTarget?: number;
       readonly hitOutcome: string;
       readonly damageTotal: string;
       readonly damageBreakdown: string;
-      readonly targetHp: number;
-      readonly targetMaxHp: number;
+      readonly targetHp?: number;
+      readonly targetMaxHp?: number;
       readonly secondaryDetail?: string;
     }
   | {

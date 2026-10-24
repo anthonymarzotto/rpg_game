@@ -10,7 +10,7 @@ import {
   getHexLine
 } from '../grid/hex';
 import { Arena, calculateRawFallDamage } from '../grid/arena';
-import { Ability } from '../types/ability';
+import { Ability, AbilityEffect } from '../types/ability';
 import {
   CombatState,
   CombatUnit,
@@ -20,13 +20,13 @@ import {
   HitOutcome
 } from './types';
 import { canMove, canExecuteAbility } from './validator';
-import { getEffectiveMove, getEffectiveSpeed } from './effectiveVitals';
+import { getEffectiveMove, getEffectiveSpeed, getEffectiveEvasion, getEffectiveResolve } from './effectiveVitals';
 import { getEffectiveAbility } from './modifiers';
 import { isFlankOrRear } from './flanking';
 import { DiceRoller, SeededDiceRoller, RollAdvantage } from './dice';
-import { ACTION_ECONOMY_CONFIG } from '../config/balance';
+import { ACTION_ECONOMY_CONFIG, COMBAT_RESOLUTION_CONFIG } from '../config/balance';
 import { advanceTurnClock, predictTurnOrder } from './turnClock';
-import { resolveAttackRoll, calculateElevationAttackModifier } from './attackRoll';
+import { resolveAttackRoll, calculateElevationAttackModifier, getAttackRollModifier, AttackRollResult } from './attackRoll';
 import { resolveDamage, resolveFallDamage } from './damageEngine';
 import { executeAbilityEffects, defaultEffectRegistry, EffectContext } from './effects';
 import { evaluateRollPassives, onTurnStartPassives } from './passives';
@@ -827,13 +827,20 @@ export function executeAbility(
   }
 
   // 2. Damaging Attack Resolution
-  const targetCu = requireCombatUnit(state, target!.targetUnitId!);
+  const targetUnitId = effectiveAbility.targetType === 'HEX'
+    ? (targetCoord ? state.arena.getUnitAt(targetCoord) : undefined)
+    : target?.targetUnitId;
+  const targetCu = targetUnitId ? state.units.get(targetUnitId) : undefined;
+  if (!targetCu && effectiveAbility.targetType !== 'HEX') {
+    throw new Error(`Target combat unit ${target?.targetUnitId} not found in state.`);
+  }
+
   const events: CombatEvent[] = [];
   let attackOriginCoord = actorCoord;
 
   // RUSH_CHARGE straight-line dash into contact
   const rushEffect = effectiveAbility.effects?.find((e) => e.type === 'RUSH_CHARGE');
-  if (rushEffect) {
+  if (rushEffect && targetCu) {
     const actorPos = state.arena.getUnitPosition(actorUnitId);
     const targetPos = state.arena.getUnitPosition(targetCu.unit.id);
     if (actorPos && targetPos) {
@@ -861,7 +868,7 @@ export function executeAbility(
   let bonusDamageProfile = undefined;
 
   const flankEffect = effectiveAbility.effects?.find((e) => e.condition === 'FLANK_OR_REAR');
-  if (flankEffect) {
+  if (flankEffect && targetCu) {
     const isFlanked = isFlankOrRear(state, actorUnitId, targetCu.unit.id);
     if (isFlanked) {
       if (Boolean(flankEffect.grantsAdvantage)) {
@@ -878,10 +885,14 @@ export function executeAbility(
   }
 
   // Evaluate target-centric protective auras (e.g. Misfortune Ward)
-  const auraEval = evaluateTargetAuras(targetCu, actorCu, state);
+  const auraEval = targetCu
+    ? evaluateTargetAuras(targetCu, actorCu, state)
+    : { attackRollPenalty: 0, sourceAuraNames: [] };
 
   // Evaluate elevation difference between attack origin and target position
-  const targetPos = state.arena.getUnitPosition(targetCu.unit.id);
+  const targetPos = targetCu
+    ? state.arena.getUnitPosition(targetCu.unit.id)
+    : targetCoord;
   const actorElevation = attackOriginCoord ? state.arena.getElevation(attackOriginCoord) : 0;
   const targetElevation = targetPos ? state.arena.getElevation(targetPos) : 0;
   const elevationDelta = actorElevation - targetElevation;
@@ -891,53 +902,109 @@ export function executeAbility(
     effectiveAbility
   );
 
-  const rollResult = resolveAttackRoll(actorCu, targetCu, effectiveAbility, diceRoller, {
-    advantage: rollAdvantage,
-    rollPenalty: auraEval.attackRollPenalty,
-    elevationDelta
-  });
-
-  const damageResult = resolveDamage(
-    rollResult.hitOutcome,
-    effectiveAbility,
-    actorCu,
-    targetCu,
-    diceRoller,
-    bonusDamageProfile
-  );
-
-  // Primary Damage Event
-  if (damageResult.damageDealt > 0) {
-    events.push({
-      type: 'DAMAGE',
-      targetUnitId: targetCu.unit.id,
-      amount: damageResult.damageDealt,
-      damageType: effectiveAbility.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL',
-      reason: 'ATTACK',
-      sourceUnitId: actorCu.unit.id,
-      isCrit: rollResult.hitOutcome === 'CRITICAL_HIT'
+  let rollResult: AttackRollResult;
+  if (targetCu) {
+    rollResult = resolveAttackRoll(actorCu, targetCu, effectiveAbility, diceRoller, {
+      advantage: rollAdvantage,
+      rollPenalty: auraEval.attackRollPenalty,
+      elevationDelta
     });
+  } else {
+    // Ground targeting on an unoccupied hex: roll unified spellcast attack roll
+    const baseMod = getAttackRollModifier(actorCu, effectiveAbility);
+    const totalBonus = elevMod.rollBonus;
+    const totalPenalty = elevMod.rollPenalty + auraEval.attackRollPenalty;
+    const netModifier = baseMod + totalBonus - totalPenalty;
+    let groundAdv: RollAdvantage = rollAdvantage;
+    if (elevMod.grantsAdvantage) groundAdv = 'ADVANTAGE';
+    if (elevMod.grantsDisadvantage) groundAdv = groundAdv === 'ADVANTAGE' ? 'NORMAL' : 'DISADVANTAGE';
+    const d20 = diceRoller.rollD20(groundAdv);
+    const totalScore = d20 + netModifier;
+    const isCritBoosted = effectiveAbility.effects?.some((e) => e.type === 'CRIT_BOOST');
+    const naturalCritThreshold = isCritBoosted ? 19 : 20;
+    const hitOutcome: HitOutcome = d20 >= naturalCritThreshold ? 'CRITICAL_HIT' : 'SOLID_HIT';
+    rollResult = {
+      hitOutcome,
+      d20,
+      modifier: netModifier,
+      totalScore,
+      targetDefense: 0
+    };
+  }
+
+  // Primary Damage Event on center target (if targetCu exists)
+  let damageResult = {
+    rawDamage: 0,
+    mitigation: 0,
+    damageDealt: 0,
+    damageBreakdown: '0 (Ground)'
+  };
+
+  if (targetCu) {
+    damageResult = resolveDamage(
+      rollResult.hitOutcome,
+      effectiveAbility,
+      actorCu,
+      targetCu,
+      diceRoller,
+      bonusDamageProfile
+    );
+
+    if (damageResult.damageDealt > 0) {
+      events.push({
+        type: 'DAMAGE',
+        targetUnitId: targetCu.unit.id,
+        amount: damageResult.damageDealt,
+        damageType: effectiveAbility.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL',
+        reason: 'ATTACK',
+        sourceUnitId: actorCu.unit.id,
+        isCrit: rollResult.hitOutcome === 'CRITICAL_HIT'
+      });
+    }
   }
 
   // Secondary AoE Splash Resolution
   const splashLogDetails: string[] = [];
   const splashLabel = effectiveAbility.splashLabel ?? 'SPLASH';
-  if (effectiveAbility.aoeRadius && effectiveAbility.aoeRadius > 0 && rollResult.hitOutcome !== 'MISS') {
-    const targetCoord = target?.coord ?? state.arena.getUnitPosition(targetCu.unit.id);
-    if (targetCoord) {
-      const aoeHexes = getHexesInRange(targetCoord, effectiveAbility.aoeRadius);
-      for (const hex of aoeHexes) {
-        if (hexEquals(hex, targetCoord)) continue;
-        const secondaryUnitId = state.arena.getUnitAt(hex);
-        if (secondaryUnitId && secondaryUnitId !== actorCu.unit.id) {
-          const splashCu = state.units.get(secondaryUnitId);
-          if (splashCu && !splashCu.isDefeated && splashCu.currentHp > 0) {
+  if (effectiveAbility.aoeRadius && effectiveAbility.aoeRadius > 0 && targetCoord) {
+    const aoeHexes = getHexesInRange(targetCoord, effectiveAbility.aoeRadius);
+    for (const hex of aoeHexes) {
+      if (targetCu && hexEquals(hex, targetCoord)) continue;
+      const secondaryUnitId = state.arena.getUnitAt(hex);
+      if (secondaryUnitId && secondaryUnitId !== actorCu.unit.id) {
+        const splashCu = state.units.get(secondaryUnitId);
+        if (splashCu && !splashCu.isDefeated && splashCu.currentHp > 0) {
+          // Secondary unit contests the spellcast attack roll against their defense
+          const splashDefense =
+            effectiveAbility.defenseTarget === 'EVASION'
+              ? getEffectiveEvasion(splashCu)
+              : getEffectiveResolve(splashCu);
+
+          let splashOutcome: HitOutcome = 'MISS';
+          if (rollResult.totalScore >= splashDefense) {
+            splashOutcome = 'SOLID_HIT';
+          } else if (rollResult.totalScore >= splashDefense - COMBAT_RESOLUTION_CONFIG.grazeMargin) {
+            splashOutcome = 'GRAZE';
+          }
+
+          if (splashOutcome !== 'MISS') {
+            const primaryDamageEffect = effectiveAbility.effects?.find((e) => e.type === 'DAMAGE');
+            const defaultSplashProfile = primaryDamageEffect?.damageProfile
+              ? { count: primaryDamageEffect.damageProfile.count, sides: primaryDamageEffect.damageProfile.sides }
+              : undefined;
+            const splashProfile = effectiveAbility.splashDamageProfile ?? defaultSplashProfile;
+            const splashEffect: AbilityEffect = {
+              type: 'DAMAGE',
+              damageProfile: splashProfile
+            };
             const splashDmg = resolveDamage(
-              'SOLID_HIT',
+              splashOutcome,
               effectiveAbility,
               actorCu,
               splashCu,
-              diceRoller
+              diceRoller,
+              undefined,
+              splashEffect
             );
             if (splashDmg.damageDealt > 0) {
               const damageType = effectiveAbility.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL';
@@ -953,9 +1020,16 @@ export function executeAbility(
               });
               const remainingHp = Math.max(0, splashCu.currentHp - splashDmg.damageDealt);
               splashLogDetails.push(
-                `${splashCu.unit.name} for ${splashDmg.damageDealt} ${damageType.toLowerCase()} damage (HP: ${remainingHp}/${splashCu.unit.effectiveVitals.maxHp})`
+                `${splashCu.unit.name} for ${splashDmg.damageDealt} ${damageType.toLowerCase()} damage [${splashOutcome === 'GRAZE' ? 'Graze ' : ''}vs DC ${splashDefense}] (HP: ${remainingHp}/${splashCu.unit.effectiveVitals.maxHp})`
               );
             }
+          } else {
+            splashLogDetails.push(`${splashCu.unit.name} resisted [Miss vs DC ${splashDefense}]`);
+            events.push({
+              type: 'MISS',
+              targetUnitId: splashCu.unit.id,
+              reason: 'SPLASH'
+            });
           }
         }
       }
@@ -969,7 +1043,7 @@ export function executeAbility(
       state,
       actorCu,
       targetCu,
-      targetCoord: target?.coord,
+      targetCoord,
       ability: effectiveAbility,
       hitOutcome: rollResult.hitOutcome,
       diceRoller
@@ -981,7 +1055,7 @@ export function executeAbility(
   events.push(...effectResult.events);
 
   // Trigger ON_HIT passives (e.g. Soul Carapace) on successful hits
-  if (rollResult.hitOutcome !== 'MISS') {
+  if (targetCu && rollResult.hitOutcome !== 'MISS') {
     const hitEvents = triggerPassiveHook(state, actorCu, 'ON_HIT', {
       targetCu,
       ability: effectiveAbility,
@@ -992,7 +1066,7 @@ export function executeAbility(
   }
 
   // Trigger ON_CRIT passives (e.g. Wild Surge) on critical hits
-  if (rollResult.hitOutcome === 'CRITICAL_HIT') {
+  if (targetCu && rollResult.hitOutcome === 'CRITICAL_HIT') {
     const critEvents = triggerPassiveHook(state, actorCu, 'ON_CRIT', {
       targetCu,
       ability: effectiveAbility,
@@ -1006,7 +1080,7 @@ export function executeAbility(
   applyCombatEvents(state, events);
 
   // When a unit is hit with an attack, their facing direction updates to face the attack (or away if FORCE_FACING_AWAY)
-  if (rollResult.hitOutcome !== 'MISS' && !targetCu.isDefeated) {
+  if (targetCu && rollResult.hitOutcome !== 'MISS' && !targetCu.isDefeated) {
     const finalTargetPos = state.arena.getUnitPosition(targetCu.unit.id);
     if (finalTargetPos && attackOriginCoord && !hexEquals(finalTargetPos, attackOriginCoord)) {
       const dirToOrigin = getDirectionBetween(finalTargetPos, attackOriginCoord);
@@ -1019,7 +1093,7 @@ export function executeAbility(
 
   // Also turn any living secondary splash damage targets to face the attack origin
   for (const event of events) {
-    if (event.type === 'DAMAGE' && event.targetUnitId !== targetCu.unit.id) {
+    if (event.type === 'DAMAGE' && (!targetCu || event.targetUnitId !== targetCu.unit.id)) {
       const secondaryCu = state.units.get(event.targetUnitId);
       if (secondaryCu && !secondaryCu.isDefeated) {
         const secPos = state.arena.getUnitPosition(secondaryCu.unit.id);
@@ -1056,24 +1130,32 @@ export function executeAbility(
   const secondaryDetail = [effectResult.logDetail ?? '', splashDetail].filter(Boolean).join('');
   const auraDetail = auraEval.attackRollPenalty > 0 ? ` [Aura Penalty: -${auraEval.attackRollPenalty} (${auraEval.sourceAuraNames.join(', ')})]` : '';
   const elevDetail = elevMod.description ? ` [Elevation: ${elevMod.description}]` : '';
-  const damageDetail = effectiveAbility.damageType !== 'NONE' ? ` [Damage: ${damageResult.damageBreakdown}]` : '';
+  const damageDetail = targetCu && effectiveAbility.damageType !== 'NONE' ? ` [Damage: ${damageResult.damageBreakdown}]` : '';
+
+  const targetDesc = targetCu ? targetCu.unit.name : `hex (${targetCoord?.q ?? 0}, ${targetCoord?.r ?? 0})`;
+  const dcClause = targetCu ? ` vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}` : ` -> score ${rollResult.totalScore}`;
+  const hpClause = targetCu ? ` (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})` : '';
+
+  const totalDamageEvents = events.filter((e): e is Extract<CombatEvent, { type: 'DAMAGE' }> => e.type === 'DAMAGE');
+  const totalDamageDealt = totalDamageEvents.reduce((acc, d) => acc + d.amount, 0);
+
   state.combatLog.push({
     turnNumber: state.turnNumber,
     actorUnitId,
     actionId: ability.id,
-    message: `${actorCu.unit.name} used ${ability.name} on ${targetCu.unit.name}: [d20: ${rollResult.d20}+${rollResult.modifier} vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}]${elevDetail}${auraDetail}${damageDetail} (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})${secondaryDetail}`,
+    message: `${actorCu.unit.name} used ${ability.name} on ${targetDesc}: [d20: ${rollResult.d20}+${rollResult.modifier}${dcClause}]${elevDetail}${auraDetail}${damageDetail}${hpClause}${secondaryDetail}`,
     metadata: {
       type: 'ATTACK',
       actor: actorCu.unit.name,
       ability: ability.name,
-      target: targetCu.unit.name,
+      target: targetCu ? targetCu.unit.name : undefined,
       d20: `${rollResult.d20}+${rollResult.modifier}`,
-      defenseTarget: rollResult.targetDefense,
+      defenseTarget: targetCu ? rollResult.targetDefense : undefined,
       hitOutcome: rollResult.hitOutcome,
-      damageTotal: rollResult.hitOutcome === 'MISS' ? '0' : String(damageResult.damageDealt),
+      damageTotal: String(totalDamageDealt),
       damageBreakdown: damageResult.damageBreakdown,
-      targetHp: targetCu.currentHp,
-      targetMaxHp: targetCu.unit.effectiveVitals.maxHp,
+      targetHp: targetCu?.currentHp,
+      targetMaxHp: targetCu?.unit.effectiveVitals.maxHp,
       secondaryDetail: [elevDetail, auraDetail, secondaryDetail].filter(Boolean).join('').trim()
     }
   });
@@ -1081,14 +1163,14 @@ export function executeAbility(
   return {
     type: 'ATTACK',
     details: {
-      hitOutcome: rollResult.hitOutcome,
+      hitOutcome: targetCu ? rollResult.hitOutcome : (totalDamageDealt > 0 ? 'SOLID_HIT' : 'MISS'),
       d20Roll: rollResult.d20,
       modifier: rollResult.modifier,
       totalAttackScore: rollResult.totalScore,
       defenseTargetScore: rollResult.targetDefense,
       rawDamage: damageResult.rawDamage,
       mitigation: damageResult.mitigation,
-      damageDealt: damageResult.damageDealt,
+      damageDealt: totalDamageDealt,
       damageBreakdown: damageResult.damageBreakdown,
       effectsApplied: effectiveAbility.effects,
       knockbackResult: effectResult.knockbackResult,

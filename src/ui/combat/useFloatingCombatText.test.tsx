@@ -288,6 +288,99 @@ describe('useFloatingCombatText: collectResolutionFloatingTexts', () => {
     expect(xpFloat?.text).toBe('+2 Finesse XP');
     expect(xpFloat?.coord).toEqual({ q: 0, r: 0 });
   });
+
+  it('collects multi-target splash damage and resisted miss floaters for AoE abilities', async () => {
+    const { collectResolutionFloatingTexts } = await import('./useFloatingCombatText');
+    const { createRadialArena } = await import('../../core/grid/templates');
+    const { createRecruit } = await import('../../core/units/unitFactory');
+    const { createCombatState } = await import('../../core/combat/resolver');
+
+    const arena = createRadialArena(3);
+    const wizard = createRecruit('wizard', 'Wizard');
+    const centerEnemy = createRecruit('enemy1', 'Center Guard', { faction: 'ENEMY' });
+    const splashEnemy = createRecruit('enemy2', 'Splash Guard', { faction: 'ENEMY' });
+    const resistEnemy = createRecruit('enemy3', 'Resisting Guard', { faction: 'ENEMY' });
+
+    arena.setUnitPosition('wizard', { q: 0, r: 0 });
+    arena.setUnitPosition('enemy1', { q: 2, r: 0 });
+    arena.setUnitPosition('enemy2', { q: 2, r: 1 });
+    arena.setUnitPosition('enemy3', { q: 1, r: 1 });
+
+    const state = createCombatState(arena, [wizard, centerEnemy, splashEnemy, resistEnemy], 'wizard');
+
+    const aoeAbility = {
+      id: 'arcane_blast',
+      name: 'Arcane Blast',
+      description: 'Test blast',
+      apCost: 1,
+      range: 3,
+      aoeRadius: 1,
+      targetType: 'HEX' as const,
+      defenseTarget: 'RESOLVE' as const,
+      damageType: 'MAGICAL' as const,
+      archetypeTag: 'MAGE' as const,
+      effects: []
+    };
+
+    const resolution = {
+      type: 'ATTACK' as const,
+      details: {
+        hitOutcome: 'SOLID_HIT' as const,
+        d20Roll: 14,
+        modifier: 3,
+        totalAttackScore: 17,
+        defenseTargetScore: 10,
+        rawDamage: 4,
+        mitigation: 0,
+        damageDealt: 7,
+        damageBreakdown: '4 direct + 3 splash',
+        effectsApplied: [],
+        events: [
+          {
+            type: 'DAMAGE' as const,
+            targetUnitId: 'enemy1',
+            amount: 4,
+            damageType: 'MAGICAL' as const,
+            reason: 'ATTACK' as const
+          },
+          {
+            type: 'DAMAGE' as const,
+            targetUnitId: 'enemy2',
+            amount: 3,
+            damageType: 'MAGICAL' as const,
+            reason: 'SPLASH' as const,
+            label: 'BLAST'
+          },
+          {
+            type: 'MISS' as const,
+            targetUnitId: 'enemy3',
+            reason: 'SPLASH'
+          }
+        ]
+      }
+    };
+
+    const items = collectResolutionFloatingTexts(
+      state,
+      resolution,
+      aoeAbility,
+      { q: 2, r: 0 },
+      { q: 0, r: 0 },
+      { q: 2, r: 0 },
+      'enemy1'
+    );
+
+    const directDmg = items.find((i) => i.coord.q === 2 && i.coord.r === 0 && i.type === 'damage');
+    const splashDmg = items.find((i) => i.coord.q === 2 && i.coord.r === 1 && i.type === 'slam');
+    const resistMiss = items.find((i) => i.coord.q === 1 && i.coord.r === 1 && i.type === 'miss');
+
+    expect(directDmg).toBeDefined();
+    expect(directDmg?.text).toBe('-4');
+    expect(splashDmg).toBeDefined();
+    expect(splashDmg?.text).toBe('BLAST! -3');
+    expect(resistMiss).toBeDefined();
+    expect(resistMiss?.text).toBe('RESIST!');
+  });
 });
 
 describe('useFloatingCombatText: collectInitiativeFloatingTexts', () => {

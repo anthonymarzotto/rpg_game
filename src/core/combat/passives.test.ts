@@ -342,12 +342,12 @@ describe('Phase 1.3: Passive Trait Evaluation Pipeline', () => {
     it('adds flat damage bonus when target Force exceeds actor Force, even if target Armor is 0', () => {
       // Actor has Force 1
       const actorCu = createTestCombatUnit([HIGHWAY_TOLL_FORCE_MOCK]);
-      actorCu.unit.baseAttributes = { force: 1, finesse: 2, focus: 0 };
+      (actorCu.unit as any).baseAttributes = { force: 1, finesse: 2, focus: 0 };
 
       // Target has Force 2, but Armor 0 (e.g. shredded)
       const targetCu = createTestCombatUnit();
-      targetCu.unit.baseAttributes = { force: 2, finesse: 1, focus: 0 };
-      targetCu.unit.effectiveVitals.armor = 0;
+      (targetCu.unit as any).baseAttributes = { force: 2, finesse: 1, focus: 0 };
+      (targetCu.unit.effectiveVitals as any).armor = 0;
 
       const mockDice = new MockDiceRoller({ damageRolls: [4] });
       // STRIKE: 1d6 + Force (1 Force) = 5 base + 2 (Highway Toll) = 7 raw. 0 Armor.
@@ -361,11 +361,11 @@ describe('Phase 1.3: Passive Trait Evaluation Pipeline', () => {
     it('does not add flat damage bonus when target Force is equal or lower than actor Force', () => {
       // Actor has Force 2
       const actorCu = createTestCombatUnit([HIGHWAY_TOLL_FORCE_MOCK]);
-      actorCu.unit.baseAttributes = { force: 2, finesse: 2, focus: 0 };
+      (actorCu.unit as any).baseAttributes = { force: 2, finesse: 2, focus: 0 };
 
       // Target has Force 1
       const targetCu = createTestCombatUnit();
-      targetCu.unit.baseAttributes = { force: 1, finesse: 2, focus: 0 };
+      (targetCu.unit as any).baseAttributes = { force: 1, finesse: 2, focus: 0 };
 
       const mockDice = new MockDiceRoller({ damageRolls: [4] });
       // STRIKE: 1d6 + Force (2 Force) = 6 base. No Highway Toll.

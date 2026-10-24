@@ -12,7 +12,7 @@ export type DamageType = 'PHYSICAL' | 'MAGICAL' | 'NONE';
 export interface DiceProfile {
   readonly count: number;
   readonly sides: number;
-  readonly modifierAttribute: keyof TriadAttributes;
+  readonly modifierAttribute?: keyof TriadAttributes;
 }
 
 export type ConditionType = 'POISON' | 'BURN' | 'CHALLENGED' | 'STEALTH';
@@ -132,6 +132,8 @@ export interface Ability {
   readonly aoeRadius?: number;
   /** Optional custom floater label for AoE splash damage (e.g. 'BLAST', 'SPLASH'). Defaults to 'SPLASH'. */
   readonly splashLabel?: string;
+  /** Optional secondary AoE splash damage profile on surrounding hexes */
+  readonly splashDamageProfile?: DiceProfile;
   /** Whether the ability can only be executed at most once per turn */
   readonly oncePerTurn?: boolean;
   /** Whether the ability ignores upward low-ground attack roll penalties and disadvantage */

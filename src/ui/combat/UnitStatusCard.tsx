@@ -279,7 +279,8 @@ export function UnitStatusCard({
           ) : (
             <div className="preview-details-grid">
               <div>
-                Hit Chance: <b className="text-gold">{targetPreview.toHitChance}%</b>
+                <span>Hit Chance:</span>{' '}
+                <b className="text-gold preview-hit-percent">{targetPreview.toHitChance}%</b>
                 {targetPreview.rollAdvantage === 'ADVANTAGE' && (
                   <span className="roll-advantage-badge adv" title="Rolling with Advantage (higher of 2d20)">
                     (Adv)
@@ -297,6 +298,17 @@ export function UnitStatusCard({
               <div className="preview-damage-row">
                 Damage Profile: <b>{targetPreview.damageRange}</b>
               </div>
+              {targetPreview.splashUnits && targetPreview.splashUnits.length > 0 && (
+                <div className="preview-splash-list">
+                  <div className="splash-list-title text-muted">Blast Targets ({targetPreview.splashUnits.length}):</div>
+                  {targetPreview.splashUnits.map((sp) => (
+                    <div key={sp.targetUnitId} className={`splash-target-item ${sp.isAlly ? 'text-danger' : ''}`}>
+                      <span className="splash-target-name">{sp.isAlly ? '⚠ ' : '💥 '}{sp.targetName}</span>
+                      <span className="splash-target-hit">{sp.toHitChance}% to hit</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

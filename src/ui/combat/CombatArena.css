@@ -708,6 +708,49 @@
   grid-column: span 2;
 }
 
+.preview-hit-percent {
+  margin-left: 0.35rem;
+}
+
+.preview-splash-list {
+  grid-column: span 2;
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.splash-list-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.splash-target-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  padding: 0.1rem 0;
+}
+
+.splash-target-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.splash-target-hit {
+  margin-left: 0.75rem;
+  padding-left: 0.25rem;
+  font-weight: 600;
+  color: #fbbf24;
+  white-space: nowrap;
+}
+
 .arena-ribbon-dock {
   margin-top: 6px;
   margin-bottom: 4px;

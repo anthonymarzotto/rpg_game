@@ -417,11 +417,105 @@ describe('Attack & Ability Resolution Outcomes', () => {
 
       // Verify combat log records secondary splash damage in secondaryDetail
       expect((state.combatLog[0].metadata as any)?.secondaryDetail).toContain(
-        'Blast hit Dummy B (Adjacent) for 2 magical damage (HP: 10/12)'
+        'Blast hit Dummy B (Adjacent) for 2 magical damage [vs DC 10] (HP: 10/12)'
       );
       expect(state.combatLog[0].message).toContain(
-        'Blast hit Dummy B (Adjacent) for 2 magical damage (HP: 10/12)'
+        'Blast hit Dummy B (Adjacent) for 2 magical damage [vs DC 10] (HP: 10/12)'
       );
+    });
+
+    it('executes ground-targeted Arcane Blast on an empty hex hitting multiple adjacent units with splash', () => {
+      const arena = createRadialArena(3);
+      const wizard = createRecruit('wizard', 'Wizard', { faction: 'PLAYER' });
+      const enemyA = createRecruit('enemyA', 'Enemy A', { faction: 'ENEMY' });
+      const enemyB = createRecruit('enemyB', 'Enemy B', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('wizard', { q: 0, r: 0 });
+      // Empty hex target at (2, 0)
+      arena.setUnitPosition('enemyA', { q: 2, r: -1 }); // distance 1 from (2, 0)
+      arena.setUnitPosition('enemyB', { q: 2, r: 1 });  // distance 1 from (2, 0)
+
+      const state = createCombatState(arena, [wizard, enemyA, enemyB], 'wizard');
+
+      // 1 d20 roll for ground spellcast (14), then 2 splash damage rolls (2 for enemyA, 3 for enemyB)
+      const dice = new MockDiceRoller({ d20Rolls: [14], damageRolls: [2, 3] });
+      const result = executeAbility(state, 'wizard', ARCANE_BLAST, { coord: { q: 2, r: 0 } }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        const damageEvents = result.details.events.filter(
+          (e): e is Extract<CombatEvent, { type: 'DAMAGE' }> => e.type === 'DAMAGE'
+        );
+        expect(damageEvents).toHaveLength(2);
+        expect(damageEvents.every((e) => e.reason === 'SPLASH')).toBe(true);
+        expect(damageEvents.map((e) => e.targetUnitId).sort()).toEqual(['enemyA', 'enemyB']);
+      }
+
+      const enemyACu = state.units.get('enemyA')!;
+      const enemyBCu = state.units.get('enemyB')!;
+      expect(enemyACu.currentHp).toBe(enemyA.effectiveVitals.maxHp - 2);
+      expect(enemyBCu.currentHp).toBe(enemyB.effectiveVitals.maxHp - 3);
+    });
+
+    it('resolves a splash miss when secondary target Resolve exceeds spellcast attack roll', () => {
+      const arena = createRadialArena(3);
+      const wizard = createRecruit('wizard', 'Wizard', { faction: 'PLAYER' });
+      const dummyA = createRecruit('dummyA', 'Center Dummy', { faction: 'ENEMY' });
+      const highResolveDummy = createRecruit('dummyHigh', 'High Resolve Dummy', { faction: 'ENEMY' });
+      (highResolveDummy.effectiveVitals as { resolve: number }).resolve = 18;
+
+      arena.setUnitPosition('wizard', { q: 0, r: 0 });
+      arena.setUnitPosition('dummyA', { q: 2, r: 0 });
+      arena.setUnitPosition('dummyHigh', { q: 2, r: 1 });
+
+      const state = createCombatState(arena, [wizard, dummyA, highResolveDummy], 'wizard');
+
+      // d20 = 5 (+3 focus = 8 total vs DC 10 graze window [5..9], hits dummyA for graze, but misses dummyHigh DC 18 [graze window is 13..17])
+      const dice = new MockDiceRoller({ d20Rolls: [5], damageRolls: [4] });
+      const result = executeAbility(state, 'wizard', ARCANE_BLAST, { targetUnitId: 'dummyA' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        const splashEvents = result.details.events.filter(
+          (e): e is Extract<CombatEvent, { type: 'DAMAGE' }> => e.type === 'DAMAGE' && e.targetUnitId === 'dummyHigh'
+        );
+        // High resolve dummy took no damage
+        expect(splashEvents).toHaveLength(0);
+      }
+
+      const highCu = state.units.get('dummyHigh')!;
+      expect(highCu.currentHp).toBe(highResolveDummy.effectiveVitals.maxHp);
+      expect(state.combatLog[0].message).toContain('High Resolve Dummy resisted [Miss vs DC 18]');
+    });
+
+    it('enforces friendly fire on an ally caught in the blast radius of Arcane Blast', () => {
+      const arena = createRadialArena(3);
+      const wizard = createRecruit('wizard', 'Wizard', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy Target', { faction: 'ENEMY' });
+      const ally = createRecruit('ally', 'Allied Warrior', { faction: 'PLAYER' });
+
+      arena.setUnitPosition('wizard', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 2, r: 0 });
+      arena.setUnitPosition('ally', { q: 2, r: 1 }); // Caught in splash
+
+      const state = createCombatState(arena, [wizard, enemy, ally], 'wizard');
+
+      // d20 = 14 (+3 focus = 17 vs DC 10 solid hit), damage rolls: 4 for direct, 3 for splash
+      const dice = new MockDiceRoller({ d20Rolls: [14], damageRolls: [4, 3] });
+      const result = executeAbility(state, 'wizard', ARCANE_BLAST, { targetUnitId: 'enemy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        const allyDamage = result.details.events.find(
+          (e): e is Extract<CombatEvent, { type: 'DAMAGE' }> => e.type === 'DAMAGE' && e.targetUnitId === 'ally'
+        );
+        expect(allyDamage).toBeDefined();
+        expect(allyDamage?.reason).toBe('SPLASH');
+        expect(allyDamage?.amount).toBe(3);
+      }
+
+      const allyCu = state.units.get('ally')!;
+      expect(allyCu.currentHp).toBe(ally.effectiveVitals.maxHp - 3);
     });
 
     it('defaults splash damage events to SPLASH reason and label when splashLabel is not set', () => {

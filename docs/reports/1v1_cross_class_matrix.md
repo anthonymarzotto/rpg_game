@@ -6,16 +6,16 @@
 
 | Rank | Class | Tier | Overall Win % | Duel Record (W-L-T) | Matchup Record (W-L-T) | Avg Dmg | Top Abilities |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| 1 | **Warlock** | T3 | **85.5%** | 94-16-0 | 10-1-0 | 21.7 | `hellfire_brand` (296), `eldritch_blast` (220), `pact_blade` (31) |
-| 2 | **Witch** | T3 | **75.5%** | 83-26-1 | 9-2-0 | 21.0 | `poppet_needle` (421), `baleful_hex` (115) |
-| 3 | **Infiltrator** | T2 | **72.7%** | 80-29-1 | 9-2-0 | 20.7 | `toxic_shiv` (376), `smoke_veil` (351), `expose_weakness` (39) |
+| 1 | **Warlock** | T3 | **85.5%** | 94-16-0 | 10-1-0 | 21.7 | `hellfire_brand` (294), `eldritch_blast` (222), `pact_blade` (31) |
+| 2 | **Witch** | T3 | **75.5%** | 83-26-1 | 9-2-0 | 21.0 | `poppet_needle` (422), `baleful_hex` (115) |
+| 3 | **Infiltrator** | T2 | **72.7%** | 80-29-1 | 9-2-0 | 20.7 | `toxic_shiv` (379), `smoke_veil` (355), `expose_weakness` (39) |
 | 4 | **Highwayman** | T3 | **70.9%** | 78-31-1 | 8-3-0 | 20.1 | `gallant_flourish` (341), `point_blank_buckshot` (221), `stand_and_deliver` (198) |
 | 5 | **Cat-Burglar** | T3 | **62.7%** | 69-39-2 | 8-3-0 | 18.1 | `pilfer` (837), `rooftop_vault` (501), `flash_powder` (489) |
 | 6 | **Berserker** | T3 | **60.9%** | 67-42-1 | 6-5-0 | 19.0 | `reckless_cleave` (259), `blood_frenzy` (129), `ignite_rage` (121) |
 | 7 | **Sorcerer** | T2 | **46.4%** | 51-57-2 | 5-6-0 | 17.7 | `ignite` (411), `spell_sculpt` (333), `gust` (18) |
 | 8 | **Cavalier** | T3 | **40.0%** | 44-66-0 | 4-6-1 | 15.2 | `flamboyant_flourish` (289), `ride_through` (258), `lance_charge` (255) |
 | 9 | **Warrior** | T1 | **31.8%** | 35-75-0 | 2-8-1 | 14.2 | `power_strike` (325), `cleave` (17), `brace` (9) |
-| 10 | **Wizard** | T1 | **31.8%** | 35-75-0 | 2-7-2 | 15.0 | `spark` (617) |
+| 10 | **Wizard** | T1 | **31.8%** | 35-75-0 | 2-7-2 | 15.4 | `spark` (622), `arcane_blast` (24) |
 | 11 | **Knight** | T2 | **17.3%** | 19-91-0 | 1-10-0 | 9.9 | `pommel_strike` (496), `challenging_shout` (258), `lead_the_charge` (48) |
 | 12 | **Thief** | T1 | **0.9%** | 1-109-0 | 0-11-0 | 5.4 | `skirmish` (416), `sneak_attack` (1) |
 

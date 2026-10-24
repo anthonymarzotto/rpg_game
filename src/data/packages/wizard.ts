@@ -6,13 +6,17 @@ import { SPARK, FROSTBITE } from './novice';
 export const ARCANE_BLAST: Ability = {
   id: 'arcane_blast',
   name: 'Arcane Blast',
-  description: 'Unleash a concentrated blast of arcane energy dealing 1d4 magic damage with a 1-hex splash radius.',
+  description: 'Unleash a concentrated blast of arcane energy targeting a hex up to 3 tiles away. Center deals 1d4 + Focus magic damage vs Resolve; surrounding hexes take 1d4 splash damage vs Resolve.',
   archetypeTag: 'MAGE',
   apCost: 1,
   range: 3,
   aoeRadius: 1,
   splashLabel: 'BLAST',
-  targetType: 'SINGLE_TARGET',
+  splashDamageProfile: {
+    count: 1,
+    sides: 4
+  },
+  targetType: 'HEX',
   defenseTarget: 'RESOLVE',
   attackModifierAttribute: 'focus',
   damageType: 'MAGICAL',

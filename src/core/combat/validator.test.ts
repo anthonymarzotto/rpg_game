@@ -439,6 +439,44 @@ describe('Combat Validator', () => {
         expect(flatGroundResult.reason).toContain('Target out of range');
       }
     });
+    it('validates damaging HEX AoE ability on both occupied and unoccupied hexes within range', () => {
+      const arena = createRadialArena(4);
+      const wizard = createRecruit('wizard', 'Wizard', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+      arena.setUnitPosition('wizard', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 2, r: 0 });
+      const state = createCombatState(arena, [wizard, enemy], 'wizard');
+
+      const HEX_BLAST: Ability = {
+        id: 'hex_blast',
+        name: 'Hex Blast',
+        description: 'Blast',
+        apCost: 1,
+        range: 3,
+        aoeRadius: 1,
+        targetType: 'HEX',
+        damageType: 'MAGICAL',
+        defenseTarget: 'RESOLVE',
+        effects: [{ type: 'DAMAGE', damageProfile: { count: 1, sides: 4, modifierAttribute: 'focus' } }]
+      };
+
+      // Occupied hex (enemy at 2, 0)
+      expect(canExecuteAbility(state, 'wizard', HEX_BLAST, { coord: { q: 2, r: 0 } }).valid).toBe(true);
+
+      // Unoccupied hex (ground at 2, -1)
+      expect(canExecuteAbility(state, 'wizard', HEX_BLAST, { coord: { q: 2, r: -1 } }).valid).toBe(true);
+
+      // Out of range (at 4, 0)
+      expect(canExecuteAbility(state, 'wizard', HEX_BLAST, { coord: { q: 4, r: 0 } }).valid).toBe(false);
+
+      // LoS blocked by high hill at (1, 0)
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 3, isWalkable: true });
+      const losResult = canExecuteAbility(state, 'wizard', HEX_BLAST, { coord: { q: 2, r: 0 } });
+      expect(losResult.valid).toBe(false);
+      if (!losResult.valid) {
+        expect(losResult.reason).toContain('Line-of-Sight is blocked');
+      }
+    });
   });
 });
 

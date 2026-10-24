@@ -15,14 +15,14 @@ export type ParsedLogEntry =
       actor: string;
       isPlayer: boolean;
       ability: string;
-      target: string;
+      target?: string;
       d20: string;
-      defenseTarget: number;
+      defenseTarget?: number;
       hitOutcome: string;
       damageTotal: string;
       damageBreakdown: string;
-      targetHp: number;
-      targetMaxHp: number;
+      targetHp?: number;
+      targetMaxHp?: number;
       secondaryDetail: string;
       rawMessage: string;
     }

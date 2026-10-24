@@ -171,55 +171,146 @@ export function decideNextActionWithTrace(
       }
     } else if (ability.targetType === 'HEX') {
       if ((ability.aoeRadius ?? 0) > 0) {
-        // AoE hex ability (e.g. Flash Powder)
         const rangeHexes = getAbilityRangeCoords(state.arena, currentCoord, ability, cu);
-        for (const candHex of rangeHexes) {
-          const val = canExecuteAbility(state, actorUnitId, ability, { coord: candHex });
-          if (!val.valid) continue;
 
-          // Find hostiles within AoE radius
-          const affectedHostiles: { cu: CombatUnit; pos: HexCoord }[] = [];
-          for (const h of hostileUnits) {
-            const hPos = state.arena.getUnitPosition(h.unit.id);
-            if (hPos && hexDistance(candHex, hPos) <= ability.aoeRadius!) {
-              affectedHostiles.push({ cu: h, pos: hPos });
+        if (ability.damageType !== 'NONE') {
+          // Damaging AoE hex ability (e.g. Arcane Blast)
+          const candHexes = rangeHexes.filter((hex) =>
+            hostileUnits.some((h) => {
+              const hPos = state.arena.getUnitPosition(h.unit.id);
+              return hPos && hexDistance(hex, hPos) <= ability.aoeRadius!;
+            })
+          );
+
+          for (const candHex of candHexes) {
+            const val = canExecuteAbility(state, actorUnitId, ability, { coord: candHex });
+            if (!val.valid) continue;
+
+            const metrics = computeAbilityMetrics(state, actorUnitId, ability, candHex, currentCoord);
+            if (!metrics || !metrics.hasLoS) continue;
+
+            // Evaluate caught allies for severe friendly fire penalty (-25 per ally)
+            const centerCu = metrics.targetUnitId ? state.units.get(metrics.targetUnitId) : undefined;
+            const isCenterAlly = centerCu
+              ? (centerCu.unit.faction ?? centerCu.faction) === (cu.unit.faction ?? cu.faction)
+              : false;
+            const alliedSplashCount = (metrics.splashUnits ?? []).filter((s) => s.isAlly).length;
+            const totalCaughtAllies = (isCenterAlly ? 1 : 0) + alliedSplashCount;
+            const friendlyFirePenalty = totalCaughtAllies * 25.0;
+
+            const hostileSplash = (metrics.splashUnits ?? []).filter((s) => !s.isAlly);
+            const isCenterHostile = centerCu && !isCenterAlly && !centerCu.isDefeated;
+            const totalHostiles = (isCenterHostile ? 1 : 0) + hostileSplash.length;
+            if (totalHostiles === 0) continue;
+
+            let totalScore = 0;
+            const reasons: string[] = [];
+
+            if (isCenterHostile && centerCu) {
+              const centerExpDmg = metrics.expectedDamage - hostileSplash.reduce((sum, s) => sum + s.expectedDamage, 0);
+              const centerDmgScore = Math.max(0, centerExpDmg) * weights.expectedDamageWeight;
+              const centerKill = scoreFinishingBlow(centerCu, centerExpDmg, weights.killBonus);
+              const centerFocus = scoreFocusFire(centerCu, weights.focusFireWeight);
+              const centerVuln = scoreVulnerability(metrics, weights.vulnerabilityWeight);
+              totalScore += centerDmgScore + centerKill.score + centerFocus + centerVuln;
+              if (centerKill.reason) reasons.push(centerKill.reason);
             }
-          }
 
-          if (affectedHostiles.length === 0) continue;
+            for (const s of hostileSplash) {
+              const secCu = state.units.get(s.targetUnitId);
+              if (secCu) {
+                const secDmgScore = s.expectedDamage * weights.expectedDamageWeight;
+                const secKill = scoreFinishingBlow(secCu, s.expectedDamage, weights.killBonus);
+                const secFocus = scoreFocusFire(secCu, weights.focusFireWeight);
+                let secVuln = 0;
+                if (s.toHitChance >= 70) {
+                  secVuln += ((s.toHitChance - 50) / 10) * weights.vulnerabilityWeight;
+                }
+                if (s.mitigation <= 1) {
+                  secVuln += (2 - s.mitigation) * weights.vulnerabilityWeight;
+                }
+                totalScore += secDmgScore + secKill.score + secFocus + secVuln;
+                if (secKill.reason) reasons.push(secKill.reason);
+              }
+            }
 
-          let totalScore = 0;
-          const reasons: string[] = [];
+            if (totalHostiles > 1) {
+              totalScore += (totalHostiles - 1) * 12.0;
+              reasons.push(`Catch ${totalHostiles} targets in blast`);
+            }
 
-          for (const { cu: targetCu, pos: targetPos } of affectedHostiles) {
-            const utility = scoreDebuffAndUtility(
-              cu,
-              targetCu,
-              ability,
-              currentCoord,
-              targetPos,
-              state,
-              profile
+            const standoff = scoreStandoffDistance(
+              hexDistance(currentCoord, candHex),
+              weights.preferredStandoffRange,
+              weights.standoffWeight
             );
-            if (utility.score > 0) {
-              totalScore += utility.score;
-              if (utility.reason) reasons.push(utility.reason);
+            totalScore += standoff;
+
+            totalScore -= friendlyFirePenalty;
+            if (totalCaughtAllies > 0) {
+              reasons.push(`Friendly fire penalty (-${friendlyFirePenalty})`);
+            }
+
+            if (totalScore > 0) {
+              candidateActions.push({
+                type: 'ABILITY',
+                ability,
+                target: { coord: candHex, targetUnitId: isCenterHostile ? centerCu?.unit.id : undefined },
+                score: Math.round(totalScore * 10) / 10,
+                reason: reasons.length > 0 ? reasons.join('; ') : `AoE Blast (${totalHostiles} targets)`
+              });
             }
           }
+        } else {
+          // Utility / debuff AoE hex ability (e.g. Flash Powder)
+          for (const candHex of rangeHexes) {
+            const val = canExecuteAbility(state, actorUnitId, ability, { coord: candHex });
+            if (!val.valid) continue;
 
-          if (affectedHostiles.length > 1) {
-            totalScore += (affectedHostiles.length - 1) * 8.0;
-            reasons.push(`Catch ${affectedHostiles.length} targets in blast`);
-          }
+            // Find hostiles within AoE radius
+            const affectedHostiles: { cu: CombatUnit; pos: HexCoord }[] = [];
+            for (const h of hostileUnits) {
+              const hPos = state.arena.getUnitPosition(h.unit.id);
+              if (hPos && hexDistance(candHex, hPos) <= ability.aoeRadius!) {
+                affectedHostiles.push({ cu: h, pos: hPos });
+              }
+            }
 
-          if (totalScore > 0) {
-            candidateActions.push({
-              type: 'ABILITY',
-              ability,
-              target: { coord: candHex },
-              score: Math.round(totalScore * 10) / 10,
-              reason: reasons.length > 0 ? reasons.join('; ') : `AoE ${ability.name}`
-            });
+            if (affectedHostiles.length === 0) continue;
+
+            let totalScore = 0;
+            const reasons: string[] = [];
+
+            for (const { cu: targetCu, pos: targetPos } of affectedHostiles) {
+              const utility = scoreDebuffAndUtility(
+                cu,
+                targetCu,
+                ability,
+                currentCoord,
+                targetPos,
+                state,
+                profile
+              );
+              if (utility.score > 0) {
+                totalScore += utility.score;
+                if (utility.reason) reasons.push(utility.reason);
+              }
+            }
+
+            if (affectedHostiles.length > 1) {
+              totalScore += (affectedHostiles.length - 1) * 8.0;
+              reasons.push(`Catch ${affectedHostiles.length} targets in blast`);
+            }
+
+            if (totalScore > 0) {
+              candidateActions.push({
+                type: 'ABILITY',
+                ability,
+                target: { coord: candHex },
+                score: Math.round(totalScore * 10) / 10,
+                reason: reasons.length > 0 ? reasons.join('; ') : `AoE ${ability.name}`
+              });
+            }
           }
         }
       } else if (ability.effects?.some((e) => e.type === 'TELEPORT')) {
@@ -512,35 +603,68 @@ export function decideNextActionWithTrace(
             }
           }
         } else if (ability.targetType === 'HEX' && (ability.aoeRadius ?? 0) > 0) {
-          for (const targetCu of hostileUnits) {
-            const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);
-            if (!targetCoord) continue;
+          if (ability.damageType !== 'NONE') {
+            for (const targetCu of hostileUnits) {
+              const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);
+              if (!targetCoord) continue;
 
-            const val = canExecuteAbility(state, actorUnitId, ability, {
-              coord: targetCoord,
-              originCoord: candCoord
-            });
-            if (!val.valid) continue;
-
-            const utility = scoreDebuffAndUtility(
-              cu,
-              targetCu,
-              ability,
-              candCoord,
-              targetCoord,
-              state,
-              profile
-            );
-            if (utility.score <= 0) continue;
-
-            const moveNetScore = utility.score - 2;
-            if (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score) {
-              bestAttackFromCand = {
-                score: moveNetScore,
+              const metrics = computeAbilityMetrics(
+                state,
+                actorUnitId,
                 ability,
+                targetCoord,
+                candCoord
+              );
+              if (!metrics || !metrics.hasLoS) continue;
+
+              const alliedSplashCount = (metrics.splashUnits ?? []).filter((s) => s.isAlly).length;
+              const friendlyFirePenalty = alliedSplashCount * 25.0;
+
+              const damageScore = metrics.expectedDamage * weights.expectedDamageWeight;
+              const kill = scoreFinishingBlow(targetCu, metrics.expectedDamage, weights.killBonus);
+              const focusScore = scoreFocusFire(targetCu, weights.focusFireWeight);
+              const moveNetScore = damageScore + kill.score + focusScore - friendlyFirePenalty - 2;
+
+              if (moveNetScore > 0 && (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score)) {
+                bestAttackFromCand = {
+                  score: moveNetScore,
+                  ability,
+                  targetCu,
+                  reason: `Enables ${ability.name} on ${targetCu.unit.name} (Exp Dmg: ${metrics.expectedDamage})`
+                };
+              }
+            }
+          } else {
+            for (const targetCu of hostileUnits) {
+              const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);
+              if (!targetCoord) continue;
+
+              const val = canExecuteAbility(state, actorUnitId, ability, {
+                coord: targetCoord,
+                originCoord: candCoord
+              });
+              if (!val.valid) continue;
+
+              const utility = scoreDebuffAndUtility(
+                cu,
                 targetCu,
-                reason: `Enables ${ability.name} on ${targetCu.unit.name} (${utility.reason})`
-              };
+                ability,
+                candCoord,
+                targetCoord,
+                state,
+                profile
+              );
+              if (utility.score <= 0) continue;
+
+              const moveNetScore = utility.score - 2;
+              if (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score) {
+                bestAttackFromCand = {
+                  score: moveNetScore,
+                  ability,
+                  targetCu,
+                  reason: `Enables ${ability.name} on ${targetCu.unit.name} (${utility.reason})`
+                };
+              }
             }
           }
         }

@@ -11,8 +11,9 @@ import {
   executeAiAction
 } from './decisionEngine';
 import { SeededDiceRoller } from '../combat/dice';
-import { STRIKE } from '../../data/packages/novice';
+import { STRIKE, SPARK } from '../../data/packages/novice';
 import { SMOKE_VEIL } from '../../data/packages/infiltrator';
+import { ARCANE_BLAST } from '../../data/packages/wizard';
 
 function createMockUnit(
   id: string,
@@ -1119,6 +1120,67 @@ describe('Headless AI Decision Engine', () => {
 
     it('asserts Smoke Veil has no artificial oncePerTurn restriction to preserve player/AI multi-action combos', () => {
       expect(SMOKE_VEIL.oncePerTurn).toBeFalsy();
+    });
+  });
+
+  describe('Damaging AoE Ground Hex AI Evaluation', () => {
+    it('targets an empty ground hex between multiple enemies to maximize blast splash damage', () => {
+      const arena = createRadialArena(3);
+      const wizard = createMockUnit('wizard', 'Enemy Wizard', 'ENEMY', {
+        baseAttributes: { force: 0, finesse: 0, focus: 4 },
+        activeClassId: 'wizard'
+      });
+      const heroA = createMockUnit('heroA', 'Hero A', 'PLAYER', { maxHp: 30 });
+      const heroB = createMockUnit('heroB', 'Hero B', 'PLAYER', { maxHp: 30 });
+
+      arena.setUnitPosition(wizard.id, { q: 0, r: 0 });
+      // Two enemies positioned so that empty hex (2, 0) catches both in blast radius 1
+      arena.setUnitPosition(heroA.id, { q: 2, r: -1 }); // dist 1 from (2, 0)
+      arena.setUnitPosition(heroB.id, { q: 2, r: 1 });  // dist 1 from (2, 0)
+
+      const state = createCombatState(arena, [wizard, heroA, heroB], wizard.id);
+      state.units.get(heroA.id)!.facing = 3; // Facing West towards wizard
+      state.units.get(heroB.id)!.facing = 3; // Facing West towards wizard
+      const wizCu = state.units.get(wizard.id)!;
+      // Wizard has both single-target Spark and AoE Arcane Blast
+      (wizCu as { abilities: readonly any[] }).abilities = [SPARK, ARCANE_BLAST];
+
+      const action = decideNextAction(state, wizard.id);
+
+      expect(action.type).toBe('ABILITY');
+      if (action.type === 'ABILITY') {
+        expect(action.ability.id).toBe('arcane_blast');
+        expect(action.target?.coord).toEqual({ q: 2, r: 0 });
+      }
+    });
+
+    it('suppresses AoE blast when an ally is caught in the blast radius and chooses single-target alternative', () => {
+      const arena = createRadialArena(3);
+      const wizard = createMockUnit('wizard', 'Enemy Wizard', 'ENEMY', {
+        baseAttributes: { force: 0, finesse: 0, focus: 4 },
+        activeClassId: 'wizard'
+      });
+      const enemyHero = createMockUnit('hero', 'Player Hero', 'PLAYER', { maxHp: 30 });
+      const allyOrc = createMockUnit('orc', 'Allied Orc', 'ENEMY', { maxHp: 30 });
+
+      arena.setUnitPosition(wizard.id, { q: 0, r: 0 });
+      arena.setUnitPosition(enemyHero.id, { q: 2, r: 0 });
+      // Allied Orc is caught in blast radius 1 of enemyHero
+      arena.setUnitPosition(allyOrc.id, { q: 2, r: 1 });
+
+      const state = createCombatState(arena, [wizard, enemyHero, allyOrc], wizard.id);
+      const wizCu = state.units.get(wizard.id)!;
+      // Wizard has single-target Spark and AoE Arcane Blast
+      (wizCu as { abilities: readonly any[] }).abilities = [SPARK, ARCANE_BLAST];
+
+      const action = decideNextAction(state, wizard.id);
+
+      // With ally caught, Arcane Blast incurs -25 friendly fire penalty, so AI should select SPARK instead
+      expect(action.type).toBe('ABILITY');
+      if (action.type === 'ABILITY') {
+        expect(action.ability.id).toBe('spark');
+        expect(action.target?.targetUnitId).toBe(enemyHero.id);
+      }
     });
   });
 });

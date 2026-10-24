@@ -138,5 +138,48 @@ describe('UnitStatusCard Component', () => {
       expect(html).not.toContain('hud-xp-tracker');
       expect(html).not.toContain('XP PROGRESS');
     });
+
+    it('renders secondary splash targets and friendly fire indicators in target preview', () => {
+      const activeCu = createMockCombatUnit();
+      const targetPreview: TargetPreview = {
+        ...createMockTargetPreview('NORMAL'),
+        splashUnits: [
+          {
+            targetUnitId: 'enemy-2',
+            targetName: 'Secondary Enemy',
+            toHitChance: 65,
+            targetDefense: 10,
+            defenseType: 'Resolve',
+            minDamage: 1,
+            maxDamage: 4,
+            expectedDamage: 2.5,
+            mitigation: 0,
+            isAlly: false
+          },
+          {
+            targetUnitId: 'ally-1',
+            targetName: 'Friendly Fighter',
+            toHitChance: 50,
+            targetDefense: 12,
+            defenseType: 'Resolve',
+            minDamage: 1,
+            maxDamage: 4,
+            expectedDamage: 2.0,
+            mitigation: 0,
+            isAlly: true
+          }
+        ]
+      };
+
+      const html = renderToStaticMarkup(
+        <UnitStatusCard activeCu={activeCu} targetPreview={targetPreview} />
+      );
+
+      expect(html).toContain('Blast Targets (2)');
+      expect(html).toContain('Secondary Enemy');
+      expect(html).toContain('Friendly Fighter');
+      expect(html).toContain('⚠ Friendly Fighter');
+      expect(html).toContain('text-danger');
+    });
   });
 });

@@ -134,6 +134,11 @@ export function collectResolutionFloatingTexts(
         const { text, textType } = resolveDamageFloatingText(event, hitOutcome);
         result.push({ text, type: textType, coord: unitPos, delay });
       }
+    } else if (event.type === 'MISS') {
+      const unitPos = state.arena.getUnitPosition(event.targetUnitId);
+      if (unitPos) {
+        result.push({ text: 'RESIST!', type: 'miss', coord: unitPos, delay: 350 });
+      }
     } else if (event.type === 'DISPLACEMENT') {
       const text = event.kind === 'TELEPORT' ? 'TELEPORT!' : 'KNOCKBACK!';
       result.push({ text, type: 'buff', coord: event.toCoord, delay: 250 });
