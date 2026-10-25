@@ -155,8 +155,25 @@
   margin-top: 2.5rem;
 }
 
-.start-screen-version {
+.start-screen-version,
+.start-screen-version-btn {
   font-size: 0.75rem;
   color: var(--color-text-dim);
   letter-spacing: 0.05em;
 }
+
+.start-screen-version-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.start-screen-version-btn:hover {
+  color: var(--color-player-active);
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.08);
+}
+

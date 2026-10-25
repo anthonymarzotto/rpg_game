@@ -13,6 +13,7 @@ describe('StartScreen Component', () => {
     expect(html).toContain('New Astral Expedition');
     expect(html).toContain(`v${packageJson.version}`);
     expect(html).toContain('v0.6.0');
+    expect(html).toContain('data-testid="start-version-btn"');
   });
 
   it('renders continue button as disabled when canContinue is false', () => {

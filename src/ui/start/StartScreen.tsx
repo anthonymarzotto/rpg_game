@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { SaveSlotId, SlotSummary } from '../../core/storage/types';
 import { SaveSlotDrawer } from './SaveSlotDrawer';
+import { ChangelogModal } from './ChangelogModal';
 import packageJson from '../../../package.json';
 import './StartScreen.css';
 
@@ -30,6 +31,7 @@ export function StartScreen({
   onImportJson
 }: StartScreenProps) {
   const [isArchivesOpen, setIsArchivesOpen] = useState(false);
+  const [isChangelogOpen, setIsChangelogOpen] = useState(false);
 
   const hasOccupiedSlots = slotSummaries
     ? slotSummaries.some((s) => !s.isEmpty && !s.isCorrupted)
@@ -119,9 +121,22 @@ export function StartScreen({
         </div>
 
         <footer className="start-screen-footer">
-          <span className="start-screen-version font-mono">v{packageJson.version}</span>
+          <button
+            type="button"
+            className="start-screen-version-btn font-mono"
+            onClick={() => setIsChangelogOpen(true)}
+            data-testid="start-version-btn"
+            title="View Release Notes / Changelog"
+          >
+            v{packageJson.version}
+          </button>
         </footer>
       </div>
+
+      <ChangelogModal
+        isOpen={isChangelogOpen}
+        onClose={() => setIsChangelogOpen(false)}
+      />
 
       {slotSummaries && (
         <SaveSlotDrawer
