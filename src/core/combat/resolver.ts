@@ -36,6 +36,7 @@ import { getClassPackage, getAbilityById, getPassiveById } from '../../data/pack
 import { PassiveTriggerHook } from '../types/passive';
 import { evaluateTargetAuras } from './auras';
 import { getConditionDefinition, evaluateFrontArcDetection } from './conditions';
+import { applyConditionToUnit } from './effects/conditionHandler';
 
 const defaultDiceRoller = new SeededDiceRoller();
 
@@ -878,6 +879,17 @@ export function executeAbility(
     }
   }
 
+  const challengedEffect = effectiveAbility.effects?.find((e) => e.condition === 'TARGET_CHALLENGED');
+  if (challengedEffect && targetCu) {
+    const isTargetChallenged = targetCu.activeConditions?.some((c) => c.type === 'CHALLENGED');
+    if (isTargetChallenged) {
+      if (Boolean(challengedEffect.grantsAdvantage)) {
+        rollAdvantage = 'ADVANTAGE';
+      }
+      bonusDamageProfile = challengedEffect.bonusDamage;
+    }
+  }
+
   // Evaluate passive roll modifiers (e.g. Momentum)
   const passiveRoll = evaluateRollPassives(actorCu);
   if (passiveRoll.grantsAdvantage) {
@@ -909,6 +921,22 @@ export function executeAbility(
       rollPenalty: auraEval.attackRollPenalty,
       elevationDelta
     });
+
+    // Single-attack consumption of EXPOSED: condition is consumed upon being attacked
+    if (targetCu.activeConditions?.some((c) => c.type === 'EXPOSED')) {
+      targetCu.activeConditions = targetCu.activeConditions.filter((c) => c.type !== 'EXPOSED');
+      state.combatLog.push({
+        turnNumber: state.turnNumber,
+        actorUnitId: targetCu.unit.id,
+        actionId: 'condition_removed',
+        message: `${targetCu.unit.name}'s EXPOSED condition was consumed!`,
+        metadata: {
+          type: 'GENERIC',
+          actor: targetCu.unit.name,
+          text: 'EXPOSED consumed'
+        }
+      });
+    }
   } else {
     // Ground targeting on an unoccupied hex: roll unified spellcast attack roll
     const baseMod = getAttackRollModifier(actorCu, effectiveAbility);
@@ -1104,21 +1132,71 @@ export function executeAbility(
     }
   }
 
-  // Delegate post-action condition updates (e.g. attacking from stealth breaks stealth)
-  actorCu.activeConditions = actorCu.activeConditions.filter((c) => {
+  // Collect all unit IDs targeted or struck during this attack
+  const targetedUnitIds: string[] = [];
+  if (targetCu) {
+    targetedUnitIds.push(targetCu.unit.id);
+  }
+  for (const event of events) {
+    if (event.type === 'DAMAGE' && !targetedUnitIds.includes(event.targetUnitId)) {
+      targetedUnitIds.push(event.targetUnitId);
+    }
+  }
+
+  // Delegate post-action condition updates (e.g. attacking from stealth breaks stealth, defying challenge inflicts exposed)
+  const conditionsToRemove = new Set<ActiveCondition>();
+  const conditionsToApply: {
+    targetUnitId: string;
+    conditionType: ConditionType;
+    durationTurns: number;
+    sourceUnitId?: string;
+  }[] = [];
+
+  for (const c of actorCu.activeConditions) {
     const def = getConditionDefinition(c.type);
     if (def?.onAfterAction) {
       const outcome = def.onAfterAction(c, actorCu, {
         type: 'ATTACK',
         ability,
-        target: targetCu
+        target: targetCu,
+        targetedUnitIds
       });
+      if (outcome?.applyConditions) {
+        conditionsToApply.push(...outcome.applyConditions);
+      }
       if (outcome?.removeCondition) {
-        return false;
+        conditionsToRemove.add(c);
       }
     }
-    return true;
-  });
+  }
+
+  if (conditionsToRemove.size > 0) {
+    actorCu.activeConditions = actorCu.activeConditions.filter((c) => !conditionsToRemove.has(c));
+  }
+
+  for (const toApply of conditionsToApply) {
+    const unitToApply = state.units.get(toApply.targetUnitId);
+    if (unitToApply && !unitToApply.isDefeated) {
+      const { event } = applyConditionToUnit(
+        unitToApply,
+        toApply.conditionType,
+        toApply.durationTurns,
+        toApply.sourceUnitId ?? actorCu.unit.id
+      );
+      events.push(event);
+      state.combatLog.push({
+        turnNumber: state.turnNumber,
+        actorUnitId: unitToApply.unit.id,
+        actionId: 'condition_applied',
+        message: `${unitToApply.unit.name} defied the challenge and became EXPOSED!`,
+        metadata: {
+          type: 'GENERIC',
+          actor: unitToApply.unit.name,
+          text: 'EXPOSED applied'
+        }
+      });
+    }
+  }
 
   // Evaluate encounter outcome
   state.outcome = evaluateEncounterOutcome(state.objectives, state);

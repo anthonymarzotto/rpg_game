@@ -1492,6 +1492,46 @@ describe('Headless AI Decision Engine', () => {
           expect(action.reason).toContain('High threat sniper/caster');
         }
       });
+
+      it('prioritizes attacking the challenger over non-challenger to avoid EXPOSED retaliation', () => {
+        const arena = createRadialArena(3);
+        const enemy = createMockUnit('enemy-1', 'Orc Fighter', 'ENEMY', {
+          baseAttributes: { force: 3, finesse: 3, focus: 0 }
+        });
+        const knight = createMockUnit('knight-1', 'Knight', 'PLAYER', {
+          activeClassId: 'knight',
+          armor: 2,
+          maxHp: 30
+        });
+        const wizard = createMockUnit('wizard-1', 'Wizard', 'PLAYER', {
+          activeClassId: 'wizard',
+          armor: 0,
+          maxHp: 30
+        });
+
+        arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+        arena.setUnitPosition(knight.id, { q: 1, r: 0 });
+        arena.setUnitPosition(wizard.id, { q: 0, r: 1 });
+
+        const state = createCombatState(arena, [enemy, knight, wizard], enemy.id);
+        const enemyCu = state.units.get(enemy.id)!;
+        (enemyCu as { abilities: readonly any[] }).abilities = [STRIKE];
+
+        // Enemy is challenged by the Knight
+        enemyCu.activeConditions.push({
+          type: 'CHALLENGED',
+          durationTurns: 2,
+          sourceUnitId: knight.id
+        });
+
+        const action = decideNextAction(state, enemy.id);
+
+        expect(action.type).toBe('ABILITY');
+        if (action.type === 'ABILITY') {
+          // Despite wizard having 0 armor and high threat, enemy attacks Knight to avoid defiance penalty and EXPOSED
+          expect(action.target?.targetUnitId).toBe(knight.id);
+        }
+      });
     });
   });
 });

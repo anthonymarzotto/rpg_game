@@ -101,6 +101,23 @@ describe('UnitStatusCard Component', () => {
     expect(html).toContain('advantage-indicator-badge vantage');
   });
 
+  it('renders EXPOSED condition badge with target icon and debuff styling', () => {
+    const activeCu = createMockCombatUnit();
+    activeCu.activeConditions.push({
+      type: 'EXPOSED',
+      durationTurns: 1,
+      sourceUnitId: 'knight'
+    });
+
+    const html = renderToStaticMarkup(
+      <UnitStatusCard activeCu={activeCu} targetPreview={null} />
+    );
+
+    expect(html).toContain('🎯 EXPOSED (1t)');
+    expect(html).toContain('condition-exposed');
+    expect(html).toContain('debuff');
+  });
+
   it('renders transient Inspected Unit card when hoveredUnitCu is provided and not targeting', () => {
     const activeCu = createMockCombatUnit();
     const hoveredCu: CombatUnit = {

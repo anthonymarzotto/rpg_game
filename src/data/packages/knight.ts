@@ -5,7 +5,7 @@ import { ClassPackage } from '../../core/types/classPackage';
 export const LEAD_THE_CHARGE: Ability = {
   id: 'lead_the_charge',
   name: 'Lead the Charge',
-  description: 'Knight rallies comrades. Knight and all allies within 3 hexes gain +2 Move and +2 Speed for 2 turns.',
+  description: 'Knight rallies comrades. Knight and all allies within 3 hexes gain +2 Move, +2 Speed, and +2 Attack rolls for 2 turns.',
   archetypeTag: 'FIGHTER',
   apCost: 2,
   range: 0,
@@ -20,7 +20,8 @@ export const LEAD_THE_CHARGE: Ability = {
       durationTurns: 2,
       statModifiers: {
         move: 2,
-        speed: 2
+        speed: 2,
+        attackRoll: 2
       }
     }
   ]
@@ -29,7 +30,7 @@ export const LEAD_THE_CHARGE: Ability = {
 export const CHALLENGING_SHOUT: Ability = {
   id: 'challenging_shout',
   name: 'Challenging Shout',
-  description: 'Taunts an enemy within 3 hexes, forcing them to face the Knight and inflicting CHALLENGED for 2 turns.',
+  description: 'Taunts an enemy within 3 hexes, forcing them to face the Knight and inflicting CHALLENGED for 2 turns. Defying the challenge inflicts EXPOSED.',
   archetypeTag: 'FIGHTER',
   apCost: 1,
   range: 3,
@@ -52,7 +53,7 @@ export const CHALLENGING_SHOUT: Ability = {
 export const POMMEL_STRIKE: Ability = {
   id: 'pommel_strike',
   name: 'Pommel Strike',
-  description: 'A concussive melee blow dealing 1d4 + Force physical damage and reducing the target initiative gauge by 20 points.',
+  description: 'A concussive melee blow dealing 1d4 + Force physical damage (plus 1d4 bonus damage against Challenged targets) and reducing the target initiative gauge by 20 points.',
   archetypeTag: 'FIGHTER',
   apCost: 1,
   range: 1,
@@ -67,6 +68,14 @@ export const POMMEL_STRIKE: Ability = {
         count: 1,
         sides: 4,
         modifierAttribute: 'force'
+      }
+    },
+    {
+      type: 'DAMAGE',
+      condition: 'TARGET_CHALLENGED',
+      bonusDamage: {
+        count: 1,
+        sides: 4
       }
     },
     {

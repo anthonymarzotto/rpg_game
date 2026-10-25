@@ -718,6 +718,8 @@ describe('Attack & Ability Resolution Outcomes', () => {
       if (result.type === 'ATTACK') {
         expect(result.details.d20Roll).toBe(5);
       }
+      // Attacker defied the challenge by attacking the wizard, receiving EXPOSED
+      expect(enemyCu.activeConditions.some((c) => c.type === 'EXPOSED')).toBe(true);
     });
 
     it('rolls normally when CHALLENGED and attacking the challenger', () => {
@@ -745,6 +747,97 @@ describe('Attack & Ability Resolution Outcomes', () => {
       expect(result.type).toBe('ATTACK');
       if (result.type === 'ATTACK') {
         expect(result.details.d20Roll).toBe(16);
+      }
+      // Attacking the challenger does NOT inflict EXPOSED
+      expect(enemyCu.activeConditions.some((c) => c.type === 'EXPOSED')).toBe(false);
+    });
+
+    it('grants Advantage against an EXPOSED target and consumes EXPOSED upon attack', () => {
+      const arena = createRadialArena(3);
+      const knight = createRecruit('knight', 'Knight', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('knight', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [knight, enemy], 'knight');
+      const enemyCu = state.units.get('enemy')!;
+
+      // Target has EXPOSED condition
+      enemyCu.activeConditions.push({
+        type: 'EXPOSED',
+        durationTurns: 1,
+        sourceUnitId: 'knight'
+      });
+
+      // Knight attacks Enemy -> Advantage!
+      // Mock dice: [6, 17]. Advantage takes 17!
+      const dice = new MockDiceRoller({ d20Rolls: [6, 17], damageRolls: [3] });
+      const result = executeAbility(state, 'knight', STRIKE, { targetUnitId: 'enemy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.d20Roll).toBe(17);
+      }
+
+      // EXPOSED condition was consumed upon being attacked
+      expect(enemyCu.activeConditions.some((c) => c.type === 'EXPOSED')).toBe(false);
+    });
+
+    it('deals bonus damage against a target with CHALLENGED condition', () => {
+      const arena = createRadialArena(3);
+      const knight = createRecruit('knight', 'Knight', { faction: 'PLAYER' });
+      (knight as any).baseAttributes = { force: 2, finesse: 2, focus: 0 };
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+      (enemy as any).effectiveVitals = {
+        ...enemy.effectiveVitals,
+        evasion: 10,
+        armor: 0
+      };
+
+      arena.setUnitPosition('knight', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [knight, enemy], 'knight');
+      const enemyCu = state.units.get('enemy')!;
+      enemyCu.activeConditions.push({
+        type: 'CHALLENGED',
+        durationTurns: 2,
+        sourceUnitId: 'knight'
+      });
+
+      const abilityWithChallengeBonus: Ability = {
+        id: 'test_pommel_strike',
+        name: 'Pommel Strike',
+        description: 'Test pommel strike',
+        apCost: 1,
+        range: 1,
+        targetType: 'UNIT',
+        damageType: 'PHYSICAL',
+        attackModifier: 'finesse',
+        effects: [
+          {
+            type: 'DAMAGE',
+            damageProfile: { count: 1, sides: 6, modifierAttribute: 'force' }
+          },
+          {
+            type: 'DAMAGE',
+            condition: 'TARGET_CHALLENGED',
+            bonusDamage: { count: 1, sides: 4 }
+          }
+        ]
+      };
+
+      // Mock dice roller: d20 = 15 (solid hit), base damage 1d6 = 4, bonus damage 1d4 = 3
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [4, 3] });
+      const result = executeAbility(state, 'knight', abilityWithChallengeBonus, { targetUnitId: 'enemy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.hitOutcome).toBe('SOLID_HIT');
+        // 4 (1d6) + 3 (1d4) + 2 (force) - 0 (armor) = 9
+        expect(result.details.damageDealt).toBe(9);
+        expect(result.details.damageBreakdown).toContain('1d6+1d4');
       }
     });
   });

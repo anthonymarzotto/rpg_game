@@ -851,3 +851,41 @@ export function scoreDebuffAndUtility(
     reason: reasons.length > 0 ? reasons.join('; ') : undefined
   };
 }
+
+/**
+ * Evaluates the defensive risk and tactical penalty of defying a CHALLENGED condition.
+ * When an actor has CHALLENGED by a specific challenger, attacking any target
+ * other than the challenger inflicts EXPOSED on the actor, granting incoming attacks Advantage.
+ * Returns a score penalty unless the attack secures a decisive finishing blow.
+ */
+export function scoreChallengeDefiancePenalty(
+  actorCu: CombatUnit,
+  targetCu: CombatUnit,
+  isFinishingBlow = false
+): { penalty: number; reason?: string } {
+  const challenge = actorCu.activeConditions?.find((c) => c.type === 'CHALLENGED');
+  if (!challenge || !challenge.sourceUnitId) {
+    return { penalty: 0 };
+  }
+
+  // If the target is the challenger, no defiance penalty applies
+  if (targetCu.unit.id === challenge.sourceUnitId) {
+    return { penalty: 0 };
+  }
+
+  // Defying the challenge inflicts EXPOSED on the actor.
+  // Unless the attack eliminates the non-challenger with a finishing blow,
+  // becoming EXPOSED is a severe tactical liability.
+  if (isFinishingBlow) {
+    return {
+      penalty: 4.0,
+      reason: 'Defy challenge for finishing blow (risks EXPOSED)'
+    };
+  }
+
+  return {
+    penalty: 16.0,
+    reason: 'Defying challenge risks EXPOSED retaliation'
+  };
+}
+

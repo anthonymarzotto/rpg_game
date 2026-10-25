@@ -29,6 +29,7 @@ describe('Condition Registry', () => {
     expect(getConditionDefinition('STEALTH')).toBeDefined();
     expect(getConditionDefinition('POISON')).toBeDefined();
     expect(getConditionDefinition('BURN')).toBeDefined();
+    expect(getConditionDefinition('EXPOSED')).toBeDefined();
   });
 
   describe('CHALLENGED', () => {
@@ -67,6 +68,70 @@ describe('Condition Registry', () => {
 
       const result = challengedDef.onOutgoingAttackRoll?.(condition, actor, challenger);
       expect(result).toBeUndefined();
+    });
+
+    it('inflicts EXPOSED on attacker via onAfterAction when attacking a non-challenger', () => {
+      const challenger = createMockUnit('knight-1');
+      const actor = createMockUnit('goblin-1');
+      const victim = createMockUnit('wizard-1');
+
+      const condition: ActiveCondition = {
+        type: 'CHALLENGED',
+        durationTurns: 2,
+        sourceUnitId: challenger.unit.id
+      };
+
+      const outcome = challengedDef.onAfterAction?.(condition, actor, {
+        type: 'ATTACK',
+        ability: {} as Ability,
+        target: victim
+      });
+
+      expect(outcome).toBeDefined();
+      expect(outcome?.applyConditions).toHaveLength(1);
+      expect(outcome?.applyConditions?.[0].conditionType).toBe('EXPOSED');
+      expect(outcome?.applyConditions?.[0].targetUnitId).toBe(actor.unit.id);
+      expect(outcome?.applyConditions?.[0].durationTurns).toBe(1);
+    });
+
+    it('does not inflict EXPOSED when attacking the challenger directly', () => {
+      const challenger = createMockUnit('knight-1');
+      const actor = createMockUnit('goblin-1');
+
+      const condition: ActiveCondition = {
+        type: 'CHALLENGED',
+        durationTurns: 2,
+        sourceUnitId: challenger.unit.id
+      };
+
+      const outcome = challengedDef.onAfterAction?.(condition, actor, {
+        type: 'ATTACK',
+        ability: {} as Ability,
+        target: challenger
+      });
+
+      expect(outcome).toBeUndefined();
+    });
+
+    it('does not inflict EXPOSED when secondary targets include the challenger', () => {
+      const challenger = createMockUnit('knight-1');
+      const actor = createMockUnit('goblin-1');
+      const bystander = createMockUnit('wizard-1');
+
+      const condition: ActiveCondition = {
+        type: 'CHALLENGED',
+        durationTurns: 2,
+        sourceUnitId: challenger.unit.id
+      };
+
+      const outcome = challengedDef.onAfterAction?.(condition, actor, {
+        type: 'ATTACK',
+        ability: {} as Ability,
+        target: bystander,
+        secondaryTargets: [challenger]
+      });
+
+      expect(outcome).toBeUndefined();
     });
   });
 
@@ -208,6 +273,34 @@ describe('Condition Registry', () => {
       expect(poison.onTurnStart?.(poisonCond, unit)?.damageType).toBe('PHYSICAL');
       expect(burn.onTurnStart?.(burnCond, unit)?.damage).toBe(2);
       expect(burn.onTurnStart?.(burnCond, unit)?.damageType).toBe('MAGICAL');
+    });
+  });
+
+  describe('EXPOSED', () => {
+    const exposedDef = CONDITION_REGISTRY.EXPOSED;
+
+    it('has REFRESH_DURATION stacking policy', () => {
+      expect(exposedDef.stackingPolicy).toBe('REFRESH_DURATION');
+    });
+
+    it('grants Advantage on incoming attack rolls', () => {
+      const attacker = createMockUnit('attacker-1');
+      const target = createMockUnit('target-1');
+      const condition: ActiveCondition = {
+        type: 'EXPOSED',
+        durationTurns: 1,
+        sourceUnitId: 'knight-1'
+      };
+
+      const result = exposedDef.onIncomingAttackRoll?.(condition, attacker, target);
+      expect(result).toBeDefined();
+      expect(result?.advantage).toBe(true);
+      expect(result?.description).toContain('Exposed');
+    });
+
+    it('does not modify outgoing attack rolls or turn start', () => {
+      expect(exposedDef.onOutgoingAttackRoll).toBeUndefined();
+      expect(exposedDef.onTurnStart).toBeUndefined();
     });
   });
 });

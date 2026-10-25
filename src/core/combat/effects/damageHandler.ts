@@ -16,16 +16,29 @@ export const damageHandler: EffectHandler = {
       return { events: [] };
     }
 
-    let isFlanked = false;
+    let isConditionMet = true;
+    let bonusDamage = undefined;
+
     if (effect.condition === 'FLANK_OR_REAR') {
-      isFlanked = isFlankOrRear(state, actorCu.unit.id, targetCu.unit.id);
-      // If an effect requires flank and unit is not flanked, and has no base damageProfile, skip
-      if (!isFlanked && !effect.damageProfile && !effect.flatDamage) {
-        return { events: [] };
+      const isFlanked = isFlankOrRear(state, actorCu.unit.id, targetCu.unit.id);
+      if (isFlanked) {
+        bonusDamage = effect.bonusDamage;
+      } else {
+        isConditionMet = false;
+      }
+    } else if (effect.condition === 'TARGET_CHALLENGED') {
+      const isChallenged = targetCu.activeConditions?.some((c) => c.type === 'CHALLENGED');
+      if (isChallenged) {
+        bonusDamage = effect.bonusDamage;
+      } else {
+        isConditionMet = false;
       }
     }
 
-    const bonusDamage = isFlanked ? effect.bonusDamage : undefined;
+    // If an effect requires a condition and condition is not met, and has no base damageProfile, skip
+    if (!isConditionMet && !effect.damageProfile && !effect.flatDamage) {
+      return { events: [] };
+    }
 
     const damageResult = resolveDamage(
       hitOutcome,

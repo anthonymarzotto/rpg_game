@@ -249,11 +249,21 @@ export function computeAbilityMetrics(
     }
   }
 
+  let isChallengedAdvantage = false;
+  const challengedEffect = effectiveAbility.effects?.find((e) => e.condition === 'TARGET_CHALLENGED');
+  if (challengedEffect) {
+    const isTargetChallenged = targetCu.activeConditions?.some((c) => c.type === 'CHALLENGED');
+    if (isTargetChallenged) {
+      isChallengedAdvantage = Boolean(challengedEffect.grantsAdvantage);
+      bonusDamageProfile = challengedEffect.bonusDamage;
+    }
+  }
+
   // Check Momentum Advantage
   const isMomentumAdvantage =
     (actorCu.hexesMovedThisTurn ?? 0) >= 2 &&
     (actorCu.passives ?? []).some((p) => p.id === 'momentum');
-  const hasTacticalAdvantage = isFlankAdvantage || isMomentumAdvantage;
+  const hasTacticalAdvantage = isFlankAdvantage || isChallengedAdvantage || isMomentumAdvantage;
 
   // Evaluate centralized attack roll context
   const rollContext = evaluateAttackRollContext(actorCu, targetCu, effectiveAbility, {

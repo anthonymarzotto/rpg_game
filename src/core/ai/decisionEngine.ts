@@ -25,7 +25,8 @@ import {
   scoreFocusFire,
   scoreBuffAbility,
   scoreDebuffAndUtility,
-  scoreTargetThreat
+  scoreTargetThreat,
+  scoreChallengeDefiancePenalty
 } from './heuristics';
 
 const defaultDiceRoller = new SeededDiceRoller();
@@ -145,14 +146,14 @@ export function decideNextActionWithTrace(
           profile
         );
         const threat = scoreTargetThreat(targetCu, weights.threatWeight ?? 1.0);
+        const defiance = scoreChallengeDefiancePenalty(cu, targetCu, kill.score > 0);
 
         const effectiveDamage = kill.score + damageScore + vulnScore;
         const hasPrimaryValue = effectiveDamage > 0 || utility.score > 0;
         const effectiveFlank = effectiveDamage > 0 ? flank.score : 0;
         const effectiveThreat = hasPrimaryValue ? threat.score : 0;
-        const totalScore = hasPrimaryValue
-          ? effectiveDamage + effectiveFlank + focusScore + standoff + utility.score + effectiveThreat
-          : 0;
+        const rawScore = effectiveDamage + effectiveFlank + focusScore + standoff + utility.score + effectiveThreat - defiance.penalty;
+        const totalScore = hasPrimaryValue ? Math.max(0, rawScore) : 0;
 
         if (totalScore <= 0) continue;
 
@@ -161,6 +162,7 @@ export function decideNextActionWithTrace(
         if (utility.reason) reasons.push(utility.reason);
         if (kill.reason) reasons.push(kill.reason);
         if (effectiveFlank > 0 && flank.reason) reasons.push(flank.reason);
+        if (defiance.penalty > 0 && defiance.reason) reasons.push(defiance.reason);
         if (reasons.length === 0) {
           reasons.push(`Strike ${targetCu.unit.name} (Exp Dmg: ${metrics.expectedDamage})`);
         }
@@ -384,6 +386,7 @@ export function decideNextActionWithTrace(
                   profile
                 );
                 const threat = scoreTargetThreat(targetCu, weights.threatWeight ?? 1.0);
+                const defiance = scoreChallengeDefiancePenalty(cu, targetCu, kill.score > 0);
 
                 let leapTacticalBonus = 0;
                 const reasons: string[] = [];
@@ -413,6 +416,7 @@ export function decideNextActionWithTrace(
 
                 if (utility.reason) reasons.push(utility.reason);
                 if (flank.reason) reasons.push(flank.reason);
+                if (defiance.penalty > 0 && defiance.reason) reasons.push(defiance.reason);
                 reasons.push(`Enables ${atk.name} on ${targetCu.unit.name}`);
 
                 const netScore =
@@ -424,7 +428,8 @@ export function decideNextActionWithTrace(
                   utility.score +
                   threat.score +
                   leapTacticalBonus +
-                  selfBuffScore;
+                  selfBuffScore -
+                  defiance.penalty;
 
                 if (!bestAttackFromCand || netScore > bestAttackFromCand.score) {
                   bestAttackFromCand = {
@@ -589,6 +594,7 @@ export function decideNextActionWithTrace(
               profile
             );
             const threat = scoreTargetThreat(targetCu, weights.threatWeight ?? 1.0);
+            const defiance = scoreChallengeDefiancePenalty(cu, targetCu, kill.score > 0);
 
             // Deduct 1 AP movement cost from utility
             const effectiveDamage = kill.score + damageScore + vulnScore;
@@ -599,7 +605,7 @@ export function decideNextActionWithTrace(
             const effectiveThreat = hasPrimaryValue ? threat.score : 0;
 
             const moveNetScore = hasPrimaryValue
-              ? effectiveDamage + effectiveFlank + effectiveFocus + effectiveStandoff + utility.score + effectiveThreat - 2
+              ? Math.max(0, effectiveDamage + effectiveFlank + effectiveFocus + effectiveStandoff + utility.score + effectiveThreat - defiance.penalty - 2)
               : 0;
 
             if (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score) {
@@ -608,6 +614,7 @@ export function decideNextActionWithTrace(
               if (utility.reason) reasons.push(utility.reason);
               if (flank.reason) reasons.push(flank.reason);
               if (kill.reason) reasons.push(kill.reason);
+              if (defiance.penalty > 0 && defiance.reason) reasons.push(defiance.reason);
               if (weights.standoffWeight > 0) {
                 reasons.push(
                   hexDistance(candCoord, targetCoord) === weights.preferredStandoffRange

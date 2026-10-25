@@ -6,10 +6,10 @@ Provides core combat engine support for status conditions, Damage-over-Time tick
 ## Requirements
 
 ### Requirement: Active Condition Tracking
-The system SHALL maintain an active condition collection on each combat unit where each condition specifies a valid condition type (`POISON`, `BURN`, `CHALLENGED`, `STEALTH`), duration in turns, and a mandatory `sourceUnitId` representing the originating unit. When applying a condition that is already present on a target, the system SHALL resolve the conflict according to the condition's registered stacking policy:
+The system SHALL maintain an active condition collection on each combat unit where each condition specifies a valid condition type (`POISON`, `BURN`, `CHALLENGED`, `STEALTH`, `EXPOSED`), duration in turns, and a mandatory `sourceUnitId` representing the originating unit. When applying a condition that is already present on a target, the system SHALL resolve the conflict according to the condition's registered stacking policy:
 - `OVERRIDE_SOURCE`: Overwrite `sourceUnitId` with the new applying actor, refresh duration to the new duration, and preserve single-condition status (used by `CHALLENGED` for taunt steal).
 - `STACK_INTENSITY`: Increment `damagePerTurn` up to a configured ceiling (8) and refresh duration to `Math.max(existing, new)` (used by `POISON` and `BURN`).
-- `REFRESH_DURATION`: Keep existing properties and refresh duration to `Math.max(existing, new)` (used by `STEALTH`).
+- `REFRESH_DURATION`: Keep existing properties and refresh duration to `Math.max(existing, new)` (used by `STEALTH` and `EXPOSED`).
 
 #### Scenario: Condition application with attribution
 - **WHEN** an ability applies a condition to a target unit that does not currently possess that condition
@@ -32,6 +32,10 @@ The system SHALL maintain an active condition collection on each combat unit whe
 - **THEN** the condition's duration is updated to `Math.max(currentDuration, newDuration)`
 - **THEN** the target possesses exactly one `STEALTH` condition
 
+#### Scenario: Exposed condition application and refresh
+- **WHEN** a unit receives the `EXPOSED` condition
+- **THEN** the unit acquires the `EXPOSED` condition for 1 turn (or refreshes duration if already active)
+
 ### Requirement: Turn-Start Damage-Over-Time Resolution
 The system SHALL evaluate all active conditions at the beginning of a unit's combat turn before granting Action Points by delegating to each condition's registered `onTurnStart` lifecycle hook, applying returned unmitigated damage directly to HP and decrementing duration.
 
@@ -52,13 +56,21 @@ The system SHALL evaluate all active conditions at the beginning of a unit's com
 - **THEN** the unit is marked as defeated immediately and their turn terminates without granting AP
 
 ### Requirement: Behavioral Condition Enforcement
-The system SHALL enforce tactical and behavioral constraints imposed by active conditions through declarative condition registry lifecycle hooks: `canBeTargeted` for targeting validation, `evaluateAttackRollContext` for roll advantage/disadvantage, `onAfterAction` for condition removal upon combat actions, and `onTakeDamage` for condition removal upon taking damage.
+The system SHALL enforce tactical and behavioral constraints imposed by active conditions through declarative condition registry lifecycle hooks: `canBeTargeted` for targeting validation, `onOutgoingAttackRoll` and `onIncomingAttackRoll` for roll advantage/disadvantage, `onAfterAction` for condition removal and secondary status triggers upon combat actions, and `onTakeDamage` for condition removal upon taking damage.
 
 For the `STEALTH` condition:
 - The system SHALL reject hostile single-target abilities directed at a stealthed enemy.
 - The system SHALL grant Advantage on outgoing attack rolls and remove `STEALTH` via `onAfterAction` when the stealthed unit executes an attack.
 - The system SHALL remove `STEALTH` via `onTakeDamage` when the stealthed unit suffers direct attack damage, AoE splash damage, or fire damage (`damageType: 'MAGICAL'` from `BURN`). Turn-start damage from `POISON` DoT SHALL NOT remove `STEALTH`.
 - When an active unit begins their combat turn, if an opposing stealthed unit is within range 1 and positioned within the active unit's `FRONT` combat arc, the system SHALL remove `STEALTH` from that stealthed unit ("Spotted!"). The detected unit SHALL preserve its existing facing. If the stealthed unit is positioned within the active unit's `REAR` or `FLANK` combat arc, `STEALTH` SHALL NOT be removed by proximity.
+
+For the `CHALLENGED` condition:
+- The system SHALL impose Disadvantage on outgoing attack rolls when attacking any target other than the challenger (`sourceUnitId`).
+- When a unit with `CHALLENGED` executes an attack action where none of the targets are its challenger (`sourceUnitId`), the condition's `onAfterAction` hook SHALL inflict the `EXPOSED` condition upon the attacking unit. If the attack targets or includes the challenger, `EXPOSED` SHALL NOT be inflicted.
+
+For the `EXPOSED` condition:
+- The system SHALL grant Advantage on incoming attack rolls made against a unit with the `EXPOSED` condition.
+- When an incoming attack resolves against an `EXPOSED` unit, the system SHALL consume and remove the `EXPOSED` condition immediately, regardless of whether the attack results in a Solid Hit, Critical Hit, Graze, or Miss.
 
 #### Scenario: Stealth prevents single-target hostile targeting
 - **WHEN** an enemy attempts to execute a single-target ability targeting a unit with the `STEALTH` condition
@@ -98,6 +110,21 @@ For the `STEALTH` condition:
 - **WHEN** a unit with an active `CHALLENGED` condition previews an attack against a target that is NOT the challenger (`sourceUnitId`)
 - **THEN** the previewed hit chance is calculated using the Disadvantage formula ($p^2$)
 - **THEN** the preview indicates active Disadvantage
+
+#### Scenario: Challenged unit attacking non-challenger incurs Disadvantage and receives Exposed
+- **WHEN** a unit afflicted with `CHALLENGED` attacks a target other than its designated challenger
+- **THEN** the attack roll evaluates with Disadvantage
+- **THEN** upon completion of the attack action, the attacking unit receives the `EXPOSED` condition
+
+#### Scenario: Challenged unit attacking challenger rolls normally without receiving Exposed
+- **WHEN** a unit afflicted with `CHALLENGED` attacks its designated challenger
+- **THEN** the attack roll evaluates normally without Disadvantage from `CHALLENGED`
+- **THEN** the attacking unit does not receive the `EXPOSED` condition
+
+#### Scenario: Incoming attack against Exposed unit rolls with Advantage and consumes condition
+- **WHEN** any unit executes an attack against a target with the `EXPOSED` condition
+- **THEN** the attack roll evaluates with Advantage
+- **THEN** upon resolving the attack roll, the `EXPOSED` condition is consumed and removed from the target regardless of hit or miss
 
 ### Requirement: CTB Gauge Manipulation & Pre-Encounter Setup
 The system SHALL support direct adjustments to a unit's CTB initiative gauge during combat and provide a pre-encounter setup pass allowing passives and scenario modifiers to seed starting initiative or conditions.

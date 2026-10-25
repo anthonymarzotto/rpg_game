@@ -11,6 +11,12 @@ export interface TurnStartConditionResult {
 
 export interface AfterActionResult {
   readonly removeCondition?: boolean;
+  readonly applyConditions?: readonly {
+    readonly targetUnitId: string;
+    readonly conditionType: ConditionType;
+    readonly durationTurns: number;
+    readonly sourceUnitId?: string;
+  }[];
 }
 
 export interface DamageConditionContext {
@@ -63,7 +69,13 @@ export interface ConditionDefinition {
   readonly onAfterAction?: (
     condition: ActiveCondition,
     actor: CombatUnit,
-    action: { type: 'ATTACK'; ability: Ability; target?: CombatUnit },
+    action: {
+      type: 'ATTACK';
+      ability: Ability;
+      target?: CombatUnit;
+      secondaryTargets?: readonly CombatUnit[];
+      targetedUnitIds?: readonly string[];
+    },
     result?: unknown
   ) => AfterActionResult | undefined;
   readonly onTakeDamage?: (
@@ -85,6 +97,33 @@ export const CONDITION_REGISTRY: Readonly<Record<ConditionType, ConditionDefinit
           disadvantage: true,
           description: 'Challenged (Disadvantage)'
         };
+      }
+      return undefined;
+    },
+    onAfterAction: (condition, actor, action) => {
+      if (action.type === 'ATTACK' && condition.sourceUnitId) {
+        const targetedIds: string[] = [];
+        if (action.targetedUnitIds) {
+          targetedIds.push(...action.targetedUnitIds);
+        } else {
+          if (action.target) targetedIds.push(action.target.unit.id);
+          if (action.secondaryTargets) {
+            targetedIds.push(...action.secondaryTargets.map((t) => t.unit.id));
+          }
+        }
+        const hitChallenger = targetedIds.includes(condition.sourceUnitId);
+        if (!hitChallenger) {
+          return {
+            applyConditions: [
+              {
+                targetUnitId: actor.unit.id,
+                conditionType: 'EXPOSED',
+                durationTurns: 1,
+                sourceUnitId: condition.sourceUnitId
+              }
+            ]
+          };
+        }
       }
       return undefined;
     }
@@ -135,6 +174,14 @@ export const CONDITION_REGISTRY: Readonly<Record<ConditionType, ConditionDefinit
     onTurnStart: (condition) => ({
       damage: condition.damagePerTurn ?? 2,
       damageType: 'MAGICAL'
+    })
+  },
+  EXPOSED: {
+    type: 'EXPOSED',
+    stackingPolicy: 'REFRESH_DURATION',
+    onIncomingAttackRoll: () => ({
+      advantage: true,
+      description: 'Exposed (Advantage)'
     })
   }
 };

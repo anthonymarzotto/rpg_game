@@ -44,7 +44,12 @@ describe('Class Packages & Catalog Verification', () => {
   it('correctly maps Knight abilities and passive', () => {
     expect(KNIGHT_PACKAGE.classId).toBe('knight');
     expect(KNIGHT_PACKAGE.signatureAbility.id).toBe('lead_the_charge');
+    expect(KNIGHT_PACKAGE.signatureAbility.effects?.[0].statModifiers?.attackRoll).toBe(2);
     expect(KNIGHT_PACKAGE.domainAbilities.map((a) => a.id)).toEqual(['challenging_shout', 'pommel_strike']);
+    const pommelStrike = KNIGHT_PACKAGE.domainAbilities.find((a) => a.id === 'pommel_strike');
+    const challengeEffect = pommelStrike?.effects?.find((e) => e.condition === 'TARGET_CHALLENGED');
+    expect(challengeEffect).toBeDefined();
+    expect(challengeEffect?.bonusDamage).toEqual({ count: 1, sides: 4 });
     expect(KNIGHT_PACKAGE.passive.id).toBe('tactical_vanguard');
     expect(KNIGHT_PACKAGE.passive.hook).toBe('BATTLE_START');
   });

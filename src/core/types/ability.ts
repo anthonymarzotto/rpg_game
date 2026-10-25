@@ -15,7 +15,7 @@ export interface DiceProfile {
   readonly modifierAttribute?: keyof TriadAttributes;
 }
 
-export type ConditionType = 'POISON' | 'BURN' | 'CHALLENGED' | 'STEALTH';
+export type ConditionType = 'POISON' | 'BURN' | 'CHALLENGED' | 'STEALTH' | 'EXPOSED';
 
 export type AbilityEffectType =
   | 'DAMAGE'           // Deals physical or magical damage via dice profile and/or flat damage
@@ -31,7 +31,7 @@ export type AbilityEffectType =
   | 'INITIATIVE_BOOST' // Boosts target CTB initiative gauge (e.g. Tactical Vanguard)
   | 'FORCE_FACING'     // Forces target to face actor
   | 'FORCE_FACING_AWAY'// Forces target to face 180 degrees away from actor
-  | 'CONDITION'        // Applies a status condition (Poison, Burn, Challenged, Stealth)
+  | 'CONDITION'        // Applies a status condition (Poison, Burn, Challenged, Stealth, Exposed)
   | 'SPELL_SCULPT'     // Primes pending ability modifier for next Mage spell
   | 'WILD_SURGE'       // Spontaneous arcane surges on critical hits
   | 'STAT_MODIFIER'    // Applies stat modifier (e.g. Expose Weakness -2 Armor & -2 Evasion)
@@ -41,7 +41,7 @@ export type AbilityEffectType =
 
 export type EffectTargetScope = 'TARGET' | 'SELF' | 'ALLIES';
 export type EffectApplyCondition = 'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY';
-export type AbilityCondition = 'FLANK_OR_REAR';
+export type AbilityCondition = 'FLANK_OR_REAR' | 'TARGET_CHALLENGED';
 
 export interface AbilityEffect {
   readonly type: AbilityEffectType;

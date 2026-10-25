@@ -540,6 +540,13 @@
   border: 1px solid rgba(244, 63, 94, 0.5);
 }
 
+.mod-badge.condition-exposed {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.3);
+}
+
 /* In-Battle Archetype XP Progression Tracker */
 .hud-xp-tracker {
   display: flex;

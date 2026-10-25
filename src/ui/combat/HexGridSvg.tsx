@@ -514,7 +514,8 @@ export function HexGridSvg({
                 c.type === 'STEALTH' ? '👤' :
                   c.type === 'POISON' ? '🧪' :
                     c.type === 'BURN' ? '🔥' :
-                      c.type === 'CHALLENGED' ? '⚔️' : '✨'
+                      c.type === 'CHALLENGED' ? '⚔️' :
+                        c.type === 'EXPOSED' ? '🎯' : '✨'
               ),
               ...(cu.activeModifiers ?? []).map((m) =>
                 m.stat === 'move' && m.value < 0 ? '❄️' :
@@ -527,7 +528,7 @@ export function HexGridSvg({
             const hasDebuff =
               (cu.activeModifiers ?? []).some((m) => m.value < 0) ||
               (cu.activeConditions ?? []).some(
-                (c) => c.type === 'POISON' || c.type === 'BURN' || c.type === 'CHALLENGED'
+                (c) => c.type === 'POISON' || c.type === 'BURN' || c.type === 'CHALLENGED' || c.type === 'EXPOSED'
               );
             const statusBubbleStroke = isStealthed ? '#c084fc' : hasDebuff ? '#f87171' : '#fbbf24';
             const statusBubbleWidth = Math.max(statusIcons.length * 13 + 6, 20);

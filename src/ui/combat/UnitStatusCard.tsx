@@ -51,7 +51,13 @@ function formatConditionBadge(cond: ActiveCondition): {
     label = 'CHALLENGED';
     isDebuff = true;
     className = 'condition-challenged';
-    title = 'Challenged: Must attack the challenger or suffer Disadvantage on rolls.';
+    title = 'Challenged: Must attack the challenger or suffer Disadvantage and EXPOSED.';
+  } else if (cond.type === 'EXPOSED') {
+    icon = '🎯 ';
+    label = 'EXPOSED';
+    isDebuff = true;
+    className = 'condition-exposed';
+    title = 'Exposed: Incoming attacks against this unit gain Advantage. Consumed on being attacked.';
   }
 
   const text = `${icon}${label} (${cond.durationTurns}t)`;

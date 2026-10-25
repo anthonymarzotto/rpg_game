@@ -1,8 +1,69 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
 import { AbilityEffect, ConditionType } from '../../types/ability';
-import { ActiveCondition, CombatEvent } from '../types';
+import { ActiveCondition, CombatEvent, CombatUnit } from '../types';
 import { getConditionDefinition } from '../conditions';
 import { getDirectionBetween, hexEquals } from '../../grid/hex';
+
+export function applyConditionToUnit(
+  targetUnit: CombatUnit,
+  conditionType: ConditionType,
+  durationTurns: number,
+  sourceUnitId: string,
+  damagePerTurn?: number
+): { condition: ActiveCondition; event: CombatEvent } {
+  const def = getConditionDefinition(conditionType);
+  const policy = def?.stackingPolicy ?? 'REFRESH_DURATION';
+  const existing = targetUnit.activeConditions.find((c) => c.type === conditionType);
+
+  let conditionToEmit: ActiveCondition;
+
+  if (!existing) {
+    conditionToEmit = {
+      type: conditionType,
+      durationTurns,
+      sourceUnitId,
+      ...(damagePerTurn !== undefined ? { damagePerTurn } : {})
+    };
+    targetUnit.activeConditions.push(conditionToEmit);
+  } else {
+    switch (policy) {
+      case 'OVERRIDE_SOURCE': {
+        existing.sourceUnitId = sourceUnitId;
+        existing.durationTurns = durationTurns;
+        conditionToEmit = existing;
+        break;
+      }
+      case 'STACK_INTENSITY': {
+        const incomingDmg = damagePerTurn ?? def?.defaultIntensity ?? 2;
+        const currentDmg = existing.damagePerTurn ?? def?.defaultIntensity ?? 2;
+        const maxDmg = def?.maxIntensity ?? 8;
+        existing.damagePerTurn = Math.min(maxDmg, currentDmg + incomingDmg);
+        existing.durationTurns = Math.max(existing.durationTurns, durationTurns);
+        existing.sourceUnitId = sourceUnitId;
+        conditionToEmit = existing;
+        break;
+      }
+      case 'REFRESH_DURATION': {
+        existing.durationTurns = Math.max(existing.durationTurns, durationTurns);
+        existing.sourceUnitId = sourceUnitId;
+        conditionToEmit = existing;
+        break;
+      }
+      case 'IGNORE': {
+        conditionToEmit = existing;
+        break;
+      }
+    }
+  }
+
+  const event: CombatEvent = {
+    type: 'STATUS_APPLIED',
+    targetUnitId: targetUnit.unit.id,
+    condition: conditionToEmit
+  };
+
+  return { condition: conditionToEmit, event };
+}
 
 export const conditionHandler: EffectHandler = {
   apply(effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
@@ -32,58 +93,14 @@ export const conditionHandler: EffectHandler = {
           ? (effect.magnitude !== undefined && effect.magnitude > 0 ? effect.magnitude : 2)
           : undefined;
 
-      const def = getConditionDefinition(conditionType);
-      const policy = def?.stackingPolicy ?? 'REFRESH_DURATION';
-      const existing = targetUnit.activeConditions.find((c) => c.type === conditionType);
-
-      let conditionToEmit: ActiveCondition;
-
-      if (!existing) {
-        conditionToEmit = {
-          type: conditionType,
-          durationTurns,
-          sourceUnitId: actorCu.unit.id,
-          ...(damagePerTurn !== undefined ? { damagePerTurn } : {})
-        };
-        targetUnit.activeConditions.push(conditionToEmit);
-      } else {
-        switch (policy) {
-          case 'OVERRIDE_SOURCE': {
-            // Taunt Steal: overwrite challenger, refresh duration
-            existing.sourceUnitId = actorCu.unit.id;
-            existing.durationTurns = durationTurns;
-            conditionToEmit = existing;
-            break;
-          }
-          case 'STACK_INTENSITY': {
-            // DoT intensity stacking: increment damagePerTurn up to maxIntensity (cap 8), refresh duration
-            const incomingDmg = damagePerTurn ?? def?.defaultIntensity ?? 2;
-            const currentDmg = existing.damagePerTurn ?? def?.defaultIntensity ?? 2;
-            const maxDmg = def?.maxIntensity ?? 8;
-            existing.damagePerTurn = Math.min(maxDmg, currentDmg + incomingDmg);
-            existing.durationTurns = Math.max(existing.durationTurns, durationTurns);
-            existing.sourceUnitId = actorCu.unit.id;
-            conditionToEmit = existing;
-            break;
-          }
-          case 'REFRESH_DURATION': {
-            existing.durationTurns = Math.max(existing.durationTurns, durationTurns);
-            existing.sourceUnitId = actorCu.unit.id;
-            conditionToEmit = existing;
-            break;
-          }
-          case 'IGNORE': {
-            conditionToEmit = existing;
-            break;
-          }
-        }
-      }
-
-      events.push({
-        type: 'STATUS_APPLIED',
-        targetUnitId: targetUnit.unit.id,
-        condition: conditionToEmit
-      });
+      const { condition: conditionToEmit, event } = applyConditionToUnit(
+        targetUnit,
+        conditionType,
+        durationTurns,
+        actorCu.unit.id,
+        damagePerTurn
+      );
+      events.push(event);
 
       switch (conditionType) {
         case 'POISON':
@@ -97,6 +114,9 @@ export const conditionHandler: EffectHandler = {
           break;
         case 'STEALTH':
           logDetail += ` 👤 [Stealthed for ${conditionToEmit.durationTurns} turn(s)]`;
+          break;
+        case 'EXPOSED':
+          logDetail += ` 🎯 [Exposed for ${conditionToEmit.durationTurns} turn(s)]`;
           break;
       }
     }

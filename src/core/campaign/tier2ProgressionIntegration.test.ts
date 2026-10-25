@@ -147,6 +147,8 @@ describe('Task Group 5: Tier 2 Progression & End-to-End Combat Integration Flow'
     executeAbility(combatState, recA.id, LEAD_THE_CHARGE, { coord: { q: 0, r: 0 } });
     expect(getEffectiveMove(knightCu)).toBe(prevKnightMove + 2);
     expect(getEffectiveMove(sorcCu)).toBe(prevSorcMove + 2);
+    expect(knightCu.activeModifiers.some((m) => m.stat === 'attackRoll' && m.value === 2)).toBe(true);
+    expect(sorcCu.activeModifiers.some((m) => m.stat === 'attackRoll' && m.value === 2)).toBe(true);
 
     // D. Spell Sculpt & Wild Surge on Sorcerer:
     combatState.activeUnitId = recC.id;

@@ -6,6 +6,7 @@ import { STRIKE, SPARK, QUICK_THRUST } from '../../data/abilities';
 import { ARCANE_BLAST } from '../../data/packages/wizard';
 import { computeTargetPreview } from './targetPreview';
 import { PassiveTrait } from '../types/passive';
+import { Ability } from '../types/ability';
 
 describe('Target Preview Calculation', () => {
   it('computes accurate toHitChance and damage range for in-range physical strike', () => {
@@ -316,5 +317,69 @@ describe('Target Preview Calculation', () => {
     expect(allySplash.targetUnitId).toBe('ally');
     expect(allySplash.targetName).toBe('Allied Rogue');
     expect(allySplash.isAlly).toBe(true);
+  });
+
+  it('includes conditional bonus damage in target preview when target is CHALLENGED', () => {
+    const arena = createRadialArena(3);
+    const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+    (hero as any).baseAttributes = { force: 2, finesse: 2, focus: 0 };
+
+    const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+    (enemy as any).effectiveVitals = {
+      ...enemy.effectiveVitals,
+      evasion: 10,
+      armor: 1
+    };
+
+    arena.setUnitPosition('hero', { q: 0, r: 0 });
+    arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+    const state = createCombatState(arena, [hero, enemy], 'hero');
+    const enemyCu = state.units.get('enemy')!;
+
+    const challengedStrike: Ability = {
+      id: 'test_challenged_strike',
+      name: 'Challenged Strike',
+      description: 'Strike with bonus damage on challenged target',
+      apCost: 1,
+      range: 1,
+      targetType: 'UNIT',
+      damageType: 'PHYSICAL',
+      attackModifier: 'finesse',
+      effects: [
+        {
+          type: 'DAMAGE',
+          damageProfile: { count: 1, sides: 6, modifierAttribute: 'force' }
+        },
+        {
+          type: 'DAMAGE',
+          condition: 'TARGET_CHALLENGED',
+          bonusDamage: { count: 1, sides: 4 }
+        }
+      ]
+    };
+
+    // When enemy is not CHALLENGED: no bonus damage
+    const previewWithoutChallenge = computeTargetPreview(state, 'hero', challengedStrike, { q: 1, r: 0 });
+    expect(previewWithoutChallenge).not.toBeNull();
+    expect(previewWithoutChallenge!.diceDescription).toBe('1d6 + force');
+    // Min dmg: 1 (1d6) + 2 (force) - 1 (armor) = 2
+    // Max dmg: 6 (1d6) + 2 (force) - 1 (armor) = 7
+    expect(previewWithoutChallenge!.damageRange).toBe('2 – 7 (Soak: 1)');
+
+    // Apply CHALLENGED condition
+    enemyCu.activeConditions.push({
+      type: 'CHALLENGED',
+      durationTurns: 2,
+      sourceUnitId: 'hero'
+    });
+
+    // When enemy is CHALLENGED: bonus 1d4 applied
+    const previewWithChallenge = computeTargetPreview(state, 'hero', challengedStrike, { q: 1, r: 0 });
+    expect(previewWithChallenge).not.toBeNull();
+    expect(previewWithChallenge!.diceDescription).toBe('1d6 + force (+1d4)');
+    // Min dmg: 1 (1d6) + 1 (1d4) + 2 (force) - 1 (armor) = 3
+    // Max dmg: 6 (1d6) + 4 (1d4) + 2 (force) - 1 (armor) = 11
+    expect(previewWithChallenge!.damageRange).toBe('3 – 11 (Soak: 1)');
   });
 });

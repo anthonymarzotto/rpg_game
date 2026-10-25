@@ -7,28 +7,12 @@
 ## 🔨 In Progress
 
 ### 2. AI & Mechanics Edge Cases
-- [x] **2.1**: Signature Ability Exclusivity & Mobility Refactor (Rooftop Vault & Shadow Step):
-  * Enforced active-class exclusivity for Signature Abilities in loadout validation (`src/core/units/loadout.ts`) and Camp UI (`src/ui/camp/HeroProgressionDrawer.tsx`), preventing them from being equipped as wildcard/resonant skills.
-  * Restricted Thief's `Shadow Step` strictly to same-elevation hexes (`sameElevationOnly: true`), preventing cliff scaling and fall damage avoidance.
-  * Expanded Cat-Burglar's signature `Rooftop Vault` to Range 3 with unconstrained 3D verticality and +2 Evasion for 1 turn upon landing.
-  * Aligned AI decision engine (`src/core/ai/decisionEngine.ts`) and heuristics to evaluate same-elevation candidate filtering, cliff leaps, and 3-hex Solo Heist execution.
-- [x] **2.2**: AI scoring support for hostile `SLOW` debuff (`Frostbite`) & movement denial:
-  * Added `SLOW` effect evaluation in `scoreDebuffAndUtility` to value Move reduction against enemies with Move >= 2, with kiting priority against melee threats.
-  * Added non-redundancy guard to prevent reapplying `SLOW` if target already has an active negative movement modifier.
-- [x] **2.3**: AI Threat Scoring & High-Ground Disruption:
-  * Added target threat weighting to AI decision engine to target high-damage backline casters (Warlock, Witch) even when low-ground vertical penalties reduce hit probability.
-  * Added displacement / `KNOCKBACK` utility scoring against units holding High Ground Vantage (prioritize shoving perched snipers off cliffs for fall impact damage and vantage disruption).
-- [x] **2.4**: Arcane Blast: Hex ground-targeting, direct center vs. radial splash damage, and AI AoE multi-target evaluation:
-  * Switch `targetType` to `'HEX'`, enabling ground targeting across walkable arena tiles within range 3 (both occupied and unoccupied).
-  * Establish explicit damage split between center hex (direct hit) and radius-1 ring (splash damage).
-  * Update `targetPreview`, combat log, and floating combat text to support ground-targeted blast events.
-  * Add AI candidate hex evaluation in `decisionEngine.ts` to score center damage + secondary splash hits minus friendly fire penalties.
-- [ ] **2.5**: Assess breaking CHALLENGE status if damaged by an enemy other than the challenger.
-- [ ] **2.6**: Knight Kit Identity, Support Synergy & Taunt Peel Investigation:
-  * **AI Taunt Targeting & Peel (`CHALLENGED`)**: In `heuristics.ts`, enemy target evaluation does not penalize targeting non-challengers while afflicted with `CHALLENGED`. Enemies continue focusing squishy allies through Disadvantage (dropping Wizard ally survival from 27.8% to 11.1%). Add AI targeting weights/penalties to redirect attacked foes toward the challenger.
-  * **`Lead the Charge` AP Economy & Protection**: Costs 2 AP (out of 3) for `+2 Move` / `+2 Speed`, starving the Knight of AP while offering zero damage absorption (no Guard, Shield, Ward, or Armor buff) to allies. Assess 1 AP tuning, adding defensive absorption/Guard, or charge momentum.
-  * **DPS Vacuum on `Pommel Strike`**: Knight averages only 3.6 net damage in 2v2 (vs. Warrior's 13.5, a -9.9 deficit). Although Knight boosts partner damage across all 10 classes (+5.2 average), the team loses the damage race with non-hypercarry partners. Assess scaling `Pommel Strike` (e.g. bonus damage vs Challenged targets, Armor scaling) or retaliatory counter-strike threat.
-  * **Allied Guard / Interception Mechanics**: Knight possesses high personal durability and starting CTB (`Tactical Vanguard`), but lacks any ability/passive to intercept attacks, guard adjacent allies, or punish enemies bypassing the frontline. Assess true tanking mechanics to enable backline protection.
+- [x] **2.5**: Assess breaking CHALLENGE status if damaged by an enemy other than the challenger. *(Decided: not pursuing — nerfs taunt/focus-fire synergy; folded into 2.6.)*
+- [x] **2.6**: Knight Commander Kit Rework & Synergy Taunt: *(Completed & archived in `knight-commander-rework`)*
+  * **`Lead the Charge` 2 AP Signature Tuning**: Retain 2 AP cost, adding `+2 Attack` roll buff alongside `+2 Move` and `+2 Speed` to allies within 3 hexes for 2 turns to drive team offensive tempo.
+  * **Synergy Taunt & `EXPOSED` Defiance Penalty**: When a `CHALLENGED` unit attacks a target other than its challenger, inflict `EXPOSED` (the next incoming attack against them gains Advantage, consumed on attack).
+  * **`Pommel Strike` Scaling vs. Challenged**: Add `+1d4` bonus damage when striking `CHALLENGED` targets, rewarding the Knight for engaging challenged foes.
+  * **Class Identity & Guard Clarification**: Knight leans fully into the Commander identity (tempo, team buffs, focus-fire setup). Dedicated guardian/interception mechanics reserved for Shield-bearer. Class catalog description updated.
 
 ---
 
