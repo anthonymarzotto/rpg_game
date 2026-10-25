@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { StartScreen } from './StartScreen';
 import { SlotSummary } from '../../core/storage/types';
+import packageJson from '../../../package.json';
 
 describe('StartScreen Component', () => {
   it('renders start screen with title, New Astral Expedition CTA, and version', () => {
@@ -10,7 +11,8 @@ describe('StartScreen Component', () => {
 
     expect(html).toContain('ASTRAL TACTICS');
     expect(html).toContain('New Astral Expedition');
-    expect(html).toContain('v0.5.0');
+    expect(html).toContain(`v${packageJson.version}`);
+    expect(html).toContain('v0.6.0');
   });
 
   it('renders continue button as disabled when canContinue is false', () => {
