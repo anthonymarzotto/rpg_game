@@ -156,6 +156,57 @@ describe('Phase 1.2: Foundational Abilities & Passive Mechanics', () => {
         executeAbility(state, 'thief', SHADOW_STEP, { coord: { q: 3, r: 0 } });
       }).toThrow(/Target out of range/);
     });
+
+    it('rejects Shadow Step if destination is at a higher elevation (cliff ascent)', () => {
+      const arena = createRadialArena(3);
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 2, isWalkable: true });
+
+      const thiefUnit: Unit = {
+        ...createRecruit('thief', 'Rogue'),
+        loadout: { activeClassId: 'thief', wildcardAbilityIds: [], wildcardPassiveIds: [] }
+      };
+      arena.setUnitPosition('thief', { q: 0, r: 0 });
+      const state = createCombatState(arena, [thiefUnit], 'thief');
+
+      expect(() => {
+        executeAbility(state, 'thief', SHADOW_STEP, { coord: { q: 1, r: 0 } });
+      }).toThrow(/requires same elevation/);
+    });
+
+    it('rejects Shadow Step if destination is at a lower elevation (ledge descent)', () => {
+      const arena = createRadialArena(3);
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 0, isWalkable: true });
+
+      const thiefUnit: Unit = {
+        ...createRecruit('thief', 'Rogue'),
+        loadout: { activeClassId: 'thief', wildcardAbilityIds: [], wildcardPassiveIds: [] }
+      };
+      arena.setUnitPosition('thief', { q: 0, r: 0 });
+      const state = createCombatState(arena, [thiefUnit], 'thief');
+
+      expect(() => {
+        executeAbility(state, 'thief', SHADOW_STEP, { coord: { q: 1, r: 0 } });
+      }).toThrow(/requires same elevation/);
+    });
+
+    it('allows Shadow Step between hexes at the exact same elevated height (e.g. h=2 to h=2)', () => {
+      const arena = createRadialArena(3);
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: { q: 2, r: 0 }, elevation: 2, isWalkable: true });
+
+      const thiefUnit: Unit = {
+        ...createRecruit('thief', 'Rogue'),
+        loadout: { activeClassId: 'thief', wildcardAbilityIds: [], wildcardPassiveIds: [] }
+      };
+      arena.setUnitPosition('thief', { q: 0, r: 0 });
+      const state = createCombatState(arena, [thiefUnit], 'thief');
+
+      const result = executeAbility(state, 'thief', SHADOW_STEP, { coord: { q: 2, r: 0 } });
+      expect(result.type).toBe('BUFF');
+      expect(arena.getUnitPosition('thief')).toEqual({ q: 2, r: 0 });
+    });
   });
 
   describe('Warrior Cleave (Frontal Sweep)', () => {

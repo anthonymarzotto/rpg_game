@@ -52,8 +52,11 @@ export function getAbilityRangeCoords(
 
   return candidates.filter((coord) => {
     if (!arena.hasTile(coord)) return false;
-    const dist = hexDistance(actorCoord, coord);
     const targetElevation = arena.getElevation(coord);
+    if (effectiveAbility.sameElevationOnly && targetElevation !== actorElevation) {
+      return false;
+    }
+    const dist = hexDistance(actorCoord, coord);
     const elevationDelta = actorElevation - targetElevation;
     const effectiveRange = effectiveAbility.range + Math.max(0, elevationDelta);
     return dist <= effectiveRange;
@@ -183,6 +186,15 @@ export function canExecuteAbility(
       dist
     );
     if (rangeError) return rangeError;
+
+    const destElevation = state.arena.getElevation(destCoord);
+    if (effectiveAbility.sameElevationOnly && destElevation !== actorElevation) {
+      return {
+        valid: false,
+        reason: `Target is at a different elevation (${destElevation} vs ${actorElevation}); ${effectiveAbility.name} requires same elevation.`
+      };
+    }
+
     const destTile = state.arena.getTile(destCoord);
     if (!destTile) {
       return { valid: false, reason: `Destination (${destCoord.q}, ${destCoord.r}) does not exist in arena.` };

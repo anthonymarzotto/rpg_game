@@ -56,7 +56,7 @@ export const DEFAULT_CLASS_RESONANT_LOADOUTS: Readonly<Record<string, ResonantLo
     wildcardPassiveIds: ['momentum']
   },
   infiltrator: {
-    wildcardAbilityIds: ['sneak_attack', 'shadow_step'],
+    wildcardAbilityIds: ['skirmish', 'shadow_step'],
     wildcardPassiveIds: ['quickstep']
   },
   highwayman: {
@@ -64,7 +64,7 @@ export const DEFAULT_CLASS_RESONANT_LOADOUTS: Readonly<Record<string, ResonantLo
     wildcardPassiveIds: ['quickstep']
   },
   'cat-burglar': {
-    wildcardAbilityIds: ['sneak_attack', 'smoke_veil'],
+    wildcardAbilityIds: ['skirmish', 'smoke_veil'],
     wildcardPassiveIds: ['quickstep']
   },
   wizard: {

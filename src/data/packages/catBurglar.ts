@@ -5,10 +5,10 @@ import { ClassPackage } from '../../core/types/classPackage';
 export const ROOFTOP_VAULT: Ability = {
   id: 'rooftop_vault',
   name: 'Rooftop Vault',
-  description: 'An acrobatic vertical leap scaling cliffs and clearing obstacles up to 2 hexes away, granting self +2 Evasion for 1 turn upon landing.',
+  description: 'An acrobatic vertical leap scaling cliffs and clearing obstacles up to 3 hexes away, granting self +2 Evasion for 1 turn upon landing.',
   archetypeTag: 'ROGUE',
   apCost: 1,
-  range: 2,
+  range: 3,
   targetType: 'HEX',
   defenseTarget: 'NONE',
   damageType: 'NONE',
@@ -93,7 +93,7 @@ export const FLASH_POWDER: Ability = {
     primer: {
       requiresFollowUp: 'ANY_ATTACK',
       minTotalAp: 2,
-      bonusScore: 45.0,
+      bonusScore: 65.0,
       reason: 'Prime flash powder disorientation before strike',
       preferredProfiles: ['SKIRMISHER']
     }

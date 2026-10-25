@@ -333,6 +333,9 @@ export function decideNextActionWithTrace(
 
           const candElevation = state.arena.getElevation(candHex);
           const currentElevation = state.arena.getElevation(currentCoord);
+          if (effectiveAbility.sameElevationOnly && candElevation !== currentElevation) {
+            continue;
+          }
           const selfBuff = ability.effects?.find((e) => e.type === 'STAT_MODIFIER' && e.targetScope === 'SELF');
           const selfBuffScore = selfBuff ? 4.0 : 0;
 
@@ -387,7 +390,7 @@ export function decideNextActionWithTrace(
                 }
 
                 if (candElevation > currentElevation) {
-                  leapTacticalBonus += 8.0;
+                  leapTacticalBonus += 18.0;
                   reasons.push(`Leap up cliff to high ground (elev ${candElevation})`);
                 }
                 if (candElevation > state.arena.getElevation(targetCoord)) {
@@ -534,6 +537,13 @@ export function decideNextActionWithTrace(
         // Defensive or melee contingency abilities are emergency responses when engaged, not offensive move-in attacks
         if (ability.aiHint?.role === 'DEFENSIVE' || ability.aiHint?.meleeContingency) {
           continue;
+        }
+        // Primers require enough remaining AP to cast the primer AND at least one follow-up attack
+        if (ability.aiHint?.primer) {
+          const minFollowUpAp = ability.aiHint.primer.minTotalAp ?? (effectiveAbility.apCost + 1);
+          if (remainingAp < minFollowUpAp) {
+            continue;
+          }
         }
         if (ability.targetType === 'SINGLE_TARGET') {
           for (const targetCu of hostileUnits) {

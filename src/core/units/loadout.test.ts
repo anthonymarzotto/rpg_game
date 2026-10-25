@@ -135,7 +135,7 @@ describe('Unit Loadout & Active Class Resolution', () => {
       },
       loadout: {
         activeClassId: 'warrior',
-        wildcardAbilityIds: ['sneak_attack', 'spark'],
+        wildcardAbilityIds: ['shadow_step', 'spark'],
         wildcardPassiveIds: ['quickstep']
       }
     };
@@ -144,7 +144,7 @@ describe('Unit Loadout & Active Class Resolution', () => {
 
     expect(resolved.coreAbilities).toHaveLength(3);
     expect(resolved.wildcardAbilities).toHaveLength(2);
-    expect(resolved.wildcardAbilities.map((a) => a.id)).toEqual(['sneak_attack', 'spark']);
+    expect(resolved.wildcardAbilities.map((a) => a.id)).toEqual(['shadow_step', 'spark']);
     expect(resolved.combatAbilities).toHaveLength(5);
     expect(resolved.innatePassive.id).toBe('unyielding');
     expect(resolved.wildcardPassives).toHaveLength(1);
@@ -261,12 +261,47 @@ describe('Unit Loadout Validation Rules', () => {
     expect(result.reason).toContain('core ability');
   });
 
+  it('rejects signature abilities from unlocked constellation classes as wildcards', () => {
+    const warriorWithThiefUnlocked: Unit = {
+      ...baseWarrior,
+      progression: {
+        ...baseWarrior.progression,
+        constellation: ['warrior', 'thief']
+      }
+    };
+
+    const result = validateUnitLoadout(
+      warriorWithThiefUnlocked,
+      {
+        activeClassId: 'warrior',
+        wildcardAbilityIds: ['sneak_attack'], // Signature ability of Thief!
+        wildcardPassiveIds: []
+      },
+      providers
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.reason).toContain("Cannot equip signature ability 'sneak_attack' of class 'Thief'");
+
+    // But domain abilities from Thief are allowed!
+    const validResult = validateUnitLoadout(
+      warriorWithThiefUnlocked,
+      {
+        activeClassId: 'warrior',
+        wildcardAbilityIds: ['shadow_step'],
+        wildcardPassiveIds: []
+      },
+      providers
+    );
+    expect(validResult.valid).toBe(true);
+  });
+
   it('rejects abilities from unearned classes', () => {
     const result = validateUnitLoadout(
       baseWarrior,
       {
         activeClassId: 'warrior',
-        wildcardAbilityIds: ['sneak_attack'], // Thief not unlocked!
+        wildcardAbilityIds: ['skirmish'], // Thief not unlocked!
         wildcardPassiveIds: []
       },
       providers
@@ -281,7 +316,7 @@ describe('Unit Loadout Validation Rules', () => {
       ...baseWarrior,
       progression: {
         ...baseWarrior.progression,
-        unlockedAbilityIds: ['sneak_attack']
+        unlockedAbilityIds: ['skirmish']
       }
     };
 
@@ -289,7 +324,7 @@ describe('Unit Loadout Validation Rules', () => {
       heroWithDraftedSkill,
       {
         activeClassId: 'warrior',
-        wildcardAbilityIds: ['sneak_attack'],
+        wildcardAbilityIds: ['skirmish'],
         wildcardPassiveIds: []
       },
       providers

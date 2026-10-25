@@ -193,10 +193,6 @@ export function HeroProgressionDrawer({
     for (const cid of constellation) {
       const pkg = getClassPackage(cid);
       if (pkg) {
-        if (!seen.has(pkg.signatureAbility.id) && !coreAbilityIds.has(pkg.signatureAbility.id)) {
-          seen.add(pkg.signatureAbility.id);
-          list.push(pkg.signatureAbility);
-        }
         for (const dom of pkg.domainAbilities) {
           if (!seen.has(dom.id) && !coreAbilityIds.has(dom.id)) {
             seen.add(dom.id);

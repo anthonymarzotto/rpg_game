@@ -147,7 +147,7 @@ describe('Class Packages & Catalog Verification', () => {
     expect(CAT_BURGLAR_PACKAGE.classId).toBe('cat-burglar');
     expect(CAT_BURGLAR_PACKAGE.signatureAbility.id).toBe('rooftop_vault');
     expect(CAT_BURGLAR_PACKAGE.signatureAbility.apCost).toBe(1);
-    expect(CAT_BURGLAR_PACKAGE.signatureAbility.range).toBe(2);
+    expect(CAT_BURGLAR_PACKAGE.signatureAbility.range).toBe(3);
     expect(CAT_BURGLAR_PACKAGE.signatureAbility.targetType).toBe('HEX');
     expect(CAT_BURGLAR_PACKAGE.domainAbilities.map((a) => a.id)).toEqual(['pilfer', 'flash_powder']);
     expect(CAT_BURGLAR_PACKAGE.passive.id).toBe('feline_grace');

@@ -4,6 +4,9 @@ This document catalogues all currently implemented class packages in **Astral Ta
 
 For core gameplay rules and ability execution architecture, see [`docs/architecture/GAMEPLAY.md`](file:///c:/Repos/rpg_game/docs/architecture/GAMEPLAY.md). For the 100-class lattice coordinates, see [`docs/architecture/CLASS_PYRAMID.md`](file:///c:/Repos/rpg_game/docs/architecture/CLASS_PYRAMID.md).
 
+> [!IMPORTANT]
+> **Signature Ability Exclusivity**: Signature abilities are strictly exclusive to their active class package. Only domain abilities and unlocked off-node abilities can be equipped into wildcard/resonant slots in a hero's loadout. Signature abilities can never be equipped by cross-class wildcards.
+
 ---
 
 ## 1. Foundation Classes (Tier 1)
@@ -18,10 +21,10 @@ For core gameplay rules and ability execution architecture, see [`docs/architect
 
 ### Thief `(0, 1, 0)`
 * **Archetype**: Pure Rogue — Agile skirmisher & flanking specialist.
-* **Signature**: `Sneak Attack` (1 AP, range 1, 1d6 + Finesse physical damage vs Evasion; rolls with Advantage and adds +2 damage when attacking from Flank or Rear).
-* **Domain 1**: `Quick Strike` (1 AP, range 1, 1d4 + Finesse physical damage vs Evasion).
-* **Domain 2**: `Feint` (1 AP, range 1, grants self +2 Evasion for 1 turn).
-* **Passive**: `Swiftfoot` (+1 Move hex on movement actions).
+* **Signature**: `Sneak Attack` (1 AP, range 1, 1d4 damage + 1d6 precision bonus when striking from Flank or Rear).
+* **Domain 1**: `Shadow Step` (1 AP, range 2 teleport to an unoccupied same-elevation hex, bypassing intervening units and obstacles; strictly Δh = 0).
+* **Domain 2**: `Skirmish` (1 AP, range 1, 1d4 + Finesse physical damage with 1-hex retreat step).
+* **Passive**: `Quickstep` (+2 Speed to CTB turn frequency).
 * **AI Profile**: `SKIRMISHER`
 
 ### Wizard `(0, 0, 1)`
@@ -106,7 +109,7 @@ For core gameplay rules and ability execution architecture, see [`docs/architect
 
 ### Cat-Burglar `(0, 2, 1)`
 * **Archetype**: Rogue / Mage (Dominant Rogue) — Second-story acrobat, rooftop infiltrator & tempo thief.
-* **Signature**: `Rooftop Vault` (1 AP, range 2 hex leap to an unoccupied walkable hex, ignoring intervening obstacles, units, and up to $\Delta h = 2$ elevation cliffs; grants self +2 Evasion for 1 turn).
+* **Signature**: `Rooftop Vault` (1 AP, range 3 hex leap to an unoccupied walkable hex, ignoring intervening obstacles, units, and vertical elevation climb barriers; grants self +2 Evasion for 1 turn upon landing).
 * **Domain 1**: `Pilfer` (1 AP, range 1, 1d4 + Finesse physical damage vs Evasion; siphons 20 CTB initiative ticks from target into the Burglar on hit/crit).
 * **Domain 2**: `Flash Powder` (1 AP, range 2 AoE radius 1; forces affected enemies to face 180° away and inflicts -2 Attack Roll for 1 turn).
 * **Passive**: `Feline Grace` (Immune to Fall Impact Damage, rebounds safely over 1-hex obstacles and onto cliff tops during knockback without suffering wall-slam collision damage, and grants flat +2 Evasion).

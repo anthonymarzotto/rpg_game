@@ -127,6 +127,44 @@ describe('Cat-burglar Integration & Abilities', () => {
         expect(result.events?.some((e) => e.type === 'COLLISION')).toBe(false);
       }
     });
+
+    it('leaps across 3 hexes over obstacles onto an elevated cliff top', () => {
+      const arena = createRadialArena(5);
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 0, isWalkable: false, terrainType: 'OBSTACLE' });
+      arena.setTile({ coord: { q: 2, r: 0 }, elevation: 1, isWalkable: false, terrainType: 'OBSTACLE' });
+      arena.setTile({ coord: { q: 3, r: 0 }, elevation: 2, isWalkable: true });
+
+      const burglar = createMockCombatUnit('burglar', 'Cat-burglar', 'PLAYER');
+      arena.setUnitPosition('burglar', { q: 0, r: 0 });
+
+      const state: CombatState = {
+        arena,
+        units: new Map([['burglar', burglar]]),
+        activeUnitId: 'burglar',
+        turnNumber: 1,
+        combatLog: [],
+        outcome: 'IN_PROGRESS',
+        partyXpPool: { fighter: 0, rogue: 0, mage: 0 }
+      };
+
+      const result = executeAbility(state, 'burglar', ROOFTOP_VAULT, {
+        coord: { q: 3, r: 0 }
+      });
+
+      expect(result.type).toBe('BUFF');
+      expect(arena.getUnitPosition('burglar')).toEqual({ q: 3, r: 0 });
+      expect(burglar.currentAp).toBe(2);
+
+      // And destination beyond 3 hexes throws out of range
+      arena.setUnitPosition('burglar', { q: 0, r: 0 });
+      burglar.currentAp = 2;
+      expect(() => {
+        executeAbility(state, 'burglar', ROOFTOP_VAULT, {
+          coord: { q: 4, r: 0 }
+        });
+      }).toThrow(/Target out of range/);
+    });
   });
 
   describe('Pilfer (Tempo Theft)', () => {

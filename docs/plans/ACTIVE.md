@@ -7,7 +7,11 @@
 ## 🔨 In Progress
 
 ### 2. AI & Mechanics Edge Cases
-- [ ] **2.1**: The Cat Burglar's Rooftop Vault sounds cool, but in practice it isn't actually giving very much utility. It only helps when the unit is physically blocked, in which case it functions very much like Shadow Step. Maybe this belongs more as a passive, where the regular Move gets modified to all moving to any hex within normal range.
+- [x] **2.1**: Signature Ability Exclusivity & Mobility Refactor (Rooftop Vault & Shadow Step):
+  * Enforced active-class exclusivity for Signature Abilities in loadout validation (`src/core/units/loadout.ts`) and Camp UI (`src/ui/camp/HeroProgressionDrawer.tsx`), preventing them from being equipped as wildcard/resonant skills.
+  * Restricted Thief's `Shadow Step` strictly to same-elevation hexes (`sameElevationOnly: true`), preventing cliff scaling and fall damage avoidance.
+  * Expanded Cat-Burglar's signature `Rooftop Vault` to Range 3 with unconstrained 3D verticality and +2 Evasion for 1 turn upon landing.
+  * Aligned AI decision engine (`src/core/ai/decisionEngine.ts`) and heuristics to evaluate same-elevation candidate filtering, cliff leaps, and 3-hex Solo Heist execution.
 - [ ] **2.2**: AI scoring support for hostile `SLOW` debuff (`Frostbite`) & movement denial:
   * Add `SLOW` effect evaluation in `scoreDebuffAndUtility` to value Move reduction against enemies with Move >= 2, with kiting priority against melee threats.
   * Add non-redundancy guard to prevent reapplying `SLOW` if target already has an active negative movement modifier.

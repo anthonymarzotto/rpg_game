@@ -78,17 +78,17 @@ describe('Task Group 5: Tier 2 Progression & End-to-End Combat Integration Flow'
       wildcardPassiveIds: ['momentum']
     });
 
-    // Infiltrator equips Thief's Sneak Attack as wildcard ability and Quickstep as wildcard passive
+    // Infiltrator equips Thief's Skirmish as wildcard ability and Quickstep as wildcard passive
     campaign = updateCampUnitLoadout(campaign, recB.id, {
       activeClassId: 'infiltrator',
-      wildcardAbilityIds: ['sneak_attack'],
+      wildcardAbilityIds: ['skirmish'],
       wildcardPassiveIds: ['quickstep']
     });
 
-    // Sorcerer equips Wizard's Arcane Blast as wildcard ability and Arcane Aegis as wildcard passive
+    // Sorcerer equips Wizard's Spark as wildcard ability and Arcane Aegis as wildcard passive
     campaign = updateCampUnitLoadout(campaign, recC.id, {
       activeClassId: 'sorcerer',
-      wildcardAbilityIds: ['arcane_blast'],
+      wildcardAbilityIds: ['spark'],
       wildcardPassiveIds: ['arcane_aegis']
     });
 

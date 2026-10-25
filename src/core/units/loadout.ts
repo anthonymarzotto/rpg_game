@@ -175,6 +175,17 @@ export function validateUnitLoadout(
     }
   }
 
+  // 4b. Signature abilities of any class cannot be equipped as wildcards
+  for (const unlockedClassId of unit.progression.constellation) {
+    const pkg = getPackage(unlockedClassId);
+    if (pkg && newLoadout.wildcardAbilityIds.includes(pkg.signatureAbility.id)) {
+      return {
+        valid: false,
+        reason: `Cannot equip signature ability '${pkg.signatureAbility.id}' of class '${pkg.className}' as a wildcard.`
+      };
+    }
+  }
+
   // 5. Verify that all wildcard abilities come from unlocked sources (starter abilities or unlocked classes)
   const allowedAbilityIds = new Set<string>(unit.starterAbilityIds);
   const allowedPassiveIds = new Set<string>([NOVICE_PASSIVE_ID]);
@@ -188,7 +199,6 @@ export function validateUnitLoadout(
   for (const unlockedClassId of unit.progression.constellation) {
     const pkg = getPackage(unlockedClassId);
     if (pkg) {
-      allowedAbilityIds.add(pkg.signatureAbility.id);
       for (const domainAbility of pkg.domainAbilities) {
         allowedAbilityIds.add(domainAbility.id);
       }

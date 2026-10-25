@@ -649,6 +649,44 @@ describe('HeroProgressionDrawer Component', () => {
       expect(validateName('1234567890123456789012345')).toBe(false); // 25 chars
     });
   });
+
+  describe('Resonant Ability Options (Signature Exclusivity)', () => {
+    it('excludes signature abilities from the resonant ability dropdown while including domain abilities', () => {
+      const hero = makeMockUnit({
+        loadout: {
+          activeClassId: 'warrior',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: [],
+          earnedShards: [],
+          slotAugments: {}
+        },
+        progression: {
+          unitId: 'hero-1',
+          currentLevel: 2,
+          constellation: ['warrior', 'thief'],
+          accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+          archetypePoints: { fighter: 1, rogue: 1, mage: 0 }
+        }
+      });
+      const campaign = makeMockCampaign(hero);
+      const html = renderToStaticMarkup(
+        <HeroProgressionDrawer
+          hero={hero}
+          campaign={campaign}
+          onClose={vi.fn()}
+          onUpdateCampaign={vi.fn()}
+        />
+      );
+
+      // Thief's domain abilities must be present in the dropdown options
+      expect(html).toContain('value="shadow_step"');
+      expect(html).toContain('value="skirmish"');
+
+      // Signature abilities must NOT be present as options
+      expect(html).not.toContain('value="sneak_attack"');
+      expect(html).not.toContain('value="power_strike"');
+    });
+  });
 });
 
 

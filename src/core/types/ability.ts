@@ -140,6 +140,8 @@ export interface Ability {
   readonly ignoresElevationPenalty?: boolean;
   /** Maximum vertical elevation delta allowed for melee reach (defaults to 1) */
   readonly reachElevationDelta?: number;
+  /** Whether the ability is strictly restricted to targets at the exact same elevation as the caster (delta h = 0) */
+  readonly sameElevationOnly?: boolean;
   /** Optional declarative AI behavioral and combo sequencing hints */
   readonly aiHint?: AbilityAIHint;
 }

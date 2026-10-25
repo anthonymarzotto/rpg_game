@@ -295,9 +295,10 @@ export function scorePrimerAbility(
 
   // For hex/AoE primers like Flash Powder or Stand and Deliver, targets within ability range count as valid
   if (!hasValidTarget) {
+    const maxReach = ability.range + (ability.aoeRadius ?? 0);
     const hasTargetInPrimerRange = hostileUnits.some((h) => {
       const pos = state.arena.getUnitPosition(h.unit.id);
-      return pos && hexDistance(actorCoord, pos) <= ability.range;
+      return pos && hexDistance(actorCoord, pos) <= maxReach;
     });
     if (hasTargetInPrimerRange && followUpAbilities.some((a) => actorCu.currentAp >= ability.apCost + a.apCost)) {
       hasValidTarget = true;

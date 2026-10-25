@@ -106,10 +106,10 @@ export function createNoviceSandboxEncounter(
     effectiveVitals: computeDerivedVitals(lyraAttrs, 1),
     loadout: {
       activeClassId: 'infiltrator',
-      wildcardAbilityIds: ['sneak_attack', 'strike'],
+      wildcardAbilityIds: ['skirmish', 'strike'],
       wildcardPassiveIds: ['momentum']
     },
-    starterAbilityIds: ['smoke_veil', 'toxic_shiv', 'expose_weakness', 'sneak_attack']
+    starterAbilityIds: ['smoke_veil', 'toxic_shiv', 'expose_weakness', 'skirmish']
   };
 
   // 3. Vael (Wizard - Arcane Support / Blaster)
@@ -173,7 +173,7 @@ export function createNoviceSandboxEncounter(
     'Shadow Infiltrator D',
     'infiltrator',
     ['smoke_veil', 'toxic_shiv'],
-    ['smoke_veil', 'toxic_shiv', 'sneak_attack'],
+    ['smoke_veil', 'toxic_shiv', 'skirmish'],
     { maxHp: 20, speed: 8, evasion: 11, ward: 1, armor: 0 }
   );
 

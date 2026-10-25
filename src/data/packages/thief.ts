@@ -35,10 +35,11 @@ export const SNEAK_ATTACK: Ability = {
 export const SHADOW_STEP: Ability = {
   id: 'shadow_step',
   name: 'Shadow Step',
-  description: 'Phase through the shadows to any unoccupied walkable hex within 2 hexes, bypassing intermediate units and obstacles.',
+  description: 'Phase through the shadows to any unoccupied walkable hex at the same elevation within 2 hexes, bypassing intermediate units and obstacles.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 2,
+  sameElevationOnly: true,
   targetType: 'HEX',
   defenseTarget: 'NONE',
   damageType: 'NONE',

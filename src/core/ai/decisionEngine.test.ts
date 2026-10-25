@@ -890,6 +890,72 @@ describe('Headless AI Decision Engine', () => {
       }
     });
 
+    it('ai thief with Shadow Step does not attempt cliff ascension when target is elevated', () => {
+      const arena = createRadialArena(3);
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 2, isWalkable: true });
+
+      const thief = createMockUnit('thief-enemy', 'Hostile Thief', 'ENEMY', {
+        activeClassId: 'thief',
+        baseAttributes: { force: 10, finesse: 14, focus: 10 }
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50
+      });
+
+      arena.setUnitPosition(thief.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [thief, hero], thief.id);
+      state.units.get(thief.id)!.currentAp = 2;
+
+      const action = decideNextAction(state, thief.id);
+      // Thief must not pick shadow_step to (1, 0) because destination has elevation 2 vs actor elevation 0
+      if (action.type === 'ABILITY') {
+        expect(action.ability.id).not.toBe('shadow_step');
+      }
+    });
+
+    it('cat-burglar skirmisher executes the 3-hex Solo Heist combo across the full 3-hex vault range', () => {
+      const arena = createRadialArena(4);
+      const catBurglar = createMockUnit('cat-burglar-enemy', 'Hostile Cat-Burglar', 'ENEMY', {
+        activeClassId: 'cat-burglar',
+        baseAttributes: { force: 10, finesse: 14, focus: 10 }
+      });
+      const hero = createMockUnit('player-hero', 'Player Hero', 'PLAYER', {
+        maxHp: 50,
+        armor: 1,
+        evasion: 10,
+        resolve: 10
+      });
+
+      arena.setUnitPosition(catBurglar.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 3, r: 0 });
+
+      const state = createCombatState(arena, [catBurglar, hero], catBurglar.id);
+      state.units.get(hero.id)!.facing = HEX_DIRECTIONS.WEST;
+
+      const roller = new SeededDiceRoller(42);
+      const actions = executeAiTurn(state, catBurglar.id, { diceRoller: roller });
+
+      expect(actions.length).toBe(3);
+      expect(actions[0].type).toBe('ABILITY');
+      if (actions[0].type === 'ABILITY') {
+        expect(actions[0].ability.id).toBe('flash_powder');
+      }
+      expect(actions[1].type).toBe('ABILITY');
+      if (actions[1].type === 'ABILITY') {
+        expect(actions[1].ability.id).toBe('rooftop_vault');
+      }
+      expect(actions[2].type).toBe('ABILITY');
+      if (actions[2].type === 'ABILITY') {
+        expect(actions[2].ability.id).toBe('pilfer');
+      }
+
+      const finalBurglarPos = state.arena.getUnitPosition(catBurglar.id)!;
+      const finalHeroPos = state.arena.getUnitPosition(hero.id)!;
+      expect(hexDistance(finalBurglarPos, finalHeroPos)).toBe(1);
+    });
+
     it('cross-class wildcard unit evaluates primer ability without relying on source class package', () => {
       const arena = createRadialArena(3);
       // Unit has 'thief' class (Skirmisher), NOT 'cat-burglar', but borrows 'flash_powder' as a wildcard ability
