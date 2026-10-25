@@ -4,6 +4,7 @@ import { AbilityMetrics } from '../combat/targetPreview';
 import { Ability } from '../types/ability';
 import { AIProfile, AIArchetypeWeights } from './types';
 import { getClassPackage } from '../../data/packages';
+import { getEffectiveMove } from '../combat/effectiveVitals';
 
 export const DEFAULT_ARCHETYPE_WEIGHTS: Record<AIProfile, AIArchetypeWeights> = {
   BRAWLER: {
@@ -14,7 +15,8 @@ export const DEFAULT_ARCHETYPE_WEIGHTS: Record<AIProfile, AIArchetypeWeights> = 
     standoffWeight: 0,
     preferredStandoffRange: 1,
     focusFireWeight: 1.0,
-    apConservationThreshold: 5.0
+    apConservationThreshold: 5.0,
+    threatWeight: 1.0
   },
   SKIRMISHER: {
     killBonus: 120,
@@ -24,7 +26,8 @@ export const DEFAULT_ARCHETYPE_WEIGHTS: Record<AIProfile, AIArchetypeWeights> = 
     standoffWeight: 0,
     preferredStandoffRange: 1,
     focusFireWeight: 1.5,
-    apConservationThreshold: 6.0
+    apConservationThreshold: 6.0,
+    threatWeight: 1.0
   },
   SNIPER: {
     killBonus: 100,
@@ -34,7 +37,8 @@ export const DEFAULT_ARCHETYPE_WEIGHTS: Record<AIProfile, AIArchetypeWeights> = 
     standoffWeight: 6.0, // High priority on maintaining preferred distance
     preferredStandoffRange: 2,
     focusFireWeight: 1.0,
-    apConservationThreshold: 5.0
+    apConservationThreshold: 5.0,
+    threatWeight: 1.0
   },
   SUPPORT: {
     killBonus: 80,
@@ -44,7 +48,8 @@ export const DEFAULT_ARCHETYPE_WEIGHTS: Record<AIProfile, AIArchetypeWeights> = 
     standoffWeight: 2.0,
     preferredStandoffRange: 2,
     focusFireWeight: 1.0,
-    apConservationThreshold: 4.0
+    apConservationThreshold: 4.0,
+    threatWeight: 1.0
   }
 };
 
@@ -191,6 +196,47 @@ export function scoreFocusFire(
   if (maxHp <= 0) return 0;
   const injuredRatio = (maxHp - targetCu.currentHp) / maxHp;
   return Math.round(injuredRatio * 10 * focusFireWeight * 10) / 10;
+}
+
+/**
+ * Evaluates target threat priority based on target archetype.
+ * Prioritizes high-burst backline casters and disrupters to offset
+ * low-ground vertical penalties (Disadvantage) and prevent tunneling on frontline tanks.
+ */
+export function scoreTargetThreat(
+  targetCu: CombatUnit,
+  threatWeight = 1.0
+): { score: number; reason?: string } {
+  if (threatWeight <= 0) return { score: 0 };
+
+  const targetProfile = resolveAIProfile(targetCu);
+  let baseThreat = 0;
+  let reasonText = '';
+
+  switch (targetProfile) {
+    case 'SNIPER':
+      baseThreat = 10.0;
+      reasonText = `High threat sniper/caster (${targetCu.unit.name})`;
+      break;
+    case 'SUPPORT':
+      baseThreat = 8.0;
+      reasonText = `High threat support/curse disrupter (${targetCu.unit.name})`;
+      break;
+    case 'SKIRMISHER':
+      baseThreat = 4.0;
+      reasonText = `Moderate threat skirmisher (${targetCu.unit.name})`;
+      break;
+    case 'BRAWLER':
+    default:
+      baseThreat = 0;
+      break;
+  }
+
+  const score = Math.round(baseThreat * threatWeight * 10) / 10;
+  return {
+    score,
+    reason: score > 0 ? reasonText : undefined
+  };
 }
 
 /**
@@ -586,6 +632,44 @@ export function scoreDebuffAndUtility(
     }
   }
 
+  // 2b. Movement denial / SLOW debuff (e.g. Frostbite)
+  const slowEffect = ability.effects?.find((e) => e.type === 'SLOW' && (!e.targetScope || e.targetScope === 'TARGET'));
+  if (slowEffect) {
+    const hasExistingSlow = targetCu.activeModifiers.some(
+      (m) => m.stat === 'move' && m.value < 0
+    );
+
+    if (!hasExistingSlow) {
+      const targetMove = getEffectiveMove(targetCu);
+      if (targetMove >= 2) {
+        const mag = slowEffect.magnitude ?? 1;
+        score += 6.0;
+        reasons.push(`Impair target Move (-${mag} Move)`);
+
+        // Kiting bonus: if target is a melee threat and distance >= 2, movement reduction denies an attack
+        const targetProfile = resolveAIProfile(targetCu);
+        const isMeleeThreat =
+          targetProfile === 'BRAWLER' ||
+          !targetCu.abilities.some((a) => a.range >= 2 && a.damageType !== 'NONE');
+
+        if (isMeleeThreat && dist >= 2) {
+          score += 4.0;
+          reasons.push('Kite advancing melee threat');
+        }
+      }
+    } else {
+      // Universal non-redundancy guard for non-damaging abilities with SLOW
+      if (ability.damageType === 'NONE' && !ability.effects?.some((e) => e.type === 'DAMAGE')) {
+        const hasDisplacementUtility = ability.effects?.some(
+          (e) => e.type === 'KNOCKBACK' || e.type === 'RUSH_CHARGE'
+        );
+        if (!hasDisplacementUtility) {
+          return { score: 0 };
+        }
+      }
+    }
+  }
+
   // 3. Declarative primer evaluation (e.g. Flash Powder, Stand and Deliver!)
   if (ability.aiHint?.primer) {
     const primerResult = scorePrimerAbility(actorCu, ability, actorCoord, [targetCu], state, profile);
@@ -679,23 +763,53 @@ export function scoreDebuffAndUtility(
     }
   }
 
-  // 6. KNOCKBACK spacing for SNIPER and SKIRMISHER (e.g. Eldritch Blast, Point-Blank Buckshot)
-  const hasKnockback = ability.effects?.some((e) => e.type === 'KNOCKBACK');
-  if (hasKnockback) {
+  // 6. KNOCKBACK spacing, collision hazards, and high-ground ledge disruption
+  const knockbackEffect = ability.effects?.find((e) => e.type === 'KNOCKBACK');
+  if (knockbackEffect) {
     if ((profile === 'SNIPER' || profile === 'SKIRMISHER') && dist === 1) {
       score += 8.0;
       reasons.push('Kinetic knockback spacing');
     }
-    // Check if target would collide with obstacle or map boundary behind them
-    const dirToTarget = getDirectionBetween(actorCoord, targetCoord);
-    const behindTarget = {
-      q: targetCoord.q + POINTY_HEX_DIRECTIONS[dirToTarget].q,
-      r: targetCoord.r + POINTY_HEX_DIRECTIONS[dirToTarget].r
-    };
-    const behindTile = state.arena.getTile(behindTarget);
-    if (!behindTile || !behindTile.isWalkable) {
-      score += 5.0;
-      reasons.push('Wall-slam collision hazard');
+
+    const canVault = targetCu.passives?.some((p) => p.canVaultOnKnockback);
+    const knockbackResult = state.arena.calculateKnockback(
+      actorCoord,
+      targetCoord,
+      knockbackEffect.magnitude ?? 1,
+      undefined,
+      { canVaultOnKnockback: canVault }
+    );
+
+    // 6a. Wall-slam collision hazard
+    if (knockbackResult.isCollided) {
+      if (
+        knockbackResult.collisionType === 'WALL' ||
+        knockbackResult.collisionType === 'VOID' ||
+        knockbackResult.collisionType === 'CLIFF' ||
+        knockbackResult.collisionType === 'UNIT'
+      ) {
+        score += 5.0;
+        reasons.push('Wall-slam collision hazard');
+      }
+    }
+
+    // 6b. Cliff plunge fall damage hazard (dh <= -2)
+    if (knockbackResult.fallDamage && knockbackResult.fallDamage > 0) {
+      const plungeBonus = Math.min(14.0, 8.0 + knockbackResult.fallDamage * 2.0);
+      score += plungeBonus;
+      reasons.push(`Cliff plunge fall damage hazard (+${knockbackResult.fallDamage} fall dmg)`);
+    } else if ((knockbackResult.plungedElevationDelta ?? 0) >= 2) {
+      score += 10.0;
+      reasons.push('Cliff plunge fall damage hazard');
+    }
+
+    // 6c. High-ground vantage disruption
+    const currentTargetElev = state.arena.getElevation(targetCoord);
+    const finalElev = state.arena.getElevation(knockbackResult.finalCoord);
+    const actorElev = state.arena.getElevation(actorCoord);
+    if (currentTargetElev > finalElev && (currentTargetElev > actorElev || currentTargetElev >= 1)) {
+      score += 6.0;
+      reasons.push('Disrupt high-ground vantage');
     }
   }
 

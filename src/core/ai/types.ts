@@ -24,6 +24,8 @@ export interface AIArchetypeWeights {
   readonly focusFireWeight: number;
   /** Utility score threshold; actions scoring below this will trigger AP conservation */
   readonly apConservationThreshold: number;
+  /** Weight multiplier for targeting high-threat backline archetypes (defaults to 1.0) */
+  readonly threatWeight?: number;
 }
 
 /**

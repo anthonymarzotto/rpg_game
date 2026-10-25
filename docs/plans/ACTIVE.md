@@ -12,12 +12,12 @@
   * Restricted Thief's `Shadow Step` strictly to same-elevation hexes (`sameElevationOnly: true`), preventing cliff scaling and fall damage avoidance.
   * Expanded Cat-Burglar's signature `Rooftop Vault` to Range 3 with unconstrained 3D verticality and +2 Evasion for 1 turn upon landing.
   * Aligned AI decision engine (`src/core/ai/decisionEngine.ts`) and heuristics to evaluate same-elevation candidate filtering, cliff leaps, and 3-hex Solo Heist execution.
-- [ ] **2.2**: AI scoring support for hostile `SLOW` debuff (`Frostbite`) & movement denial:
-  * Add `SLOW` effect evaluation in `scoreDebuffAndUtility` to value Move reduction against enemies with Move >= 2, with kiting priority against melee threats.
-  * Add non-redundancy guard to prevent reapplying `SLOW` if target already has an active negative movement modifier.
-- [ ] **2.3**: AI Threat Scoring & High-Ground Disruption:
-  * Add target threat weighting to AI decision engine to target high-damage backline casters (Warlock, Witch) even when low-ground vertical penalties reduce hit probability.
-  * Add displacement / `KNOCKBACK` utility scoring against units holding High Ground Vantage (prioritize shoving perched snipers off cliffs for fall impact damage and vantage disruption).
+- [x] **2.2**: AI scoring support for hostile `SLOW` debuff (`Frostbite`) & movement denial:
+  * Added `SLOW` effect evaluation in `scoreDebuffAndUtility` to value Move reduction against enemies with Move >= 2, with kiting priority against melee threats.
+  * Added non-redundancy guard to prevent reapplying `SLOW` if target already has an active negative movement modifier.
+- [x] **2.3**: AI Threat Scoring & High-Ground Disruption:
+  * Added target threat weighting to AI decision engine to target high-damage backline casters (Warlock, Witch) even when low-ground vertical penalties reduce hit probability.
+  * Added displacement / `KNOCKBACK` utility scoring against units holding High Ground Vantage (prioritize shoving perched snipers off cliffs for fall impact damage and vantage disruption).
 - [x] **2.4**: Arcane Blast: Hex ground-targeting, direct center vs. radial splash damage, and AI AoE multi-target evaluation:
   * Switch `targetType` to `'HEX'`, enabling ground targeting across walkable arena tiles within range 3 (both occupied and unoccupied).
   * Establish explicit damage split between center hex (direct hit) and radius-1 ring (splash damage).

@@ -11,9 +11,11 @@ import {
   executeAiAction
 } from './decisionEngine';
 import { SeededDiceRoller } from '../combat/dice';
-import { STRIKE, SPARK } from '../../data/packages/novice';
+import { STRIKE, SPARK, FROSTBITE } from '../../data/packages/novice';
 import { SMOKE_VEIL } from '../../data/packages/infiltrator';
 import { ARCANE_BLAST } from '../../data/packages/wizard';
+import { ELDRITCH_BLAST } from '../../data/packages/warlock';
+import { scoreTargetThreat, scoreDebuffAndUtility } from './heuristics';
 
 function createMockUnit(
   id: string,
@@ -1247,6 +1249,249 @@ describe('Headless AI Decision Engine', () => {
         expect(action.ability.id).toBe('spark');
         expect(action.target?.targetUnitId).toBe(enemyHero.id);
       }
+    });
+  });
+
+  describe('AI Threat Scoring, Tactical Movement Denial, and High-Ground Disruption (Change ai-threat-and-tactical-disruption)', () => {
+    describe('Hostile Movement Denial (SLOW) & Non-Redundancy', () => {
+      it('scores positive utility for Frostbite SLOW against mobile target with Move >= 2', () => {
+        const arena = createRadialArena(3);
+        const mage = createMockUnit('mage', 'Hostile Mage', 'ENEMY', {
+          baseAttributes: { force: 0, finesse: 0, focus: 4 },
+          activeClassId: 'wizard'
+        });
+        const target = createMockUnit('hero', 'Player Hero', 'PLAYER', { move: 3 });
+
+        arena.setUnitPosition(mage.id, { q: 0, r: 0 });
+        arena.setUnitPosition(target.id, { q: 1, r: 0 });
+
+        const state = createCombatState(arena, [mage, target], mage.id);
+        const mageCu = state.units.get(mage.id)!;
+        const targetCu = state.units.get(target.id)!;
+
+        const utility = scoreDebuffAndUtility(mageCu, targetCu, FROSTBITE, { q: 0, r: 0 }, { q: 1, r: 0 }, state, 'SNIPER');
+        expect(utility.score).toBeGreaterThanOrEqual(6.0);
+        expect(utility.reason).toContain('Impair target Move (-1 Move)');
+      });
+
+      it('awards kiting utility bonus when applying SLOW to advancing melee BRAWLER at distance >= 2', () => {
+        const arena = createRadialArena(3);
+        const mage = createMockUnit('mage', 'Hostile Mage', 'ENEMY', {
+          baseAttributes: { force: 0, finesse: 0, focus: 4 },
+          activeClassId: 'wizard'
+        });
+        const brawler = createMockUnit('warrior', 'Player Warrior', 'PLAYER', {
+          activeClassId: 'warrior',
+          move: 3
+        });
+
+        arena.setUnitPosition(mage.id, { q: 0, r: 0 });
+        arena.setUnitPosition(brawler.id, { q: 2, r: 0 });
+
+        const state = createCombatState(arena, [mage, brawler], mage.id);
+        const mageCu = state.units.get(mage.id)!;
+        const brawlerCu = state.units.get(brawler.id)!;
+
+        const utility = scoreDebuffAndUtility(mageCu, brawlerCu, FROSTBITE, { q: 0, r: 0 }, { q: 2, r: 0 }, state, 'SNIPER');
+        expect(utility.score).toBeGreaterThanOrEqual(10.0);
+        expect(utility.reason).toContain('Kite advancing melee threat');
+      });
+
+      it('suppresses SLOW utility when target already has an active negative Move modifier', () => {
+        const arena = createRadialArena(3);
+        const mage = createMockUnit('mage', 'Hostile Mage', 'ENEMY', {
+          baseAttributes: { force: 0, finesse: 0, focus: 4 },
+          activeClassId: 'wizard'
+        });
+        const target = createMockUnit('hero', 'Player Hero', 'PLAYER', { move: 3 });
+
+        arena.setUnitPosition(mage.id, { q: 0, r: 0 });
+        arena.setUnitPosition(target.id, { q: 2, r: 0 });
+
+        const state = createCombatState(arena, [mage, target], mage.id);
+        const mageCu = state.units.get(mage.id)!;
+        const targetCu = state.units.get(target.id)!;
+
+        targetCu.activeModifiers.push({
+          stat: 'move',
+          value: -1,
+          durationTurns: 1
+        });
+
+        const utility = scoreDebuffAndUtility(mageCu, targetCu, FROSTBITE, { q: 0, r: 0 }, { q: 2, r: 0 }, state, 'SNIPER');
+        expect(utility.score).toBe(0);
+        expect(utility.reason).toBeUndefined();
+      });
+
+      it('universal non-redundancy guard suppresses non-damaging slow on already slowed target', () => {
+        const arena = createRadialArena(3);
+        const actor = createMockUnit('actor', 'Hostile Actor', 'ENEMY');
+        const target = createMockUnit('hero', 'Player Hero', 'PLAYER', { move: 3 });
+
+        arena.setUnitPosition(actor.id, { q: 0, r: 0 });
+        arena.setUnitPosition(target.id, { q: 1, r: 0 });
+
+        const state = createCombatState(arena, [actor, target], actor.id);
+        const actorCu = state.units.get(actor.id)!;
+        const targetCu = state.units.get(target.id)!;
+
+        targetCu.activeModifiers.push({
+          stat: 'move',
+          value: -1,
+          durationTurns: 1
+        });
+
+        const nonDamagingSlowAbility = {
+          ...FROSTBITE,
+          id: 'mud_trap',
+          name: 'Mud Trap',
+          damageType: 'NONE' as const,
+          effects: [{ type: 'SLOW' as const, magnitude: 1, durationTurns: 1 }]
+        };
+
+        const utility = scoreDebuffAndUtility(actorCu, targetCu, nonDamagingSlowAbility, { q: 0, r: 0 }, { q: 1, r: 0 }, state, 'SUPPORT');
+        expect(utility.score).toBe(0);
+      });
+    });
+
+    describe('High-Ground Disruption & Knockback Cliff Plunge', () => {
+      it('awards cliff plunge fall damage utility when knockback pushes target down a ledge (dh <= -2)', () => {
+        const arena = createRadialArena(3);
+        arena.setTile({ coord: { q: 1, r: 0 }, elevation: 2, isWalkable: true });
+        arena.setTile({ coord: { q: 2, r: 0 }, elevation: 0, isWalkable: true });
+
+        const warlock = createMockUnit('warlock', 'Hostile Warlock', 'ENEMY', {
+          baseAttributes: { force: 0, finesse: 0, focus: 4 },
+          activeClassId: 'warlock'
+        });
+        const target = createMockUnit('hero', 'Player Hero', 'PLAYER', { maxHp: 40 });
+
+        arena.setUnitPosition(warlock.id, { q: 0, r: 0 });
+        arena.setUnitPosition(target.id, { q: 1, r: 0 });
+
+        const state = createCombatState(arena, [warlock, target], warlock.id);
+        const warlockCu = state.units.get(warlock.id)!;
+        const targetCu = state.units.get(target.id)!;
+
+        const utility = scoreDebuffAndUtility(warlockCu, targetCu, ELDRITCH_BLAST, { q: 0, r: 0 }, { q: 1, r: 0 }, state, 'SNIPER');
+        expect(utility.score).toBeGreaterThanOrEqual(14.0);
+        expect(utility.reason).toContain('Cliff plunge fall damage hazard');
+      });
+
+      it('awards vantage disruption utility when knockback shoves an elevated target down from high ground', () => {
+        const arena = createRadialArena(3);
+        arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+        arena.setTile({ coord: { q: 1, r: 0 }, elevation: 1, isWalkable: true }); // Target on high ground (+1)
+        arena.setTile({ coord: { q: 2, r: 0 }, elevation: 0, isWalkable: true }); // Destination pushed down to 0
+
+        const warlock = createMockUnit('warlock', 'Hostile Warlock', 'ENEMY', {
+          baseAttributes: { force: 0, finesse: 0, focus: 4 },
+          activeClassId: 'warlock'
+        });
+        const target = createMockUnit('hero', 'Player Hero', 'PLAYER', { maxHp: 40 });
+
+        arena.setUnitPosition(warlock.id, { q: 0, r: 0 });
+        arena.setUnitPosition(target.id, { q: 1, r: 0 });
+
+        const state = createCombatState(arena, [warlock, target], warlock.id);
+        const warlockCu = state.units.get(warlock.id)!;
+        const targetCu = state.units.get(target.id)!;
+
+        const utility = scoreDebuffAndUtility(warlockCu, targetCu, ELDRITCH_BLAST, { q: 0, r: 0 }, { q: 1, r: 0 }, state, 'SNIPER');
+        expect(utility.score).toBeGreaterThanOrEqual(6.0);
+        expect(utility.reason).toContain('Disrupt high-ground vantage');
+      });
+    });
+
+    describe('Archetype Threat Weighting & Decision Engine Integration', () => {
+      it('scoreTargetThreat maps archetype weights correctly', () => {
+        const sniper = createMockUnit('sniper', 'Warlock Sniper', 'PLAYER', { activeClassId: 'warlock' });
+        const support = createMockUnit('support', 'Witch Support', 'PLAYER', { activeClassId: 'witch' });
+        const skirmisher = createMockUnit('skirmisher', 'Highwayman Skirmisher', 'PLAYER', { activeClassId: 'highwayman' });
+        const brawler = createMockUnit('brawler', 'Warrior Brawler', 'PLAYER', { activeClassId: 'warrior' });
+
+        const arena = createRadialArena(3);
+        const state = createCombatState(arena, [sniper, support, skirmisher, brawler], sniper.id);
+
+        expect(scoreTargetThreat(state.units.get(sniper.id)!).score).toBe(10.0);
+        expect(scoreTargetThreat(state.units.get(support.id)!).score).toBe(8.0);
+        expect(scoreTargetThreat(state.units.get(skirmisher.id)!).score).toBe(4.0);
+        expect(scoreTargetThreat(state.units.get(brawler.id)!).score).toBe(0);
+      });
+
+      it('AI attacker prioritizes elevated Warlock (SNIPER) over frontline Warrior (BRAWLER) despite low-ground Disadvantage', () => {
+        const arena = createRadialArena(3);
+        arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+        arena.setTile({ coord: { q: 2, r: 0 }, elevation: 0, isWalkable: true }); // Warrior on flat ground
+        arena.setTile({ coord: { q: 0, r: 2 }, elevation: 2, isWalkable: true }); // Warlock on high ground (+2 delta, imposes Disadvantage)
+
+        const attacker = createMockUnit('attacker', 'Enemy Mage', 'ENEMY', {
+          baseAttributes: { force: 0, finesse: 0, focus: 4 },
+          activeClassId: 'wizard',
+          starterAbilityIds: ['spark']
+        });
+        const warrior = createMockUnit('warrior', 'Player Warrior', 'PLAYER', {
+          activeClassId: 'warrior',
+          maxHp: 50,
+          ward: 2
+        });
+        const warlock = createMockUnit('warlock', 'Player Warlock', 'PLAYER', {
+          activeClassId: 'warlock',
+          maxHp: 50,
+          ward: 0
+        });
+
+        arena.setUnitPosition(attacker.id, { q: 0, r: 0 });
+        arena.setUnitPosition(warrior.id, { q: 2, r: 0 });
+        arena.setUnitPosition(warlock.id, { q: 0, r: 2 });
+
+        const state = createCombatState(arena, [attacker, warrior, warlock], attacker.id);
+        const attCu = state.units.get(attacker.id)!;
+        (attCu as { abilities: readonly any[] }).abilities = [SPARK];
+        state.units.get(warrior.id)!.facing = getDirectionBetween({ q: 2, r: 0 }, { q: 0, r: 0 });
+        state.units.get(warlock.id)!.facing = getDirectionBetween({ q: 0, r: 2 }, { q: 0, r: 0 });
+
+        const action = decideNextAction(state, attacker.id);
+        expect(action.type).toBe('ABILITY');
+        if (action.type === 'ABILITY') {
+          expect(action.target?.targetUnitId).toBe(warlock.id);
+          expect(action.reason).toContain('High threat sniper/caster');
+        }
+      });
+
+      it('repositioning attack factors in target threat weighting in move-and-act evaluation', () => {
+        const arena = createRadialArena(3);
+        const attacker = createMockUnit('attacker', 'Enemy Mage', 'ENEMY', {
+          baseAttributes: { force: 0, finesse: 0, focus: 4 },
+          activeClassId: 'wizard',
+          starterAbilityIds: ['spark']
+        });
+        const warrior = createMockUnit('warrior', 'Player Warrior', 'PLAYER', {
+          activeClassId: 'warrior',
+          maxHp: 50
+        });
+        const warlock = createMockUnit('warlock', 'Player Warlock', 'PLAYER', {
+          activeClassId: 'warlock',
+          maxHp: 50
+        });
+
+        arena.setUnitPosition(attacker.id, { q: 0, r: 0 });
+        arena.setUnitPosition(warrior.id, { q: 0, r: 1 });
+        arena.setUnitPosition(warlock.id, { q: 3, r: 0 });
+
+        const state = createCombatState(arena, [attacker, warrior, warlock], attacker.id);
+        const attCu = state.units.get(attacker.id)!;
+        attCu.currentAp = 2; // Enough to move 1 hex and cast Spark (1 AP move + 1 AP Spark)
+        (attCu as { abilities: readonly any[] }).abilities = [SPARK];
+
+        const action = decideNextAction(state, attacker.id);
+        expect(action.type).toBe('MOVE');
+        if (action.type === 'MOVE') {
+          expect(action.destination.q).toBeGreaterThan(0);
+          expect(action.reason).toContain('Player Warlock');
+          expect(action.reason).toContain('High threat sniper/caster');
+        }
+      });
     });
   });
 });

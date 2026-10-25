@@ -6,18 +6,18 @@
 
 | Rank | Class | Tier | Overall Win % | Duel Record (W-L-T) | Matchup Record (W-L-T) | Avg Dmg | Top Abilities |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| 1 | **Warlock** | T3 | **88.2%** | 97-13-0 | 10-1-0 | 21.9 | `hellfire_brand` (307), `eldritch_blast` (208), `pact_blade` (33) |
-| 2 | **Witch** | T3 | **75.5%** | 83-26-1 | 9-2-0 | 20.6 | `poppet_needle` (419), `baleful_hex` (122) |
-| 3 | **Infiltrator** | T2 | **71.8%** | 79-31-0 | 9-2-0 | 20.6 | `toxic_shiv` (377), `smoke_veil` (358), `expose_weakness` (42) |
-| 4 | **Highwayman** | T3 | **70.9%** | 78-32-0 | 7-3-1 | 19.4 | `gallant_flourish` (416), `stand_and_deliver` (235), `point_blank_buckshot` (182) |
-| 5 | **Cat-Burglar** | T3 | **70.0%** | 77-33-0 | 8-3-0 | 19.5 | `pilfer` (935), `rooftop_vault` (619), `flash_powder` (495) |
-| 6 | **Berserker** | T3 | **60.9%** | 67-43-0 | 6-5-0 | 18.8 | `reckless_cleave` (251), `blood_frenzy` (122), `ignite_rage` (121) |
-| 7 | **Sorcerer** | T2 | **43.6%** | 48-61-1 | 5-6-0 | 17.8 | `ignite` (411), `spell_sculpt` (330), `gust` (18) |
-| 8 | **Cavalier** | T3 | **37.3%** | 41-69-0 | 4-6-1 | 14.4 | `flamboyant_flourish` (281), `lance_charge` (253), `ride_through` (246) |
-| 9 | **Wizard** | T1 | **32.7%** | 36-74-0 | 2-6-3 | 15.9 | `spark` (626), `arcane_blast` (24) |
-| 10 | **Warrior** | T1 | **30.0%** | 33-77-0 | 2-8-1 | 13.9 | `power_strike` (325), `cleave` (17), `brace` (8) |
-| 11 | **Knight** | T2 | **17.3%** | 19-91-0 | 1-10-0 | 9.9 | `pommel_strike` (493), `challenging_shout` (259), `lead_the_charge` (48) |
-| 12 | **Thief** | T1 | **0.9%** | 1-109-0 | 0-11-0 | 5.8 | `skirmish` (432), `sneak_attack` (1) |
+| 1 | **Warlock** | T3 | **80.0%** | 88-22-0 | 9-2-0 | 21.1 | `eldritch_blast` (275), `hellfire_brand` (232), `pact_blade` (19) |
+| 2 | **Cat-Burglar** | T3 | **75.5%** | 83-27-0 | 9-1-1 | 20.4 | `pilfer` (979), `rooftop_vault` (625), `flash_powder` (492) |
+| 3 | **Witch** | T3 | **75.5%** | 83-24-3 | 9-1-1 | 20.9 | `poppet_needle` (422), `baleful_hex` (117) |
+| 4 | **Infiltrator** | T2 | **71.8%** | 79-28-3 | 7-2-2 | 20.4 | `toxic_shiv` (445), `smoke_veil` (208), `expose_weakness` (51) |
+| 5 | **Highwayman** | T3 | **70.0%** | 77-32-1 | 8-3-0 | 19.4 | `gallant_flourish` (411), `stand_and_deliver` (226), `point_blank_buckshot` (179) |
+| 6 | **Berserker** | T3 | **63.6%** | 70-40-0 | 6-5-0 | 19.1 | `reckless_cleave` (261), `blood_frenzy` (126), `ignite_rage` (122) |
+| 7 | **Sorcerer** | T2 | **48.2%** | 53-56-1 | 5-6-0 | 17.8 | `ignite` (414), `spell_sculpt` (315), `gust` (17) |
+| 8 | **Cavalier** | T3 | **39.1%** | 43-67-0 | 5-6-0 | 14.9 | `flamboyant_flourish` (291), `ride_through` (276), `lance_charge` (257) |
+| 9 | **Warrior** | T1 | **30.9%** | 34-76-0 | 3-8-0 | 14.0 | `power_strike` (331), `cleave` (21), `brace` (8) |
+| 10 | **Wizard** | T1 | **23.6%** | 26-84-0 | 1-9-1 | 13.5 | `frostbite` (452), `spark` (196) |
+| 11 | **Knight** | T2 | **18.2%** | 20-90-0 | 1-9-1 | 10.1 | `pommel_strike` (507), `challenging_shout` (259), `lead_the_charge` (41) |
+| 12 | **Thief** | T1 | **0.0%** | 0-110-0 | 0-11-0 | 5.7 | `skirmish` (421) |
 
 ## 12x12 Head-to-Head Win Rate Matrix
 
@@ -25,65 +25,65 @@
 
 | Class | Tier | WAR | THF | WIZ | KNT | INF | SOR | CAV | BRS | HWM | CTB | WLK | WTC | Overall Win % |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Warrior** | T1 | — | 100% | 50% | 90% | 10% | 40% | 30% | 0% | 0% | 0% | 0% | 10% | **30.0%** |
-| **Thief** | T1 | 0% | — | 0% | 0% | 0% | 10% | 0% | 0% | 0% | 0% | 0% | 0% | **0.9%** |
-| **Wizard** | T1 | 50% | 100% | — | 70% | 0% | 0% | 50% | 30% | 50% | 10% | 0% | 0% | **32.7%** |
-| **Knight** | T2 | 10% | 100% | 30% | — | 0% | 30% | 20% | 0% | 0% | 0% | 0% | 0% | **17.3%** |
-| **Infiltrator** | T2 | 90% | 100% | 100% | 100% | — | 100% | 80% | 70% | 30% | 60% | 0% | 60% | **71.8%** |
-| **Sorcerer** | T2 | 60% | 90% | 100% | 70% | 0% | — | 40% | 10% | 60% | 10% | 20% | 20% | **43.6%** |
-| **Cavalier** | T3 | 70% | 100% | 50% | 80% | 20% | 60% | — | 10% | 0% | 10% | 10% | 0% | **37.3%** |
-| **Berserker** | T3 | 100% | 100% | 70% | 100% | 30% | 90% | 90% | — | 0% | 20% | 30% | 40% | **60.9%** |
-| **Highwayman** | T3 | 100% | 100% | 50% | 100% | 70% | 40% | 100% | 100% | — | 90% | 0% | 30% | **70.9%** |
-| **Cat-Burglar** | T3 | 100% | 100% | 90% | 100% | 40% | 90% | 90% | 80% | 10% | — | 10% | 60% | **70.0%** |
-| **Warlock** | T3 | 100% | 100% | 100% | 100% | 100% | 80% | 90% | 70% | 100% | 90% | — | 40% | **88.2%** |
+| **Warrior** | T1 | — | 100% | 70% | 80% | 10% | 40% | 30% | 0% | 0% | 0% | 0% | 10% | **30.9%** |
+| **Thief** | T1 | 0% | — | 0% | 0% | 0% | 0% | 0% | 0% | 0% | 0% | 0% | 0% | **0.0%** |
+| **Wizard** | T1 | 30% | 100% | — | 50% | 0% | 0% | 30% | 0% | 40% | 10% | 0% | 0% | **23.6%** |
+| **Knight** | T2 | 20% | 100% | 50% | — | 0% | 10% | 20% | 0% | 0% | 0% | 0% | 0% | **18.2%** |
+| **Infiltrator** | T2 | 90% | 100% | 100% | 100% | — | 90% | 80% | 70% | 40% | 50% | 30% | 40% | **71.8%** |
+| **Sorcerer** | T2 | 60% | 100% | 100% | 90% | 10% | — | 40% | 20% | 60% | 10% | 20% | 20% | **48.2%** |
+| **Cavalier** | T3 | 70% | 100% | 70% | 80% | 20% | 60% | — | 10% | 0% | 10% | 10% | 0% | **39.1%** |
+| **Berserker** | T3 | 100% | 100% | 100% | 100% | 30% | 80% | 90% | — | 0% | 20% | 40% | 40% | **63.6%** |
+| **Highwayman** | T3 | 100% | 100% | 60% | 100% | 50% | 40% | 100% | 100% | — | 90% | 0% | 30% | **70.0%** |
+| **Cat-Burglar** | T3 | 100% | 100% | 90% | 100% | 50% | 90% | 90% | 80% | 10% | — | 60% | 60% | **75.5%** |
+| **Warlock** | T3 | 100% | 100% | 100% | 100% | 70% | 80% | 90% | 60% | 100% | 40% | — | 40% | **80.0%** |
 | **Witch** | T3 | 90% | 100% | 100% | 100% | 40% | 70% | 100% | 60% | 70% | 40% | 60% | — | **75.5%** |
 
 ## Matchup Profiles
 
-### Warlock (Tier 3) — Win Rate: 88.2%
-- **Strong Against (>=60%):** **Warrior** (10-0), **Thief** (10-0), **Wizard** (10-0), **Knight** (10-0), **Infiltrator** (10-0), **Sorcerer** (8-2), **Cavalier** (9-1), **Berserker** (7-3), **Highwayman** (10-0), **Cat-Burglar** (9-1)
-- **Vulnerable Against (<=40%):** **Witch** (4-6)
+### Warlock (Tier 3) — Win Rate: 80.0%
+- **Strong Against (>=60%):** **Warrior** (10-0), **Thief** (10-0), **Wizard** (10-0), **Knight** (10-0), **Infiltrator** (7-3), **Sorcerer** (8-2), **Cavalier** (9-1), **Berserker** (6-4), **Highwayman** (10-0)
+- **Vulnerable Against (<=40%):** **Cat-Burglar** (4-6), **Witch** (4-6)
+
+### Cat-Burglar (Tier 3) — Win Rate: 75.5%
+- **Strong Against (>=60%):** **Warrior** (10-0), **Thief** (10-0), **Wizard** (9-1), **Knight** (10-0), **Sorcerer** (9-1), **Cavalier** (9-1), **Berserker** (8-2), **Warlock** (6-4), **Witch** (6-4)
+- **Vulnerable Against (<=40%):** **Highwayman** (1-9)
 
 ### Witch (Tier 3) — Win Rate: 75.5%
 - **Strong Against (>=60%):** **Warrior** (9-1), **Thief** (10-0), **Wizard** (10-0), **Knight** (10-0), **Sorcerer** (7-2), **Cavalier** (10-0), **Berserker** (6-4), **Highwayman** (7-3), **Warlock** (6-4)
-- **Vulnerable Against (<=40%):** **Infiltrator** (4-6), **Cat-Burglar** (4-6)
+- **Vulnerable Against (<=40%):** **Infiltrator** (4-4), **Cat-Burglar** (4-6)
 
 ### Infiltrator (Tier 2) — Win Rate: 71.8%
-- **Strong Against (>=60%):** **Warrior** (9-1), **Thief** (10-0), **Wizard** (10-0), **Knight** (10-0), **Sorcerer** (10-0), **Cavalier** (8-2), **Berserker** (7-3), **Cat-Burglar** (6-4), **Witch** (6-4)
-- **Vulnerable Against (<=40%):** **Highwayman** (3-7), **Warlock** (0-10)
+- **Strong Against (>=60%):** **Warrior** (9-1), **Thief** (10-0), **Wizard** (10-0), **Knight** (10-0), **Sorcerer** (9-1), **Cavalier** (8-2), **Berserker** (7-3)
+- **Vulnerable Against (<=40%):** **Highwayman** (4-5), **Warlock** (3-7), **Witch** (4-4)
 
-### Highwayman (Tier 3) — Win Rate: 70.9%
-- **Strong Against (>=60%):** **Warrior** (10-0), **Thief** (10-0), **Knight** (10-0), **Infiltrator** (7-3), **Cavalier** (10-0), **Berserker** (10-0), **Cat-Burglar** (9-1)
+### Highwayman (Tier 3) — Win Rate: 70.0%
+- **Strong Against (>=60%):** **Warrior** (10-0), **Thief** (10-0), **Wizard** (6-4), **Knight** (10-0), **Cavalier** (10-0), **Berserker** (10-0), **Cat-Burglar** (9-1)
 - **Vulnerable Against (<=40%):** **Sorcerer** (4-6), **Warlock** (0-10), **Witch** (3-7)
 
-### Cat-Burglar (Tier 3) — Win Rate: 70.0%
-- **Strong Against (>=60%):** **Warrior** (10-0), **Thief** (10-0), **Wizard** (9-1), **Knight** (10-0), **Sorcerer** (9-1), **Cavalier** (9-1), **Berserker** (8-2), **Witch** (6-4)
-- **Vulnerable Against (<=40%):** **Infiltrator** (4-6), **Highwayman** (1-9), **Warlock** (1-9)
+### Berserker (Tier 3) — Win Rate: 63.6%
+- **Strong Against (>=60%):** **Warrior** (10-0), **Thief** (10-0), **Wizard** (10-0), **Knight** (10-0), **Sorcerer** (8-2), **Cavalier** (9-1)
+- **Vulnerable Against (<=40%):** **Infiltrator** (3-7), **Highwayman** (0-10), **Cat-Burglar** (2-8), **Warlock** (4-6), **Witch** (4-6)
 
-### Berserker (Tier 3) — Win Rate: 60.9%
-- **Strong Against (>=60%):** **Warrior** (10-0), **Thief** (10-0), **Wizard** (7-3), **Knight** (10-0), **Sorcerer** (9-1), **Cavalier** (9-1)
-- **Vulnerable Against (<=40%):** **Infiltrator** (3-7), **Highwayman** (0-10), **Cat-Burglar** (2-8), **Warlock** (3-7), **Witch** (4-6)
+### Sorcerer (Tier 2) — Win Rate: 48.2%
+- **Strong Against (>=60%):** **Warrior** (6-4), **Thief** (10-0), **Wizard** (10-0), **Knight** (9-1), **Highwayman** (6-4)
+- **Vulnerable Against (<=40%):** **Infiltrator** (1-9), **Cavalier** (4-6), **Berserker** (2-8), **Cat-Burglar** (1-9), **Warlock** (2-8), **Witch** (2-7)
 
-### Sorcerer (Tier 2) — Win Rate: 43.6%
-- **Strong Against (>=60%):** **Warrior** (6-4), **Thief** (9-1), **Wizard** (10-0), **Knight** (7-3), **Highwayman** (6-4)
-- **Vulnerable Against (<=40%):** **Infiltrator** (0-10), **Cavalier** (4-6), **Berserker** (1-9), **Cat-Burglar** (1-9), **Warlock** (2-8), **Witch** (2-7)
-
-### Cavalier (Tier 3) — Win Rate: 37.3%
-- **Strong Against (>=60%):** **Warrior** (7-3), **Thief** (10-0), **Knight** (8-2), **Sorcerer** (6-4)
+### Cavalier (Tier 3) — Win Rate: 39.1%
+- **Strong Against (>=60%):** **Warrior** (7-3), **Thief** (10-0), **Wizard** (7-3), **Knight** (8-2), **Sorcerer** (6-4)
 - **Vulnerable Against (<=40%):** **Infiltrator** (2-8), **Berserker** (1-9), **Highwayman** (0-10), **Cat-Burglar** (1-9), **Warlock** (1-9), **Witch** (0-10)
 
-### Wizard (Tier 1) — Win Rate: 32.7%
-- **Strong Against (>=60%):** **Thief** (10-0), **Knight** (7-3)
-- **Vulnerable Against (<=40%):** **Infiltrator** (0-10), **Sorcerer** (0-10), **Berserker** (3-7), **Cat-Burglar** (1-9), **Warlock** (0-10), **Witch** (0-10)
-
-### Warrior (Tier 1) — Win Rate: 30.0%
-- **Strong Against (>=60%):** **Thief** (10-0), **Knight** (9-1)
+### Warrior (Tier 1) — Win Rate: 30.9%
+- **Strong Against (>=60%):** **Thief** (10-0), **Wizard** (7-3), **Knight** (8-2)
 - **Vulnerable Against (<=40%):** **Infiltrator** (1-9), **Sorcerer** (4-6), **Cavalier** (3-7), **Berserker** (0-10), **Highwayman** (0-10), **Cat-Burglar** (0-10), **Warlock** (0-10), **Witch** (1-9)
 
-### Knight (Tier 2) — Win Rate: 17.3%
+### Wizard (Tier 1) — Win Rate: 23.6%
 - **Strong Against (>=60%):** **Thief** (10-0)
-- **Vulnerable Against (<=40%):** **Warrior** (1-9), **Wizard** (3-7), **Infiltrator** (0-10), **Sorcerer** (3-7), **Cavalier** (2-8), **Berserker** (0-10), **Highwayman** (0-10), **Cat-Burglar** (0-10), **Warlock** (0-10), **Witch** (0-10)
+- **Vulnerable Against (<=40%):** **Warrior** (3-7), **Infiltrator** (0-10), **Sorcerer** (0-10), **Cavalier** (3-7), **Berserker** (0-10), **Highwayman** (4-6), **Cat-Burglar** (1-9), **Warlock** (0-10), **Witch** (0-10)
 
-### Thief (Tier 1) — Win Rate: 0.9%
+### Knight (Tier 2) — Win Rate: 18.2%
+- **Strong Against (>=60%):** **Thief** (10-0)
+- **Vulnerable Against (<=40%):** **Warrior** (2-8), **Infiltrator** (0-10), **Sorcerer** (1-9), **Cavalier** (2-8), **Berserker** (0-10), **Highwayman** (0-10), **Cat-Burglar** (0-10), **Warlock** (0-10), **Witch** (0-10)
+
+### Thief (Tier 1) — Win Rate: 0.0%
 - **Strong Against (>=60%):** None
-- **Vulnerable Against (<=40%):** **Warrior** (0-10), **Wizard** (0-10), **Knight** (0-10), **Infiltrator** (0-10), **Sorcerer** (1-9), **Cavalier** (0-10), **Berserker** (0-10), **Highwayman** (0-10), **Cat-Burglar** (0-10), **Warlock** (0-10), **Witch** (0-10)
+- **Vulnerable Against (<=40%):** **Warrior** (0-10), **Wizard** (0-10), **Knight** (0-10), **Infiltrator** (0-10), **Sorcerer** (0-10), **Cavalier** (0-10), **Berserker** (0-10), **Highwayman** (0-10), **Cat-Burglar** (0-10), **Warlock** (0-10), **Witch** (0-10)

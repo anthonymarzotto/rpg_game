@@ -24,7 +24,8 @@ import {
   scoreStandoffDistance,
   scoreFocusFire,
   scoreBuffAbility,
-  scoreDebuffAndUtility
+  scoreDebuffAndUtility,
+  scoreTargetThreat
 } from './heuristics';
 
 const defaultDiceRoller = new SeededDiceRoller();
@@ -143,17 +144,20 @@ export function decideNextActionWithTrace(
           state,
           profile
         );
+        const threat = scoreTargetThreat(targetCu, weights.threatWeight ?? 1.0);
 
         const effectiveDamage = kill.score + damageScore + vulnScore;
         const hasPrimaryValue = effectiveDamage > 0 || utility.score > 0;
         const effectiveFlank = effectiveDamage > 0 ? flank.score : 0;
+        const effectiveThreat = hasPrimaryValue ? threat.score : 0;
         const totalScore = hasPrimaryValue
-          ? effectiveDamage + effectiveFlank + focusScore + standoff + utility.score
+          ? effectiveDamage + effectiveFlank + focusScore + standoff + utility.score + effectiveThreat
           : 0;
 
         if (totalScore <= 0) continue;
 
         const reasons: string[] = [];
+        if (effectiveThreat > 0 && threat.reason) reasons.push(threat.reason);
         if (utility.reason) reasons.push(utility.reason);
         if (kill.reason) reasons.push(kill.reason);
         if (effectiveFlank > 0 && flank.reason) reasons.push(flank.reason);
@@ -379,9 +383,14 @@ export function decideNextActionWithTrace(
                   state,
                   profile
                 );
+                const threat = scoreTargetThreat(targetCu, weights.threatWeight ?? 1.0);
 
                 let leapTacticalBonus = 0;
                 const reasons: string[] = [];
+
+                if (threat.score > 0 && threat.reason) {
+                  reasons.push(threat.reason);
+                }
 
                 if (metrics.combatArc === 'REAR') {
                   reasons.push('Infiltrate into rear combat arc');
@@ -413,6 +422,7 @@ export function decideNextActionWithTrace(
                   flank.score +
                   focusScore +
                   utility.score +
+                  threat.score +
                   leapTacticalBonus +
                   selfBuffScore;
 
@@ -578,6 +588,7 @@ export function decideNextActionWithTrace(
               state,
               profile
             );
+            const threat = scoreTargetThreat(targetCu, weights.threatWeight ?? 1.0);
 
             // Deduct 1 AP movement cost from utility
             const effectiveDamage = kill.score + damageScore + vulnScore;
@@ -585,13 +596,15 @@ export function decideNextActionWithTrace(
             const effectiveFlank = effectiveDamage > 0 ? flank.score : 0;
             const effectiveFocus = hasPrimaryValue ? focusScore : 0;
             const effectiveStandoff = hasPrimaryValue ? standoff : 0;
+            const effectiveThreat = hasPrimaryValue ? threat.score : 0;
 
             const moveNetScore = hasPrimaryValue
-              ? effectiveDamage + effectiveFlank + effectiveFocus + effectiveStandoff + utility.score - 2
+              ? effectiveDamage + effectiveFlank + effectiveFocus + effectiveStandoff + utility.score + effectiveThreat - 2
               : 0;
 
             if (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score) {
               const reasons: string[] = [];
+              if (effectiveThreat > 0 && threat.reason) reasons.push(threat.reason);
               if (utility.reason) reasons.push(utility.reason);
               if (flank.reason) reasons.push(flank.reason);
               if (kill.reason) reasons.push(kill.reason);
