@@ -10,6 +10,7 @@ import { CombatLogPanel } from './CombatLogPanel';
 import { BattleDefeatModal } from './BattleDefeatModal';
 import { InitiativeRibbon } from './InitiativeRibbon';
 import { preloadCombatUnitTokens } from './tokenAssets';
+import { preloadObstacleTokens } from './obstacleAssets';
 import { AISpeedMode } from './asyncTurnSequencer';
 import { EncounterDefinition } from '../../core/combat/encounter';
 import { CombatState, InBattleXp } from '../../core/combat/types';
@@ -132,10 +133,11 @@ export function CombatArena({
       .map((cu) => cu.unit);
   }, [state.units]);
 
-  // Preload token sprites strictly for active combatants to eliminate rotation lag
+  // Preload token sprites strictly for active combatants and obstacles to eliminate asset pop-in
   useEffect(() => {
     const combatUnits = Array.from(state.units.values()).map((cu) => cu.unit);
     preloadCombatUnitTokens(combatUnits);
+    preloadObstacleTokens(['ruins']);
   }, [state.units]);
 
   // Deterministically resolved procedural astral background and parallax transform

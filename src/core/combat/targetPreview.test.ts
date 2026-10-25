@@ -343,9 +343,10 @@ describe('Target Preview Calculation', () => {
       description: 'Strike with bonus damage on challenged target',
       apCost: 1,
       range: 1,
-      targetType: 'UNIT',
+      targetType: 'SINGLE_TARGET',
+      defenseTarget: 'EVASION',
+      attackModifierAttribute: 'finesse',
       damageType: 'PHYSICAL',
-      attackModifier: 'finesse',
       effects: [
         {
           type: 'DAMAGE',

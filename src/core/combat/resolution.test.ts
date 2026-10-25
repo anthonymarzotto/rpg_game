@@ -812,9 +812,10 @@ describe('Attack & Ability Resolution Outcomes', () => {
         description: 'Test pommel strike',
         apCost: 1,
         range: 1,
-        targetType: 'UNIT',
+        targetType: 'SINGLE_TARGET',
+        defenseTarget: 'EVASION',
+        attackModifierAttribute: 'finesse',
         damageType: 'PHYSICAL',
-        attackModifier: 'finesse',
         effects: [
           {
             type: 'DAMAGE',

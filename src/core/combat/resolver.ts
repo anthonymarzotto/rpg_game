@@ -10,10 +10,11 @@ import {
   getHexLine
 } from '../grid/hex';
 import { Arena, calculateRawFallDamage } from '../grid/arena';
-import { Ability, AbilityEffect } from '../types/ability';
+import { Ability, AbilityEffect, ConditionType } from '../types/ability';
 import {
   CombatState,
   CombatUnit,
+  ActiveCondition,
   AbilityResolution,
   CombatEvent,
   EncounterObjective,

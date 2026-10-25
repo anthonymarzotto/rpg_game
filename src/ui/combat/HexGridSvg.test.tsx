@@ -161,7 +161,7 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
     expect(html).toContain('url(#standee-occlusion-glow-enemy)');
   });
 
-  it('renders ruins stone icon and label badge on obstacle tiles without legacy overlay text', () => {
+  it('renders ruins stone icon, pixel standee image, and label badge on obstacle tiles', () => {
     const arena = createRadialArena(3);
     const tile = arena.getTile({ q: 0, r: 1 });
     if (tile) {
@@ -190,6 +190,80 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
     expect(html).toContain('obstacle-ruins-glyph');
     expect(html).toContain('>RUINS<');
     expect(html).not.toContain('>BLOCK<');
+    // Renders pixel standee image tag with 68x68 dimensions and drop-shadow filter
+    expect(html).toMatch(/<image[^>]+href="[^"]*assets\/objects\/ruins\/rotations\/[a-z-]+\.png"[^>]+width="68"[^>]+height="68"/);
+    expect(html).toContain('class="pixel-art"');
+    expect(html).toContain('filter="url(#standee-drop-shadow)"');
+  });
+
+  it('translates ruins standee image vertically on elevated obstacle tiles', () => {
+    const arena = createRadialArena(3);
+    const flatTile = arena.getTile({ q: 0, r: 1 });
+    const elevatedTile = arena.getTile({ q: 1, r: 1 });
+    if (flatTile) {
+      arena.setTile({ ...flatTile, elevation: 0, isWalkable: false, label: 'RUINS' });
+    }
+    if (elevatedTile) {
+      arena.setTile({ ...elevatedTile, elevation: 2, isWalkable: false, label: 'RUINS' });
+    }
+    const player = createRecruit('p1', 'Alden', { faction: 'PLAYER' });
+    const enemy = createRecruit('e1', 'Goblin', { faction: 'ENEMY' });
+    arena.setUnitPosition('p1', { q: -1, r: 0 });
+    arena.setUnitPosition('e1', { q: 1, r: 0 });
+    const state = createCombatState(arena, [player, enemy], 'p1');
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    // Matches image tags across both obstacle tiles
+    const imageMatches = [...html.matchAll(/<image[^>]+y="(-?\d+)"[^>]+width="68"/g)];
+    expect(imageMatches.length).toBeGreaterThanOrEqual(2);
+    const yValues = imageMatches.map((m) => parseInt(m[1], 10));
+    // The elevated tile (elevation 2 -> offset -28px) has a lower screen Y coordinate
+    expect(Math.min(...yValues)).toBeLessThan(Math.max(...yValues));
+  });
+
+  it('falls back to vector pillars when obstacle has no pixel assets available', () => {
+    const arena = createRadialArena(3);
+    const tile = arena.getTile({ q: 0, r: 1 });
+    if (tile) {
+      arena.setTile({ ...tile, isWalkable: false, label: 'CRYSTAL_BARRIER' });
+    }
+    const player = createRecruit('p1', 'Alden', { faction: 'PLAYER' });
+    const enemy = createRecruit('e1', 'Goblin', { faction: 'ENEMY' });
+    arena.setUnitPosition('p1', { q: -1, r: 0 });
+    arena.setUnitPosition('e1', { q: 1, r: 0 });
+    const state = createCombatState(arena, [player, enemy], 'p1');
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('obstacle-ruins-glyph');
+    expect(html).toContain('>CRYSTAL_BARRIER<');
+    // Vector fallback pillars present
+    expect(html).toContain('<line');
   });
 
   it('renders 6-direction facing compass ring when facingCompassCoord matches active unit', () => {

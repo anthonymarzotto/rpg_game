@@ -28,7 +28,7 @@
 
 ### 5. UX Updates
 - [ ] **5.1**: Higlight movement path
-- [ ] **5.2**: Implement the ruins tokens
+- [x] **5.2**: Implement the ruins tokens *(Completed: normalized 8-directional ruins pixel assets, deterministic coordinate rotation hashing, standee rendering in HexGridSvg with elevation alignment)*
 
 ---
 

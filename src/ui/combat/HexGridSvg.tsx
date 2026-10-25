@@ -4,6 +4,7 @@ import { CombatState } from '../../core/combat/types';
 import { TargetPreview } from '../../core/combat/targetPreview';
 import { FloatingText } from './useFloatingCombatText';
 import { resolveTokenAssetPath } from './tokenAssets';
+import { getObstacleRotation, resolveObstacleAssetPath } from './obstacleAssets';
 import {
   hexToPixel,
   projectElevationY,
@@ -168,6 +169,11 @@ export function HexGridSvg({
           const coord = tile.coord;
           const key = toHexKey(coord);
           const isObstacle = !tile.isWalkable;
+          const obstacleType = tile.label ?? tile.terrainType ?? 'ruins';
+          const obstacleRotation = isObstacle ? getObstacleRotation(coord) : undefined;
+          const obstacleAssetSrc = isObstacle
+            ? resolveObstacleAssetPath(obstacleType, obstacleRotation)
+            : null;
           const isReachable = reachableSet.has(key);
           const isRange = rangeSet.has(key);
           const isCandidate = candidateSet.has(key);
@@ -301,50 +307,65 @@ export function HexGridSvg({
                 filter={filter}
               />
 
-              {/* Obstacle / Ruins Stone Icon */}
+              {/* Obstacle / Ruins Token Standee */}
               {isObstacle && (
                 <g className="pointer-events-none obstacle-ruins-glyph">
-                  {/* Left Ruin Pillar */}
-                  <rect
-                    x={basePixel.x - 12}
-                    y={topY - 14}
-                    width={9}
-                    height={16}
-                    rx={2}
-                    fill="rgba(15, 23, 42, 0.92)"
-                    stroke={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#94a3b8'}
-                    strokeWidth="1.2"
-                  />
-                  {/* Right Ruin Pillar (taller) */}
-                  <rect
-                    x={basePixel.x + 3}
-                    y={topY - 20}
-                    width={9}
-                    height={22}
-                    rx={2}
-                    fill="rgba(15, 23, 42, 0.92)"
-                    stroke={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#94a3b8'}
-                    strokeWidth="1.2"
-                  />
-                  {/* Crossbeam / fallen lintel cap */}
-                  <line
-                    x1={basePixel.x - 14}
-                    y1={topY - 14}
-                    x2={basePixel.x - 1}
-                    y2={topY - 14}
-                    stroke="#e2e8f0"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                  />
-                  <line
-                    x1={basePixel.x + 1}
-                    y1={topY - 20}
-                    x2={basePixel.x + 14}
-                    y2={topY - 20}
-                    stroke="#e2e8f0"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                  />
+                  {obstacleAssetSrc ? (
+                    <image
+                      href={obstacleAssetSrc}
+                      x={basePixel.x - 34}
+                      y={topY - 48}
+                      width="68"
+                      height="68"
+                      preserveAspectRatio="xMidYMax meet"
+                      className="pixel-art"
+                      filter="url(#standee-drop-shadow)"
+                    />
+                  ) : (
+                    <>
+                      {/* Left Ruin Pillar */}
+                      <rect
+                        x={basePixel.x - 12}
+                        y={topY - 14}
+                        width={9}
+                        height={16}
+                        rx={2}
+                        fill="rgba(15, 23, 42, 0.92)"
+                        stroke={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#94a3b8'}
+                        strokeWidth="1.2"
+                      />
+                      {/* Right Ruin Pillar (taller) */}
+                      <rect
+                        x={basePixel.x + 3}
+                        y={topY - 20}
+                        width={9}
+                        height={22}
+                        rx={2}
+                        fill="rgba(15, 23, 42, 0.92)"
+                        stroke={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#94a3b8'}
+                        strokeWidth="1.2"
+                      />
+                      {/* Crossbeam / fallen lintel cap */}
+                      <line
+                        x1={basePixel.x - 14}
+                        y1={topY - 14}
+                        x2={basePixel.x - 1}
+                        y2={topY - 14}
+                        stroke="#e2e8f0"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                      />
+                      <line
+                        x1={basePixel.x + 1}
+                        y1={topY - 20}
+                        x2={basePixel.x + 14}
+                        y2={topY - 20}
+                        stroke="#e2e8f0"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                      />
+                    </>
+                  )}
                   {/* Obstacle / Ruins Label Badge */}
                   <rect
                     x={basePixel.x - 20}

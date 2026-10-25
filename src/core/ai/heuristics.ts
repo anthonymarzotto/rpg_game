@@ -1,5 +1,5 @@
 import { CombatUnit, CombatState } from '../combat/types';
-import { CombatArc, HexCoord, hexDistance, getDirectionBetween, POINTY_HEX_DIRECTIONS } from '../grid/hex';
+import { CombatArc, HexCoord, hexDistance } from '../grid/hex';
 import { AbilityMetrics } from '../combat/targetPreview';
 import { Ability } from '../types/ability';
 import { AIProfile, AIArchetypeWeights } from './types';
