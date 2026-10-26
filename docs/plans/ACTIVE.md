@@ -5,30 +5,43 @@
 ---
 
 ## 🔨 In Progress
-
-### 2. AI & Mechanics Edge Cases
-- [x] **2.5**: Assess breaking CHALLENGE status if damaged by an enemy other than the challenger. *(Decided: not pursuing — nerfs taunt/focus-fire synergy; folded into 2.6.)*
-- [x] **2.6**: Knight Commander Kit Rework & Synergy Taunt: *(Completed & archived in `knight-commander-rework`)*
-  * **`Lead the Charge` 2 AP Signature Tuning**: Retain 2 AP cost, adding `+2 Attack` roll buff alongside `+2 Move` and `+2 Speed` to allies within 3 hexes for 2 turns to drive team offensive tempo.
-  * **Synergy Taunt & `EXPOSED` Defiance Penalty**: When a `CHALLENGED` unit attacks a target other than its challenger, inflict `EXPOSED` (the next incoming attack against them gains Advantage, consumed on attack).
-  * **`Pommel Strike` Scaling vs. Challenged**: Add `+1d4` bonus damage when striking `CHALLENGED` targets, rewarding the Knight for engaging challenged foes.
-  * **Class Identity & Guard Clarification**: Knight leans fully into the Commander identity (tempo, team buffs, focus-fire setup). Dedicated guardian/interception mechanics reserved for Shield-bearer. Class catalog description updated.
+Nothing to see here.
 
 ---
 
-## 🎯 Next Up (Immediate Combat & UX Tuning)
+## 🎯 Next Up
 
 ### 1. In-Combat Unit Inspection & Effect Tooltips
 - [ ] **1.1**: Allow clicking/selecting any unit (ally or enemy) to pin their info card during combat.
 - [ ] **1.2**: Hover tooltips on active condition badges (inspect exact `POISON`, `BURN`, `STEALTH`, `CHALLENGED` effects & durations).
 - [ ] **1.3**: View active skill loadout and remaining AP/CTB in the pinned card.
 
-### 4. Enemy Threat Calibration & Pre-Ascension Snapshot
-- [ ] **4.1**: Investigate pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp). Balance against the player's ability to scout and plan for upcoming incursions rather than rubber-banding on deploy; re-evaluate alongside Horizon 2 sector map nodes.
+### 2. Enemy Threat Calibration & Pre-Ascension Snapshot
+- [ ] **2.1**: Investigate pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp). Balance against the player's ability to scout and plan for upcoming incursions rather than rubber-banding on deploy; re-evaluate alongside Horizon 2 sector map nodes. Generally, a bit too easy right now. Trial 3 and 6 were the most exciting and difficult tactically.
 
-### 5. UX Updates
-- [ ] **5.1**: Higlight movement path
-- [x] **5.2**: Implement the ruins tokens *(Completed: normalized 8-directional ruins pixel assets, deterministic coordinate rotation hashing, standee rendering in HexGridSvg with elevation alignment)*
+---
+
+## (icon) UX Updates
+- [ ] **UX.1**: Highlight movement path.
+- [ ] **UX.2**: Is it possible to show meeting an XP threshhold in the "Harvest Trial Spoils" dialog?
+- [ ] **UX.3**: "Harvest Trial Spoils** dialog: The whole "FRC: - +# + Total: #" is not visually appealing. No left/right space on the +/- buttons; redundant "+" on the added points (you can't be negative, its zero or positive); "Total" is bumped up against the "-" button; "Total:" is all over the place which is awkward; Warning "Allocate all ..." in the bottom left can just be a tooltip on the "Proceed to Camp" button;
+- [ ] **UX.4**: Combat Log: Filter by unit. Show actions where it was the actor or was targeted (or splash damaged).
+- [ ] **UX.5**: Let the User place their units at opening. Enemy team to also do better at starting positions.
+- [ ] **UX.6**: Combat Manifest: Show Archetype tags for Class Abilities.
+
+---
+
+## (icon) Bugs
+- [ ] **B.1**: The facing arrows should show at the highest layer. Right not they are hidden partially behind, at least, other adjacent units.
+- [ ] **B.2**: Skirmish shouts "Knockback!" when used. It either doesn't need anything, or should be something more appropriate.
+- [ ] **B.3**: Active turn halo is generally not clearing well. Hard to pinpoint exactly what's going on, but I'm on turn 7 and 4 units have a halo.
+- [ ] **B.4**: When an enemy uses Smoke Veil I can still see them.
+- [ ] **B.5**: "Stealth broken by damage" card in Combat Log is not nicely formatted.
+- [ ] **B.6**: Arcane Blast deals damage to the ground when targeting a hex with no unit.
+- [ ] **B.7**: Infiltrators are trying to Smoke Veil other units. I'm not sure if it was successful. Smoke Veil should only target self.
+- [ ] **B.8**: Burn damage card in Combat Log is not nicely formatted.
+- [ ] **B.9**: Garrick did not reveal Ash Infiltrator from Stealth on T12 move.
+- [ ] **B.10**: Shard effects don't show well in the Trial on ability cards.
 
 ---
 
