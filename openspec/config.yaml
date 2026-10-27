@@ -16,6 +16,7 @@ rules:
     - Assess whether a version bump (major, minor, or patch) is required according to Semantic Versioning and explicitly state the target version and rationale in the proposal.
   tasks:
     - Include a specific task to update CHANGELOG.md and bump the version in package.json when a version bump is required.
+    - Include a specific task to run `npm run build`.
 
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.
