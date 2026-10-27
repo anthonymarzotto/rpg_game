@@ -104,10 +104,7 @@ function StandeeStatusBubble({
         className="standee-tooltip-popup"
         pointerEvents="none"
       >
-        <div
-          xmlns="http://www.w3.org/1999/xhtml"
-          className="standee-tooltip-fo-container"
-        >
+        <div className="standee-tooltip-fo-container">
           <div className="standee-tooltip-wrapper">
             {badges.map((b, idx) => (
               <ConditionTooltipContent key={idx} tooltip={b.tooltip} />

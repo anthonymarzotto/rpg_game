@@ -125,9 +125,9 @@ describe('UnitStatusCard Component', () => {
 
   it('resolves condition source unit name from allUnits map', () => {
     const activeCu = createMockCombatUnit();
-    const garrick = createMockCombatUnit();
-    garrick.unit.id = 'garrick-1';
-    garrick.unit.name = 'Garrick the Brave';
+    const garrick = createMockCombatUnit({
+      unit: createRecruit('garrick-1', 'Garrick the Brave')
+    });
 
     const allUnits = new Map<string, CombatUnit>([
       [activeCu.unit.id, activeCu],
@@ -154,22 +154,18 @@ describe('UnitStatusCard Component', () => {
     const pinnedCu: CombatUnit = {
       ...createMockCombatUnit(),
       faction: 'ENEMY' as const,
-      unit: {
-        ...createRecruit('enemy-boss', 'High Inquisitor', { faction: 'ENEMY' }),
-        loadout: {
-          abilities: [
-            {
-              id: 'smite',
-              name: 'Holy Smite',
-              apCost: 2,
-              range: 1,
-              reach: 1,
-              damageType: 'RADIANT',
-              description: 'Strikes the target with searing divine light.'
-            } as any
-          ]
-        }
-      },
+      unit: createRecruit('enemy-boss', 'High Inquisitor', { faction: 'ENEMY' }),
+      abilities: [
+        {
+          id: 'smite',
+          name: 'Holy Smite',
+          apCost: 2,
+          range: 1,
+          reach: 1,
+          damageType: 'RADIANT',
+          description: 'Strikes the target with searing divine light.'
+        } as any
+      ],
       currentAp: 3,
       initiativeGauge: 85
     };

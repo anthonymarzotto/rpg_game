@@ -1,4 +1,4 @@
-import { ActiveCondition, ActiveModifier, CombatUnit } from '../../core/combat/types';
+import { CombatUnit } from '../../core/combat/types';
 import { TargetPreview } from '../../core/combat/targetPreview';
 import {
   getEffectiveArmor,
@@ -14,7 +14,8 @@ import {
   formatConditionBadge,
   formatModifierBadge,
   FormattedConditionBadge,
-  FormattedModifierBadge
+  FormattedModifierBadge,
+  ConditionTooltipInfo
 } from './conditionBadges';
 
 export { formatConditionBadge, formatModifierBadge };
@@ -468,11 +469,11 @@ export function UnitStatusCard({
           </div>
 
           {/* Equipped Abilities on Pinned Unit */}
-          {isPinned && inspectedCu.unit.loadout?.abilities && inspectedCu.unit.loadout.abilities.length > 0 && (
+          {isPinned && inspectedCu.abilities && inspectedCu.abilities.length > 0 && (
             <div className="pinned-loadout-section" data-testid="pinned-loadout-section">
               <div className="pinned-loadout-title">EQUIPPED ABILITIES:</div>
               <div className="pinned-abilities-list">
-                {inspectedCu.unit.loadout.abilities.map((ability) => (
+                {inspectedCu.abilities.map((ability) => (
                   <div key={ability.id} className="pinned-ability-item">
                     <div className="pinned-ability-row">
                       <span className="pinned-ability-name">{ability.name}</span>
