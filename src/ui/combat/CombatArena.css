@@ -547,6 +547,241 @@
   box-shadow: 0 0 6px rgba(245, 158, 11, 0.3);
 }
 
+.mod-badge {
+  position: relative;
+  cursor: help;
+  user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mod-badge:hover {
+  transform: translateY(-1px);
+}
+
+.condition-rich-tooltip {
+  min-width: 210px;
+  max-width: 270px;
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: #f1f5f9;
+  font-weight: normal;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  box-sizing: border-box;
+}
+
+.mod-badge .condition-rich-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.mod-badge:hover .condition-rich-tooltip {
+  display: flex;
+}
+
+.rich-tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 0.25rem;
+}
+
+.rich-tooltip-title {
+  color: #f8fafc;
+  font-size: 0.75rem;
+}
+
+.rich-tooltip-duration {
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.rich-tooltip-source {
+  color: #38bdf8;
+  font-size: 0.68rem;
+  font-weight: 600;
+  display: block;
+  overflow-wrap: break-word;
+}
+
+.rich-tooltip-rule {
+  color: #cbd5e1;
+  font-size: 0.7rem;
+  overflow-wrap: break-word;
+}
+
+/* Standee Status Bubble */
+.standee-status-bubble {
+  cursor: help;
+  pointer-events: all !important;
+}
+
+.standee-status-bubble .bubble-badge {
+  pointer-events: all;
+  transition: filter 0.15s ease, stroke 0.15s ease;
+}
+
+.standee-status-bubble:hover .bubble-badge {
+  filter: drop-shadow(0 0 6px #38bdf8);
+  stroke: #ffffff;
+}
+
+.standee-status-bubble .standee-tooltip-popup {
+  display: none;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.standee-status-bubble:hover .standee-tooltip-popup {
+  display: block;
+}
+
+.standee-tooltip-fo-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.standee-tooltip-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  max-width: 250px;
+  box-sizing: border-box;
+}
+
+.standee-tooltip-wrapper .condition-rich-tooltip {
+  position: static !important;
+  display: flex !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow-wrap: break-word;
+}
+
+/* Pinned Unit Card Styles */
+.pinned-badge {
+  background: rgba(56, 189, 248, 0.2) !important;
+  color: #38bdf8 !important;
+  border-color: rgba(56, 189, 248, 0.5) !important;
+}
+
+.pinned-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pinned-header-controls.is-pinned {
+  margin-left: auto;
+}
+
+.btn-unpin {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #cbd5e1;
+  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  font-size: 0.65rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-unpin:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+.pinned-loadout-section {
+  margin-top: 0.6rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 0.45rem;
+}
+
+.pinned-loadout-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+}
+
+.pinned-abilities-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.pinned-ability-item {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.7rem;
+}
+
+.pinned-ability-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.15rem;
+}
+
+.pinned-ability-name {
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.pinned-ability-ap {
+  font-weight: 600;
+  color: #38bdf8;
+  font-size: 0.65rem;
+}
+
+.pinned-ability-details {
+  display: flex;
+  gap: 0.3rem;
+  font-size: 0.62rem;
+  color: #94a3b8;
+  margin-bottom: 0.2rem;
+}
+
+.pinned-ability-desc {
+  font-size: 0.65rem;
+  color: #cbd5e1;
+  line-height: 1.25;
+}
+
 /* In-Battle Archetype XP Progression Tracker */
 .hud-xp-tracker {
   display: flex;
@@ -1874,18 +2109,47 @@
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  width: 190px;
+  width: 240px;
   background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
-  padding: 0.5rem 0.7rem;
+  padding: 0.55rem 0.75rem;
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
-  z-index: 35;
+  z-index: 100;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.passive-hover-tooltip .tooltip-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.35rem;
+}
+
+.passive-hover-tooltip .tooltip-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f8fafc;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.passive-hover-tooltip .tooltip-desc {
+  font-size: 0.7rem;
+  color: #cbd5e1;
+  line-height: 1.35;
+  margin-bottom: 0;
+  overflow-wrap: break-word;
 }
 
 .tooltip-tag.ready-tag {
@@ -1951,6 +2215,9 @@
 }
 
 .passive-chip-badge {
+  position: relative;
+  cursor: help;
+  user-select: none;
   font-size: 0.65rem;
   font-weight: 600;
   color: #94a3b8;
@@ -1961,6 +2228,27 @@
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.passive-chip-badge:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.passive-chip-badge .passive-hover-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  transform: none;
+  width: 240px;
+}
+
+.passive-chip-badge:hover .passive-hover-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-2px);
 }
 
 .passive-chip-badge.ready-glow {

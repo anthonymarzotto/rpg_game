@@ -5,16 +5,14 @@
 ---
 
 ## 🔨 In Progress
-Nothing to see here.
+### 1. In-Combat Unit Inspection & Effect Tooltips
+- [x] **1.1**: Allow clicking/selecting any unit (ally or enemy) to pin their info card during combat.
+- [x] **1.2**: Hover tooltips on active condition badges (inspect exact `POISON`, `BURN`, `STEALTH`, `CHALLENGED` effects & durations).
+- [x] **1.3**: View active skill loadout and remaining AP/CTB in the pinned card.
 
 ---
 
 ## 🎯 Next Up
-
-### 1. In-Combat Unit Inspection & Effect Tooltips
-- [ ] **1.1**: Allow clicking/selecting any unit (ally or enemy) to pin their info card during combat.
-- [ ] **1.2**: Hover tooltips on active condition badges (inspect exact `POISON`, `BURN`, `STEALTH`, `CHALLENGED` effects & durations).
-- [ ] **1.3**: View active skill loadout and remaining AP/CTB in the pinned card.
 
 ### 2. Enemy Threat Calibration & Pre-Ascension Snapshot
 - [ ] **2.1**: Investigate pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp). Balance against the player's ability to scout and plan for upcoming incursions rather than rubber-banding on deploy; re-evaluate alongside Horizon 2 sector map nodes. Generally, a bit too easy right now. Trial 3 and 6 were the most exciting and difficult tactically.
@@ -49,11 +47,9 @@ Nothing to see here.
 
 1. **Shard Stats in Combat Manifest**:
    * **1.1** *Observation*: Combat Manifest in the Unit Info dialog doesn't always reflect updated values from equipped shards (e.g. Bloodbound Shard modifying damage/dice description). Verify text evaluation vs runtime effect pipeline.
-2. **Knight Survivability & Soak**:
-   * *Observation*: Knight average soak in 3v3 was only 2.3. With 2 Armor and 0 Ward, magical damage (Warlock, Witch, Wizard, Sorcerer) completely bypasses mitigation, while physical attacks often shred or bypass armor. Consider exploring protective scaling (e.g. base Ward, or armor/soak bonuses against `CHALLENGED` foes).
-3. **Wildcard Loadout Impact on Combat Dynamics**:
+2. **Wildcard Loadout Impact on Combat Dynamics**:
    * *Observation*: In campaign generation (`createEnemyUnit`), enemies receive `wildcardPassiveIds: ['momentum']` and up to 2 starter abilities. Pure-kit benchmarks without wildcards hide natural synergies—e.g. Force units getting Advantage from `Momentum` after moving, or Cavalier using `Shield Bash` (1-hex knockback) to re-enable `Lance Charge` in close melee. Consider benchmark profiles that include standard starter wildcards.
-4. **Cavalier Kit Flow: Inherent Spacing vs. Wildcard Synergy**:
+3. **Cavalier Kit Flow: Inherent Spacing vs. Wildcard Synergy**:
    * *Observation*: Cavalier win rate rose from 38.1% to 50.0% and misses halved to 10.5% when equipped with Shield Bash (61 casts) and Momentum, breaking its range-1 lockout. Consider whether Cavalier needs an innate spacing mechanic in its base kit (e.g. minor shove or step) or if relying on brawler wildcards is the intended progression payoff.
-5. **Varied Resonant Loadouts for Generated Enemies**:
+4. **Varied Resonant Loadouts for Generated Enemies**:
    * *Observation*: Generated enemies in encounters currently receive a static wildcard passive (Momentum) and starter abilities. Implement a "level up" generation system where enemies dynamically draw realistic resonant abilities and passives from their unlocked constellation path with randomized variation across encounters rather than a static list.

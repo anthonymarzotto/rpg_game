@@ -9,78 +9,146 @@ import {
   getEffectiveSpeed
 } from '../../core/combat/effectiveVitals';
 import { getClassBadgePalette } from './tokenAssets';
+import { PassiveTrait } from '../../core/types/passive';
+import {
+  formatConditionBadge,
+  formatModifierBadge,
+  FormattedConditionBadge,
+  FormattedModifierBadge
+} from './conditionBadges';
+
+export { formatConditionBadge, formatModifierBadge };
+
+export function getPassiveIcon(passiveId: string): string {
+  switch (passiveId) {
+    case 'momentum':
+      return '⚡';
+    case 'unyielding':
+      return '🛡️';
+    case 'quickstep':
+      return '👟';
+    case 'arcane_aegis':
+      return '🔮';
+    case 'tactical_vanguard':
+      return '⚔️';
+    case 'elusive_stride':
+      return '💨';
+    case 'feline_grace':
+      return '🐾';
+    case 'deathbound_fury':
+      return '🩸';
+    case 'impact_velocity':
+      return '🐎';
+    case 'highway_toll':
+      return '💰';
+    case 'wild_surge':
+      return '✨';
+    case 'misfortune_ward':
+      return '🧿';
+    case 'soul_carapace':
+      return '💀';
+    default:
+      return '✦';
+  }
+}
+
+export function PassiveTooltipContent({
+  passive,
+  isReady,
+  testId
+}: {
+  readonly passive: PassiveTrait;
+  readonly isReady?: boolean;
+  readonly testId?: string;
+}) {
+  const icon = getPassiveIcon(passive.id);
+  const tagText = passive.id === 'momentum' ? 'ADVANTAGE READY' : 'READY';
+  return (
+    <div className="passive-hover-tooltip" role="tooltip" data-testid={testId}>
+      <div className="tooltip-title-row">
+        <span className="tooltip-name">
+          {icon} {passive.name}
+        </span>
+        {isReady && <span className="tooltip-tag ready-tag">{tagText}</span>}
+      </div>
+      <div className="tooltip-desc">{passive.description}</div>
+    </div>
+  );
+}
+
+export function PassiveBadgeItem({
+  passive,
+  isReady,
+  counterText,
+  testId
+}: {
+  readonly passive: PassiveTrait;
+  readonly isReady?: boolean;
+  readonly counterText?: string;
+  readonly testId?: string;
+}) {
+  return (
+    <span
+      className={`passive-chip-badge ${isReady ? 'ready-glow' : ''}`}
+      data-testid={testId}
+    >
+      <span className="passive-badge-label">{passive.name}</span>
+      {counterText && (
+        <span className="passive-chip-count">{counterText}</span>
+      )}
+      <PassiveTooltipContent passive={passive} isReady={isReady} />
+    </span>
+  );
+}
 
 export interface UnitStatusCardProps {
   readonly activeCu: CombatUnit | undefined;
   readonly targetPreview: TargetPreview | null;
   readonly hoveredUnitCu?: CombatUnit;
+  readonly pinnedUnitCu?: CombatUnit;
+  readonly onUnpinUnit?: () => void;
+  readonly allUnits?: ReadonlyMap<string, CombatUnit>;
 }
 
-function formatConditionBadge(cond: ActiveCondition): {
-  text: string;
-  isDebuff: boolean;
-  className: string;
-  title: string;
-} {
-  let icon = '';
-  let label: string = cond.type;
-  let isDebuff = false;
-  let className = 'condition-stealth';
-  let title = '';
-
-  if (cond.type === 'STEALTH') {
-    icon = '👤 ';
-    label = 'STEALTH';
-    isDebuff = false;
-    className = 'condition-stealth';
-    title = 'Stealthed: Untargetable by direct attacks. Next attack gains Advantage and breaks stealth.';
-  } else if (cond.type === 'POISON') {
-    icon = '🧪 ';
-    label = `POISON (${cond.damagePerTurn ?? 2} dmg)`;
-    isDebuff = true;
-    className = 'condition-poison';
-    title = `Poisoned: Suffers ${cond.damagePerTurn ?? 2} poison damage at the start of each turn.`;
-  } else if (cond.type === 'BURN') {
-    icon = '🔥 ';
-    label = `BURN (${cond.damagePerTurn ?? 2} dmg)`;
-    isDebuff = true;
-    className = 'condition-burn';
-    title = `Burned: Suffers ${cond.damagePerTurn ?? 2} fire damage at the start of each turn.`;
-  } else if (cond.type === 'CHALLENGED') {
-    icon = '⚔️ ';
-    label = 'CHALLENGED';
-    isDebuff = true;
-    className = 'condition-challenged';
-    title = 'Challenged: Must attack the challenger or suffer Disadvantage and EXPOSED.';
-  } else if (cond.type === 'EXPOSED') {
-    icon = '🎯 ';
-    label = 'EXPOSED';
-    isDebuff = true;
-    className = 'condition-exposed';
-    title = 'Exposed: Incoming attacks against this unit gain Advantage. Consumed on being attacked.';
-  }
-
-  const text = `${icon}${label} (${cond.durationTurns}t)`;
-  return { text, isDebuff, className, title };
+export function ConditionTooltipContent({
+  tooltip
+}: {
+  readonly tooltip: ConditionTooltipInfo;
+}) {
+  return (
+    <span className="condition-rich-tooltip" role="tooltip">
+      <span className="rich-tooltip-header">
+        <span className="rich-tooltip-title">
+          {tooltip.icon} {tooltip.name}
+        </span>
+        <span className="rich-tooltip-duration">{tooltip.durationText}</span>
+      </span>
+      {tooltip.sourceName && (
+        <span className="rich-tooltip-source">{tooltip.sourceName}</span>
+      )}
+      <span className="rich-tooltip-rule">{tooltip.ruleText}</span>
+    </span>
+  );
 }
 
-function formatModifierBadge(mod: ActiveModifier): { text: string; isDebuff: boolean } {
-  const isDebuff = mod.value < 0;
-  let icon = '';
-
-  if (mod.stat === 'move') {
-    icon = isDebuff ? '❄️ ' : '💨 ';
-  } else if (mod.stat === 'armor') {
-    icon = '🛡️ ';
-  } else if (mod.stat === 'ward') {
-    icon = '🔮 ';
-  } else if (mod.stat === 'speed') {
-    icon = '⚡ ';
-  }
-
-  const sign = mod.value > 0 ? `+${mod.value}` : `${mod.value}`;
-  const text = `${icon}${sign} ${mod.stat.toUpperCase()} (${mod.durationTurns}t)`;
-  return { text, isDebuff };
+export function ConditionBadgeItem({
+  badge,
+  testId
+}: {
+  readonly badge: FormattedConditionBadge | FormattedModifierBadge;
+  readonly testId?: string;
+}) {
+  const className = 'className' in badge ? badge.className : '';
+  const isDebuff = badge.isDebuff;
+  return (
+    <span
+      className={`mod-badge ${className} ${isDebuff ? 'debuff' : 'buff'}`}
+      data-testid={testId}
+    >
+      <span className="mod-badge-text">{badge.text}</span>
+      <ConditionTooltipContent tooltip={badge.tooltip} />
+    </span>
+  );
 }
 
 function formatRoleTitle(cu: CombatUnit): string {
@@ -93,7 +161,10 @@ function formatRoleTitle(cu: CombatUnit): string {
 export function UnitStatusCard({
   activeCu,
   targetPreview,
-  hoveredUnitCu
+  hoveredUnitCu,
+  pinnedUnitCu,
+  onUnpinUnit,
+  allUnits
 }: UnitStatusCardProps) {
   if (!activeCu) return null;
 
@@ -104,7 +175,19 @@ export function UnitStatusCard({
     (activeCu.passives ?? []).some((p) => p.id === 'momentum');
 
   const activeBadgePalette = getClassBadgePalette(activeCu.unit.loadout?.activeClassId);
-  const hoveredBadgePalette = getClassBadgePalette(hoveredUnitCu?.unit.loadout?.activeClassId);
+
+  const inspectedCu = !targetPreview
+    ? (hoveredUnitCu && hoveredUnitCu.unit.id !== activeCu.unit.id
+        ? hoveredUnitCu
+        : pinnedUnitCu && pinnedUnitCu.unit.id !== activeCu.unit.id
+          ? pinnedUnitCu
+          : undefined)
+    : undefined;
+
+  const isPinned = !hoveredUnitCu && Boolean(pinnedUnitCu && inspectedCu && inspectedCu.unit.id === pinnedUnitCu.unit.id);
+  const inspectedBadgePalette = getClassBadgePalette(inspectedCu?.unit.loadout?.activeClassId);
+
+  const getUnitName = (id: string) => allUnits?.get(id)?.unit.name ?? id;
 
   return (
     <div className="combat-status-overlay">
@@ -172,19 +255,18 @@ export function UnitStatusCard({
             <span className="passives-row-label">PASSIVES:</span>
             {activeCu.passives.map((p) => {
               const isReady = p.id === 'momentum' && (activeCu.hexesMovedThisTurn ?? 0) >= 2;
+              const counterText =
+                p.id === 'momentum'
+                  ? `(${Math.min(activeCu.hexesMovedThisTurn ?? 0, 2)}/2)`
+                  : undefined;
               return (
-                <span
+                <PassiveBadgeItem
                   key={p.id}
-                  className={`passive-chip-badge ${isReady ? 'ready-glow' : ''}`}
-                  title={p.description}
-                >
-                  {p.name}
-                  {p.id === 'momentum' && (
-                    <span className="passive-chip-count">
-                      ({Math.min(activeCu.hexesMovedThisTurn ?? 0, 2)}/2)
-                    </span>
-                  )}
-                </span>
+                  passive={p}
+                  isReady={isReady}
+                  counterText={counterText}
+                  testId={`passive-chip-${p.id}`}
+                />
               );
             })}
           </div>
@@ -195,27 +277,12 @@ export function UnitStatusCard({
           activeCu.activeModifiers.length > 0) && (
           <div className="active-modifiers-row">
             {activeCu.activeConditions?.map((cond, idx) => {
-              const { text, isDebuff, className, title } = formatConditionBadge(cond);
-              return (
-                <span
-                  key={`cond-${idx}`}
-                  className={`mod-badge ${className} ${isDebuff ? 'debuff' : 'buff'}`}
-                  title={title}
-                >
-                  {text}
-                </span>
-              );
+              const badge = formatConditionBadge(cond, getUnitName);
+              return <ConditionBadgeItem key={`cond-${idx}`} badge={badge} testId={`cond-${idx}`} />;
             })}
             {activeCu.activeModifiers.map((mod, idx) => {
-              const { text, isDebuff } = formatModifierBadge(mod);
-              return (
-                <span
-                  key={`mod-${idx}`}
-                  className={`mod-badge ${isDebuff ? 'debuff' : 'buff'}`}
-                >
-                  {text}
-                </span>
-              );
+              const badge = formatModifierBadge(mod);
+              return <ConditionBadgeItem key={`mod-${idx}`} badge={badge} testId={`mod-${idx}`} />;
             })}
           </div>
         )}
@@ -255,27 +322,12 @@ export function UnitStatusCard({
               hoveredUnitCu.activeModifiers.length > 0) && (
             <div className="active-modifiers-row">
               {hoveredUnitCu.activeConditions?.map((cond, idx) => {
-                const { text, isDebuff, className, title } = formatConditionBadge(cond);
-                return (
-                  <span
-                    key={`targ-cond-${idx}`}
-                    className={`mod-badge ${className} ${isDebuff ? 'debuff' : 'buff'}`}
-                    title={title}
-                  >
-                    {text}
-                  </span>
-                );
+                const badge = formatConditionBadge(cond, getUnitName);
+                return <ConditionBadgeItem key={`targ-cond-${idx}`} badge={badge} testId={`targ-cond-${idx}`} />;
               })}
               {hoveredUnitCu.activeModifiers.map((mod, idx) => {
-                const { text, isDebuff } = formatModifierBadge(mod);
-                return (
-                  <span
-                    key={`targ-mod-${idx}`}
-                    className={`mod-badge ${isDebuff ? 'debuff' : 'buff'}`}
-                  >
-                    {text}
-                  </span>
-                );
+                const badge = formatModifierBadge(mod);
+                return <ConditionBadgeItem key={`targ-mod-${idx}`} badge={badge} testId={`targ-mod-${idx}`} />;
               })}
             </div>
           )}
@@ -320,95 +372,123 @@ export function UnitStatusCard({
         </div>
       )}
 
-      {/* 3. Hovered Unit Details (when not targeting) */}
-      {!targetPreview && hoveredUnitCu && hoveredUnitCu.unit.id !== activeCu.unit.id && (
-        <div className="target-preview-card">
+      {/* 3. Inspected or Pinned Unit Details (when not targeting) */}
+      {!targetPreview && inspectedCu && inspectedCu.unit.id !== activeCu.unit.id && (
+        <div className="target-preview-card" data-testid={isPinned ? 'pinned-unit-card' : 'inspected-unit-card'}>
           <div className="preview-header">
-            <span className="preview-label">Inspected Unit</span>
-            <span className="unit-ctb-gauge text-muted">
-              Gauge: {hoveredUnitCu.initiativeGauge}/100
-            </span>
+            {!isPinned && <span className="preview-label">Inspected Unit</span>}
+            <div className={`pinned-header-controls ${isPinned ? 'is-pinned' : ''}`}>
+              <span className="unit-ctb-gauge text-muted">
+                {isPinned && `AP: ${inspectedCu.currentAp} • `}Gauge: {inspectedCu.initiativeGauge}/100
+              </span>
+              {isPinned && onUnpinUnit && (
+                <button
+                  type="button"
+                  className="btn-unpin"
+                  onClick={onUnpinUnit}
+                  title="Unpin unit (Esc or click ground)"
+                  data-testid="btn-unpin-unit"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
           <div className="preview-target-name">
-            <span className="preview-target-title">{hoveredUnitCu.unit.name}</span>
+            <span className="preview-target-title">{inspectedCu.unit.name}</span>
             <span
               className="unit-role-badge"
               style={{
-                color: hoveredBadgePalette.border,
-                backgroundColor: `${hoveredBadgePalette.primary}26`,
-                borderColor: `${hoveredBadgePalette.border}66`
+                color: inspectedBadgePalette.border,
+                backgroundColor: `${inspectedBadgePalette.primary}26`,
+                borderColor: `${inspectedBadgePalette.border}66`
               }}
             >
-              {formatRoleTitle(hoveredUnitCu)}
+              {formatRoleTitle(inspectedCu)}
             </span>
           </div>
 
           {/* Active Passives on Inspected Unit */}
-          {hoveredUnitCu.passives && hoveredUnitCu.passives.length > 0 && (
+          {inspectedCu.passives && inspectedCu.passives.length > 0 && (
             <div className="hud-passives-row">
               <span className="passives-row-label">PASSIVES:</span>
-              {hoveredUnitCu.passives.map((p) => (
-                <span
-                  key={p.id}
-                  className="passive-chip-badge"
-                  title={p.description}
-                >
-                  {p.name}
-                </span>
-              ))}
+              {inspectedCu.passives.map((p) => {
+                const isReady = p.id === 'momentum' && (inspectedCu.hexesMovedThisTurn ?? 0) >= 2;
+                const counterText =
+                  p.id === 'momentum'
+                    ? `(${Math.min(inspectedCu.hexesMovedThisTurn ?? 0, 2)}/2)`
+                    : undefined;
+                return (
+                  <PassiveBadgeItem
+                    key={p.id}
+                    passive={p}
+                    isReady={isReady}
+                    counterText={counterText}
+                    testId={`inspected-passive-chip-${p.id}`}
+                  />
+                );
+              })}
             </div>
           )}
 
           {/* Active Conditions & Modifiers on Inspected Unit */}
-          {((hoveredUnitCu.activeConditions && hoveredUnitCu.activeConditions.length > 0) ||
-            hoveredUnitCu.activeModifiers.length > 0) && (
+          {((inspectedCu.activeConditions && inspectedCu.activeConditions.length > 0) ||
+            inspectedCu.activeModifiers.length > 0) && (
             <div className="active-modifiers-row">
-              {hoveredUnitCu.activeConditions?.map((cond, idx) => {
-                const { text, isDebuff, className, title } = formatConditionBadge(cond);
-                return (
-                  <span
-                    key={`insp-cond-${idx}`}
-                    className={`mod-badge ${className} ${isDebuff ? 'debuff' : 'buff'}`}
-                    title={title}
-                  >
-                    {text}
-                  </span>
-                );
+              {inspectedCu.activeConditions?.map((cond, idx) => {
+                const badge = formatConditionBadge(cond, getUnitName);
+                return <ConditionBadgeItem key={`insp-cond-${idx}`} badge={badge} testId={`insp-cond-${idx}`} />;
               })}
-              {hoveredUnitCu.activeModifiers.map((mod, idx) => {
-                const { text, isDebuff } = formatModifierBadge(mod);
-                return (
-                  <span
-                    key={`insp-mod-${idx}`}
-                    className={`mod-badge ${isDebuff ? 'debuff' : 'buff'}`}
-                  >
-                    {text}
-                  </span>
-                );
+              {inspectedCu.activeModifiers.map((mod, idx) => {
+                const badge = formatModifierBadge(mod);
+                return <ConditionBadgeItem key={`insp-mod-${idx}`} badge={badge} testId={`insp-mod-${idx}`} />;
               })}
             </div>
           )}
 
           <div className="preview-details-grid">
             <div>
-              HP: <b>{hoveredUnitCu.currentHp} / {hoveredUnitCu.unit.effectiveVitals.maxHp}</b>
+              HP: <b>{inspectedCu.currentHp} / {inspectedCu.unit.effectiveVitals.maxHp}</b>
             </div>
             <div>
-              MOV: <b>{getEffectiveMove(hoveredUnitCu)}</b>
+              MOV: <b>{getEffectiveMove(inspectedCu)}</b>
             </div>
             <div>
-              EVA: <b>{getEffectiveEvasion(hoveredUnitCu)}</b>
+              EVA: <b>{getEffectiveEvasion(inspectedCu)}</b>
             </div>
             <div>
-              RES: <b>{getEffectiveResolve(hoveredUnitCu)}</b>
+              RES: <b>{getEffectiveResolve(inspectedCu)}</b>
             </div>
             <div>
-              ARM: <b>{getEffectiveArmor(hoveredUnitCu)}</b>
+              ARM: <b>{getEffectiveArmor(inspectedCu)}</b>
             </div>
             <div>
-              WRD: <b>{getEffectiveWard(hoveredUnitCu)}</b>
+              WRD: <b>{getEffectiveWard(inspectedCu)}</b>
             </div>
           </div>
+
+          {/* Equipped Abilities on Pinned Unit */}
+          {isPinned && inspectedCu.unit.loadout?.abilities && inspectedCu.unit.loadout.abilities.length > 0 && (
+            <div className="pinned-loadout-section" data-testid="pinned-loadout-section">
+              <div className="pinned-loadout-title">EQUIPPED ABILITIES:</div>
+              <div className="pinned-abilities-list">
+                {inspectedCu.unit.loadout.abilities.map((ability) => (
+                  <div key={ability.id} className="pinned-ability-item">
+                    <div className="pinned-ability-row">
+                      <span className="pinned-ability-name">{ability.name}</span>
+                      <span className="pinned-ability-ap">{ability.apCost} AP</span>
+                    </div>
+                    <div className="pinned-ability-details">
+                      <span>Range: {ability.range}</span>
+                      <span>•</span>
+                      <span className="text-capitalize">{ability.damageType.toLowerCase()}</span>
+                    </div>
+                    <div className="pinned-ability-desc">{ability.description}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

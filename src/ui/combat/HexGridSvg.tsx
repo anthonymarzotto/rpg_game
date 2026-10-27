@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { HexCoord, HexDirection, hexEquals, toHexKey, getFacingAngleDegrees, hexDistance } from '../../core/grid/hex';
-import { CombatState } from '../../core/combat/types';
+import { CombatState, CombatUnit } from '../../core/combat/types';
 import { TargetPreview } from '../../core/combat/targetPreview';
 import { FloatingText } from './useFloatingCombatText';
 import { resolveTokenAssetPath } from './tokenAssets';
@@ -13,6 +13,8 @@ import {
   DEFAULT_HEX_RADIUS
 } from './elevationGeometry';
 import { MovePathPreview } from './useCombatSimulation';
+import { formatConditionBadge, formatModifierBadge } from './conditionBadges';
+import { ConditionTooltipContent } from './UnitStatusCard';
 
 export interface HexGridSvgProps {
   readonly state: CombatState;
@@ -27,11 +29,95 @@ export interface HexGridSvgProps {
   readonly facingCompassCoord?: HexCoord | null;
   readonly onSelectFacing?: (direction: HexDirection) => void;
   readonly highlightedUnitId?: string | null;
+  readonly pinnedUnitId?: string | null;
   readonly onTileClick: (coord: HexCoord) => void;
   readonly onTileHover: (coord: HexCoord | null) => void;
 }
 
 const ALL_HEX_DIRECTIONS: readonly HexDirection[] = [0, 1, 2, 3, 4, 5];
+
+interface StandeeStatusBubbleProps {
+  readonly unitId: string;
+  readonly cu: CombatUnit;
+  readonly statusIcons: readonly string[];
+  readonly statusBubbleWidth: number;
+  readonly statusBubbleStroke: string;
+  readonly yOffset: number;
+  readonly state: CombatState;
+}
+
+function StandeeStatusBubble({
+  unitId,
+  cu,
+  statusIcons,
+  statusBubbleWidth,
+  statusBubbleStroke,
+  yOffset,
+  state
+}: StandeeStatusBubbleProps) {
+  const badges = useMemo(() => {
+    return [
+      ...(cu.activeConditions ?? []).map((c) =>
+        formatConditionBadge(c, (id) => state.units.get(id)?.unit.name ?? id)
+      ),
+      ...(cu.activeModifiers ?? []).map((m) =>
+        formatModifierBadge(m)
+      )
+    ];
+  }, [cu.activeConditions, cu.activeModifiers, state.units]);
+
+  return (
+    <g
+      transform={`translate(0, ${yOffset})`}
+      className="standee-status-bubble"
+      data-testid={`standee-status-bubble-${unitId}`}
+      pointerEvents="all"
+    >
+      <rect
+        x={-statusBubbleWidth / 2}
+        y="-6"
+        width={statusBubbleWidth}
+        height="12"
+        rx="6"
+        fill="rgba(15, 23, 42, 0.92)"
+        stroke={statusBubbleStroke}
+        strokeWidth="1"
+        className="bubble-badge"
+        pointerEvents="all"
+      />
+      <text
+        x="0"
+        y="3"
+        fontSize="7.5"
+        textAnchor="middle"
+        pointerEvents="none"
+      >
+        {statusIcons.join('')}
+      </text>
+
+      {/* Same In-Engine Condition Tooltip Component as Pinned Card */}
+      <foreignObject
+        x="-125"
+        y="-230"
+        width="250"
+        height="220"
+        className="standee-tooltip-popup"
+        pointerEvents="none"
+      >
+        <div
+          xmlns="http://www.w3.org/1999/xhtml"
+          className="standee-tooltip-fo-container"
+        >
+          <div className="standee-tooltip-wrapper">
+            {badges.map((b, idx) => (
+              <ConditionTooltipContent key={idx} tooltip={b.tooltip} />
+            ))}
+          </div>
+        </div>
+      </foreignObject>
+    </g>
+  );
+}
 
 export function HexGridSvg({
   state,
@@ -40,6 +126,7 @@ export function HexGridSvg({
   candidateTargetCoords,
   hoveredCoord,
   highlightedUnitId,
+  pinnedUnitId,
   floatingTexts,
   targetPreview,
   movePreview,
@@ -660,6 +747,23 @@ export function HexGridSvg({
                       />
                     )}
 
+                    {/* Pinned Unit Celestial Selection Bracket */}
+                    {unitId === pinnedUnitId && (
+                      <ellipse
+                        cx="0"
+                        cy="2"
+                        rx="25"
+                        ry="9.5"
+                        fill="none"
+                        stroke="#38bdf8"
+                        strokeWidth="2"
+                        strokeDasharray="6 3"
+                        filter="url(#tile-glow-cyan)"
+                        className="unit-pinned-ring"
+                        data-testid={`unit-pinned-ring-${unitId}`}
+                      />
+                    )}
+
                     {/* 3D Pedestal Base Rim / Bevel */}
                     <path
                       d="M -18 2 C -18 8, 18 8, 18 2 L 18 5 C 18 11, -18 11, -18 5 Z"
@@ -755,26 +859,15 @@ export function HexGridSvg({
 
                     {/* Active Status Effects on Standee */}
                     {statusIcons.length > 0 && (
-                      <g transform="translate(0, -74)">
-                        <rect
-                          x={-statusBubbleWidth / 2}
-                          y="-6"
-                          width={statusBubbleWidth}
-                          height="12"
-                          rx="6"
-                          fill="rgba(15, 23, 42, 0.92)"
-                          stroke={statusBubbleStroke}
-                          strokeWidth="1"
-                        />
-                        <text
-                          x="0"
-                          y="3"
-                          fontSize="7.5"
-                          textAnchor="middle"
-                        >
-                          {statusIcons.join('')}
-                        </text>
-                      </g>
+                      <StandeeStatusBubble
+                        unitId={unitId}
+                        cu={cu}
+                        statusIcons={statusIcons}
+                        statusBubbleWidth={statusBubbleWidth}
+                        statusBubbleStroke={statusBubbleStroke}
+                        yOffset={-74}
+                        state={state}
+                      />
                     )}
 
                     {/* Health Bar (below base) */}
@@ -901,26 +994,15 @@ export function HexGridSvg({
 
                     {/* Active Status Effects on Token */}
                     {statusIcons.length > 0 && (
-                      <g transform="translate(0, -34)">
-                        <rect
-                          x={-statusBubbleWidth / 2}
-                          y="-6"
-                          width={statusBubbleWidth}
-                          height="12"
-                          rx="6"
-                          fill="rgba(15, 23, 42, 0.92)"
-                          stroke={statusBubbleStroke}
-                          strokeWidth="1"
-                        />
-                        <text
-                          x="0"
-                          y="3"
-                          fontSize="7.5"
-                          textAnchor="middle"
-                        >
-                          {statusIcons.join('')}
-                        </text>
-                      </g>
+                      <StandeeStatusBubble
+                        unitId={unitId}
+                        cu={cu}
+                        statusIcons={statusIcons}
+                        statusBubbleWidth={statusBubbleWidth}
+                        statusBubbleStroke={statusBubbleStroke}
+                        yOffset={-34}
+                        state={state}
+                      />
                     )}
 
                     {/* Health Bar */}

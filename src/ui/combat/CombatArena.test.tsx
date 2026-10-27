@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CombatArena } from './CombatArena';
+import { CombatArena, handleArenaContextMenu } from './CombatArena';
 import { createNoviceSandboxEncounter } from '../../data/encounters/noviceSandbox';
 
 describe('CombatArena', () => {
@@ -79,5 +79,27 @@ describe('CombatArena', () => {
 
     expect(html).not.toContain('victory-modal-backdrop');
     expect(html).not.toContain('Trial Triumph!');
+  });
+
+  it('cancels ability targeting back to IDLE and prevents default on canvas contextmenu', () => {
+    const selectAction = vi.fn();
+    const preventDefault = vi.fn();
+
+    // 1. Right click in ABILITY targeting mode cancels ability back to IDLE
+    handleArenaContextMenu({ preventDefault }, 'ABILITY', selectAction);
+    expect(preventDefault).toHaveBeenCalled();
+    expect(selectAction).toHaveBeenCalledWith(null);
+
+    // 2. Right click in IDLE mode prevents default browser contextmenu without canceling
+    preventDefault.mockClear();
+    selectAction.mockClear();
+    handleArenaContextMenu({ preventDefault }, 'IDLE', selectAction);
+    expect(preventDefault).toHaveBeenCalled();
+    expect(selectAction).not.toHaveBeenCalled();
+
+    // 3. Canvas container is rendered within CombatArena DOM layout
+    const encounter = createNoviceSandboxEncounter();
+    const html = renderToStaticMarkup(<CombatArena encounter={encounter} onExit={vi.fn()} />);
+    expect(html).toContain('arena-canvas-container');
   });
 });

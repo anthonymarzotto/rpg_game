@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useCombatSimulation } from './useCombatSimulation';
 import { DiceMode } from './devDice';
 import { createNoviceSandboxEncounter } from '../../data/encounters/noviceSandbox';
@@ -27,6 +27,17 @@ export interface CombatArenaProps {
   readonly onVictory?: (result: { state: CombatState; unitXpGains?: Record<string, InBattleXp>; summaries?: readonly SquadMemberVictorySummary[] }) => void;
   readonly onDefeat?: (result: { state: CombatState; unitXpGains?: Record<string, InBattleXp> }) => void;
   readonly onExit?: () => void;
+}
+
+export function handleArenaContextMenu(
+  e: { preventDefault: () => void },
+  actionMode: string,
+  selectAction: (ability: null) => void
+) {
+  e.preventDefault();
+  if (actionMode === 'ABILITY') {
+    selectAction(null);
+  }
 }
 
 export function CombatArena({
@@ -59,6 +70,8 @@ export function CombatArena({
     selectedAbility,
     hoveredCoord,
     setHoveredCoord,
+    pinnedUnitId,
+    setPinnedUnitId,
     diceMode,
     setDiceMode,
     floatingTexts,
@@ -99,6 +112,13 @@ export function CombatArena({
     }
   };
 
+  const handleCanvasContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      handleArenaContextMenu(e, actionMode, selectAction);
+    },
+    [actionMode, selectAction]
+  );
+
   const hoveredUnitCu = useMemo(() => {
     if (!hoveredCoord) return undefined;
     const unitId = state.arena.getUnitAt(hoveredCoord);
@@ -115,6 +135,10 @@ export function CombatArena({
     }
     return hoveredUnitCu;
   }, [ribbonHoveredUnitId, hoveredUnitCu, state.units]);
+
+  const pinnedUnitCu = useMemo(() => {
+    return pinnedUnitId ? state.units.get(pinnedUnitId) : undefined;
+  }, [pinnedUnitId, state.units]);
 
   // Squad members for defeat modal display
   const playerSquadUnits = useMemo(() => {
@@ -297,7 +321,9 @@ export function CombatArena({
           <InitiativeRibbon
             state={state}
             highlightedUnitId={highlightedUnitId}
+            pinnedUnitId={pinnedUnitId}
             onHoverUnit={setRibbonHoveredUnitId}
+            onPinUnit={(id) => setPinnedUnitId((prev) => (prev === id ? null : id))}
           />
         </div>
 
@@ -308,6 +334,9 @@ export function CombatArena({
             activeCu={activeCu}
             targetPreview={targetPreview}
             hoveredUnitCu={effectiveHoveredUnitCu}
+            pinnedUnitCu={pinnedUnitCu}
+            onUnpinUnit={() => setPinnedUnitId(null)}
+            allUnits={state.units}
           />
 
           {/* Center SVG Hex Arena */}
@@ -315,6 +344,7 @@ export function CombatArena({
             className="arena-canvas-container"
             onWheel={handleCanvasWheel}
             onClick={isOpeningInitiativeActive ? skipOpeningInitiative : undefined}
+            onContextMenu={handleCanvasContextMenu}
           >
             <HexGridSvg
               state={state}
@@ -323,6 +353,7 @@ export function CombatArena({
               candidateTargetCoords={candidateTargetCoords}
               hoveredCoord={hoveredCoord}
               highlightedUnitId={highlightedUnitId}
+              pinnedUnitId={pinnedUnitId}
               floatingTexts={floatingTexts}
               targetPreview={targetPreview}
               movePreview={movePreview}

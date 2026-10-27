@@ -358,6 +358,52 @@ describe('useCombatSimulation movePreview & fall hazard detection', () => {
     expect(cleanup).toBeUndefined();
     expect(capturedHook!.hostileActionStatus).toBeNull();
   });
+
+  it('pins and unpins units via tile clicks in IDLE mode', () => {
+    const player = createRecruit('p1', 'Alden', { faction: 'PLAYER' });
+    const enemy = createRecruit('e1', 'Goblin', { faction: 'ENEMY' });
+    const encounter: EncounterDefinition = {
+      id: 'pin-test-encounter',
+      name: 'Pin Test',
+      arenaRadius: 3,
+      units: [
+        { unit: player, coord: { q: 0, r: 0 } },
+        { unit: enemy, coord: { q: 2, r: 0 } }
+      ]
+    };
+
+    let capturedHook: ReturnType<typeof useCombatSimulation> | null = null;
+    function Harness() {
+      capturedHook = useCombatSimulation({ encounter });
+      return null;
+    }
+
+    renderToStaticMarkup(<Harness />);
+    expect(capturedHook).not.toBeNull();
+    // Skip opening animation so tile clicks interact normally with arena
+    capturedHook!.skipOpeningInitiative();
+    expect(capturedHook!.pinnedUnitId).toBeNull();
+
+    // Click on enemy tile in IDLE mode -> pins enemy
+    capturedHook!.handleTileClick({ q: 2, r: 0 });
+    expect(capturedHook!.pinnedUnitId).toBe('e1');
+
+    // Click on enemy tile again -> unpins enemy (toggle)
+    capturedHook!.handleTileClick({ q: 2, r: 0 });
+    expect(capturedHook!.pinnedUnitId).toBeNull();
+
+    // Pin enemy again, then click empty ground tile { q: 1, r: 0 } -> unpins
+    capturedHook!.handleTileClick({ q: 2, r: 0 });
+    expect(capturedHook!.pinnedUnitId).toBe('e1');
+    capturedHook!.handleTileClick({ q: 1, r: 0 });
+    expect(capturedHook!.pinnedUnitId).toBeNull();
+
+    // Direct setter works
+    capturedHook!.setPinnedUnitId('p1');
+    expect(capturedHook!.pinnedUnitId).toBe('p1');
+    capturedHook!.setPinnedUnitId(null);
+    expect(capturedHook!.pinnedUnitId).toBeNull();
+  });
 });
 
 

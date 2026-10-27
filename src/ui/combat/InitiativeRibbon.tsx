@@ -7,13 +7,17 @@ import './InitiativeRibbon.css';
 export interface InitiativeRibbonProps {
   readonly state: CombatState;
   readonly highlightedUnitId?: string | null;
+  readonly pinnedUnitId?: string | null;
   readonly onHoverUnit?: (unitId: string | null) => void;
+  readonly onPinUnit?: (unitId: string) => void;
 }
 
 export function InitiativeRibbon({
   state,
   highlightedUnitId,
-  onHoverUnit
+  pinnedUnitId,
+  onHoverUnit,
+  onPinUnit
 }: InitiativeRibbonProps) {
   const projectedTurns = useMemo(() => {
     return predictTurnOrder(state, 8);
@@ -36,6 +40,7 @@ export function InitiativeRibbon({
           const tokenSrc = unit ? resolveTokenAssetPath(unit) : null;
           const isPlayer = turn.faction === 'PLAYER';
           const isHighlighted = highlightedUnitId != null && turn.unitId === highlightedUnitId;
+          const isPinned = pinnedUnitId != null && turn.unitId === pinnedUnitId;
           const level = unit?.progression?.currentLevel ?? 0;
           const classId = unit?.loadout?.activeClassId ?? 'novice';
           const className = classId.charAt(0).toUpperCase() + classId.slice(1);
@@ -51,9 +56,10 @@ export function InitiativeRibbon({
                 turn.isCurrentActive ? 'chip-active' : ''
               } ${isPlayer ? 'chip-player' : 'chip-enemy'} ${
                 isHighlighted ? 'chip-highlighted' : ''
-              }`}
+              } ${isPinned ? 'chip-pinned' : ''}`}
               onMouseEnter={() => onHoverUnit?.(turn.unitId)}
               onMouseLeave={() => onHoverUnit?.(null)}
+              onClick={() => onPinUnit?.(turn.unitId)}
               data-testid={`initiative-chip-${turn.unitId}-${index}`}
               title={tooltip}
             >

@@ -2,6 +2,16 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.7.0] - 2026-10-26
+
+### In-Combat Unit Inspection & Tactical Zero-Hover Badges
+- **Unit Pinning**: Click any combatant (ally or enemy) or timeline ribbon chip during combat to pin their inspection card in the secondary HUD slot.
+- **Equipped Ability Loadout & CTB Display**: Inspect pinned unit's equipped skills (name, AP cost, reach/range, description), remaining AP, and turn clock progress.
+- **Smart Condition Badges**: Active condition pills display source attribution (e.g. `⚔️ CHALLENGED (2t • Garrick): Disadv`) and tactical effect mnemonics (`+Adv`, `Disadv`, `2 dmg/t`) directly on cards and standees.
+- **Instant Condition & Passive Tooltips**: Hovering active condition badges or passive trait chips in unit cards and the action bar provides rich, zero-latency in-engine tooltips with names, source attribution, readiness states, and full mechanical rule text.
+- **Board-Side Standee Status Bubble Hover**: Standee status bubbles directly on the battlefield hexes now support native hover tooltips without losing targeting focus.
+- **Right-Click Targeting Cancellation**: Right-clicking anywhere on the combat canvas cancels ability targeting back to `IDLE` mode and suppresses the browser context menu. Dismiss pinned cards anytime with `Escape` or by clicking empty arena ground.
+
 ## [0.6.0] - 2026-10-25
 
 ### Ruins Obstacles & Standees

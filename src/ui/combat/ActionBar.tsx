@@ -3,6 +3,7 @@ import { CombatUnit } from '../../core/combat/types';
 import { ActionMode } from './useCombatSimulation';
 import { getEffectiveAbility } from '../../core/combat/modifiers';
 import { formatDisciplineName } from './combatXpUtils';
+import { getPassiveIcon, PassiveTooltipContent } from './UnitStatusCard';
 
 export interface ActionBarProps {
   readonly activeCu: CombatUnit | undefined;
@@ -210,16 +211,7 @@ export function ActionBar({
           {activeCu.passives.map((passive) => {
             const isMomentum = passive.id === 'momentum';
             const isMomentumReady = isMomentum && (activeCu.hexesMovedThisTurn ?? 0) >= 2;
-            const icon =
-              passive.id === 'momentum'
-                ? '⚡'
-                : passive.id === 'unyielding'
-                ? '🛡️'
-                : passive.id === 'quickstep'
-                ? '👟'
-                : passive.id === 'arcane_aegis'
-                ? '🔮'
-                : '✦';
+            const icon = getPassiveIcon(passive.id);
 
             return (
               <div
@@ -235,13 +227,7 @@ export function ActionBar({
                 )}
 
                 {/* Hover Tooltip */}
-                <div className="passive-hover-tooltip">
-                  <div className="tooltip-title-row">
-                    <span className="tooltip-name">{passive.name}</span>
-                    {isMomentumReady && <span className="tooltip-tag ready-tag">ADVANTAGE READY</span>}
-                  </div>
-                  <div className="tooltip-desc">{passive.description}</div>
-                </div>
+                <PassiveTooltipContent passive={passive} isReady={isMomentumReady} />
               </div>
             );
           })}

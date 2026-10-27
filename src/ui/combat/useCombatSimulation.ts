@@ -66,6 +66,18 @@ export function useCombatSimulation({
   const [selectedAbility, setSelectedAbility] = useState<Ability | null>(initialSelectedAbility ?? null);
   const [facingCompassCoord, setFacingCompassCoord] = useState<HexCoord | null>(null);
   const [hoveredCoord, setHoveredCoord] = useState<HexCoord | null>(null);
+  const pinnedUnitIdRef = useRef<string | null>(null);
+  const [pinnedUnitId, setPinnedUnitIdState] = useState<string | null>(null);
+
+  const setPinnedUnitId = useCallback(
+    (action: string | null | ((prev: string | null) => string | null)) => {
+      const next = typeof action === 'function' ? action(pinnedUnitIdRef.current) : action;
+      pinnedUnitIdRef.current = next;
+      setPinnedUnitIdState(next);
+    },
+    []
+  );
+
   const [diceMode, setDiceMode] = useState<DiceMode>('NORMAL');
   const isOpeningInitiativeActiveRef = useRef<boolean>(true);
   const [isOpeningInitiativeActive, setIsOpeningInitiativeActiveState] = useState<boolean>(true);
@@ -400,6 +412,12 @@ export function useCombatSimulation({
         if (facingCompassCoord) {
           setFacingCompassCoord(null);
         }
+        const clickedUnitId = state.arena.getUnitAt(coord);
+        if (clickedUnitId) {
+          setPinnedUnitId((prev) => (prev === clickedUnitId ? null : clickedUnitId));
+        } else {
+          setPinnedUnitId(null);
+        }
       } else if (actionMode === 'ABILITY' && selectedAbility) {
         const targetUnitId = state.arena.getUnitAt(coord);
         const validation = canExecuteAbility(state, state.activeUnitId, selectedAbility, {
@@ -545,6 +563,7 @@ export function useCombatSimulation({
       setSelectedAbility(null);
       setFacingCompassCoord(null);
       setHoveredCoord(null);
+      setPinnedUnitId(null);
       clearFloatingTexts();
     },
     [encounter, clearFloatingTexts]
@@ -571,8 +590,25 @@ export function useCombatSimulation({
     setSelectedAbility(null);
     setFacingCompassCoord(null);
     setHoveredCoord(null);
+    setPinnedUnitId(null);
     clearFloatingTexts();
   }, [encounter, clearFloatingTexts]);
+
+  // Global keydown listener for Escape (dismiss ability targeting / unpin unit)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (actionMode === 'ABILITY' || actionMode === 'MOVE') {
+          setActionMode('IDLE');
+          setSelectedAbility(null);
+        } else if (pinnedUnitId) {
+          setPinnedUnitId(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [actionMode, pinnedUnitId]);
 
   return {
     state,
@@ -590,6 +626,10 @@ export function useCombatSimulation({
     selectedAbility,
     hoveredCoord,
     setHoveredCoord,
+    get pinnedUnitId() {
+      return pinnedUnitIdRef.current;
+    },
+    setPinnedUnitId,
     diceMode,
     setDiceMode,
     floatingTexts,

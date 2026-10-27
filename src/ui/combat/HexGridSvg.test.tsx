@@ -420,6 +420,61 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
     // Enemy renders full title
     expect(html).toContain('>Ash Novice<');
   });
+
+  it('renders celestial selection ring unit-pinned-ring around pinned combatant', () => {
+    const { state } = setupTestState();
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        pinnedUnitId="e1"
+        floatingTexts={[]}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('unit-pinned-ring');
+  });
+
+  it('renders interactive standee status bubble with rich condition tooltip text', () => {
+    const { state } = setupTestState();
+    const enemyCu = state.units.get('e1')!;
+    enemyCu.activeConditions = [
+      {
+        type: 'CHALLENGED',
+        durationTurns: 2,
+        sourceUnitId: 'p1'
+      }
+    ];
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('standee-status-bubble');
+    expect(html).toContain('data-testid="standee-status-bubble-e1"');
+    expect(html).toContain('standee-tooltip-popup');
+    expect(html).toContain('condition-rich-tooltip');
+    expect(html).toContain('CHALLENGED');
+    expect(html).toContain('2 turns remaining');
+    expect(html).toContain('Source: Alden');
+    expect(html).toContain('Must attack Alden');
+  });
 });
 
 
