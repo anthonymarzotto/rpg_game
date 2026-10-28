@@ -2,6 +2,17 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.7.2] - 2026-10-28
+
+### Harvest Trial Spoils UX Polish & XP Threshold Previews
+- **Master-Detail Squad Dock & Inspector**: Replaced cramped multi-column cards with a scalable master-detail layout featuring a left squad member dock and an expansive right-hand unit inspector, eliminating box overflow and future-proofing the dialog for larger party sizes.
+- **Aligned 3-Column Stepper Grid**: Structured stepper rows into a spacious 3-column CSS Grid (`100px 1fr 90px`) with full discipline labels (`FORCE`, `FINESSE`, `FOCUS`) and generous button padding.
+- **Clean Number Formatting**: Removed redundant `+` prefixes from stepper allocation values, displaying clean non-negative integers (`0`, `1`, `2`).
+- **Button Spacing & Ergonomics**: Added dedicated horizontal margins to `[-]` and `[+]` stepper buttons and expanded button targets to 30px squares.
+- **Level Requirement Card Meta**: Displayed hero progression thresholds once in the unit inspector meta header (e.g. `Level 0 (Req: 5 XP)` or `(MAX)`), removing redundant divisor clutter from individual rows.
+- **Milestone Readiness Badges**: Replaced raw `Total: #` strings with styled right-aligned pills that illuminate in emerald/amber with a `★` indicator in both the squad dock and inspector when projected archetype XP meets or exceeds the promotion threshold.
+- **Action Validation Tooltip**: Relocated bottom-left warning text to a hover tooltip (`"Allocate all remaining XP to continue"`) on the disabled "Proceed to Camp" button container, keeping the dialog footer clean.
+
 ## [0.7.1] - 2026-10-27
 
 ### Combat Polish, UI Feedback & Bug Fixes

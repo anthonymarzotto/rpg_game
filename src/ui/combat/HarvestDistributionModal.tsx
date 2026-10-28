@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Unit } from '../../core/types/unit';
 import { InBattleXp } from '../../core/combat/types';
 import { calculateRetainedPartyXp } from '../../core/campaign/transitions';
+import { LEVEL_XP_THRESHOLDS } from '../../core/config/balance';
+import { MAX_LEVEL } from '../../core/progression/pyramid';
 import { resolveTokenAssetPath } from './tokenAssets';
 import './HarvestDistributionModal.css';
 
@@ -14,9 +16,9 @@ export interface HarvestDistributionModalProps {
 }
 
 const ARCHETYPES: { key: keyof InBattleXp; label: string; icon: string; tag: string }[] = [
-  { key: 'fighter', label: 'Force', icon: '⚔️', tag: 'FRC' },
-  { key: 'rogue', label: 'Finesse', icon: '🗡️', tag: 'FIN' },
-  { key: 'mage', label: 'Focus', icon: '✨', tag: 'FOC' }
+  { key: 'fighter', label: 'Force', icon: '⚔️', tag: 'FORCE' },
+  { key: 'rogue', label: 'Finesse', icon: '🗡️', tag: 'FINESSE' },
+  { key: 'mage', label: 'Focus', icon: '✨', tag: 'FOCUS' }
 ];
 
 export function autoFillPool(
@@ -71,12 +73,20 @@ export function HarvestDistributionModal({
   }, [squadUnitIds]);
 
   const [allocations, setAllocations] = useState<Record<string, InBattleXp>>(initialAllocations);
+  const [selectedUnitId, setSelectedUnitId] = useState<string>(squadUnits[0]?.id ?? '');
 
   useEffect(() => {
     if (isOpen) {
       setAllocations(initialAllocations);
+      if (squadUnits[0]?.id) {
+        setSelectedUnitId(squadUnits[0].id);
+      }
     }
   }, [isOpen, squadUnitIds]);
+
+  const selectedUnit = useMemo(() => {
+    return squadUnits.find((u) => u.id === selectedUnitId) ?? squadUnits[0];
+  }, [squadUnits, selectedUnitId]);
 
   const allocatedTotals = useMemo(() => {
     const totals: InBattleXp = { fighter: 0, rogue: 0, mage: 0 };
@@ -196,26 +206,100 @@ export function HarvestDistributionModal({
           </div>
         </div>
 
-        {/* Squad Unit Steppers Grid */}
-        <div className="harvest-squad-grid" data-testid="harvest-squad-grid">
-          {squadUnits.map((unit) => {
+        {/* Main Content Layout: Left Dock, Right Inspector */}
+        <div className="harvest-main-layout" data-testid="harvest-main-layout">
+          {/* Squad Dock (Left) */}
+          <div className="harvest-squad-dock" role="tablist" aria-label="Squad Members" data-testid="harvest-squad-dock">
+            <div className="dock-header">
+              <span className="dock-title">Vanguard Squad</span>
+              <span className="dock-count">{squadUnits.length} Units</span>
+            </div>
+
+            <div className="dock-list">
+              {squadUnits.map((unit) => {
+                const isSelected = unit.id === selectedUnit?.id;
+                const tokenSrc = resolveTokenAssetPath(unit);
+                const unitAlloc = allocations[unit.id] ?? { fighter: 0, rogue: 0, mage: 0 };
+                const baseAcc = unit.progression?.accumulatedXp ?? { fighter: 0, rogue: 0, mage: 0 };
+                const currentLevel = unit.progression?.currentLevel ?? 0;
+                const isMaxLevel = currentLevel >= MAX_LEVEL;
+                const threshold = LEVEL_XP_THRESHOLDS[currentLevel] ?? 5;
+
+                const totalUnitAlloc = (unitAlloc.fighter ?? 0) + (unitAlloc.rogue ?? 0) + (unitAlloc.mage ?? 0);
+                const hasLevelReady = !isMaxLevel && (
+                  (baseAcc.fighter ?? 0) + (unitAlloc.fighter ?? 0) >= threshold ||
+                  (baseAcc.rogue ?? 0) + (unitAlloc.rogue ?? 0) >= threshold ||
+                  (baseAcc.mage ?? 0) + (unitAlloc.mage ?? 0) >= threshold
+                );
+
+                return (
+                  <button
+                    key={unit.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isSelected}
+                    className={`dock-unit-item ${isSelected ? 'active' : ''}`}
+                    onClick={() => setSelectedUnitId(unit.id)}
+                    data-testid={`dock-unit-${unit.id}`}
+                  >
+                    {tokenSrc ? (
+                      <img src={tokenSrc} alt={unit.name} className="dock-token pixel-art" />
+                    ) : (
+                      <div className="dock-token-fallback">{unit.name.charAt(0)}</div>
+                    )}
+                    <div className="dock-meta">
+                      <div className="dock-name-row">
+                        <span className="dock-name">{unit.name}</span>
+                        {hasLevelReady && (
+                          <span className="dock-star-badge" title="Level Up Ready" data-testid={`dock-star-${unit.id}`}>★</span>
+                        )}
+                      </div>
+                      <div className="dock-sub-row">
+                        <span className="dock-class">
+                          {unit.loadout?.activeClassId ? unit.loadout.activeClassId.toUpperCase() : 'NOVICE'}
+                        </span>
+                        <span className="dock-level">Lvl {currentLevel}</span>
+                      </div>
+                      <div className="dock-alloc-row">
+                        <span className={`dock-alloc-badge ${totalUnitAlloc > 0 ? 'allocated' : ''}`}>
+                          {totalUnitAlloc > 0 ? `+${totalUnitAlloc} XP` : '0 XP'}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Unit Inspector (Right) */}
+          {selectedUnit && (() => {
+            const unit = selectedUnit;
             const tokenSrc = resolveTokenAssetPath(unit);
             const unitAlloc = allocations[unit.id] ?? { fighter: 0, rogue: 0, mage: 0 };
             const baseAcc = unit.progression?.accumulatedXp ?? { fighter: 0, rogue: 0, mage: 0 };
+            const currentLevel = unit.progression?.currentLevel ?? 0;
+            const isMaxLevel = currentLevel >= MAX_LEVEL;
+            const threshold = LEVEL_XP_THRESHOLDS[currentLevel] ?? 5;
 
             return (
-              <div key={unit.id} className="harvest-unit-card" data-testid={`harvest-unit-${unit.id}`}>
-                <div className="unit-card-header">
+              <div className="harvest-inspector-panel" data-testid={`harvest-inspector-${unit.id}`}>
+                <div className="inspector-header">
                   {tokenSrc ? (
-                    <img src={tokenSrc} alt={unit.name} className="unit-card-token pixel-art" />
+                    <img src={tokenSrc} alt={unit.name} className="inspector-token pixel-art" />
                   ) : (
-                    <div className="unit-card-token-fallback">{unit.name.charAt(0)}</div>
+                    <div className="inspector-token-fallback">{unit.name.charAt(0)}</div>
                   )}
-                  <div className="unit-card-meta">
-                    <span className="unit-name">{unit.name}</span>
-                    <span className="unit-class-badge">
-                      {unit.loadout?.activeClassId ? unit.loadout.activeClassId.toUpperCase() : 'NOVICE'}
-                    </span>
+                  <div className="inspector-meta">
+                    <span className="inspector-name">{unit.name}</span>
+                    <div className="inspector-submeta">
+                      <span className="unit-class-badge">
+                        {unit.loadout?.activeClassId ? unit.loadout.activeClassId.toUpperCase() : 'NOVICE'}
+                      </span>
+                      <span className="unit-level-badge" data-testid={`unit-level-badge-${unit.id}`}>
+                        Level {currentLevel} {!isMaxLevel ? `(Req: ${threshold} XP)` : '(MAX)'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -225,6 +309,8 @@ export function HarvestDistributionModal({
                     const baseVal = baseAcc[key] ?? 0;
                     const canAdd = remainingPool[key] > 0;
                     const canSubtract = currentAlloc > 0;
+                    const projectedVal = baseVal + currentAlloc;
+                    const isThresholdMet = !isMaxLevel && projectedVal >= threshold;
 
                     return (
                       <div key={key} className={`stepper-row stepper-${key}`}>
@@ -248,7 +334,7 @@ export function HarvestDistributionModal({
                             className={`stepper-value ${currentAlloc > 0 ? 'allocated' : ''}`}
                             data-testid={`alloc-val-${unit.id}-${key}`}
                           >
-                            +{currentAlloc}
+                            {currentAlloc}
                           </span>
                           <button
                             type="button"
@@ -262,9 +348,16 @@ export function HarvestDistributionModal({
                           </button>
                         </div>
 
-                        <div className="stepper-projected">
-                          <span className="projected-label">Total:</span>
-                          <span className="projected-val">{baseVal + currentAlloc}</span>
+                        <div
+                          className={`stepper-projected-pill ${isThresholdMet ? 'threshold-met' : ''} ${currentAlloc > 0 ? 'allocated' : ''}`}
+                          data-testid={`projected-pill-${unit.id}-${key}`}
+                        >
+                          <span className="projected-val">{projectedVal} XP</span>
+                          {isThresholdMet && (
+                            <span className="milestone-star" data-testid={`milestone-star-${unit.id}-${key}`} aria-label="Level ready">
+                              ★
+                            </span>
+                          )}
                         </div>
                       </div>
                     );
@@ -272,28 +365,26 @@ export function HarvestDistributionModal({
                 </div>
               </div>
             );
-          })}
+          })()}
         </div>
 
         {/* Footer Actions */}
         <div className="harvest-footer">
-          <div className="harvest-footer-status">
-            {!isPoolDepleted && (
-              <span className="status-warning" data-testid="harvest-status-warning">
-                Allocate all remaining XP to continue (or click Distribute Evenly)
-              </span>
-            )}
-          </div>
-
-          <button
-            type="button"
-            className={`btn-harvest-confirm ${isVictory ? 'btn-victory' : 'btn-defeat'}`}
-            disabled={!isPoolDepleted}
-            onClick={handleConfirm}
-            data-testid="harvest-confirm-btn"
+          <div
+            className="harvest-confirm-wrapper"
+            data-testid="harvest-confirm-wrapper"
+            title={!isPoolDepleted ? 'Allocate all remaining XP to continue' : undefined}
           >
-            {isVictory ? '✦ Proceed to Camp' : '↩ Retreat to Camp'}
-          </button>
+            <button
+              type="button"
+              className={`btn-harvest-confirm ${isVictory ? 'btn-victory' : 'btn-defeat'}`}
+              disabled={!isPoolDepleted}
+              onClick={handleConfirm}
+              data-testid="harvest-confirm-btn"
+            >
+              {isVictory ? '✦ Proceed to Camp' : '↩ Retreat to Camp'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

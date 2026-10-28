@@ -11,6 +11,8 @@
 - [x] **1.3**: View active skill loadout and remaining AP/CTB in the pinned card.
 
 ### UX Updates
+- [x] **UX.2**: Show meeting XP threshold in the "Harvest Trial Spoils" dialog (milestone badge with `★` and header requirement context).
+- [x] **UX.3**: "Harvest Trial Spoils" dialog redesign (3-column grid alignment, clean non-negative integers, button spacing, and hover tooltip validation).
 - [x] **UX.6**: Combat Manifest: Show Archetype tags for Class Abilities.
 
 ### Bugs
@@ -32,8 +34,6 @@
 
 ## (icon) UX Updates
 - [ ] **UX.1**: Highlight movement path.
-- [ ] **UX.2**: Is it possible to show meeting an XP threshhold in the "Harvest Trial Spoils" dialog?
-- [ ] **UX.3**: "Harvest Trial Spoils** dialog: The whole "FRC: - +# + Total: #" is not visually appealing. No left/right space on the +/- buttons; redundant "+" on the added points (you can't be negative, its zero or positive); "Total" is bumped up against the "-" button; "Total:" is all over the place which is awkward; Warning "Allocate all ..." in the bottom left can just be a tooltip on the "Proceed to Camp" button;
 - [ ] **UX.4**: Combat Log: Filter by unit. Show actions where it was the actor or was targeted (or splash damaged).
 - [ ] **UX.5**: Let the User place their units at opening. Enemy team to also do better at starting positions.
 
@@ -44,6 +44,7 @@
 - [ ] **B.4**: When an enemy uses Smoke Veil I can still see them.
 - [ ] **B.9**: Garrick did not reveal Ash Infiltrator from Stealth on T12 move.
 - [ ] **B.10**: Shard effects don't show well in the Trial on ability cards.
+- [ ] **B.11**: A unit that uses Skirmish and falls off a height 2 hex does not take fall damage.
 
 ---
 

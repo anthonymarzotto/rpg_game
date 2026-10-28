@@ -12,7 +12,6 @@ describe('StartScreen Component', () => {
     expect(html).toContain('ASTRAL TACTICS');
     expect(html).toContain('New Astral Expedition');
     expect(html).toContain(`v${packageJson.version}`);
-    expect(html).toContain('v0.7.1');
     expect(html).toContain('data-testid="start-version-btn"');
   });
 

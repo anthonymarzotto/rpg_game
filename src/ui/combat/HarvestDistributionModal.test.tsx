@@ -98,6 +98,121 @@ describe('HarvestDistributionModal Component & autoFillPool', () => {
       expect(html).not.toContain('disabled="" data-testid="harvest-confirm-btn"');
     });
 
+    it('renders unit level requirement in card header', () => {
+      const html = renderToStaticMarkup(
+        <HarvestDistributionModal
+          isOpen={true}
+          outcome="VICTORY"
+          squadUnits={squad}
+          earnedPool={{ fighter: 1, rogue: 0, mage: 0 }}
+          onConfirm={vi.fn()}
+        />
+      );
+
+      // Squad members are Level 0 Novices -> threshold is 5 XP
+      expect(html).toContain('Level 0 (Req: 5 XP)');
+      expect(html).toContain('unit-level-badge');
+    });
+
+    it('renders milestone star indicator when projected archetype XP meets or exceeds threshold', () => {
+      const heroWithXp = {
+        ...heroA,
+        progression: {
+          ...heroA.progression,
+          currentLevel: 0,
+          accumulatedXp: { fighter: 5, rogue: 2, mage: 0 }
+        }
+      };
+
+      const html = renderToStaticMarkup(
+        <HarvestDistributionModal
+          isOpen={true}
+          outcome="VICTORY"
+          squadUnits={[heroWithXp]}
+          earnedPool={{ fighter: 0, rogue: 0, mage: 0 }}
+          onConfirm={vi.fn()}
+        />
+      );
+
+      // Hero already has 5 Fighter XP -> threshold-met and milestone star should render
+      expect(html).toContain('threshold-met');
+      expect(html).toContain('milestone-star');
+      expect(html).toContain('★');
+    });
+
+    it('renders tooltip on confirm wrapper when pool has unallocated points and omits footer warning text', () => {
+      const html = renderToStaticMarkup(
+        <HarvestDistributionModal
+          isOpen={true}
+          outcome="VICTORY"
+          squadUnits={squad}
+          earnedPool={{ fighter: 2, rogue: 1, mage: 0 }}
+          onConfirm={vi.fn()}
+        />
+      );
+
+      expect(html).toContain('data-testid="harvest-confirm-wrapper"');
+      expect(html).toContain('title="Allocate all remaining XP to continue"');
+      expect(html).not.toContain('harvest-status-warning');
+      expect(html).not.toContain('status-warning');
+    });
+
+    it('omits tooltip on confirm wrapper when all pool points are allocated', () => {
+      const html = renderToStaticMarkup(
+        <HarvestDistributionModal
+          isOpen={true}
+          outcome="VICTORY"
+          squadUnits={squad}
+          earnedPool={{ fighter: 0, rogue: 0, mage: 0 }}
+          onConfirm={vi.fn()}
+        />
+      );
+
+      expect(html).toContain('data-testid="harvest-confirm-wrapper"');
+      expect(html).not.toContain('title="Allocate all remaining XP to continue"');
+    });
+
+    it('renders master-detail squad dock with first unit selected by default', () => {
+      const html = renderToStaticMarkup(
+        <HarvestDistributionModal
+          isOpen={true}
+          outcome="VICTORY"
+          squadUnits={squad}
+          earnedPool={{ fighter: 2, rogue: 1, mage: 0 }}
+          onConfirm={vi.fn()}
+        />
+      );
+
+      expect(html).toContain('data-testid="harvest-main-layout"');
+      expect(html).toContain('data-testid="harvest-squad-dock"');
+      expect(html).toContain(`data-testid="dock-unit-${squad[0].id}"`);
+      expect(html).toContain('dock-unit-item active');
+      expect(html).toContain(`data-testid="harvest-inspector-${squad[0].id}"`);
+    });
+
+    it('displays milestone star in squad dock when hero reaches promotion threshold', () => {
+      const heroWithXp = {
+        ...heroB,
+        progression: {
+          ...heroB.progression,
+          currentLevel: 0,
+          accumulatedXp: { fighter: 5, rogue: 0, mage: 0 }
+        }
+      };
+
+      const html = renderToStaticMarkup(
+        <HarvestDistributionModal
+          isOpen={true}
+          outcome="VICTORY"
+          squadUnits={[heroA, heroWithXp]}
+          earnedPool={{ fighter: 0, rogue: 0, mage: 0 }}
+          onConfirm={vi.fn()}
+        />
+      );
+
+      expect(html).toContain(`data-testid="dock-star-${heroWithXp.id}"`);
+    });
+
     it('returns null when isOpen is false', () => {
       const html = renderToStaticMarkup(
         <HarvestDistributionModal
