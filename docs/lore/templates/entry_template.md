@@ -4,38 +4,43 @@ title: "Article Title"
 category: world # Options: cosmology | world | factions | history | bestiary
 tags: [tag1, tag2]
 related_entries: [other-entry-id]
-unlock_condition: default # Options: default | sector-N | defeat-ENEMY_ID | secret
+unlock_condition: default # Options: default | celestial-milestone | codex-discovery
 summary: "A concise 1-2 sentence overview summarizing the subject for tooltip and codex previews."
 ---
 
 # Article Title
 
-> *"Optional in-universe quote, excerpt from an astral scripture, or wayfarer proverb."*
-> — Source Name, Epithet
+> *"Optional in-universe quote, traveler's proverb, or campfire reflection."*
+> — Source Name, Origin or Company
 
 ---
 
 ## Overview
-A high-level explanation of what this entity, place, or phenomenon is, its origin, and why it matters in the setting of Astral Tactics.
+A high-level explanation of what this entity, location, celestial tradition, or company is, its background, and why it matters in the setting of the Firmament during the Grand Conjunction.
 
 ---
 
-## Detailed Lore & Description
+## Environment & Atmosphere
+Sensory and world-building details:
+- **Visuals & Atmosphere**: Twilight skies, weathered stonework, starlight illumination, architecture, or flora.
+- **Camp Life & Sights**: How people interact with this place or concept in daily life around the hearth or trail.
+
+---
+
+## Customs, Culture & Traditions
 Deep-dive narrative details:
-- **Nature & Behavior**: How it functions, manifests, or behaves.
-- **Physical Appearance / Environment**: Visual cues, atmospheric lighting, spatial distortions.
-- **Significance**: How it shapes the astral realm or impacts mortal wayfarers.
+- **Traditions & Rituals**: How the celestial tournaments, guilds, or traveling companies engage with this subject.
+- **The Mortal Perspective**: How everyday squires, apprentices, and wanderers perceive and experience it.
 
 ---
 
-## Tactical & Mechanical Echoes
-*How does this lore manifest in actual gameplay mechanics?*
-- Relevant combat abilities, status conditions, or archetype proficiencies.
-- Associated terrain types, hazards, or trial parameters.
-- Progression or itemization links (e.g., Augment Shards, class passives).
+## Traveler's Notes & Field Observations
+*Firsthand accounts, Sprite intuitions, or campfire notes:*
+- Insights observed by the Cosmic Sprite or veteran wayfarers.
+- Practical advice for navigating the trial grounds or camping in this region.
 
 ---
 
 ## See Also
 - [Related Article Title](../category/related_file.md)
-- [`GLOSSARY.md`](../../architecture/GLOSSARY.md)
+- [World Overview](../world_overview.md)

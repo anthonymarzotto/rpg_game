@@ -1,50 +1,64 @@
 ---
 id: wayfarers
-title: "The Wayfarers"
+title: "The Wayfarers & The Novice"
 category: factions
-tags: [factions, wayfarers, initiates, novices, vanguard]
-related_entries: [the-nexus, constellations, voidborn-incursions]
+tags: [factions, wayfarers, novices, traveling-company, camaraderie, camp-life]
+related_entries: [the-firmament, grand-conjunction, the-nexus, cosmic-sprites, constellations]
 unlock_condition: default
-summary: "Mortal champions and initiates who dare enter the astral expanse to attune their souls to the stars."
+summary: "Everyday wanderers, squires, apprentices, and town guards who followed the starlight upward to discover their true capabilities through companionship on the trail."
 ---
 
-# The Wayfarers
+# The Wayfarers & The Novice
 
-> *"We were not born of starlight, but we will make it our armor."*
-> — Wayfarer Oath of Conduit
+> *"Back in Millfield, I was just the girl who brought water to the haymakers. But up here, holding a cedar shield beside people who believe in me, I'm discovering I can hold the line against anything."*
+> — Elsie, Shieldbearer of the Hearthlight Band
 
 ---
 
 ## Overview
 
-A **Wayfarer** is any mortal whose soul possesses sufficient spiritual density to resist immediate dissolution upon entering the Astral Realm. Originating from various shattered remnants of the physical world, wayfarers gather at [The Nexus](../world/the_nexus.md) united by a single purpose: to traverse hostile sectors, conquer Astral Trials, and attune their spirits to the upper echelons of the [Stellar Constellations](../cosmology/constellations.md).
+The **Wayfarers** are not destined demigods, ancient heroes, or hardened mercenaries. They are everyday folk from across the mortal world—village squires, curious herbalist apprentices, herd-tenders, sleepy town guards, and restless wanderers—who were curious enough to follow the cascade of starlight upward when the [Grand Conjunction](../cosmology/grand_conjunction.md) touched the earth.
+
+Drawn together by a shared sense of wonder and the promise of the [Falling Star's Favor](../cosmology/grand_conjunction.md), these wanderers band together into small traveling companies.
 
 ---
 
-## The Path of the Initiate
+## Arriving as a Novice
 
-### 1. Novices
-Every journey begins as a **Novice**. Unattuned to any martial or magical specialty, novices rely on instinct, basic grit, and fundamental tactical maneuvers. Though fragile, a novice's spiritual template is entirely pliable, capable of branching toward Force, Finesse, or Focus as their experience dictates.
+Every journey through the Firmament begins with humble first steps:
 
-### 2. Attunement & The Combat Manifest
-As a wayfarer survives encounters, their connection to celestial archetypes deepens:
-- **Core Kit**: Upon attuning to a recognized class node (e.g. *Warrior*, *Thief*, *Wizard*), their primary tactical identity solidifies into a tailored suite of three abilities.
-- **Resonant Wildcards**: Veterans who ascend through multiple classes learn to channel memories of their past disciplines, slotting **Resonant Abilities** and **Resonant Passives** alongside their active kit.
+### 1. Stepping onto the Docks
+When a new **Novice** arrives at the [Starlight Docks](../world/the_nexus.md), they have literally just stepped out of the mortal world:
+* **Humble Garb:** They arrive wearing whatever they had on back home—simple linen tunics, patched breeches, sturdy mud-dusted travel boots, and a wool cloak rolled over their shoulders.
+* **Modest Gear:** In hand, they carry basic starter equipment: an unadorned iron blade, a rough-hewn oak buckler, a carved ash walking staff, or a simple hunting sling.
+* **Wide-Eyed Wonder:** Taking in the breathtaking sight of floating islands, glowing celestial flora, and ancient stone plazas, they look around the bustling docks for a warm campfire and a friendly band willing to take them in.
 
-### 3. The Vanguard Bond
-When three wayfarers are linked via Conduits into **The Vanguard**, their tactical consciousnesses partially harmonize. They communicate instantaneously across the hex grid, allowing complex tactical executions such as **Allied Pincers**, high-ground cover suppression, and synchronized status affliction exploitation.
+### 2. An Open Horizon
+Novices are completely unburdened by rigid combat dogma. Their minds and spirits are pliable and curious. Rather than being bound to a predetermined fate, they possess the freedom to explore any path—discovering whether their heart lies with the steadfast weight of **Force**, the nimble breeze of **Finesse**, or the quiet study of **Focus**.
 
 ---
 
-## Tactical & Mechanical Echoes
+## Growth on the Trail
 
-- **Unit Data Model**: Represented in code via `Recruit` (`src/core/campaign/recruit.ts`) and `CombatUnit` (`src/core/combat/combatUnit.ts`).
-- **Loadout Assembly**: Governed by the Combat Manifest (`src/core/classes/classCatalog.ts` and `src/ui/unit-info/UnitInfoDialog.tsx`).
-- **Pincer & Flanking Synergy**: When adjacent allies engage an enemy, all allied attacks gain the Pincer flank advantage regardless of individual positioning angle.
+Real mastery is not handed down by decree; it is forged across miles of travel and days of practice:
+
+* **Lessons Around the Hearth:** In the evenings, experienced companions teach the newcomers how to balance their weight, breathe into a parry, or steady an arcane incantation over bubbling stew pots.
+* **Camaraderie in Bouts:** Stepping onto the [Trial Grounds](../world/trial_grounds.md), Novices learn by standing shoulder-to-shoulder with their friends. They make mistakes, take a few bumps, laugh off near-misses, and gradually find their rhythm.
+* **Finding Their Discipline:** Naturally, through experience and mutual encouragement, a novice's latent talents blossom. One day, the squire realizes their parry turns aside a veteran's strike with effortless grace, stepping into their true identity as a seasoned Knight, Skirmisher, or Mage.
+
+---
+
+## The Company Bond
+
+A Wayfarer company is far more than a tactical unit—it is a traveling family:
+* They divide the daily chores: fetching water from mountain springs, patching canvas tents, oiling leather straps, and foraging starry berries.
+* They share a deep bond with their native [Cosmic Sprite](../cosmology/cosmic_sprites.md), who floats among them as an encouraging scout, companion, and lucky presence around the hearth.
 
 ---
 
 ## See Also
+- [The Cosmic Sprites](../cosmology/cosmic_sprites.md)
 - [The Nexus](../world/the_nexus.md)
 - [The Stellar Constellations](../cosmology/constellations.md)
-- [`CLASS_PACKAGES.md`](../../architecture/CLASS_PACKAGES.md)
+- [Rival Companies](rival_companies.md)
+- [World Overview](../world_overview.md)

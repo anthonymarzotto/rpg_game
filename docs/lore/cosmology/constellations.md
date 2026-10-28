@@ -2,75 +2,55 @@
 id: constellations
 title: "The Stellar Constellations"
 category: cosmology
-tags: [cosmology, progression, ascension, archetypes, triad]
-related_entries: [astral-realm, wayfarers]
+tags: [cosmology, constellations, archetypes, ascension, force, finesse, focus]
+related_entries: [the-firmament, grand-conjunction, wayfarers, cosmic-sprites]
 unlock_condition: default
-summary: "The 100-node celestial lattice of martial, agile, and mystical knowledge that governs mortal growth."
+summary: "The guiding celestial star-patterns whose shining arcs embody the three primordial traditions of Force, Finesse, and Focus."
 ---
 
 # The Stellar Constellations
 
-> *"No warrior invents the sword-stroke anew; they merely recall the pattern etched into the southern sky."*
-> — Constellation Keeper Orin
+> *"When a squire raises their shield at just the right angle to deflect a blow, or an apprentice breathes out to steady a wavering spark, they are not inventing something new. They are walking a path traced across the sky before our grandfathers were born."*
+> — Master Astrologer Valen
 
 ---
 
 ## Overview
 
-The **Stellar Constellations** form an immense, interconnected celestial lattice etched across the dome of the astral realm. Rather than an arbitrary classification system, the Constellation is the primordial architecture of mortal achievement. 
+Stretching across the twilight canopy of [The Firmament](the_firmament.md) are the **Stellar Constellations**—luminous celestial patterns etched into the starry expanse. Rather than rigid celestial prisons or abstract geometries, the constellations are the ancient archetypal beacons of mortal craft, study, and aspiration.
 
-Every discipline, martial stance, arcane formula, and rogue stratagem practiced in the cosmos exists as an illuminated coordinate upon this 100-class pyramid. When a wayfarer earns experience in trial combat, they attune their consciousness to these stars, achieving **✦ Ascension**.
+When Wayfarers journey through the trials and practice beside their companions, they look up to these shining patterns for inspiration. Through dedication, companionship, and trail experience, a traveler attunes their own natural talents to these sky-patterns, achieving **Ascension** as their inner potential unfolds.
 
 ---
 
-## The Triad of Resonance
+## The Triad of Guiding Stars
 
-At the foundation of the Constellation lie three primordial archetypes:
+At the foundation of the constellations shine three radiant beacon stars, known among travelers as the **Triad of Traditions**:
 
 ```text
-               [Mage / Focus] (Arcane)
-                     /\
-                    /  \
-                   /    \
-                  /      \
-                 /        \
- [Fighter / Force] -------- [Rogue / Finesse]
-    (Physical)                  (Agile)
+                [The Crimson Star]
+                    (Force)
+                      /\
+                     /  \
+                    /    \
+                   /      \
+                  /        \
+                 ------------
+    [The Emerald Star] -- [The Violet Star]
+        (Finesse)             (Focus)
 ```
 
-1. **Force (Fighter)**: Crimson resonance (`#ef4444`). Governs physical fortitude, raw kinetic impact, armor deflection, and indomitable presence.
-2. **Finesse (Rogue)**: Emerald resonance (`#10b981`). Governs spatial perception, velocity, critical precision, flanking exploitation, and initiative cadence.
-3. **Focus (Mage)**: Violet resonance (`#8b5cf6`). Governs willpower, astral barrier manipulation (Ward), elemental weaving, and mind-over-matter resolve.
+## The Spirit of Ascension
 
-As wayfarers ascend through intermediate and hybrid tiers, their resonance blends these vertices into specialized archetypes—such as the **Knight** (Force + early structure), **Highwayman** (Force + Finesse), **Warlock** (Focus + Force), or **Witch** (Focus + Finesse).
-
----
-
-## Off-Node Coordinates & Starlight Waypoints
-
-Not all regions of the Constellation correspond to fully codified historic classes. Between major class nodes lie interstitial starry expanses known as **Off-Node Coordinates**.
-
-When a wayfarer journeys across these barycentric coordinates:
-- They awaken minor **Starlight Waypoints**.
-- They undergo **Wayfarer Attunement**, selecting fundamental vital surges:
-  - *Bastion* (Maximum HP Surge)
-  - *Stride* (Tactical Movement & Speed)
-  - *Ward* (Magical Absorption Barrier)
-  - *Zenith* (Critical Surge & Initiative Flow)
-- They earn higher **Wayfarer Ranks** (e.g. *Warrior • Wayfarer I*), demonstrating mastery beyond standard class boundaries.
-
----
-
-## Tactical & Mechanical Echoes
-
-- **Ascension System**: Governs unit progression in `src/core/pyramid/` and the UI star chart in `src/ui/pyramid/`.
-- **Combat Manifest & Wildcards**: Wayfarers who walk along constellation paths retain access to **Resonant Abilities** and **Resonant Passives**, allowing deep customization across hybrid builds.
-- **Astral Augment Shards**: Rare fragments of fallen stars socketed into ability slots to alter cast dynamics, damage profiles, or cooldown timings.
+To **Ascend** is not an artificial transformation or sudden burst of divine power. It is the quiet, satisfying moment when long hours of practice click into place:
+- The Novice realizes their blade no longer wobbles in their grip.
+- The apprentice discovers their incantation flows without hesitation.
+- The company breathes together, moving as one cohesive band across the trial grounds.
 
 ---
 
 ## See Also
-- [The Astral Realm](astral_realm.md)
-- [Wayfarers](../factions/wayfarers.md)
-- [`CLASS_PYRAMID.md`](../../architecture/CLASS_PYRAMID.md)
-- [`GLOSSARY.md`](../../architecture/GLOSSARY.md)
+- [The Firmament](the_firmament.md)
+- [The Wayfarers](../factions/wayfarers.md)
+- [The Cosmic Sprites](cosmic_sprites.md)
+- [World Overview](../world_overview.md)
