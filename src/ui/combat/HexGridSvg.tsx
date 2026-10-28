@@ -638,60 +638,7 @@ export function HexGridSvg({
             const statusBubbleStroke = isStealthed ? '#c084fc' : hasDebuff ? '#f87171' : '#fbbf24';
             const statusBubbleWidth = Math.max(statusIcons.length * 13 + 6, 20);
 
-            const isFacingCompassActive =
-              isActiveActor &&
-              facingCompassCoord != null &&
-              hexEquals(pos, facingCompassCoord);
 
-            const compassRing = isFacingCompassActive ? (
-              <g className="facing-compass-ring" data-testid="facing-compass-ring">
-                {/* Subtle celestial orbit track at hex perimeter */}
-                <circle
-                  cx="0"
-                  cy="2"
-                  r="39"
-                  fill="none"
-                  stroke="rgba(56, 189, 248, 0.4)"
-                  strokeWidth="1.2"
-                  strokeDasharray="3 3"
-                  className="compass-orbit-track"
-                />
-                {ALL_HEX_DIRECTIONS.map((dir) => {
-                  const isCurrentFacing = dir === cu.facing;
-                  const angle = getFacingAngleDegrees(dir);
-                  return (
-                    <g
-                      key={dir}
-                      transform={`translate(0, 2) rotate(${angle})`}
-                      className={`facing-chevron-group ${isCurrentFacing ? 'active' : 'inactive'}`}
-                      data-testid={`facing-chevron-${dir}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectFacing?.(dir);
-                      }}
-                    >
-                      {/* Invisible expanded hit target (diameter 24px) */}
-                      <circle
-                        cx="39"
-                        cy="0"
-                        r="12"
-                        fill="transparent"
-                        className="facing-chevron-hitbox"
-                      />
-                      {/* Visible Directional Chevron */}
-                      <polygon
-                        points="34,-6 43,0 34,6 36.5,0"
-                        fill={isCurrentFacing ? '#38bdf8' : 'rgba(148, 163, 184, 0.6)'}
-                        stroke={isCurrentFacing ? '#ffffff' : 'rgba(203, 213, 225, 0.8)'}
-                        strokeWidth={isCurrentFacing ? '1.5' : '1'}
-                        filter={isCurrentFacing ? 'url(#tile-glow-cyan)' : undefined}
-                        className="facing-chevron-poly"
-                      />
-                    </g>
-                  );
-                })}
-              </g>
-            ) : null;
 
             return (
               <g
@@ -838,8 +785,6 @@ export function HexGridSvg({
                       opacity={isStealthed ? 0.52 : 1}
                     />
 
-                    {/* Facing compass ring rendered in front of avatar standee */}
-                    {compassRing}
 
                     {/* Unit Name Plate (above head) */}
                     <text
@@ -950,8 +895,6 @@ export function HexGridSvg({
                       />
                     </g>
 
-                    {compassRing}
-
                     {/* Target Candidate Reticle (Only for valid targets within range) */}
                     {isCandidate && (
                       <circle
@@ -1042,6 +985,76 @@ export function HexGridSvg({
             );
           })}
       </g>
+ 
+      {/* 2b. Facing Compass Overlay Layer (rendered above all unit standees to prevent occlusion) */}
+      {(() => {
+        if (!facingCompassCoord || !state.activeUnitId) return null;
+        const activeCu = state.units.get(state.activeUnitId);
+        if (!activeCu || activeCu.isDefeated) return null;
+        const activePos = state.arena.getUnitPosition(state.activeUnitId);
+        if (!activePos || !hexEquals(activePos, facingCompassCoord)) return null;
+
+        const basePixel = hexToPixel(activePos);
+        const elev = state.arena.getElevation(activePos) ?? 0;
+        const x = basePixel.x;
+        const y = projectElevationY(basePixel.y, elev);
+
+        return (
+          <g
+            className="facing-compass-overlay"
+            data-testid="facing-compass-overlay"
+            transform={`translate(${x}, ${y})`}
+          >
+            <g className="facing-compass-ring" data-testid="facing-compass-ring">
+              {/* Subtle celestial orbit track at hex perimeter */}
+              <circle
+                cx="0"
+                cy="2"
+                r="39"
+                fill="none"
+                stroke="rgba(56, 189, 248, 0.4)"
+                strokeWidth="1.2"
+                strokeDasharray="3 3"
+                className="compass-orbit-track"
+              />
+              {ALL_HEX_DIRECTIONS.map((dir) => {
+                const isCurrentFacing = dir === activeCu.facing;
+                const angle = getFacingAngleDegrees(dir);
+                return (
+                  <g
+                    key={dir}
+                    transform={`translate(0, 2) rotate(${angle})`}
+                    className={`facing-chevron-group ${isCurrentFacing ? 'active' : 'inactive'}`}
+                    data-testid={`facing-chevron-${dir}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectFacing?.(dir);
+                    }}
+                  >
+                    {/* Invisible expanded hit target (diameter 24px) */}
+                    <circle
+                      cx="39"
+                      cy="0"
+                      r="12"
+                      fill="transparent"
+                      className="facing-chevron-hitbox"
+                    />
+                    {/* Visible Directional Chevron */}
+                    <polygon
+                      points="34,-6 43,0 34,6 36.5,0"
+                      fill={isCurrentFacing ? '#38bdf8' : 'rgba(148, 163, 184, 0.6)'}
+                      stroke={isCurrentFacing ? '#ffffff' : 'rgba(203, 213, 225, 0.8)'}
+                      strokeWidth={isCurrentFacing ? '1.5' : '1'}
+                      filter={isCurrentFacing ? 'url(#tile-glow-cyan)' : undefined}
+                      className="facing-chevron-poly"
+                    />
+                  </g>
+                );
+              })}
+            </g>
+          </g>
+        );
+      })()}
 
       {/* 3. Floating Combat Feedback Numbers */}
       <g className="floating-text-layer pointer-events-none">

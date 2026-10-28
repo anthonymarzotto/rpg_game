@@ -10,6 +10,17 @@
 - [x] **1.2**: Hover tooltips on active condition badges (inspect exact `POISON`, `BURN`, `STEALTH`, `CHALLENGED` effects & durations).
 - [x] **1.3**: View active skill loadout and remaining AP/CTB in the pinned card.
 
+### UX Updates
+- [x] **UX.6**: Combat Manifest: Show Archetype tags for Class Abilities.
+
+### Bugs
+- [x] **B.1**: The facing arrows should show at the highest layer. Right not they are hidden partially behind, at least, other adjacent units.
+- [x] **B.2**: Skirmish shouts "Knockback!" when used. It either doesn't need anything, or should be something more appropriate (Displays `RETREAT!`).
+- [x] **B.5**: "Stealth broken by damage" card in Combat Log is not nicely formatted (Displays styled `👤 STEALTH BROKEN` card).
+- [x] **B.6**: Arcane Blast deals damage to the ground when targeting a hex with no unit (Detonates area with splash damage without ground attack roll or 0 damage).
+- [x] **B.7**: Infiltrators are trying to Smoke Veil other units. I'm not sure if it was successful. Smoke Veil should only target self.
+- [x] **B.8**: Burn damage card in Combat Log is not nicely formatted (Displays styled `🔥 BURN TICK` / `🧪 POISON TICK` cards with vitals).
+
 ---
 
 ## 🎯 Next Up
@@ -25,19 +36,12 @@
 - [ ] **UX.3**: "Harvest Trial Spoils** dialog: The whole "FRC: - +# + Total: #" is not visually appealing. No left/right space on the +/- buttons; redundant "+" on the added points (you can't be negative, its zero or positive); "Total" is bumped up against the "-" button; "Total:" is all over the place which is awkward; Warning "Allocate all ..." in the bottom left can just be a tooltip on the "Proceed to Camp" button;
 - [ ] **UX.4**: Combat Log: Filter by unit. Show actions where it was the actor or was targeted (or splash damaged).
 - [ ] **UX.5**: Let the User place their units at opening. Enemy team to also do better at starting positions.
-- [ ] **UX.6**: Combat Manifest: Show Archetype tags for Class Abilities.
 
 ---
 
 ## (icon) Bugs
-- [ ] **B.1**: The facing arrows should show at the highest layer. Right not they are hidden partially behind, at least, other adjacent units.
-- [ ] **B.2**: Skirmish shouts "Knockback!" when used. It either doesn't need anything, or should be something more appropriate.
 - [ ] **B.3**: Active turn halo is generally not clearing well. Hard to pinpoint exactly what's going on, but I'm on turn 7 and 4 units have a halo.
 - [ ] **B.4**: When an enemy uses Smoke Veil I can still see them.
-- [ ] **B.5**: "Stealth broken by damage" card in Combat Log is not nicely formatted.
-- [ ] **B.6**: Arcane Blast deals damage to the ground when targeting a hex with no unit.
-- [ ] **B.7**: Infiltrators are trying to Smoke Veil other units. I'm not sure if it was successful. Smoke Veil should only target self.
-- [ ] **B.8**: Burn damage card in Combat Log is not nicely formatted.
 - [ ] **B.9**: Garrick did not reveal Ash Infiltrator from Stealth on T12 move.
 - [ ] **B.10**: Shard effects don't show well in the Trial on ability cards.
 

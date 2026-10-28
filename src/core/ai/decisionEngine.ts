@@ -499,6 +499,10 @@ export function decideNextActionWithTrace(
       }
     } else if (ability.targetType === 'ALLY' || ability.targetType === 'SELF' || (ability.damageType === 'NONE' && ability.targetType !== 'HEX')) {
       for (const allyCu of alliedUnits) {
+        const isSelf = allyCu.unit.id === actorUnitId;
+        if (ability.targetType === 'SELF' && !isSelf) continue;
+        if (ability.targetType === 'ALLY' && isSelf) continue;
+
         const allyCoord = state.arena.getUnitPosition(allyCu.unit.id);
         if (!allyCoord) continue;
 
@@ -529,7 +533,7 @@ export function decideNextActionWithTrace(
           ability,
           target: { coord: allyCoord, targetUnitId: allyCu.unit.id },
           score: buff.score,
-          reason: buff.reason ?? `Buff ally ${allyCu.unit.name} with ${ability.name}`
+          reason: buff.reason ?? (isSelf ? `Buff self with ${ability.name}` : `Buff ally ${allyCu.unit.name} with ${ability.name}`)
         });
       }
     }

@@ -122,15 +122,20 @@ export function advanceTurnClock(state: CombatState): string {
       const turnStartResult = def?.onTurnStart?.(cond, nextActive, state);
       if (turnStartResult?.damage) {
         const dmg = turnStartResult.damage;
+        const updatedHp = Math.max(0, nextActive.currentHp - (dotDamageTotal + dmg));
         dotDamageTotal += dmg;
         state.combatLog.push({
           turnNumber: state.turnNumber,
           actorUnitId: nextActive.unit.id,
           actionId: cond.type.toLowerCase(),
-          message: `${nextActive.unit.name} suffered ${dmg} ${cond.type} damage!`,
+          message: `${nextActive.unit.name} suffered ${dmg} ${cond.type} damage! (HP: ${updatedHp}/${nextActive.unit.effectiveVitals.maxHp})`,
           metadata: {
-            type: 'GENERIC',
+            type: 'DOT_DAMAGE',
             actor: nextActive.unit.name,
+            condition: cond.type,
+            damage: dmg,
+            targetHp: updatedHp,
+            targetMaxHp: nextActive.unit.effectiveVitals.maxHp,
             text: `Suffered ${dmg} ${cond.type} status damage`
           }
         });

@@ -28,7 +28,7 @@ The combat interaction system SHALL activate a directional facing compass immedi
 - **THEN** the compass ring is dismissed, leaving the unit's current facing locked in place
 
 ### Requirement: Directional Chevron Interaction and Visual Feedback
-The hex arena presentation SHALL render a 6-chevron compass ring around the active unit token. The currently active facing chevron SHALL be visually highlighted, and clicking any directional chevron SHALL immediately commit the new facing orientation.
+The hex arena presentation SHALL render a 6-chevron compass ring around the active unit token in a dedicated top-level visual overlay layer rendered above all unit tokens and pedestals, ensuring directional chevrons and their hit targets are never obscured or occluded by adjacent unit standees. The currently active facing chevron SHALL be visually highlighted, and clicking any directional chevron SHALL immediately commit the new facing orientation.
 
 #### Scenario: Selecting a directional chevron updates facing
 - **WHEN** the player clicks one of the 6 compass chevrons
@@ -37,3 +37,7 @@ The hex arena presentation SHALL render a 6-chevron compass ring around the acti
 #### Scenario: Board tiles outside chevrons do not trigger facing turns
 - **WHEN** the compass is active and the player clicks an adjacent or distant board hex rather than a chevron
 - **THEN** the compass dismisses without altering the unit's facing
+
+#### Scenario: Compass chevrons render above adjacent unit standees
+- **WHEN** the compass ring is active on a unit that is positioned adjacent to or behind other living units on the battlefield
+- **THEN** all 6 directional chevrons render in front of adjacent unit sprites and pedestals without visual clipping

@@ -1168,6 +1168,9 @@ export function HeroProgressionDrawer({
                     return (
                       <div key={a.id} className="drawer-ability-mini-card">
                         <div className="mini-card-head font-ui">
+                          <span className={`slot-tag ${effectiveAbility.archetypeTag?.toLowerCase() ?? 'fighter'} font-mono`}>
+                            {formatDisciplineBadge(effectiveAbility.archetypeTag)}
+                          </span>
                           <span className="mini-card-name font-display">{effectiveAbility.name}</span>
                           <span className="mini-card-ap font-mono">{effectiveAbility.apCost} AP</span>
                         </div>

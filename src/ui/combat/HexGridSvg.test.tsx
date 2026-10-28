@@ -287,7 +287,8 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
       />
     );
 
-    // Compass ring and 6 chevrons are rendered
+    // Compass ring and 6 chevrons are rendered in top-level overlay
+    expect(html).toContain('data-testid="facing-compass-overlay"');
     expect(html).toContain('data-testid="facing-compass-ring"');
     expect(html).toContain('compass-orbit-track');
     expect(html).toContain('data-testid="facing-chevron-0"');

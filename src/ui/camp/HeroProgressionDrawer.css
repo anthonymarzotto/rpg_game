@@ -866,7 +866,7 @@
 .mini-card-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.45rem;
 }
 
 .mini-card-name {
@@ -876,12 +876,14 @@
 }
 
 .mini-card-ap {
+  margin-left: auto;
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--color-player-active);
 }
 
 .mini-card-tag {
+  margin-left: auto;
   font-size: 0.65rem;
   font-weight: 700;
   color: var(--color-player-ally);

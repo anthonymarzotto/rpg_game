@@ -687,6 +687,32 @@ describe('HeroProgressionDrawer Component', () => {
       expect(html).not.toContain('value="power_strike"');
     });
   });
+
+  describe('Combat Manifest Archetype Badges', () => {
+    it('renders colored discipline badges on core class abilities', () => {
+      const hero = makeMockUnit({
+        loadout: {
+          activeClassId: 'warrior',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        }
+      });
+      const campaign = makeMockCampaign(hero);
+      const html = renderToStaticMarkup(
+        <HeroProgressionDrawer
+          hero={hero}
+          campaign={campaign}
+          onClose={vi.fn()}
+          onUpdateCampaign={vi.fn()}
+        />
+      );
+
+      // Core Warrior abilities have fighter archetype (FORCE badge)
+      expect(html).toContain('slot-tag fighter font-mono');
+      expect(html).toContain('FORCE');
+      expect(html).toContain('Power Strike');
+    });
+  });
 });
 
 

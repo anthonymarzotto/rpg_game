@@ -16,14 +16,16 @@ export type ParsedLogEntry =
       isPlayer: boolean;
       ability: string;
       target?: string;
-      d20: string;
+      d20?: string;
       defenseTarget?: number;
       hitOutcome: string;
       damageTotal: string;
-      damageBreakdown: string;
+      damageBreakdown?: string;
       targetHp?: number;
       targetMaxHp?: number;
       secondaryDetail: string;
+      isAreaTarget?: boolean;
+      totalScore?: number;
       rawMessage: string;
     }
   | {
@@ -95,6 +97,26 @@ export type ParsedLogEntry =
       target: string;
       isTargetPlayer: boolean;
       isTurnStart: boolean;
+      rawMessage: string;
+    }
+  | {
+      type: 'CONDITION_BROKEN';
+      turn: number;
+      actor: string;
+      isPlayer: boolean;
+      condition: string;
+      reason?: string;
+      rawMessage: string;
+    }
+  | {
+      type: 'DOT_DAMAGE';
+      turn: number;
+      actor: string;
+      isPlayer: boolean;
+      condition: string;
+      damage: number;
+      targetHp?: number;
+      targetMaxHp?: number;
       rawMessage: string;
     }
   | {
@@ -191,6 +213,8 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       targetHp: meta.targetHp,
       targetMaxHp: meta.targetMaxHp,
       secondaryDetail: meta.secondaryDetail ?? '',
+      isAreaTarget: Boolean(meta.isAreaTarget || (meta.target && meta.target.startsWith('hex '))),
+      totalScore: meta.totalScore,
       rawMessage: msg
     };
   }
@@ -229,6 +253,32 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       target: meta.target,
       isTargetPlayer,
       isTurnStart: Boolean(meta.isTurnStart),
+      rawMessage: msg
+    };
+  }
+
+  if (meta?.type === 'CONDITION_BROKEN') {
+    return {
+      type: 'CONDITION_BROKEN',
+      turn,
+      actor: meta.actor || actorUnitId,
+      isPlayer,
+      condition: meta.condition || 'STEALTH',
+      reason: meta.reason,
+      rawMessage: msg
+    };
+  }
+
+  if (meta?.type === 'DOT_DAMAGE') {
+    return {
+      type: 'DOT_DAMAGE',
+      turn,
+      actor: meta.actor || actorUnitId,
+      isPlayer,
+      condition: (meta.condition || 'BURN').toUpperCase(),
+      damage: typeof meta.damage === 'number' ? meta.damage : parseInt(String(meta.damage || '0'), 10),
+      targetHp: meta.targetHp,
+      targetMaxHp: meta.targetMaxHp,
       rawMessage: msg
     };
   }
@@ -310,6 +360,53 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       isPlayer,
       passiveName: rawPassiveName,
       effectDetail,
+      rawMessage: msg
+    };
+  }
+
+  if (
+    entry.actionId === 'condition_removed' ||
+    msg.includes('was broken by taking damage') ||
+    msg.includes('condition was consumed')
+  ) {
+    const match = msg.match(/^(.+?)'s\s+([A-Za-z_]+)(?:\s+condition)?\s+(?:was\s+broken|was\s+consumed)/i);
+    const actor = match ? match[1].trim() : meta?.actor || actorUnitId;
+    const condition = match ? match[2].trim().toUpperCase() : (meta?.text?.split(' ')[0] || 'STEALTH');
+    const isBroken = msg.includes('broken');
+    const reason = isBroken ? 'taking damage' : 'consumed';
+
+    return {
+      type: 'CONDITION_BROKEN',
+      turn,
+      actor,
+      isPlayer,
+      condition,
+      reason,
+      rawMessage: msg
+    };
+  }
+
+  if (
+    entry.actionId === 'burn' ||
+    entry.actionId === 'poison' ||
+    /suffered\s+\d+\s+(?:burn|poison)\s+damage/i.test(msg)
+  ) {
+    const match = msg.match(/^(.+?)\s+suffered\s+(\d+)\s+([A-Za-z]+)\s+damage!(?:\s+\(HP:\s*(\d+)\/(\d+)\))?/i);
+    const actor = match ? match[1].trim() : meta?.actor || actorUnitId;
+    const damage = match ? parseInt(match[2], 10) : (meta && 'damage' in meta && typeof meta.damage === 'number' ? meta.damage : 0);
+    const condition = match ? match[3].toUpperCase() : (entry.actionId ? entry.actionId.toUpperCase() : 'BURN');
+    const targetHp = match && match[4] ? parseInt(match[4], 10) : (meta && 'targetHp' in meta && typeof meta.targetHp === 'number' ? meta.targetHp : undefined);
+    const targetMaxHp = match && match[5] ? parseInt(match[5], 10) : (meta && 'targetMaxHp' in meta && typeof meta.targetMaxHp === 'number' ? meta.targetMaxHp : undefined);
+
+    return {
+      type: 'DOT_DAMAGE',
+      turn,
+      actor,
+      isPlayer,
+      condition,
+      damage,
+      targetHp,
+      targetMaxHp,
       rawMessage: msg
     };
   }
@@ -443,9 +540,11 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
                     <div className="log-target-line">
                       <span className="target-arrow">→</span>
                       <span className="target-name">{entry.target}</span>
-                      <span className="target-hp-chip" title="Target Remaining HP">
-                        ❤️ {entry.targetHp}/{entry.targetMaxHp}
-                      </span>
+                      {entry.targetHp !== undefined && entry.targetMaxHp !== undefined && (
+                        <span className="target-hp-chip" title="Target Remaining HP">
+                          ❤️ {entry.targetHp}/{entry.targetMaxHp}
+                        </span>
+                      )}
                     </div>
 
                     <div className="log-impact-line">
@@ -454,6 +553,7 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
                       ) : (
                         <span className={`impact-damage ${isCrit ? 'damage-crit' : ''}`}>
                           💥 <strong>{entry.damageTotal}</strong> dmg
+                          {entry.isAreaTarget && <span className="area-total-tag"> (Total)</span>}
                           {entry.damageBreakdown && (
                             <span className="damage-formula" title="Damage Breakdown">
                               ({entry.damageBreakdown})
@@ -462,9 +562,19 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
                         </span>
                       )}
 
-                      <span className="log-roll-chip" title="Attack Roll vs Defense DC">
-                        🎲 {entry.d20} vs DC {entry.defenseTarget}
-                      </span>
+                      {entry.d20 && (
+                        <span
+                          className="log-roll-chip"
+                          title={entry.isAreaTarget ? 'Spellcast Roll & Score' : 'Attack Roll vs Defense DC'}
+                        >
+                          🎲 {entry.d20}
+                          {entry.defenseTarget !== undefined
+                            ? ` vs DC ${entry.defenseTarget}`
+                            : entry.totalScore !== undefined
+                            ? ` (Score ${entry.totalScore})`
+                            : ''}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -698,6 +808,72 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
                       </div>
                     </div>
                   )}
+                </div>
+              );
+            }
+
+            if (entry.type === 'CONDITION_BROKEN') {
+              const isStealth = entry.condition.toUpperCase() === 'STEALTH';
+              const badgeText = isStealth ? '👤 STEALTH BROKEN' : `⚡ ${entry.condition} BROKEN`;
+              const contextNote = isStealth
+                ? 'Concealment lost due to taking damage!'
+                : `${entry.condition} effect removed.`;
+
+              return (
+                <div
+                  key={idx}
+                  className={`log-card log-condition-broken-card ${entry.isPlayer ? 'player-card' : 'enemy-card'} ${
+                    isNewest ? 'entry-fresh' : ''
+                  }`}
+                >
+                  <div className="log-card-header">
+                    <span className="log-turn-pill">T{entry.turn}</span>
+                    <span className="log-condition-broken-badge">{badgeText}</span>
+                    <span className={`log-actor-name ${entry.isPlayer ? 'actor-player' : 'actor-enemy'}`}>
+                      {entry.actor}
+                    </span>
+                  </div>
+
+                  <div className="log-card-secondary log-condition-footer">
+                    <span className="secondary-icon">💥</span>
+                    <span className="secondary-text">{contextNote}</span>
+                  </div>
+                </div>
+              );
+            }
+
+            if (entry.type === 'DOT_DAMAGE') {
+              const isBurn = entry.condition.toUpperCase() === 'BURN';
+              const badgeClass = isBurn ? 'log-burn-badge' : 'log-poison-badge';
+              const badgeText = isBurn ? '🔥 BURN TICK' : '🧪 POISON TICK';
+
+              return (
+                <div
+                  key={idx}
+                  className={`log-card log-dot-card ${entry.isPlayer ? 'player-card' : 'enemy-card'} ${
+                    isNewest ? 'entry-fresh' : ''
+                  }`}
+                >
+                  <div className="log-card-header">
+                    <span className="log-turn-pill">T{entry.turn}</span>
+                    <span className={`log-dot-badge ${badgeClass}`}>{badgeText}</span>
+                    <span className={`log-actor-name ${entry.isPlayer ? 'actor-player' : 'actor-enemy'}`}>
+                      {entry.actor}
+                    </span>
+                  </div>
+
+                  <div className="log-card-body">
+                    <div className="log-impact-line">
+                      <span className={`impact-dot-damage ${isBurn ? 'burn-damage' : 'poison-damage'}`}>
+                        💥 <strong>{entry.damage}</strong> dmg
+                      </span>
+                      {entry.targetHp !== undefined && entry.targetMaxHp !== undefined && (
+                        <span className="target-hp-chip" title="Remaining HP">
+                          ❤️ {entry.targetHp}/{entry.targetMaxHp}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             }

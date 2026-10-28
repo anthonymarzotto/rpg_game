@@ -2,6 +2,16 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.7.1] - 2026-10-27
+
+### Combat Polish, UI Feedback & Bug Fixes
+- **Facing Compass Overlay Layer**: Hoisted facing compass chevrons to a top-level SVG overlay layer rendered above all unit standees, eliminating chevron occlusion during tactical facing selection.
+- **Skirmish Floating Text**: Skirmish tactical repositioning now displays a dedicated `'RETREAT!'` floating text instead of `'KNOCKBACK!'`.
+- **Infiltrator AI Self-Buff Scope**: Isolated self-targeted abilities (such as Smoke Veil) to only evaluate the acting unit, preventing AI from erroneously targeting teammates.
+- **Ground-Targeted AoE Resolution**: Ground targeting on unoccupied hexes (such as Arcane Blast) now displays the spellcast roll and score (e.g. `🎲 14+2 (Score 16)`) alongside total splash damage tagged with `(Total)`, giving players immediate transparency into why splash victims hit or resisted against their DCs.
+- **Rich Condition Combat Log Cards**: Added first-class styled combat log cards for stealth breaks (`👤 STEALTH BROKEN`) and turn-start Damage-over-Time ticks (`🔥 BURN TICK`, `🧪 POISON TICK`) with vitals tracking.
+- **Combat Manifest Archetype Badges**: Added colored archetype discipline badges (`FORCE`, `FINESSE`, `FOCUS`) to core class abilities in the Hero Progression Drawer.
+
 ## [0.7.0] - 2026-10-26
 
 ### In-Combat Unit Inspection & Tactical Zero-Hover Badges

@@ -162,6 +162,51 @@ describe('parseCombatLogMessage', () => {
     }
   });
 
+  it('parses hex ground AoE attack entry with (Total) damage tag and spellcast score', () => {
+    const entry: CombatLogEntry = {
+      turnNumber: 2,
+      actorUnitId: 'player-wizard',
+      actionId: 'arcane_blast',
+      message:
+        'Vael (Wizard) cast Arcane Blast at hex (2, 0): [Spellcast roll: 14+2 -> score 16] 💥 [Blast hit Bandit Brute for 4 magical damage [vs DC 11] (HP: 16/20)]',
+      metadata: {
+        type: 'ATTACK',
+        actor: 'Vael (Wizard)',
+        ability: 'Arcane Blast',
+        target: 'hex (2, 0)',
+        d20: '14+2',
+        totalScore: 16,
+        isAreaTarget: true,
+        hitOutcome: 'SOLID_HIT',
+        damageTotal: '4',
+        secondaryDetail: '💥 [Blast hit Bandit Brute for 4 magical damage [vs DC 11] (HP: 16/20)]'
+      }
+    };
+
+    const parsed = parseCombatLogMessage(entry);
+    expect(parsed.type).toBe('ATTACK');
+    if (parsed.type === 'ATTACK') {
+      expect(parsed.isAreaTarget).toBe(true);
+      expect(parsed.d20).toBe('14+2');
+      expect(parsed.totalScore).toBe(16);
+      expect(parsed.defenseTarget).toBeUndefined();
+      expect(parsed.damageTotal).toBe('4');
+    }
+
+    const html = renderToStaticMarkup(
+      React.createElement(CombatLogPanel, {
+        logEntries: [entry],
+        turnNumber: 2
+      })
+    );
+
+    expect(html).toContain('hex (2, 0)');
+    expect(html).toContain('4');
+    expect(html).toContain('(Total)');
+    expect(html).toContain('🎲 14+2 (Score 16)');
+    expect(html).toContain('Blast hit Bandit Brute');
+  });
+
   it('parses buff/ward ability entry with status tag', () => {
     const entry: CombatLogEntry = {
       turnNumber: 1,
@@ -624,5 +669,161 @@ describe('parseCombatLogMessage', () => {
       expect(html).toContain('STEALTH BROKEN');
     });
   });
+
+  describe('CONDITION_BROKEN cards (Stealth and condition loss)', () => {
+    it('parses typed CONDITION_BROKEN metadata and renders 👤 STEALTH BROKEN card', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 3,
+        actorUnitId: 'player-infiltrator',
+        actionId: 'condition_removed',
+        message: "Lyra (Infiltrator)'s STEALTH was broken by taking damage!",
+        metadata: {
+          type: 'CONDITION_BROKEN',
+          actor: 'Lyra (Infiltrator)',
+          condition: 'STEALTH',
+          reason: 'taking damage'
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.type).toBe('CONDITION_BROKEN');
+      if (parsed.type === 'CONDITION_BROKEN') {
+        expect(parsed.actor).toBe('Lyra (Infiltrator)');
+        expect(parsed.isPlayer).toBe(true);
+        expect(parsed.condition).toBe('STEALTH');
+      }
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 3
+        })
+      );
+
+      expect(html).toContain('log-condition-broken-card');
+      expect(html).toContain('player-card');
+      expect(html).toContain('👤 STEALTH BROKEN');
+      expect(html).toContain('Lyra (Infiltrator)');
+      expect(html).toContain('Concealment lost due to taking damage!');
+    });
+
+    it('parses actionId condition_removed message fallback into CONDITION_BROKEN card', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 4,
+        actorUnitId: 'enemy-stalker',
+        actionId: 'condition_removed',
+        message: "Shadow Infiltrator's STEALTH was broken by taking damage!",
+        metadata: {
+          type: 'GENERIC',
+          actor: 'Shadow Infiltrator',
+          text: 'STEALTH broken by damage'
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.type).toBe('CONDITION_BROKEN');
+      if (parsed.type === 'CONDITION_BROKEN') {
+        expect(parsed.actor).toBe('Shadow Infiltrator');
+        expect(parsed.isPlayer).toBe(false);
+        expect(parsed.condition).toBe('STEALTH');
+      }
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 4
+        })
+      );
+
+      expect(html).toContain('log-condition-broken-card');
+      expect(html).toContain('enemy-card');
+      expect(html).toContain('👤 STEALTH BROKEN');
+      expect(html).toContain('Shadow Infiltrator');
+    });
+  });
+
+  describe('DOT_DAMAGE cards (Turn-start condition damage)', () => {
+    it('parses typed DOT_DAMAGE for Burn and renders 🔥 BURN TICK card with vitals', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 2,
+        actorUnitId: 'player-warrior',
+        actionId: 'burn',
+        message: 'Alden suffered 3 BURN damage! (HP: 17/20)',
+        metadata: {
+          type: 'DOT_DAMAGE',
+          actor: 'Alden',
+          condition: 'BURN',
+          damage: 3,
+          targetHp: 17,
+          targetMaxHp: 20
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.type).toBe('DOT_DAMAGE');
+      if (parsed.type === 'DOT_DAMAGE') {
+        expect(parsed.actor).toBe('Alden');
+        expect(parsed.isPlayer).toBe(true);
+        expect(parsed.condition).toBe('BURN');
+        expect(parsed.damage).toBe(3);
+        expect(parsed.targetHp).toBe(17);
+        expect(parsed.targetMaxHp).toBe(20);
+      }
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 2
+        })
+      );
+
+      expect(html).toContain('log-dot-card');
+      expect(html).toContain('player-card');
+      expect(html).toContain('🔥 BURN TICK');
+      expect(html).toContain('log-burn-badge');
+      expect(html).toContain('3');
+      expect(html).toContain('17/20');
+    });
+
+    it('parses actionId poison message fallback into DOT_DAMAGE card with 🧪 POISON TICK', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 3,
+        actorUnitId: 'enemy-goblin',
+        actionId: 'poison',
+        message: 'Goblin Scout suffered 2 POISON damage! (HP: 6/10)',
+        metadata: {
+          type: 'GENERIC',
+          actor: 'Goblin Scout',
+          text: 'Suffered 2 POISON status damage'
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.type).toBe('DOT_DAMAGE');
+      if (parsed.type === 'DOT_DAMAGE') {
+        expect(parsed.actor).toBe('Goblin Scout');
+        expect(parsed.isPlayer).toBe(false);
+        expect(parsed.condition).toBe('POISON');
+        expect(parsed.damage).toBe(2);
+        expect(parsed.targetHp).toBe(6);
+        expect(parsed.targetMaxHp).toBe(10);
+      }
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 3
+        })
+      );
+
+      expect(html).toContain('log-dot-card');
+      expect(html).toContain('enemy-card');
+      expect(html).toContain('🧪 POISON TICK');
+      expect(html).toContain('log-poison-badge');
+      expect(html).toContain('2');
+      expect(html).toContain('6/10');
+    });
+  });
 });
+
 

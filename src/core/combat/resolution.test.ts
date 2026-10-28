@@ -455,6 +455,18 @@ describe('Attack & Ability Resolution Outcomes', () => {
       const enemyBCu = state.units.get('enemyB')!;
       expect(enemyACu.currentHp).toBe(enemyA.effectiveVitals.maxHp - 2);
       expect(enemyBCu.currentHp).toBe(enemyB.effectiveVitals.maxHp - 3);
+
+      const logEntry = state.combatLog[state.combatLog.length - 1];
+      expect(logEntry.message).toContain('Wizard cast Arcane Blast at hex (2, 0)');
+      expect(logEntry.message).not.toContain('0 (Ground)');
+      expect(logEntry.metadata.type).toBe('ATTACK');
+      if (logEntry.metadata.type === 'ATTACK') {
+        expect(logEntry.metadata.d20).toBeDefined();
+        expect(logEntry.metadata.totalScore).toBeDefined();
+        expect(logEntry.metadata.isAreaTarget).toBe(true);
+        expect(logEntry.metadata.defenseTarget).toBeUndefined();
+        expect(logEntry.metadata.damageBreakdown).toBeUndefined();
+      }
     });
 
     it('resolves a splash miss when secondary target Resolve exceeds spellcast attack roll', () => {

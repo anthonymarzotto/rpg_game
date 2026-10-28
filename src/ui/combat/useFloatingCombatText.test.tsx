@@ -230,6 +230,68 @@ describe('useFloatingCombatText: collectResolutionFloatingTexts', () => {
     expect(teleportItem?.coord).toEqual({ q: 2, r: 0 });
   });
 
+  it('collects RETREAT! floater on retreat displacement resolution (Skirmish)', async () => {
+    const { collectResolutionFloatingTexts } = await import('./useFloatingCombatText');
+    const { createRadialArena } = await import('../../core/grid/templates');
+    const { createRecruit } = await import('../../core/units/unitFactory');
+    const { createCombatState } = await import('../../core/combat/resolver');
+    const { SKIRMISH } = await import('../../data/packages/novice');
+
+    const arena = createRadialArena(3);
+    const hero = createRecruit('hero', 'Hero');
+    const dummy = createRecruit('dummy', 'Dummy');
+    arena.setUnitPosition('hero', { q: 0, r: 0 });
+    arena.setUnitPosition('dummy', { q: 1, r: 0 });
+    const state = createCombatState(arena, [hero, dummy], 'hero');
+
+    const resolution = {
+      type: 'ATTACK' as const,
+      details: {
+        hitOutcome: 'SOLID_HIT' as const,
+        d20Roll: 14,
+        modifier: 2,
+        totalAttackScore: 16,
+        defenseTargetScore: 12,
+        rawDamage: 4,
+        mitigation: 0,
+        damageDealt: 4,
+        damageBreakdown: '1d6(4)',
+        effectsApplied: [],
+        events: [
+          {
+            type: 'DAMAGE' as const,
+            targetUnitId: 'dummy',
+            amount: 4,
+            damageType: 'PHYSICAL' as const,
+            reason: 'ATTACK' as const
+          },
+          {
+            type: 'DISPLACEMENT' as const,
+            unitId: 'hero',
+            fromCoord: { q: 0, r: 0 },
+            toCoord: { q: -1, r: 0 },
+            kind: 'RETREAT' as const
+          }
+        ]
+      }
+    };
+
+    const items = collectResolutionFloatingTexts(
+      state,
+      resolution,
+      SKIRMISH,
+      { q: 1, r: 0 },
+      { q: 0, r: 0 },
+      { q: 1, r: 0 },
+      'dummy'
+    );
+
+    const retreatItem = items.find((i) => i.text === 'RETREAT!');
+    expect(retreatItem).toBeDefined();
+    expect(retreatItem?.coord).toEqual({ q: -1, r: 0 });
+    expect(items.some((i) => i.text === 'KNOCKBACK!')).toBe(false);
+  });
+
   it('formats floating XP using Force/Finesse/Focus discipline names and scales by AP cost', async () => {
     const { collectResolutionFloatingTexts } = await import('./useFloatingCombatText');
     const { createRadialArena } = await import('../../core/grid/templates');

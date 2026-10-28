@@ -140,7 +140,12 @@ export function collectResolutionFloatingTexts(
         result.push({ text: 'RESIST!', type: 'miss', coord: unitPos, delay: 350 });
       }
     } else if (event.type === 'DISPLACEMENT') {
-      const text = event.kind === 'TELEPORT' ? 'TELEPORT!' : 'KNOCKBACK!';
+      const text =
+        event.kind === 'TELEPORT'
+          ? 'TELEPORT!'
+          : event.kind === 'RETREAT'
+            ? 'RETREAT!'
+            : 'KNOCKBACK!';
       result.push({ text, type: 'buff', coord: event.toCoord, delay: 250 });
     } else if (event.type === 'STATUS_APPLIED') {
       const unitPos = state.arena.getUnitPosition(event.targetUnitId) ?? clickedCoord;

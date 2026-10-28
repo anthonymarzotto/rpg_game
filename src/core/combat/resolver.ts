@@ -508,8 +508,10 @@ function applyCombatEvents(state: CombatState, events: readonly CombatEvent[]): 
                 actionId: 'condition_removed',
                 message: `${cu.unit.name}'s ${cond.type} was broken by taking damage!`,
                 metadata: {
-                  type: 'GENERIC',
+                  type: 'CONDITION_BROKEN',
                   actor: cu.unit.name,
+                  condition: cond.type,
+                  reason: 'taking damage',
                   text: `${cond.type} broken by damage`
                 }
               });
@@ -966,7 +968,7 @@ export function executeAbility(
     rawDamage: 0,
     mitigation: 0,
     damageDealt: 0,
-    damageBreakdown: '0 (Ground)'
+    damageBreakdown: ''
   };
 
   if (targetCu) {
@@ -1218,21 +1220,27 @@ export function executeAbility(
   const totalDamageEvents = events.filter((e): e is Extract<CombatEvent, { type: 'DAMAGE' }> => e.type === 'DAMAGE');
   const totalDamageDealt = totalDamageEvents.reduce((acc, d) => acc + d.amount, 0);
 
+  const logMessage = targetCu
+    ? `${actorCu.unit.name} used ${ability.name} on ${targetDesc}: [d20: ${rollResult.d20}+${rollResult.modifier}${dcClause}]${elevDetail}${auraDetail}${damageDetail}${hpClause}${secondaryDetail}`
+    : `${actorCu.unit.name} cast ${ability.name} at ${targetDesc}: [Spellcast roll: ${rollResult.d20}+${rollResult.modifier}${dcClause}]${elevDetail}${auraDetail}${secondaryDetail}`;
+
   state.combatLog.push({
     turnNumber: state.turnNumber,
     actorUnitId,
     actionId: ability.id,
-    message: `${actorCu.unit.name} used ${ability.name} on ${targetDesc}: [d20: ${rollResult.d20}+${rollResult.modifier}${dcClause}]${elevDetail}${auraDetail}${damageDetail}${hpClause}${secondaryDetail}`,
+    message: logMessage,
     metadata: {
       type: 'ATTACK',
       actor: actorCu.unit.name,
       ability: ability.name,
-      target: targetCu ? targetCu.unit.name : undefined,
+      target: targetCu ? targetCu.unit.name : targetDesc,
       d20: `${rollResult.d20}+${rollResult.modifier}`,
       defenseTarget: targetCu ? rollResult.targetDefense : undefined,
-      hitOutcome: rollResult.hitOutcome,
+      totalScore: rollResult.totalScore,
+      isAreaTarget: !targetCu,
+      hitOutcome: targetCu ? rollResult.hitOutcome : (totalDamageDealt > 0 ? 'SOLID_HIT' : 'MISS'),
       damageTotal: String(totalDamageDealt),
-      damageBreakdown: damageResult.damageBreakdown,
+      damageBreakdown: targetCu ? (damageResult.damageBreakdown || undefined) : undefined,
       targetHp: targetCu?.currentHp,
       targetMaxHp: targetCu?.unit.effectiveVitals.maxHp,
       secondaryDetail: [elevDetail, auraDetail, secondaryDetail].filter(Boolean).join('').trim()

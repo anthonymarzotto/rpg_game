@@ -1189,6 +1189,36 @@ describe('Headless AI Decision Engine', () => {
     it('asserts Smoke Veil has no artificial oncePerTurn restriction to preserve player/AI multi-action combos', () => {
       expect(SMOKE_VEIL.oncePerTurn).toBeFalsy();
     });
+
+    it('only evaluates Smoke Veil for self and never generates candidate actions targeting allied units', () => {
+      const arena = createRadialArena(3);
+      const infiltrator = createMockUnit('infiltrator', 'Hostile Infiltrator', 'ENEMY', {
+        activeClassId: 'infiltrator',
+        starterAbilityIds: ['smoke_veil']
+      });
+      const ally = createMockUnit('bandit', 'Bandit Ally', 'ENEMY', { maxHp: 30 });
+      const hero = createMockUnit('hero', 'Player Hero', 'PLAYER', { maxHp: 50 });
+
+      arena.setUnitPosition(infiltrator.id, { q: 0, r: 0 });
+      arena.setUnitPosition(ally.id, { q: 1, r: 0 }); // Ally adjacent
+      arena.setUnitPosition(hero.id, { q: 2, r: 0 }); // Hero distance 2
+
+      const state = createCombatState(arena, [infiltrator, ally, hero], infiltrator.id);
+      const infCu = state.units.get(infiltrator.id)!;
+      (infCu as { abilities: readonly any[] }).abilities = [SMOKE_VEIL];
+
+      const { trace } = decideNextActionWithTrace(state, infiltrator.id);
+      const smokeVeilCandidates = trace.topCandidates.filter(
+        (c) => c.action.type === 'ABILITY' && c.action.ability.id === 'smoke_veil'
+      );
+
+      for (const cand of smokeVeilCandidates) {
+        if (cand.action.type === 'ABILITY') {
+          expect(cand.action.target?.targetUnitId).not.toBe('bandit');
+          expect(cand.action.target?.targetUnitId).toBe('infiltrator');
+        }
+      }
+    });
   });
 
   describe('Damaging AoE Ground Hex AI Evaluation', () => {

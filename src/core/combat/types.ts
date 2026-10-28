@@ -190,14 +190,16 @@ export type CombatLogMetadata =
       readonly actor: string;
       readonly ability: string;
       readonly target?: string;
-      readonly d20: string;
+      readonly d20?: string;
       readonly defenseTarget?: number;
       readonly hitOutcome: string;
       readonly damageTotal: string;
-      readonly damageBreakdown: string;
+      readonly damageBreakdown?: string;
       readonly targetHp?: number;
       readonly targetMaxHp?: number;
       readonly secondaryDetail?: string;
+      readonly isAreaTarget?: boolean;
+      readonly totalScore?: number;
     }
   | {
       readonly type: 'MOVE';
@@ -243,6 +245,22 @@ export type CombatLogMetadata =
       readonly target: string;
       readonly targetUnitId?: string;
       readonly isTurnStart?: boolean;
+    }
+  | {
+      readonly type: 'CONDITION_BROKEN';
+      readonly actor?: string;
+      readonly condition?: string;
+      readonly reason?: string;
+      readonly text?: string;
+    }
+  | {
+      readonly type: 'DOT_DAMAGE';
+      readonly actor?: string;
+      readonly condition?: string;
+      readonly damage?: number;
+      readonly targetHp?: number;
+      readonly targetMaxHp?: number;
+      readonly text?: string;
     }
   | {
       readonly type: 'GENERIC';
