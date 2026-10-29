@@ -5,25 +5,7 @@
 ---
 
 ## 🔨 In Progress
-### 1. In-Combat Unit Inspection & Effect Tooltips
-- [x] **1.1**: Allow clicking/selecting any unit (ally or enemy) to pin their info card during combat.
-- [x] **1.2**: Hover tooltips on active condition badges (inspect exact `POISON`, `BURN`, `STEALTH`, `CHALLENGED` effects & durations).
-- [x] **1.3**: View active skill loadout and remaining AP/CTB in the pinned card.
-
-### UX Updates
-- [x] **UX.1**: Highlight movement path (Interactive dual-stroke 2.5D trajectory with waypoint beads and cliff-drop hazard segmentation).
-- [x] **UX.2**: Show meeting XP threshold in the "Harvest Trial Spoils" dialog (milestone badge with `★` and header requirement context).
-- [x] **UX.3**: "Harvest Trial Spoils" dialog redesign (3-column grid alignment, clean non-negative integers, button spacing, and hover tooltip validation).
-- [x] **UX.6**: Combat Manifest: Show Archetype tags for Class Abilities.
-
-### Bugs
-- [x] **B.1**: The facing arrows should show at the highest layer. Right not they are hidden partially behind, at least, other adjacent units.
-- [x] **B.2**: Skirmish shouts "Knockback!" when used. It either doesn't need anything, or should be something more appropriate (Displays `RETREAT!`).
-- [x] **B.5**: "Stealth broken by damage" card in Combat Log is not nicely formatted (Displays styled `👤 STEALTH BROKEN` card).
-- [x] **B.6**: Arcane Blast deals damage to the ground when targeting a hex with no unit (Detonates area with splash damage without ground attack roll or 0 damage).
-- [x] **B.7**: Infiltrators are trying to Smoke Veil other units. I'm not sure if it was successful. Smoke Veil should only target self.
-- [x] **B.8**: Burn damage card in Combat Log is not nicely formatted (Displays styled `🔥 BURN TICK` / `🧪 POISON TICK` cards with vitals).
-- [x] **B.9**: Garrick did not reveal Ash Infiltrator from Stealth on T12 move (Working as intended: Infiltrator remained in Garrick's flank blind spots along the move path; mitigated by UX.1 and B.4).
+Nothing to see here.
 
 ---
 
@@ -32,15 +14,20 @@
 ### 2. Enemy Threat Calibration & Pre-Ascension Snapshot
 - [ ] **2.1**: Investigate pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp). Balance against the player's ability to scout and plan for upcoming incursions rather than rubber-banding on deploy; re-evaluate alongside Horizon 2 sector map nodes. Generally, a bit too easy right now. Trial 3 and 6 were the most exciting and difficult tactically.
 
+### 3. Tier 4 Class Kits & Token Integration (Shield-bearer, Dragoon, Ballistician)
+- [ ] **3.1**: **Shield-bearer** (`#05`, Tier 4: `3F, 1R, 0M`): Sketch and author class package (signature ability, 2 domain abilities, passive trait, AI heuristic profile, and badge palette) and whitelist token `05_human_male`.
+- [ ] **3.2**: **Dragoon** (`#07`, Tier 4: `3F, 0R, 1M`): Sketch and author class package (signature ability, 2 domain abilities, passive trait, AI heuristic profile, and badge palette) and whitelist token `07_human_male`.
+- [ ] **3.3**: **Ballistician** (`#65`, Tier 4: `1F, 3R, 0M`): Sketch and author class package (signature ability, 2 domain abilities, passive trait, AI heuristic profile, and badge palette) and whitelist token `65_human_male`.
+
 ---
 
-## (icon) UX Updates
+## 🎨 UX Updates
 - [ ] **UX.4**: Combat Log: Filter by unit. Show actions where it was the actor or was targeted (or splash damaged).
 - [ ] **UX.5**: Let the User place their units at opening. Enemy team to also do better at starting positions.
 
 ---
 
-## (icon) Bugs
+## 🐛 Bugs
 - [ ] **B.3**: Active turn halo is generally not clearing well. Hard to pinpoint exactly what's going on, but I'm on turn 7 and 4 units have a halo.
 - [ ] **B.4**: When an enemy uses Smoke Veil I can still see them.
 - [ ] **B.10**: Shard effects don't show well in the Trial on ability cards.
