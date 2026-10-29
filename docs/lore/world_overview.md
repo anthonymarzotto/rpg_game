@@ -42,7 +42,6 @@ Welcome to the canonical world overview for **Astral Tactics**. This document ou
 
 ## 4. The Cosmic Sprite (Player Persona)
 
-* **Not a Commander:** You are not a warlord, general, or detached officer barking orders from behind a war table.
 * **A Native Companion:** You are a **Cosmic Sprite**—a small, luminous celestial creature native to the Firmament.
 * **Guiding the Company:** Because you are born of the stars, you have an intuitive sense for the celestial tides and flow of the field. You choose to travel alongside this particular group of mortals as their companion, scout, and guide.
 * **Camp Life:** Around the fire, the Wayfarers treat you as a cherished friend and lucky presence, relying on your gentle guidance without ever treating you as an imposing authority.

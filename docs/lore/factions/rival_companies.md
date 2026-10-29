@@ -17,33 +17,9 @@ summary: "The diverse traveling companies from across the mortal world competing
 
 ## Overview
 
-The trial grounds of [The Firmament](../cosmology/the_firmament.md) are not contested by invading armies or monstrous hordes. Instead, the tournament brings together a vibrant tapestry of **Rival Companies**—independent bands, guild delegations, and study circles that journeyed upward during the [Grand Conjunction](../cosmology/grand_conjunction.md).
+The trial grounds of [The Firmament](../cosmology/the_firmament.md) bring together a vibrant tapestry of **Rival Companies**—independent bands, guild delegations, and study circles that journeyed upward during the [Grand Conjunction](../cosmology/grand_conjunction.md).
 
 Every company brings its own colors, earnest traditions, and heartfelt aspirations for the [Falling Star's Favor](../cosmology/grand_conjunction.md).
-
----
-
-## Notable Company Traditions
-
-### 1. The Academy Field Circles
-* **Who They Are:** Bright-eyed scholars, apprentice arcanists, and academic fencers from the great universities of the mortal lowlands.
-* **Their Motivation:** Testing academic theory against practical field experience, recording stellar currents, and earning a wish to fund extensive libraries or public observatories back home.
-* **In the Ring:** Precise, analytical, and fond of coordinated positioning. They fight with well-polished rapier techniques, chalk-inscribed parchment scrolls, and careful elemental geometry.
-
-### 2. The Civic Guard & Watch Delegations
-* **Who They Are:** Honest constables, gatekeepers, and frontier rangers who volunteered to represent their hometowns in the celestial trials.
-* **Their Motivation:** Securing a celestial blessing to ensure mild winters, reinforce flood dams along the valley rivers, or earn civic honor for their rural townships.
-* **In the Ring:** Disciplined, patient, and defensive. They favor interlocking shields, stout polearms, and stubborn perimeter control, looking out for each other with practiced loyalty.
-
-### 3. The Artisan Guilds & Craft Alliances
-* **Who They Are:** Masons, master smiths, weavers, and horologists who set down their workshop tools to test their creations under the stars.
-* **Their Motivation:** Wishing for the revitalization of failing mountain mines, the restoration of ancient monuments, or rare star-metal ores to perfect their craft.
-* **In the Ring:** Resourceful and inventive. They utilize finely balanced bespoke blades, clockwork trinkets, smoke canisters, and durable armor crafted with their own hands.
-
-### 4. The Rover Bands & Freeblades
-* **Who They Are:** Good-humored drifters, retired stage performers, and restless wanderers who live for the adventure of the open trail.
-* **Their Motivation:** The simple thrill of seeing what lies beyond the clouds, forging lasting friendships, and living to tell tales that will be sung in taverns for generations.
-* **In the Ring:** Unorthodox and adaptable. They rely on quick footwork, improvisational feints, and infectious high spirits that get the entire crowd laughing and cheering.
 
 ---
 

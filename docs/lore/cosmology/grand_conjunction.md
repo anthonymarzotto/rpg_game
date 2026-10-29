@@ -25,9 +25,9 @@ As the alignment reaches its zenith, the barrier between the mortal earth and th
 
 ## The Astral Tournaments
 
-The Grand Conjunction is neither an omen of doom nor a summons to war. Instead, it inaugurates the ancient **Astral Tournaments**—a grand, peaceful tradition stretching back further than recorded history.
+The Grand Conjunction inaugurates the ancient **Astral Tournaments**—a grand, peaceful tradition stretching back further than recorded history.
 
-Across the floating amphitheaters and weathered stone arenas of the Firmament, traveling companies assemble to test their mettle, coordination, and spirit. These bouts are celebrations of mortal determination, where skill and mutual respect take precedence over bloodshed.
+Across the floating amphitheaters and weathered stone arenas of the Firmament, traveling companies assemble to test their mettle, coordination, and spirit. These bouts are celebrations of mortal determination, where skill and mutual respect take precedence.
 
 ---
 
@@ -41,8 +41,6 @@ At the pinnacle of the tournament trials awaits the most coveted treasure in the
   * Rebuilding a historic bell tower or ancient landmark shattered by past storms.
   * Ensuring calm seas and safe voyages for a generation of seafaring fishers.
   * Curing a rare family ailment or unlocking an archive of forgotten herbal lore.
-
-Because the Star responds only to genuine, selfless intentions born from camaraderie, ruthless ambition and callous malice naturally falter along the trial trail.
 
 ---
 

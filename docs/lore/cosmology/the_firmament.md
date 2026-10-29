@@ -17,9 +17,9 @@ summary: "The expansive celestial realm of twilight skies, floating starlit land
 
 ## Overview
 
-High above the mortal world lies **The Firmament**—an expansive celestial expanse where floating landmasses drift across an endless sea of twilight. Suspended in tranquil balance, islands of ancient, moss-dusted granite, terrace gardens, and weathered stone plazas float peacefully beneath a dome of soft constellations.
+High above the mortal world lies **The Firmament**—a celestial expanse where floating landmasses drift across an endless sea of twilight. Suspended in tranquil balance, islands of ancient, moss-dusted granite, terrace gardens, and weathered stone plazas float peacefully beneath a dome of soft constellations.
 
-The Firmament is not a battleground of warring gods or a realm of planar decay; it is an ancient, serene crossroad. For centuries, its quiet skyports and open plazas have welcomed travelers from across the mortal sphere whenever the stars align.
+The Firmament is an ancient, serene crossroad. For centuries, its quiet skyports and open plazas have welcomed travelers from across the mortal sphere whenever the stars align.
 
 ---
 
