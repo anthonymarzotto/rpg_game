@@ -117,6 +117,94 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
     expect(html).toContain('⚠️ Fall Hazard: -8 HP');
   });
 
+  it('renders lifted path hexes, stepping stone lips, and step number badges when movePreview has a multi-step path', () => {
+    const { state } = setupTestState();
+    const destination: HexCoord = { q: 1, r: 0 };
+    const intermediate: HexCoord = { q: 0, r: 0 };
+    const origin: HexCoord = { q: -1, r: 0 };
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[destination]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={destination}
+        floatingTexts={[]}
+        targetPreview={null}
+        movePreview={{
+          destination,
+          cost: 2,
+          fallDamage: 0,
+          path: [origin, intermediate, destination]
+        }}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('path-step-tile');
+    expect(html).toContain('stepping-stone-lip');
+    expect(html).toContain('lifted-tile-cap');
+    expect(html).toContain('path-step-badge');
+    expect(html).toContain('path-step-safe');
+    expect(html).toContain('path-step-destination');
+    expect(html).toContain('data-testid="path-step-badge-1"');
+    expect(html).toContain('data-testid="path-step-badge-2"');
+    expect(html).toContain('path-dest-ring');
+  });
+
+  it('renders path-step-hazard badge and hazard warning when a step plunges down a cliff (dh <= -2)', () => {
+    // origin at (-1, 0) h=2, destination at (0, 0) h=0 -> dh = -2 (cliff drop)
+    const { state } = setupTestState({ '-1,0': 2, '0,0': 0 });
+    const origin: HexCoord = { q: -1, r: 0 };
+    const destination: HexCoord = { q: 0, r: 0 };
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[destination]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={destination}
+        floatingTexts={[]}
+        targetPreview={null}
+        movePreview={{
+          destination,
+          cost: 1,
+          fallDamage: 8,
+          path: [origin, destination]
+        }}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('path-step-hazard');
+    expect(html).toContain('⚠️1');
+    expect(html).toContain('fall-hazard-badge');
+  });
+
+  it('does not render path-step badges or stepping stone lips when movePreview is null or has fewer than 2 coordinates', () => {
+    const { state } = setupTestState();
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        movePreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).not.toContain('path-step-badge');
+    expect(html).not.toContain('stepping-stone-lip');
+    expect(html).not.toContain('path-step-tile');
+  });
+
   it('applies see-through cutaway transparency to foreground tiles occluding hovered tile', () => {
     // Hovered tile at (0, -1) with h=0
     // Foreground tile at (0, 0) with h=2 (south of hovered tile)

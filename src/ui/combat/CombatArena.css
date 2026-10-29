@@ -2599,5 +2599,73 @@
   filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.95));
 }
 
+/* ==========================================================================
+   Movement Path Stepping Stones & Lifted Hexes (UX.1)
+   ========================================================================== */
+
+.stepping-stone-lip {
+  opacity: 0.92;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.7));
+  animation: dominoLipFade 0.22s ease-out backwards;
+}
+
+.lifted-tile-cap {
+  animation: dominoHexLift 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) backwards;
+}
+
+@keyframes dominoHexLift {
+  0% {
+    transform: translateY(5px);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes dominoLipFade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0.92;
+  }
+}
+
+.path-step-badge {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.85));
+}
+
+.path-step-badge .path-dest-ring {
+  animation: pathDestPulse 1.5s ease-in-out infinite alternate;
+}
+
+.path-step-badge.path-step-hazard .path-step-bg {
+  animation: pathHazardStepPulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes pathDestPulse {
+  0% {
+    opacity: 0.55;
+    stroke-width: 1px;
+  }
+  100% {
+    opacity: 1;
+    stroke-width: 1.5px;
+  }
+}
+
+@keyframes pathHazardStepPulse {
+  0% {
+    stroke-opacity: 0.7;
+    filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.6));
+  }
+  100% {
+    stroke-opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.9));
+  }
+}
+
 
 

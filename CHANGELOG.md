@@ -2,6 +2,16 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.8.0] - 2026-10-28
+
+### Movement Path Stepping Stones, 3D Elevation Lift & Step Badges (UX.1)
+- **Lifted Hex Stepping Stones**: Hovering any reachable tile in `MOVE` action mode physically lifts each sequential path hex by 5px (`projectElevationY - 5px`), casting a 3D dark under-lip shadow (`stepping-stone-lip`) onto the base terrain to create floating stepping-stone visibility.
+- **Amber & Gold Palette Contrast**: Tiles along the active path illuminate in warm amber/gold (`#fbbf24`, `rgba(245, 158, 11, 0.48)`) with soft glow filters, contrasting cleanly against the cyan field of all reachable hexes (`#06b6d4`).
+- **Sequential Step Number Badges**: Each path step displays a tactical circular step number badge (`1`, `2`, `3`...) centered on the lifted surface, matching the AP cost progression to that destination.
+- **Cliff-Drop Hazard Badges**: Steps plunging down cliffs ($\Delta h \le -2$) switch to crimson danger styling with hazard badges (`⚠️` + step number), coordinating with the destination fall hazard damage banner (`⚠️ Fall Hazard: -X HP`).
+- **Destination Pulse Ring**: The destination hex features an anchored pulsating dashed ring (`path-dest-ring`) marking the final landing position.
+- **Clean Tactical Typography**: Underlying coordinate labels (`q,r`) are automatically suppressed on active path steps to eliminate visual clutter.
+
 ## [0.7.2] - 2026-10-28
 
 ### Harvest Trial Spoils UX Polish & XP Threshold Previews

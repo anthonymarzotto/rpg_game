@@ -146,6 +146,29 @@ export function HexGridSvg({
     [candidateTargetCoords]
   );
 
+  // Memoized movement path step lookup map for lifted stepping stones (UX.1)
+  const pathStepMap = useMemo(() => {
+    if (!movePreview?.path || movePreview.path.length <= 1) {
+      return new Map<string, { stepNumber: number; isDestination: boolean; isHazard: boolean }>();
+    }
+    const map = new Map<string, { stepNumber: number; isDestination: boolean; isHazard: boolean }>();
+    const path = movePreview.path;
+    for (let i = 1; i < path.length; i++) {
+      const coord = path[i];
+      const prevCoord = path[i - 1];
+      const elev = state.arena.getElevation(coord) ?? 0;
+      const prevElev = state.arena.getElevation(prevCoord) ?? 0;
+      const isHazard = elev - prevElev <= -2;
+      const isDestination = i === path.length - 1;
+      map.set(toHexKey(coord), {
+        stepNumber: i,
+        isDestination,
+        isHazard
+      });
+    }
+    return map;
+  }, [movePreview, state.arena]);
+
   // Dynamically collect all arena tiles from the spatial model
   const allTiles = useMemo(() => {
     return state.arena.getAllTiles();
@@ -264,10 +287,15 @@ export function HexGridSvg({
           const isHovered =
             hoveredCoord && hoveredCoord.q === coord.q && hoveredCoord.r === coord.r;
 
+          const pathInfo = pathStepMap.get(key);
+          const isPathStep = pathInfo != null;
+          const liftY = isPathStep ? 5 : 0;
+
           const elevation = tile.elevation ?? 0;
           const basePixel = hexToPixel(coord);
           const topY = projectElevationY(basePixel.y, elevation);
-          const polyPoints = getHexPolygonPoints(basePixel.x, topY);
+          const liftedTopY = topY - liftY;
+          const polyPoints = getHexPolygonPoints(basePixel.x, liftedTopY);
           const prismWalls = getExtrudedPrismWalls(basePixel.x, basePixel.y, elevation);
 
           // Dynamic see-through cutaway: transparent if this tile is south of and occludes the hovered/active tile
@@ -313,6 +341,19 @@ export function HexGridSvg({
             strokeColor = elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#94a3b8';
             strokeWidth = 2;
             strokeDasharray = '4 2';
+          } else if (isPathStep) {
+            if (pathInfo.isHazard) {
+              fillColor = isHovered ? 'rgba(239, 68, 68, 0.48)' : 'rgba(239, 68, 68, 0.32)';
+              strokeColor = '#ef4444';
+              strokeWidth = 2.4;
+            } else {
+              fillColor = isHovered || pathInfo.isDestination
+                ? 'rgba(245, 158, 11, 0.48)'
+                : 'rgba(245, 158, 11, 0.32)';
+              strokeColor = '#fbbf24';
+              strokeWidth = pathInfo.isDestination ? 2.6 : 2;
+              filter = 'url(#tile-glow-amber)';
+            }
           } else if (isReachable) {
             fillColor = isHovered
               ? 'rgba(6, 182, 212, 0.4)'
@@ -357,7 +398,7 @@ export function HexGridSvg({
           return (
             <g
               key={key}
-              className={`hex-tile-group ${isReachable ? 'reachable' : ''} ${isRange ? 'in-range' : ''} ${isCandidate ? 'candidate' : ''} ${isCutaway ? 'cutaway-translucent' : ''}`}
+              className={`hex-tile-group ${isPathStep ? 'path-step-tile' : ''} ${pathInfo?.isDestination ? 'path-step-destination-tile' : ''} ${isReachable ? 'reachable' : ''} ${isRange ? 'in-range' : ''} ${isCandidate ? 'candidate' : ''} ${isCutaway ? 'cutaway-translucent' : ''}`}
               style={isCutaway ? { opacity: 0.35, transition: 'opacity 0.15s ease' } : undefined}
               onClick={() => onTileClick(coord)}
               onMouseEnter={() => onTileHover(coord)}
@@ -381,155 +422,235 @@ export function HexGridSvg({
                 </g>
               )}
 
-              {/* Top Surface Hex Polygon */}
-              <polygon
-                points={polyPoints}
-                fill={fillColor}
-                stroke={strokeColor}
-                strokeWidth={strokeWidth}
-                strokeDasharray={strokeDasharray}
-                filter={filter}
-              />
+              {/* 3D Under-lip shadow for lifted stepping stone */}
+              {isPathStep && pathInfo && (
+                <polygon
+                  points={getHexPolygonPoints(basePixel.x, topY)}
+                  fill="rgba(10, 15, 26, 0.85)"
+                  stroke="rgba(0, 0, 0, 0.6)"
+                  strokeWidth="1.2"
+                  className="stepping-stone-lip"
+                  style={{
+                    animationDelay: `${(pathInfo.stepNumber - 1) * 35}ms`
+                  }}
+                />
+              )}
 
-              {/* Obstacle / Ruins Token Standee */}
-              {isObstacle && (
-                <g className="pointer-events-none obstacle-ruins-glyph">
-                  {obstacleAssetSrc ? (
-                    <image
-                      href={obstacleAssetSrc}
-                      x={basePixel.x - 34}
-                      y={topY - 48}
-                      width="68"
-                      height="68"
-                      preserveAspectRatio="xMidYMax meet"
-                      className="pixel-art"
-                      filter="url(#standee-drop-shadow)"
+              {/* Lifted Surface & Badges with Cascading Domino Lift */}
+              <g
+                key={isPathStep && pathInfo ? `path-step-${pathInfo.stepNumber}` : undefined}
+                className={isPathStep ? 'lifted-tile-cap' : undefined}
+                style={isPathStep && pathInfo ? { animationDelay: `${(pathInfo.stepNumber - 1) * 35}ms` } : undefined}
+              >
+                {/* Top Surface Hex Polygon */}
+                <polygon
+                  points={polyPoints}
+                  fill={fillColor}
+                  stroke={strokeColor}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={strokeDasharray}
+                  filter={filter}
+                />
+
+                {/* Obstacle / Ruins Token Standee */}
+                {isObstacle && (
+                  <g className="pointer-events-none obstacle-ruins-glyph">
+                    {obstacleAssetSrc ? (
+                      <image
+                        href={obstacleAssetSrc}
+                        x={basePixel.x - 34}
+                        y={topY - 48}
+                        width="68"
+                        height="68"
+                        preserveAspectRatio="xMidYMax meet"
+                        className="pixel-art"
+                        filter="url(#standee-drop-shadow)"
+                      />
+                    ) : (
+                      <>
+                        {/* Left Ruin Pillar */}
+                        <rect
+                          x={basePixel.x - 12}
+                          y={topY - 14}
+                          width={9}
+                          height={16}
+                          rx={2}
+                          fill="rgba(15, 23, 42, 0.92)"
+                          stroke={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#94a3b8'}
+                          strokeWidth="1.2"
+                        />
+                        {/* Right Ruin Pillar (taller) */}
+                        <rect
+                          x={basePixel.x + 3}
+                          y={topY - 20}
+                          width={9}
+                          height={22}
+                          rx={2}
+                          fill="rgba(15, 23, 42, 0.92)"
+                          stroke={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#94a3b8'}
+                          strokeWidth="1.2"
+                        />
+                        {/* Crossbeam / fallen lintel cap */}
+                        <line
+                          x1={basePixel.x - 14}
+                          y1={topY - 14}
+                          x2={basePixel.x - 1}
+                          y2={topY - 14}
+                          stroke="#e2e8f0"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                        />
+                        <line
+                          x1={basePixel.x + 1}
+                          y1={topY - 20}
+                          x2={basePixel.x + 14}
+                          y2={topY - 20}
+                          stroke="#e2e8f0"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                        />
+                      </>
+                    )}
+                    {/* Obstacle / Ruins Label Badge */}
+                    <rect
+                      x={basePixel.x - 20}
+                      y={topY + 6}
+                      width={40}
+                      height={12}
+                      rx={3}
+                      fill="rgba(15, 23, 42, 0.85)"
+                      stroke={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#64748b'}
+                      strokeWidth="0.8"
                     />
-                  ) : (
-                    <>
-                      {/* Left Ruin Pillar */}
+                    <text
+                      x={basePixel.x}
+                      y={topY + 15}
+                      fill={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#7dd3fc' : '#cbd5e1'}
+                      fontSize="7.5"
+                      fontWeight="800"
+                      letterSpacing="0.6"
+                      textAnchor="middle"
+                    >
+                      {tile.label || 'RUINS'}
+                    </text>
+                  </g>
+                )}
+
+                {/* Elevation Contour Badge */}
+                {elevation > 0 && (
+                  <g className="pointer-events-none elevation-badge">
+                    <rect
+                      x={basePixel.x + 8}
+                      y={liftedTopY - 24}
+                      width={18}
+                      height={12}
+                      rx={4}
+                      fill="rgba(15, 23, 42, 0.88)"
+                      stroke={elevation >= 2 ? '#f59e0b' : '#38bdf8'}
+                      strokeWidth="1"
+                    />
+                    <text
+                      x={basePixel.x + 17}
+                      y={liftedTopY - 15}
+                      fill={elevation >= 2 ? '#fbbf24' : '#7dd3fc'}
+                      fontSize="8"
+                      fontWeight="800"
+                      textAnchor="middle"
+                    >
+                      {`+${elevation}`}
+                    </text>
+                  </g>
+                )}
+
+                {/* Fall Hazard Warning on Hovered Reachable Tile */}
+                {movePreview && movePreview.fallDamage > 0 && isHovered && (
+                  <g className="pointer-events-none fall-hazard-badge">
+                    <rect
+                      x={basePixel.x - 54}
+                      y={liftedTopY - 40}
+                      width={108}
+                      height={18}
+                      rx={9}
+                      fill="rgba(220, 38, 38, 0.95)"
+                      stroke="#fca5a5"
+                      strokeWidth="1.5"
+                    />
+                    <text
+                      x={basePixel.x}
+                      y={liftedTopY - 28}
+                      fill="#ffffff"
+                      fontSize="9.5"
+                      fontWeight="800"
+                      textAnchor="middle"
+                    >
+                      {`⚠️ Fall Hazard: -${movePreview.fallDamage} HP`}
+                    </text>
+                  </g>
+                )}
+
+                {/* Step Number Badge (UX.1: Stepping Stones) */}
+                {isPathStep && (
+                  <g
+                    className={`pointer-events-none path-step-badge ${pathInfo.isHazard ? 'path-step-hazard' : 'path-step-safe'} ${pathInfo.isDestination ? 'path-step-destination' : ''}`}
+                    data-testid={`path-step-badge-${pathInfo.stepNumber}`}
+                  >
+                    {/* Destination Outer Pulse Ring */}
+                    {pathInfo.isDestination && (
+                      <circle
+                        cx={basePixel.x}
+                        cy={liftedTopY}
+                        r={13}
+                        fill="none"
+                        stroke={pathInfo.isHazard ? '#ef4444' : '#fbbf24'}
+                        strokeWidth="1.2"
+                        strokeDasharray="3 2"
+                        className="path-dest-ring"
+                      />
+                    )}
+
+                    {/* Badge Background */}
+                    {pathInfo.isHazard ? (
                       <rect
-                        x={basePixel.x - 12}
-                        y={topY - 14}
-                        width={9}
+                        x={basePixel.x - 14}
+                        y={liftedTopY - 8}
+                        width={28}
                         height={16}
-                        rx={2}
-                        fill="rgba(15, 23, 42, 0.92)"
-                        stroke={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#94a3b8'}
+                        rx={8}
+                        fill="rgba(185, 28, 28, 0.95)"
+                        stroke="#fca5a5"
                         strokeWidth="1.2"
+                        className="path-step-bg"
                       />
-                      {/* Right Ruin Pillar (taller) */}
-                      <rect
-                        x={basePixel.x + 3}
-                        y={topY - 20}
-                        width={9}
-                        height={22}
-                        rx={2}
+                    ) : (
+                      <circle
+                        cx={basePixel.x}
+                        cy={liftedTopY}
+                        r={8.5}
                         fill="rgba(15, 23, 42, 0.92)"
-                        stroke={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#94a3b8'}
+                        stroke={pathInfo.isDestination ? '#fbbf24' : '#f59e0b'}
                         strokeWidth="1.2"
+                        className="path-step-bg"
                       />
-                      {/* Crossbeam / fallen lintel cap */}
-                      <line
-                        x1={basePixel.x - 14}
-                        y1={topY - 14}
-                        x2={basePixel.x - 1}
-                        y2={topY - 14}
-                        stroke="#e2e8f0"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                      />
-                      <line
-                        x1={basePixel.x + 1}
-                        y1={topY - 20}
-                        x2={basePixel.x + 14}
-                        y2={topY - 20}
-                        stroke="#e2e8f0"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                      />
-                    </>
-                  )}
-                  {/* Obstacle / Ruins Label Badge */}
-                  <rect
-                    x={basePixel.x - 20}
-                    y={topY + 6}
-                    width={40}
-                    height={12}
-                    rx={3}
-                    fill="rgba(15, 23, 42, 0.85)"
-                    stroke={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#38bdf8' : '#64748b'}
-                    strokeWidth="0.8"
-                  />
-                  <text
-                    x={basePixel.x}
-                    y={topY + 15}
-                    fill={elevation >= 2 ? '#fbbf24' : elevation === 1 ? '#7dd3fc' : '#cbd5e1'}
-                    fontSize="7.5"
-                    fontWeight="800"
-                    letterSpacing="0.6"
-                    textAnchor="middle"
-                  >
-                    {tile.label || 'RUINS'}
-                  </text>
-                </g>
-              )}
+                    )}
 
-              {/* Elevation Contour Badge */}
-              {elevation > 0 && (
-                <g className="pointer-events-none elevation-badge">
-                  <rect
-                    x={basePixel.x + 8}
-                    y={topY - 24}
-                    width={18}
-                    height={12}
-                    rx={4}
-                    fill="rgba(15, 23, 42, 0.88)"
-                    stroke={elevation >= 2 ? '#f59e0b' : '#38bdf8'}
-                    strokeWidth="1"
-                  />
-                  <text
-                    x={basePixel.x + 17}
-                    y={topY - 15}
-                    fill={elevation >= 2 ? '#fbbf24' : '#7dd3fc'}
-                    fontSize="8"
-                    fontWeight="800"
-                    textAnchor="middle"
-                  >
-                    {`+${elevation}`}
-                  </text>
-                </g>
-              )}
+                    {/* Step Number Text */}
+                    <text
+                      x={basePixel.x}
+                      y={liftedTopY + 3.2}
+                      fill={pathInfo.isHazard ? '#ffffff' : '#fef08a'}
+                      fontSize={pathInfo.isHazard ? '8' : '8.5'}
+                      fontWeight="800"
+                      textAnchor="middle"
+                      className="path-step-text"
+                    >
+                      {pathInfo.isHazard ? `⚠️${pathInfo.stepNumber}` : pathInfo.stepNumber}
+                    </text>
+                  </g>
+                )}
+              </g>
 
-              {/* Fall Hazard Warning on Hovered Reachable Tile */}
-              {movePreview && movePreview.fallDamage > 0 && isHovered && (
-                <g className="pointer-events-none fall-hazard-badge">
-                  <rect
-                    x={basePixel.x - 54}
-                    y={topY - 40}
-                    width={108}
-                    height={18}
-                    rx={9}
-                    fill="rgba(220, 38, 38, 0.95)"
-                    stroke="#fca5a5"
-                    strokeWidth="1.5"
-                  />
-                  <text
-                    x={basePixel.x}
-                    y={topY - 28}
-                    fill="#ffffff"
-                    fontSize="9.5"
-                    fontWeight="800"
-                    textAnchor="middle"
-                  >
-                    {`⚠️ Fall Hazard: -${movePreview.fallDamage} HP`}
-                  </text>
-                </g>
-              )}
-
-
-              {/* Subtle coordinate labels */}
-              {!isObstacle && (
+              {/* Subtle coordinate labels (hidden on obstacles and path steps) */}
+              {!isObstacle && !isPathStep && (
                 <text
                   x={basePixel.x}
                   y={topY + 13}
