@@ -75,16 +75,11 @@
 
 **Goal**: Scale the 100-class pyramid and introduce massive adversaries.
 
-1. **Tier 4 Class Packages (6 Classes)**:
-   * *Paladin* `(3, 0, 1)` (Fighter/Mage — Holy Vanguard & Ward Guardian)
-   * *Warden* `(3, 1, 0)` (Fighter/Rogue — Sentinel & Boundary Anchor)
-   * *Assassin* `(1, 3, 0)` (Rogue/Fighter — Executioner & Lethal Ambush)
-   * *Shadowblade* `(0, 3, 1)` (Rogue/Mage — Arcane Trickster & Blink Striker)
-   * *Battlemage* `(1, 0, 3)` (Mage/Fighter — Spell-Shield Juggernaut)
-   * *Elementalist* `(0, 1, 3)` (Mage/Rogue — Chaos Evoker & Storm Sculptor)
-2. **Multi-Hex Boss Behemoths**:
+1. **Tier 4 Class Packages (6 Classes)**
+   * Dragoon, Shield Bearer, Ballistician, Philanderer, Arcanist, Theurge.
+3. **Multi-Hex Boss Behemoths**:
    * Multi-tile astral entities occupying 2–3 contiguous hex footprints with custom directional arcs and multi-phase action economies.
-3. **Higher Pyramid Horizons**:
+4. **Higher Pyramid Horizons**:
    * Progressive authoring of Tier 5–9 class nodes advancing toward the geometric centroid (*Bard* `3, 3, 3`).
 
 ---
@@ -105,4 +100,6 @@ Broad mechanical concepts to prototype and evaluate after the core run loop is e
 * **Nemeses**: Enemies that flee at low HP threshold, level up, and return in later sectors with higher threat budgets, counter-abilities, and persistent battle history. Upon ascending to Nemesis status, enemies evolve from procedural astral adjective titles (e.g. *Ash Novice* or *Ash Thief*) into true individual names with notorious epithets (e.g. *Vael the Sneaky*).
 * **Camp Tutoring**: Veterans training Novices in Camp by passing on earned archetype XP while sitting out trials for a set number of rounds.
 * **Wayfarer Aging & Mortality**: Units aging after each skirmish, progressing through age brackets with changing stat modifiers, and eventually retiring into Constellation legends.
+* **Stat tracking**: Track stats per unit. Things like: total damage, damage per skill, hits, misses, grazes, crits, hexes moved, damage soaked, etc.
+* **Achievements per unit to unlock titles**: >100 kills, >x soaked damage, >x soaked damage on allies, >x damage done, >x times in battle with lower level allies, etc.
 
