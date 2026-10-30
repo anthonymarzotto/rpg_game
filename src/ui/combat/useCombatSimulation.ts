@@ -3,7 +3,7 @@ import { HexCoord, HexDirection } from '../../core/grid/hex';
 import { Ability } from '../../core/types/ability';
 import { Unit } from '../../core/types/unit';
 import { UnitLoadout } from '../../core/types/loadout';
-import { CombatState, InBattleXp } from '../../core/combat/types';
+import { CombatState, InBattleXp, DiceRollBreakdown } from '../../core/combat/types';
 import { canMove, canExecuteAbility, getAbilityRangeCoords } from '../../core/combat/validator';
 import { executeMove, executeSetFacing, executeAbility } from '../../core/combat/resolver';
 import { endActiveTurn } from '../../core/combat/turnClock';
@@ -23,6 +23,14 @@ import {
 
 export type ActionMode = 'IDLE' | 'MOVE' | 'ABILITY';
 export type CombatPhase = 'PLAYER_ACTION' | 'HOSTILE_TURN' | 'VICTORY' | 'DEFEAT';
+
+export interface ActiveDiceRollState {
+  readonly attackerName: string;
+  readonly targetName: string;
+  readonly abilityName: string;
+  readonly diceBreakdown: DiceRollBreakdown;
+  readonly onComplete: () => void;
+}
 
 export interface SquadMemberVictorySummary {
   readonly unit: Unit;
@@ -79,6 +87,42 @@ export function useCombatSimulation({
   );
 
   const [diceMode, setDiceMode] = useState<DiceMode>('NORMAL');
+
+  const STORAGE_KEY_DICE_TRAY = 'astral_tactics_dice_tray_enabled';
+  const isDiceTrayEnabledRef = useRef<boolean>(true);
+  const [isDiceTrayEnabled, setIsDiceTrayEnabledState] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_DICE_TRAY);
+      const initial = saved !== null ? saved === 'true' : true;
+      isDiceTrayEnabledRef.current = initial;
+      return initial;
+    } catch {
+      return true;
+    }
+  });
+
+  const setIsDiceTrayEnabled = useCallback(
+    (action: boolean | ((prev: boolean) => boolean)) => {
+      const next = typeof action === 'function' ? action(isDiceTrayEnabledRef.current) : action;
+      isDiceTrayEnabledRef.current = next;
+      try {
+        localStorage.setItem(STORAGE_KEY_DICE_TRAY, String(next));
+      } catch {
+        // ignore storage error in restricted contexts
+      }
+      setIsDiceTrayEnabledState(next);
+    },
+    []
+  );
+
+  const activeDiceRollRef = useRef<ActiveDiceRollState | null>(null);
+  const [activeDiceRoll, setActiveDiceRollState] = useState<ActiveDiceRollState | null>(null);
+
+  const setActiveDiceRoll = useCallback((val: ActiveDiceRollState | null) => {
+    activeDiceRollRef.current = val;
+    setActiveDiceRollState(val);
+  }, []);
+
   const isOpeningInitiativeActiveRef = useRef<boolean>(true);
   const [isOpeningInitiativeActive, setIsOpeningInitiativeActiveState] = useState<boolean>(true);
 
@@ -386,6 +430,11 @@ export function useCombatSimulation({
   // Dispatches tactical intent on tile click
   const handleTileClick = useCallback(
     (coord: HexCoord) => {
+      if (activeDiceRollRef.current) {
+        activeDiceRollRef.current.onComplete();
+        return;
+      }
+
       if (isOpeningInitiativeActiveRef.current) {
         skipOpeningInitiative();
         if (actionMode === 'IDLE') {
@@ -440,20 +489,39 @@ export function useCombatSimulation({
             roller
           );
 
-          dispatchResolutionFeedback(
-            state,
-            resolution,
-            selectedAbility,
-            targetCoordBefore,
-            activeCoord,
-            coord,
-            targetUnitId ?? undefined
-          );
+          const applyFeedbackAndProgress = () => {
+            dispatchResolutionFeedback(
+              state,
+              resolution,
+              selectedAbility,
+              targetCoordBefore,
+              activeCoord,
+              coord,
+              targetUnitId ?? undefined
+            );
+            setActiveDiceRoll(null);
+            setState({ ...state, combatLog: [...state.combatLog] });
+            checkEncounterProgression(state);
+          };
 
           setActionMode('IDLE');
           setSelectedAbility(null);
-          setState({ ...state, combatLog: [...state.combatLog] });
-          checkEncounterProgression(state);
+
+          if (isDiceTrayEnabledRef.current && resolution.type === 'ATTACK' && resolution.details.diceBreakdown) {
+            const attackerName = activeCu.unit.name;
+            const targetCu = targetUnitId ? state.units.get(targetUnitId) : undefined;
+            const targetName = targetCu?.unit.name ?? 'Target Hex';
+
+            setActiveDiceRoll({
+              attackerName,
+              targetName,
+              abilityName: selectedAbility.name,
+              diceBreakdown: resolution.details.diceBreakdown,
+              onComplete: applyFeedbackAndProgress
+            });
+          } else {
+            applyFeedbackAndProgress();
+          }
         } else {
           addFloatingText(validation.reason, 'miss', coord);
         }
@@ -467,6 +535,8 @@ export function useCombatSimulation({
       selectedAbility,
       state,
       diceMode,
+      activeDiceRoll,
+      isDiceTrayEnabled,
       isOpeningInitiativeActive,
       skipOpeningInitiative,
       addFloatingText,
@@ -632,6 +702,13 @@ export function useCombatSimulation({
     setPinnedUnitId,
     diceMode,
     setDiceMode,
+    get isDiceTrayEnabled() {
+      return isDiceTrayEnabledRef.current;
+    },
+    setIsDiceTrayEnabled,
+    get activeDiceRoll() {
+      return activeDiceRollRef.current;
+    },
     floatingTexts,
     reachableCoords,
     abilityRangeCoords,

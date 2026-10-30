@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { useCombatSimulation } from './useCombatSimulation';
 import { EncounterDefinition } from '../../core/combat/encounter';
 import { createRecruit } from '../../core/units/unitFactory';
+import { STRIKE } from '../../data/packages/novice';
 
 export const capturedEffects: Array<{ fn: () => void | (() => void); deps?: readonly unknown[] }> = [];
 
@@ -403,6 +404,115 @@ describe('useCombatSimulation movePreview & fall hazard detection', () => {
     expect(capturedHook!.pinnedUnitId).toBe('p1');
     capturedHook!.setPinnedUnitId(null);
     expect(capturedHook!.pinnedUnitId).toBeNull();
+  });
+
+  it('manages isDiceTrayEnabled state and toggles persistence', () => {
+    const player = createRecruit('p1', 'Alden', { faction: 'PLAYER' });
+    const encounter: EncounterDefinition = {
+      id: 'tray-toggle-test',
+      name: 'Tray Toggle Test',
+      arenaRadius: 2,
+      units: [{ unit: player, coord: { q: 0, r: 0 } }]
+    };
+
+    let capturedHook: ReturnType<typeof useCombatSimulation> | null = null;
+    function Harness() {
+      capturedHook = useCombatSimulation({ encounter });
+      return null;
+    }
+
+    renderToStaticMarkup(<Harness />);
+    expect(capturedHook!.isDiceTrayEnabled).toBe(true);
+
+    // Toggle off
+    capturedHook!.setIsDiceTrayEnabled(false);
+    expect(capturedHook!.isDiceTrayEnabled).toBe(false);
+
+    // Toggle back on with updater fn
+    capturedHook!.setIsDiceTrayEnabled((prev) => !prev);
+    expect(capturedHook!.isDiceTrayEnabled).toBe(true);
+  });
+
+  it('triggers activeDiceRoll on player attack when tray is enabled and fast-forwards on tile click', () => {
+    const player = createRecruit('p1', 'Hero', { faction: 'PLAYER' });
+    const enemy = createRecruit('e1', 'Orc', { faction: 'ENEMY' });
+    const encounter: EncounterDefinition = {
+      id: 'attack-tray-test',
+      name: 'Attack Tray Test',
+      arenaRadius: 3,
+      initialActiveUnitId: 'p1',
+      units: [
+        { unit: player, coord: { q: 0, r: 0 } },
+        { unit: enemy, coord: { q: 1, r: 0 } }
+      ]
+    };
+
+    let capturedHook: ReturnType<typeof useCombatSimulation> | null = null;
+    function Harness() {
+      capturedHook = useCombatSimulation({
+        encounter,
+        initialActionMode: 'ABILITY',
+        initialSelectedAbility: STRIKE
+      });
+      return null;
+    }
+
+    renderToStaticMarkup(<Harness />);
+    expect(capturedHook!.activeDiceRoll).toBeNull();
+    // Grant player AP to execute ability
+    capturedHook!.state.units.get('p1')!.currentAp = 3;
+
+    // Click on target tile (1, 0) to execute STRIKE
+    capturedHook!.handleTileClick({ q: 1, r: 0 });
+
+    // Active dice roll should now be populated with breakdown
+    expect(capturedHook!.activeDiceRoll).not.toBeNull();
+    expect(capturedHook!.activeDiceRoll!.attackerName).toBe(player.name);
+    expect(capturedHook!.activeDiceRoll!.targetName).toBe(enemy.name);
+    expect(capturedHook!.activeDiceRoll!.abilityName).toBe(STRIKE.name);
+    expect(capturedHook!.activeDiceRoll!.diceBreakdown).toBeDefined();
+    expect(capturedHook!.activeDiceRoll!.diceBreakdown.keptD20).toBeGreaterThanOrEqual(1);
+    expect(capturedHook!.activeDiceRoll!.diceBreakdown.hitOutcome).toBeDefined();
+    expect(capturedHook!.activeDiceRoll!.diceBreakdown.damageDice).toBeDefined();
+
+    // Clicking any tile fast-forwards / completes the active dice roll
+    capturedHook!.handleTileClick({ q: 0, r: 0 });
+    expect(capturedHook!.activeDiceRoll).toBeNull();
+  });
+
+  it('executes immediate attack resolution without activeDiceRoll when tray is disabled', () => {
+    const player = createRecruit('p1', 'Hero', { faction: 'PLAYER' });
+    const enemy = createRecruit('e1', 'Orc', { faction: 'ENEMY' });
+    const encounter: EncounterDefinition = {
+      id: 'attack-tray-disabled-test',
+      name: 'Attack Tray Disabled Test',
+      arenaRadius: 3,
+      initialActiveUnitId: 'p1',
+      units: [
+        { unit: player, coord: { q: 0, r: 0 } },
+        { unit: enemy, coord: { q: 1, r: 0 } }
+      ]
+    };
+
+    let capturedHook: ReturnType<typeof useCombatSimulation> | null = null;
+    function Harness() {
+      capturedHook = useCombatSimulation({
+        encounter,
+        initialActionMode: 'ABILITY',
+        initialSelectedAbility: STRIKE
+      });
+      return null;
+    }
+
+    renderToStaticMarkup(<Harness />);
+    capturedHook!.setIsDiceTrayEnabled(false);
+    capturedHook!.state.units.get('p1')!.currentAp = 3;
+
+    // Click target to execute attack
+    capturedHook!.handleTileClick({ q: 1, r: 0 });
+
+    // With tray disabled, activeDiceRoll remains null (immediate resolution)
+    expect(capturedHook!.activeDiceRoll).toBeNull();
   });
 });
 

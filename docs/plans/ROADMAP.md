@@ -57,8 +57,8 @@
 
 **Goal**: Give every tactical choice visceral physical feedback.
 
-1. **Visual Dice Tumbler Tray**:
-   * 3D/2.5D tumbling dice modal that animates attack, defense, and crit rolls, landing on values with kinetic screen impacts.
+1. **Visual Dice Tumbler Tray** (✅ Completed — Moved to ACTIVE.md):
+   * Procedural 2.5D tumbling dice banner animating attack checks and damage rolls, landing on values with kinetic screen impacts, advantage discard styling, and hit outcome stamps.
 2. **Procedural & Synthesized Audio**:
    * Lightweight Web Audio API or audio sprite sound engine:
      * Dice rolling and clattering on the tray.

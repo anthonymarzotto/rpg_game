@@ -5,7 +5,12 @@
 ---
 
 ## 🔨 In Progress
-Nothing to see here.
+- [x] **Visual Dice Tumbler Tray**:
+  - Implemented celestial glassmorphic top-banner dice tray overlay with procedural 2.5D SVG polyhedral dice (d20, d8, d6, etc.), faceted isometric lighting, and two-stage animation state machine (attack roll check vs defense, followed by damage dice on hit).
+  - Advantage/disadvantage dual d20 rolling with dimming and strikethrough slash discard styling.
+  - Settle animations featuring kinetic zoom snaps, critical hit flare / stamp, and graze/fumble callouts.
+  - Interactive click-to-skip (mouse click anywhere, Spacebar, Enter) and persistent `[🎲 Tray: ON/OFF]` combat header toggle saved to `localStorage`.
+  - Headless architecture: Pure TS `diceBreakdown` contract in `src/core/` and declarative presentation in `src/ui/combat/`.
 
 ---
 

@@ -2,6 +2,18 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.9.0] - 2026-10-29
+
+### Visual Dice Tumbler Tray & Polyhedral Attack Breakdown
+- **Procedural 2.5D SVG Polyhedral Dice**: Pure SVG geometry and isometric gradient lighting for d20 and damage dice (d4, d6, d8, d10, d12) with 0 external 3D engine dependencies.
+- **Top-Center Celestial Clash Banner**: Glassmorphic obsidian clash tray overlaying the upper arena canvas with gold celestial borders and backdrop blur.
+- **Two-Stage Roll Sequencing**: Stage 1 animates the d20 attack check against the target's defense score; Stage 2 animates the kinetic damage dice roll on successful hits.
+- **Advantage & Disadvantage Dual Rolls**: Renders dual d20s for Advantage and Disadvantage checks with real-time dimming and strikethrough slash discard styling.
+- **Kinetic Impact & Settle Flares**: Dynamic CSS keyframe tumbling, landing zoom snaps, golden critical hit flares, and outcome stamps (`CRITICAL HIT!`, `SOLID HIT`, `GRAZE`, `MISS!`).
+- **Interactive Click-to-Skip**: Dismiss or fast-forward active tumbling animations instantly via mouse click anywhere, Spacebar, or Enter key, without delaying combat pacing.
+- **Persistent Combat Header Toggle**: Added `[🎲 Tray: ON/OFF]` button in the combat header with `localStorage` persistence, providing instant resolution when disabled.
+- **Headless Core Breakdown Architecture**: Pure TypeScript data contract (`DiceRollBreakdown`, `DamageDieRoll`) attached to `AttackResolution` across core resolvers and damage engines with 100% test coverage.
+
 ## [0.8.0] - 2026-10-28
 
 ### Movement Path Stepping Stones, 3D Elevation Lift & Step Badges (UX.1)

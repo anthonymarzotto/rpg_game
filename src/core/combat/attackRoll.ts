@@ -91,6 +91,9 @@ export interface AttackRollResult {
   readonly modifier: number;
   readonly totalScore: number;
   readonly targetDefense: number;
+  readonly rawD20Rolls?: readonly number[];
+  readonly advantage?: RollAdvantage;
+  readonly defenseType?: 'Evasion' | 'Resolve';
 }
 
 /**
@@ -282,7 +285,18 @@ export function resolveAttackRoll(
   options?: AttackRollOptions
 ): AttackRollResult {
   const context = evaluateAttackRollContext(actorCu, targetCu, ability, options);
-  const d20 = diceRoller.rollD20(context.finalAdvantage);
+  let d20: number;
+  let rawD20Rolls: number[];
+
+  if (diceRoller.rollD20Detailed) {
+    const detailed = diceRoller.rollD20Detailed(context.finalAdvantage);
+    d20 = detailed.kept;
+    rawD20Rolls = [...detailed.rolls];
+  } else {
+    d20 = diceRoller.rollD20(context.finalAdvantage);
+    rawD20Rolls = [d20];
+  }
+
   const totalScore = d20 + context.netModifier;
 
   const isCritBoosted = ability.effects?.some((e) => e.type === 'CRIT_BOOST');
@@ -317,5 +331,14 @@ export function resolveAttackRoll(
     hitOutcome = 'GRAZE';
   }
 
-  return { hitOutcome, d20, modifier: context.netModifier, totalScore, targetDefense: context.targetDefense };
+  return {
+    hitOutcome,
+    d20,
+    modifier: context.netModifier,
+    totalScore,
+    targetDefense: context.targetDefense,
+    rawD20Rolls,
+    advantage: context.finalAdvantage,
+    defenseType: context.defenseType
+  };
 }

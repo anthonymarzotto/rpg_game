@@ -1,5 +1,5 @@
 import { Ability, AbilityEffect, DiceProfile } from '../types/ability';
-import { CombatUnit, HitOutcome } from './types';
+import { CombatUnit, HitOutcome, DamageDieRoll } from './types';
 import { getEffectiveArmor, getEffectiveWard } from './effectiveVitals';
 import { DiceRoller } from './dice';
 import { getAbilityModifier } from './attackRoll';
@@ -10,6 +10,8 @@ export interface DamageResult {
   readonly mitigation: number;
   readonly damageDealt: number;
   readonly damageBreakdown: string;
+  readonly damageDice?: readonly DamageDieRoll[];
+  readonly damageModifier?: number;
 }
 
 /**
@@ -99,16 +101,35 @@ export function resolveDamage(
   let maximizedVal = 0;
   let formulaPrefix = '';
 
+  const damageDiceRolls: DamageDieRoll[] = [];
   if (damageProfile) {
     const { count, sides } = damageProfile;
-    rolledDice = diceRoller.rollDice(count, sides);
+    if (diceRoller.rollIndividualDice) {
+      const rolls = diceRoller.rollIndividualDice(count, sides);
+      rolledDice = rolls.reduce((sum, val) => sum + val, 0);
+      for (const r of rolls) {
+        damageDiceRolls.push({ sides, roll: r });
+      }
+    } else {
+      rolledDice = diceRoller.rollDice(count, sides);
+      damageDiceRolls.push({ sides, roll: rolledDice });
+    }
     maximizedVal = count * sides;
     formulaPrefix = `${count}d${sides}`;
   }
 
   if (bonusDamage && bonusDamage.count > 0 && bonusDamage.sides > 0) {
-    const bonusRoll = diceRoller.rollDice(bonusDamage.count, bonusDamage.sides);
-    rolledDice += bonusRoll;
+    if (diceRoller.rollIndividualDice) {
+      const bonusRolls = diceRoller.rollIndividualDice(bonusDamage.count, bonusDamage.sides);
+      rolledDice += bonusRolls.reduce((sum, val) => sum + val, 0);
+      for (const r of bonusRolls) {
+        damageDiceRolls.push({ sides: bonusDamage.sides, roll: r });
+      }
+    } else {
+      const bonusRoll = diceRoller.rollDice(bonusDamage.count, bonusDamage.sides);
+      rolledDice += bonusRoll;
+      damageDiceRolls.push({ sides: bonusDamage.sides, roll: bonusRoll });
+    }
     maximizedVal += bonusDamage.count * bonusDamage.sides;
     formulaPrefix += `${formulaPrefix ? '+' : ''}${bonusDamage.count}d${bonusDamage.sides}`;
   }
@@ -147,7 +168,14 @@ export function resolveDamage(
   const modSign = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
   const damageBreakdown = `${formulaPrefix || '0'}(${rollDetails})${modSign} - ${mitigation} ${mitigationType}${modifierSuffix} -> ${damageDealt}`;
 
-  return { rawDamage, mitigation, damageDealt, damageBreakdown };
+  return {
+    rawDamage,
+    mitigation,
+    damageDealt,
+    damageBreakdown,
+    damageDice: damageDiceRolls,
+    damageModifier: totalMod
+  };
 }
 
 /**

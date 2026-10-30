@@ -70,6 +70,33 @@ export type CombatEvent =
       readonly reason?: string;
     };
 
+import { RollAdvantage } from './dice';
+
+/**
+ * Individual damage die outcome.
+ */
+export interface DamageDieRoll {
+  readonly sides: number;
+  readonly roll: number;
+}
+
+/**
+ * Structured breakdown of an attack check and damage roll sequence for visual presentation.
+ */
+export interface DiceRollBreakdown {
+  readonly d20Rolls: readonly number[];
+  readonly keptD20: number;
+  readonly advantage: RollAdvantage;
+  readonly netModifier: number;
+  readonly totalScore: number;
+  readonly targetDefense: number;
+  readonly defenseType: 'Evasion' | 'Resolve';
+  readonly hitOutcome: HitOutcome;
+  readonly damageDice: readonly DamageDieRoll[];
+  readonly damageModifier: number;
+  readonly totalDamage: number;
+}
+
 /**
  * Detailed result of an attack roll and damage resolution.
  */
@@ -88,6 +115,7 @@ export interface AttackResolution {
   readonly wallSlamDamage?: number;
   readonly fallDamage?: number;
   readonly events: readonly CombatEvent[];
+  readonly diceBreakdown?: DiceRollBreakdown;
 }
 
 /**

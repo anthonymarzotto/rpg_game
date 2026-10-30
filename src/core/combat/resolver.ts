@@ -18,7 +18,8 @@ import {
   AbilityResolution,
   CombatEvent,
   EncounterObjective,
-  HitOutcome
+  HitOutcome,
+  DiceRollBreakdown
 } from './types';
 import { canMove, canExecuteAbility } from './validator';
 import { getEffectiveMove, getEffectiveSpeed, getEffectiveEvasion, getEffectiveResolve } from './effectiveVitals';
@@ -28,7 +29,7 @@ import { DiceRoller, SeededDiceRoller, RollAdvantage } from './dice';
 import { ACTION_ECONOMY_CONFIG, COMBAT_RESOLUTION_CONFIG } from '../config/balance';
 import { advanceTurnClock, predictTurnOrder } from './turnClock';
 import { resolveAttackRoll, calculateElevationAttackModifier, getAttackRollModifier, AttackRollResult } from './attackRoll';
-import { resolveDamage, resolveFallDamage } from './damageEngine';
+import { resolveDamage, resolveFallDamage, DamageResult } from './damageEngine';
 import { executeAbilityEffects, defaultEffectRegistry, EffectContext } from './effects';
 import { evaluateRollPassives, onTurnStartPassives } from './passives';
 import { evaluateEncounterOutcome } from './objectives';
@@ -949,7 +950,16 @@ export function executeAbility(
     let groundAdv: RollAdvantage = rollAdvantage;
     if (elevMod.grantsAdvantage) groundAdv = 'ADVANTAGE';
     if (elevMod.grantsDisadvantage) groundAdv = groundAdv === 'ADVANTAGE' ? 'NORMAL' : 'DISADVANTAGE';
-    const d20 = diceRoller.rollD20(groundAdv);
+    let d20: number;
+    let rawD20Rolls: number[];
+    if (diceRoller.rollD20Detailed) {
+      const detailed = diceRoller.rollD20Detailed(groundAdv);
+      d20 = detailed.kept;
+      rawD20Rolls = [...detailed.rolls];
+    } else {
+      d20 = diceRoller.rollD20(groundAdv);
+      rawD20Rolls = [d20];
+    }
     const totalScore = d20 + netModifier;
     const isCritBoosted = effectiveAbility.effects?.some((e) => e.type === 'CRIT_BOOST');
     const naturalCritThreshold = isCritBoosted ? 19 : 20;
@@ -959,16 +969,21 @@ export function executeAbility(
       d20,
       modifier: netModifier,
       totalScore,
-      targetDefense: 0
+      targetDefense: 0,
+      rawD20Rolls,
+      advantage: groundAdv,
+      defenseType: 'Evasion'
     };
   }
 
   // Primary Damage Event on center target (if targetCu exists)
-  let damageResult = {
+  let damageResult: DamageResult = {
     rawDamage: 0,
     mitigation: 0,
     damageDealt: 0,
-    damageBreakdown: ''
+    damageBreakdown: '',
+    damageDice: [],
+    damageModifier: 0
   };
 
   if (targetCu) {
@@ -1247,10 +1262,25 @@ export function executeAbility(
     }
   });
 
+  const finalHitOutcome = targetCu ? rollResult.hitOutcome : (totalDamageDealt > 0 ? 'SOLID_HIT' : 'MISS');
+  const diceBreakdown: DiceRollBreakdown = {
+    d20Rolls: rollResult.rawD20Rolls ?? [rollResult.d20],
+    keptD20: rollResult.d20,
+    advantage: rollResult.advantage ?? 'NORMAL',
+    netModifier: rollResult.modifier,
+    totalScore: rollResult.totalScore,
+    targetDefense: rollResult.targetDefense,
+    defenseType: rollResult.defenseType ?? (effectiveAbility.defenseTarget === 'RESOLVE' ? 'Resolve' : 'Evasion'),
+    hitOutcome: finalHitOutcome,
+    damageDice: damageResult.damageDice ?? [],
+    damageModifier: damageResult.damageModifier ?? 0,
+    totalDamage: totalDamageDealt
+  };
+
   return {
     type: 'ATTACK',
     details: {
-      hitOutcome: targetCu ? rollResult.hitOutcome : (totalDamageDealt > 0 ? 'SOLID_HIT' : 'MISS'),
+      hitOutcome: finalHitOutcome,
       d20Roll: rollResult.d20,
       modifier: rollResult.modifier,
       totalAttackScore: rollResult.totalScore,
@@ -1263,7 +1293,8 @@ export function executeAbility(
       knockbackResult: effectResult.knockbackResult,
       wallSlamDamage: effectResult.wallSlamDamage,
       fallDamage: effectResult.fallDamage,
-      events
+      events,
+      diceBreakdown
     }
   };
 }

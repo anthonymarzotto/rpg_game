@@ -19,6 +19,7 @@ import { TrialExportModal } from './TrialExportModal';
 import { TrialErrorBoundary } from './TrialErrorBoundary';
 import { HarvestDistributionModal } from './HarvestDistributionModal';
 import { resolveArenaBackground, computeBackgroundTransform } from './arenaBackground';
+import { DiceTumblerTray } from './DiceTumblerTray';
 import { isLocalhost } from '../../core/config/environment';
 import './CombatArena.css';
 
@@ -74,6 +75,9 @@ export function CombatArena({
     setPinnedUnitId,
     diceMode,
     setDiceMode,
+    isDiceTrayEnabled,
+    setIsDiceTrayEnabled,
+    activeDiceRoll,
     floatingTexts,
     reachableCoords,
     abilityRangeCoords,
@@ -263,6 +267,17 @@ export function CombatArena({
               ))}
             </div>
 
+            {/* Visual Dice Tumbler Tray Toggle */}
+            <button
+              type="button"
+              className={`btn-dice-tray-toggle font-ui ${isDiceTrayEnabled ? 'active' : ''}`}
+              onClick={() => setIsDiceTrayEnabled((prev) => !prev)}
+              title="Toggle 2.5D visual dice tray animation for attack checks and damage"
+              data-testid="btn-toggle-dice-tray"
+            >
+              🎲 Tray: {isDiceTrayEnabled ? 'ON' : 'OFF'}
+            </button>
+
             {/* Dev Dice Roll Overrides (Localhost only) */}
             {isLocalhost() && (
               <div className="dev-dice-controls">
@@ -363,6 +378,17 @@ export function CombatArena({
               onTileClick={handleTileClick}
               onTileHover={setHoveredCoord}
             />
+
+            {/* 2.5D Polyhedral Visual Dice Tray Overlay */}
+            {activeDiceRoll && (
+              <DiceTumblerTray
+                attackerName={activeDiceRoll.attackerName}
+                targetName={activeDiceRoll.targetName}
+                abilityName={activeDiceRoll.abilityName}
+                diceBreakdown={activeDiceRoll.diceBreakdown}
+                onComplete={activeDiceRoll.onComplete}
+              />
+            )}
           </div>
 
           {/* Right Combat Log Panel */}

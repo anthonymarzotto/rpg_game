@@ -1,0 +1,606 @@
+/* -------------------------------------------------------------------------- */
+/* Visual Dice Tumbler Tray Styles                                            */
+/* -------------------------------------------------------------------------- */
+
+.dice-tumbler-tray-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 56px;
+  background: rgba(10, 15, 29, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 120;
+  cursor: pointer;
+  animation: trayFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  user-select: none;
+}
+
+@keyframes trayFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.dice-tumbler-tray-card {
+  position: relative;
+  background: linear-gradient(
+    145deg,
+    rgba(15, 23, 42, 0.96) 0%,
+    rgba(30, 41, 59, 0.94) 50%,
+    rgba(15, 23, 42, 0.98) 100%
+  );
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.8),
+    0 0 24px rgba(245, 158, 11, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  padding: 14px 20px 10px;
+  width: 90%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: trayCardSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  cursor: default;
+}
+
+@keyframes trayCardSlide {
+  0% {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Header Ribbon                                                              */
+/* -------------------------------------------------------------------------- */
+
+.tray-header-ribbon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  padding-bottom: 8px;
+}
+
+.tray-combatant {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tray-combatant.attacker {
+  align-items: flex-start;
+}
+
+.tray-combatant.target {
+  align-items: flex-end;
+}
+
+.tray-combatant .unit-name {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: 0.5px;
+}
+
+.tray-combatant .ability-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.tray-combatant .defense-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.tray-versus {
+  font-size: 14px;
+  color: #f59e0b;
+  opacity: 0.8;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Stages Grid                                                                */
+/* -------------------------------------------------------------------------- */
+
+.tray-stages-container {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.tray-stage {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  min-height: 125px;
+  transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+
+.tray-stage.stage-damage.pending {
+  opacity: 0.55;
+  filter: grayscale(0.35);
+}
+
+.tray-stage.stage-damage.missed {
+  opacity: 0.35;
+  filter: grayscale(0.85);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.tray-stage.stage-damage.active {
+  opacity: 1;
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.1);
+}
+
+.stage-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.advantage-pill {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.advantage-pill.advantage {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.advantage-pill.disadvantage {
+  background: rgba(239, 68, 68, 0.25);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Polyhedral Dice & SVG Graphics                                             */
+/* -------------------------------------------------------------------------- */
+
+.d20-rolls-row,
+.damage-rolls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 58px;
+}
+
+.dice-wrapper {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+
+.polyhedral-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* d20 Facet Styling */
+.d20-outer-hex {
+  fill: #0f172a;
+  stroke: #475569;
+  stroke-width: 2.5;
+}
+
+.d20-facet {
+  stroke: #334155;
+  stroke-width: 1.5;
+  fill: #1e293b;
+}
+
+.facet-top-right {
+  fill: #2d3f5a;
+}
+.facet-top-left {
+  fill: #24334a;
+}
+.facet-mid-left {
+  fill: #162234;
+}
+.facet-mid-right {
+  fill: #1a283e;
+}
+.facet-bot-left {
+  fill: #0f172a;
+}
+.facet-bot-right {
+  fill: #131c2e;
+}
+
+.d20-center-facet {
+  fill: #1e3a5f;
+  stroke: #475569;
+  stroke-width: 1.5;
+}
+
+.d20-center-facet-left {
+  fill: #182e4b;
+  stroke: #475569;
+  stroke-width: 1.5;
+}
+
+.d20-value-text {
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  font-weight: 900;
+  fill: #f8fafc;
+  stroke: #020617;
+  stroke-width: 1px;
+  paint-order: stroke fill;
+}
+
+/* d20 Crit & Fumble Glow */
+.dice-d20.crit .d20-outer-hex {
+  stroke: #fbbf24;
+  fill: #78350f;
+}
+.dice-d20.crit .d20-center-facet,
+.dice-d20.crit .d20-center-facet-left {
+  fill: #b45309;
+}
+.dice-d20.crit .d20-value-text {
+  fill: #fef08a;
+}
+.dice-d20.crit {
+  filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.8));
+  animation: critBounce 0.5s cubic-bezier(0.17, 0.89, 0.32, 1.28);
+}
+
+@keyframes critBounce {
+  0% {
+    transform: scale(0.85);
+  }
+  50% {
+    transform: scale(1.22);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.dice-d20.fumble .d20-outer-hex {
+  stroke: #ef4444;
+  fill: #450a0a;
+}
+.dice-d20.fumble .d20-value-text {
+  fill: #fca5a5;
+}
+
+/* Discarded Advantage/Disadvantage Die */
+.dice-wrapper.discarded {
+  opacity: 0.35;
+  filter: grayscale(0.8);
+}
+
+.die-discard-slash {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #ef4444;
+  transform: rotate(-45deg);
+  box-shadow: 0 0 4px #ef4444;
+}
+
+/* Damage Dice Styling */
+.dice-damage {
+  width: 44px;
+  height: 44px;
+}
+
+/* d4: Amber / Topaz Caltrop */
+.sides-4 .d4-facet-left {
+  fill: #d97706;
+}
+.sides-4 .d4-facet-right {
+  fill: #b45309;
+}
+.sides-4 .d4-facet-bottom {
+  fill: #78350f;
+}
+.sides-4 .d4-outer-border {
+  stroke: #fbbf24;
+  stroke-width: 2.5;
+}
+
+/* d6: Ruby / Crimson Isometric Cube */
+.sides-6 .d6-facet-top {
+  fill: #ef4444;
+}
+.sides-6 .d6-facet-left {
+  fill: #b91c1c;
+}
+.sides-6 .d6-facet-right {
+  fill: #7f1d1d;
+}
+.sides-6 .d6-outer-border {
+  stroke: #fca5a5;
+  stroke-width: 2.5;
+}
+.sides-6 .damage-value-text.d6-text {
+  fill: #ffffff;
+}
+
+/* d8: Sapphire / Indigo Diamond */
+.sides-8 .d8-outer-diamond {
+  fill: #1e1b4b;
+  stroke: #818cf8;
+  stroke-width: 2.5;
+}
+.sides-8 .d8-facet-top-right {
+  fill: #4338ca;
+}
+.sides-8 .d8-facet-top-left {
+  fill: #3730a3;
+}
+.sides-8 .d8-facet-bot-right {
+  fill: #312e81;
+}
+.sides-8 .d8-facet-bot-left {
+  fill: #1e1b4b;
+}
+
+/* d10: Amethyst / Violet Kite */
+.sides-10 .d10-facet-top-left {
+  fill: #9333ea;
+}
+.sides-10 .d10-facet-top-right {
+  fill: #7e22ce;
+}
+.sides-10 .d10-facet-bot-left {
+  fill: #6b21a8;
+}
+.sides-10 .d10-facet-bot-right {
+  fill: #581c87;
+}
+.sides-10 .d10-outer-border {
+  stroke: #c084fc;
+  stroke-width: 2.5;
+}
+
+/* d12: Jade / Emerald Dodecahedron */
+.sides-12 .d12-center-pentagon {
+  fill: #10b981;
+}
+.sides-12 .d12-facet-top-left {
+  fill: #059669;
+}
+.sides-12 .d12-facet-top-right {
+  fill: #047857;
+}
+.sides-12 .d12-facet-right {
+  fill: #065f46;
+}
+.sides-12 .d12-facet-bot-right {
+  fill: #064e3b;
+}
+.sides-12 .d12-facet-left {
+  fill: #022c22;
+}
+.sides-12 .d12-outer-border {
+  stroke: #34d399;
+  stroke-width: 2.5;
+}
+
+.damage-value-text {
+  font-family: 'Cinzel', serif;
+  font-size: 26px;
+  font-weight: 800;
+  fill: #ffffff;
+  stroke: #0f172a;
+  stroke-width: 1px;
+  paint-order: stroke fill;
+}
+
+.die-label {
+  position: absolute;
+  bottom: -6px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #818cf8;
+  background: rgba(15, 23, 42, 0.85);
+  padding: 0 4px;
+  border-radius: 2px;
+}
+
+/* Tumbling Keyframes */
+.dice-wrapper.tumbling {
+  animation: diceTumble 0.16s infinite alternate linear;
+}
+
+@keyframes diceTumble {
+  0% {
+    transform: rotate(-10deg) scale(0.96) translateY(-2px);
+  }
+  100% {
+    transform: rotate(10deg) scale(1.04) translateY(2px);
+  }
+}
+
+.dice-wrapper.settled {
+  animation: diceSnapLand 0.32s cubic-bezier(0.17, 0.89, 0.32, 1.25) forwards;
+}
+
+@keyframes diceSnapLand {
+  0% {
+    transform: scale(1.15) translateY(-4px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Equation and Outcomes                                                      */
+/* -------------------------------------------------------------------------- */
+
+.tray-equation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.tray-equation .die-val {
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.tray-equation .mod-val {
+  color: #38bdf8;
+}
+
+.tray-equation .equals {
+  color: #64748b;
+}
+
+.tray-equation .score-val {
+  font-weight: 800;
+  font-size: 15px;
+  color: #f1f5f9;
+}
+
+.tray-equation .score-val.crit {
+  color: #fbbf24;
+}
+
+.tray-equation .vs-label {
+  font-size: 11px;
+  color: #64748b;
+  margin-left: 2px;
+}
+
+.tray-equation.damage-equation .dmg-val {
+  color: #f97316;
+  font-size: 16px;
+}
+
+.tray-equation .pending-text {
+  font-size: 11px;
+  color: #94a3b8;
+  font-style: italic;
+  letter-spacing: 0.3px;
+}
+
+.tray-equation .missed-text {
+  font-size: 11px;
+  color: #f87171;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+/* Hit Outcome Stamp */
+.hit-outcome-stamp {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  text-align: center;
+  animation: stampSlam 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes stampSlam {
+  0% {
+    transform: scale(1.5) rotate(-3deg);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+
+.hit-outcome-stamp.stamp-crit {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  border: 1px solid #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
+.hit-outcome-stamp.stamp-solid {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.hit-outcome-stamp.stamp-graze {
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.hit-outcome-stamp.stamp-miss {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Skip Hint                                                                  */
+/* -------------------------------------------------------------------------- */
+
+.tray-skip-hint {
+  text-align: center;
+  font-size: 10px;
+  color: #64748b;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
