@@ -1,0 +1,36 @@
+{
+  "group_id": "797ebfa5-7282-4007-830f-a4a99269bbb6",
+  "states": [
+    {
+      "character": {
+        "id": "7bd6e088-d974-479a-b0c7-802c2ce1cb03",
+        "name": "Idle",
+        "prompt": "A chibi shield-bearer anchored in a wide, rock-solid defensive phalanx stance, wearing polished iron half-plate over a heavy padded gambeson. Featuring large, expressive anime eyes. The outfit is accented with vivid crimson on the surcoat crest and helmet plume, with minor emerald trim lining the shield strap and boot cuffs. Holding a massive reinforced kite shield planted in front, sword in a scabbard on his belt, selective outline. No cape.",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-21T20:10:09.683115+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-24T02:32:37.557525"
+}
