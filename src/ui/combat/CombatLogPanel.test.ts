@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { parseCombatLogMessage, CombatLogPanel, formatPassiveDetail } from './CombatLogPanel';
+import { parseCombatLogMessage, CombatLogPanel, formatPassiveDetail, formatD20Roll } from './CombatLogPanel';
 import { CombatLogEntry } from '../../core/combat/types';
 
 describe('parseCombatLogMessage', () => {
@@ -203,7 +203,7 @@ describe('parseCombatLogMessage', () => {
     expect(html).toContain('hex (2, 0)');
     expect(html).toContain('4');
     expect(html).toContain('(Total)');
-    expect(html).toContain('🎲 14+2 (Score 16)');
+    expect(html).toContain('🎲 14 + 2 (Score 16)');
     expect(html).toContain('Blast hit Bandit Brute');
   });
 
@@ -822,6 +822,51 @@ describe('parseCombatLogMessage', () => {
       expect(html).toContain('log-poison-badge');
       expect(html).toContain('2');
       expect(html).toContain('6/10');
+    });
+
+    it('renders challenge defied into a dedicated CONDITION_BROKEN card', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 12,
+        actorUnitId: 'enemy-infiltrator',
+        actionId: 'condition_applied',
+        message: 'Nebula Infiltrator defied the challenge and became EXPOSED!',
+        metadata: {
+          type: 'CONDITION_BROKEN',
+          actor: 'Nebula Infiltrator',
+          condition: 'CHALLENGED',
+          reason: 'defied',
+          text: 'Nebula Infiltrator defied the challenge and became EXPOSED!'
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.type).toBe('CONDITION_BROKEN');
+      if (parsed.type === 'CONDITION_BROKEN') {
+        expect(parsed.actor).toBe('Nebula Infiltrator');
+        expect(parsed.condition).toBe('CHALLENGED');
+      }
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 12
+        })
+      );
+
+      expect(html).toContain('log-condition-broken-card');
+      expect(html).toContain('⚔️ CHALLENGE DEFIED');
+      expect(html).toContain('Defied the challenge and became EXPOSED!');
+    });
+  });
+
+  describe('formatD20Roll', () => {
+    it('formats operators with spaces for both positive and negative modifiers', () => {
+      expect(formatD20Roll('20+-2')).toBe('20 - 2');
+      expect(formatD20Roll('20-2')).toBe('20 - 2');
+      expect(formatD20Roll('16+1')).toBe('16 + 1');
+      expect(formatD20Roll('20 + 2')).toBe('20 + 2');
+      expect(formatD20Roll('20 - 2')).toBe('20 - 2');
+      expect(formatD20Roll('-')).toBe('-');
     });
   });
 });

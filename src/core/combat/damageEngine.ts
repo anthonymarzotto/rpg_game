@@ -162,11 +162,14 @@ export function resolveDamage(
     modifierSuffix += ' (min 1)';
   }
 
-  // e.g. 1d4+1d6(8)+1 - 2 Armor -> 7
-  const rollDetails = isCrit ? `max ${maximizedVal}+${rolledDice}` : `${rolledDice}`;
+  // e.g. Normal: 1d6(4)+1 - 2 Armor -> 3 | Crit: 1d4+1d4 [Crit: 8 max + 6 roll] + 3 - 0 Armor -> 17
   const totalMod = modifier + flatBonus;
   const modSign = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
-  const damageBreakdown = `${formulaPrefix || '0'}(${rollDetails})${modSign} - ${mitigation} ${mitigationType}${modifierSuffix} -> ${damageDealt}`;
+  const critModSign = totalMod >= 0 ? `+ ${totalMod}` : `- ${Math.abs(totalMod)}`;
+
+  const damageBreakdown = isCrit
+    ? `${formulaPrefix || '0'} [Crit: ${maximizedVal} max + ${rolledDice} roll] ${critModSign} - ${mitigation} ${mitigationType}${modifierSuffix} -> ${damageDealt}`
+    : `${formulaPrefix || '0'}(${rolledDice})${modSign} - ${mitigation} ${mitigationType}${modifierSuffix} -> ${damageDealt}`;
 
   return {
     rawDamage,

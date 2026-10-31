@@ -127,6 +127,14 @@ export type ParsedLogEntry =
       rawMessage: string;
     };
 
+export function formatD20Roll(d20?: string): string {
+  if (!d20) return '';
+  return d20
+    .replace(/\+\s*-/g, ' - ')
+    .replace(/(\d+)\s*\+\s*(\d+)/g, '$1 + $2')
+    .replace(/(\d+)\s*-\s*(\d+)/g, '$1 - $2');
+}
+
 export function formatPassiveDetail(detail: string): string {
   if (!detail) return '';
   const match = detail.match(/^(.*?)\s*\[(?:Stat Modifier:\s*|.*?:\s*)?(.*?)\]\s*$/);
@@ -366,9 +374,25 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
 
   if (
     entry.actionId === 'condition_removed' ||
+    entry.actionId === 'condition_applied' ||
     msg.includes('was broken by taking damage') ||
-    msg.includes('condition was consumed')
+    msg.includes('condition was consumed') ||
+    msg.includes('defied the challenge')
   ) {
+    if (entry.actionId === 'condition_applied' || msg.includes('defied the challenge')) {
+      const match = msg.match(/^(.+?)\s+defied the challenge/i);
+      const actor = match ? match[1].trim() : meta?.actor || actorUnitId;
+      return {
+        type: 'CONDITION_BROKEN',
+        turn,
+        actor,
+        isPlayer,
+        condition: 'CHALLENGED',
+        reason: 'defied',
+        rawMessage: msg
+      };
+    }
+
     const match = msg.match(/^(.+?)'s\s+([A-Za-z_]+)(?:\s+condition)?\s+(?:was\s+broken|was\s+consumed)/i);
     const actor = match ? match[1].trim() : meta?.actor || actorUnitId;
     const condition = match ? match[2].trim().toUpperCase() : (meta?.text?.split(' ')[0] || 'STEALTH');
@@ -567,7 +591,7 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
                           className="log-roll-chip"
                           title={entry.isAreaTarget ? 'Spellcast Roll & Score' : 'Attack Roll vs Defense DC'}
                         >
-                          🎲 {entry.d20}
+                          🎲 {formatD20Roll(entry.d20)}
                           {entry.defenseTarget !== undefined
                             ? ` vs DC ${entry.defenseTarget}`
                             : entry.totalScore !== undefined
@@ -814,9 +838,16 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
 
             if (entry.type === 'CONDITION_BROKEN') {
               const isStealth = entry.condition.toUpperCase() === 'STEALTH';
-              const badgeText = isStealth ? '👤 STEALTH BROKEN' : `⚡ ${entry.condition} BROKEN`;
+              const isChallenged = entry.condition.toUpperCase() === 'CHALLENGED';
+              const badgeText = isStealth
+                ? '👤 STEALTH BROKEN'
+                : isChallenged
+                ? '⚔️ CHALLENGE DEFIED'
+                : `⚡ ${entry.condition} BROKEN`;
               const contextNote = isStealth
                 ? 'Concealment lost due to taking damage!'
+                : isChallenged
+                ? 'Defied the challenge and became EXPOSED!'
                 : `${entry.condition} effect removed.`;
 
               return (
@@ -835,7 +866,7 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
                   </div>
 
                   <div className="log-card-secondary log-condition-footer">
-                    <span className="secondary-icon">💥</span>
+                    <span className="secondary-icon">{isChallenged ? '⚠️' : '💥'}</span>
                     <span className="secondary-text">{contextNote}</span>
                   </div>
                 </div>

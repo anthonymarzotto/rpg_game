@@ -2,6 +2,14 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.9.1] - 2026-10-30
+
+### Critical Damage Breakdown & Combat Log Presentation Polish (UX.8, UX.10)
+- **Explicit Critical Hit Breakdown**: Formatted critical hit breakdowns in `damageEngine.ts` with explicit labels (`[Crit: X max + Y roll] + mod - armor -> damage`) to clearly distinguish maximized base values from rolled dice.
+- **Spaced Attack Roll Modifiers (UX.10)**: Normalized d20 attack check operators with spaces (`16 + 1`, `20 - 2`) across combat logs and UI roll chips, eliminating confusing double signs like `20+-2`.
+- **Causal Combat Log Narrative**: Reordered log event appending so attack actions are recorded in the combat log prior to reactive condition outcomes.
+- **Dedicated Challenge Defied Card (UX.8)**: Styled challenge defiance events as distinct `CONDITION_BROKEN` cards with a `⚔️ CHALLENGE DEFIED` badge and warning context notes.
+
 ## [0.9.0] - 2026-10-29
 
 ### Visual Dice Tumbler Tray & Polyhedral Attack Breakdown

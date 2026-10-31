@@ -82,6 +82,13 @@ describe('Attack & Ability Resolution Outcomes', () => {
       if (result.type === 'ATTACK') {
         expect(result.details.hitOutcome).toBe('CRITICAL_HIT');
         expect(result.details.damageDealt).toBe(11);
+        expect(result.details.damageBreakdown).toBe('1d6 [Crit: 6 max + 5 roll] + 0 - 0 Armor -> 11');
+        const attackLog = state.combatLog.find((l) => l.actionId === 'strike');
+        expect(attackLog?.metadata?.type).toBe('ATTACK');
+        if (attackLog?.metadata?.type === 'ATTACK') {
+          expect(attackLog.metadata.d20).toBe('20 + 0');
+        }
+        expect(attackLog?.message).toContain('[d20: 20 + 0 vs DC 10 -> CRITICAL_HIT]');
       }
 
       const goblinCu = state.units.get('goblin')!;
@@ -732,6 +739,13 @@ describe('Attack & Ability Resolution Outcomes', () => {
       }
       // Attacker defied the challenge by attacking the wizard, receiving EXPOSED
       expect(enemyCu.activeConditions.some((c) => c.type === 'EXPOSED')).toBe(true);
+
+      // Verify attack log entry precedes the condition defiance entry in combatLog
+      const strikeLogIdx = state.combatLog.findIndex((l) => l.actionId === 'strike');
+      const defianceLogIdx = state.combatLog.findIndex((l) => l.actionId === 'condition_applied');
+      expect(strikeLogIdx).toBeGreaterThanOrEqual(0);
+      expect(defianceLogIdx).toBeGreaterThan(strikeLogIdx);
+      expect(state.combatLog[defianceLogIdx].message).toContain('defied the challenge and became EXPOSED');
     });
 
     it('rolls normally when CHALLENGED and attacking the challenger', () => {

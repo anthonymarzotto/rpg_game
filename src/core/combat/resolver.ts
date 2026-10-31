@@ -1192,30 +1192,6 @@ export function executeAbility(
     actorCu.activeConditions = actorCu.activeConditions.filter((c) => !conditionsToRemove.has(c));
   }
 
-  for (const toApply of conditionsToApply) {
-    const unitToApply = state.units.get(toApply.targetUnitId);
-    if (unitToApply && !unitToApply.isDefeated) {
-      const { event } = applyConditionToUnit(
-        unitToApply,
-        toApply.conditionType,
-        toApply.durationTurns,
-        toApply.sourceUnitId ?? actorCu.unit.id
-      );
-      events.push(event);
-      state.combatLog.push({
-        turnNumber: state.turnNumber,
-        actorUnitId: unitToApply.unit.id,
-        actionId: 'condition_applied',
-        message: `${unitToApply.unit.name} defied the challenge and became EXPOSED!`,
-        metadata: {
-          type: 'GENERIC',
-          actor: unitToApply.unit.name,
-          text: 'EXPOSED applied'
-        }
-      });
-    }
-  }
-
   // Evaluate encounter outcome
   state.outcome = evaluateEncounterOutcome(state.objectives, state);
 
@@ -1235,9 +1211,14 @@ export function executeAbility(
   const totalDamageEvents = events.filter((e): e is Extract<CombatEvent, { type: 'DAMAGE' }> => e.type === 'DAMAGE');
   const totalDamageDealt = totalDamageEvents.reduce((acc, d) => acc + d.amount, 0);
 
+  const d20ModFormatted = rollResult.modifier >= 0
+    ? `+ ${rollResult.modifier}`
+    : `- ${Math.abs(rollResult.modifier)}`;
+  const d20Formatted = `${rollResult.d20} ${d20ModFormatted}`;
+
   const logMessage = targetCu
-    ? `${actorCu.unit.name} used ${ability.name} on ${targetDesc}: [d20: ${rollResult.d20}+${rollResult.modifier}${dcClause}]${elevDetail}${auraDetail}${damageDetail}${hpClause}${secondaryDetail}`
-    : `${actorCu.unit.name} cast ${ability.name} at ${targetDesc}: [Spellcast roll: ${rollResult.d20}+${rollResult.modifier}${dcClause}]${elevDetail}${auraDetail}${secondaryDetail}`;
+    ? `${actorCu.unit.name} used ${ability.name} on ${targetDesc}: [d20: ${d20Formatted}${dcClause}]${elevDetail}${auraDetail}${damageDetail}${hpClause}${secondaryDetail}`
+    : `${actorCu.unit.name} cast ${ability.name} at ${targetDesc}: [Spellcast roll: ${d20Formatted}${dcClause}]${elevDetail}${auraDetail}${secondaryDetail}`;
 
   state.combatLog.push({
     turnNumber: state.turnNumber,
@@ -1249,7 +1230,7 @@ export function executeAbility(
       actor: actorCu.unit.name,
       ability: ability.name,
       target: targetCu ? targetCu.unit.name : targetDesc,
-      d20: `${rollResult.d20}+${rollResult.modifier}`,
+      d20: d20Formatted,
       defenseTarget: targetCu ? rollResult.targetDefense : undefined,
       totalScore: rollResult.totalScore,
       isAreaTarget: !targetCu,
@@ -1261,6 +1242,33 @@ export function executeAbility(
       secondaryDetail: [elevDetail, auraDetail, secondaryDetail].filter(Boolean).join('').trim()
     }
   });
+
+  // Post-action condition triggers (logged after attack so cause precedes effect)
+  for (const toApply of conditionsToApply) {
+    const unitToApply = state.units.get(toApply.targetUnitId);
+    if (unitToApply && !unitToApply.isDefeated) {
+      const { event } = applyConditionToUnit(
+        unitToApply,
+        toApply.conditionType,
+        toApply.durationTurns,
+        toApply.sourceUnitId ?? actorCu.unit.id
+      );
+      events.push(event);
+      state.combatLog.push({
+        turnNumber: state.turnNumber,
+        actorUnitId: unitToApply.unit.id,
+        actionId: 'condition_applied',
+        message: `${unitToApply.unit.name} defied the challenge and became EXPOSED!`,
+        metadata: {
+          type: 'CONDITION_BROKEN',
+          actor: unitToApply.unit.name,
+          condition: 'CHALLENGED',
+          reason: 'defied',
+          text: `${unitToApply.unit.name} defied the challenge and became EXPOSED!`
+        }
+      });
+    }
+  }
 
   const finalHitOutcome = targetCu ? rollResult.hitOutcome : (totalDamageDealt > 0 ? 'SOLID_HIT' : 'MISS');
   const diceBreakdown: DiceRollBreakdown = {
