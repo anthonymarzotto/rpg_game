@@ -35,6 +35,7 @@
 - [ ] **UX.9**: Shout out text is small and hard to read.
 - [x] **UX.10**: Attack roll in Combat Card in Combat log should just show + or -, not both. i.e. Right now it shows 17+-2=15, it should be 17-2=15.
 - [ ] **UX.11**: Dice Tray: The d20 roll is shown before the die stops rolling. Also the damage roll shows up before the die stops rolling.
+- [ ] **UX.12**: The map is not scrollable or draggable. You zoom in and then can only see the middle.
 
 ---
 
