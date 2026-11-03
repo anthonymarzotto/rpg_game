@@ -382,6 +382,10 @@
 .floating-combat-text {
   animation: floatUpFade 1.3s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.9));
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: none;
+  user-select: none;
 }
 
 @keyframes floatUpFade {
@@ -394,14 +398,14 @@
     transform: translateY(-8px) scale(1.15);
   }
   30% {
-    transform: translateY(-14px) scale(1);
+    transform: translateY(-16px) scale(1);
   }
   75% {
     opacity: 1;
   }
   100% {
     opacity: 0;
-    transform: translateY(-36px) scale(0.95);
+    transform: translateY(-42px) scale(0.95);
   }
 }
 

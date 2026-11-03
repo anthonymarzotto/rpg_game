@@ -9,13 +9,18 @@ schema: spec-driven
 #     We use conventional commits
 #     Domain: e-commerce platform
 
+context: |
+  CHANGELOG.md is rendered directly in-game to players via the Release Notes modal. All changelog entries must be strictly end-user facing, focusing only on the broad strokes of gameplay, visual UI, and balance changes players will notice. Never include technical implementation details, object/script/file names, CSS rules, internal task IDs, or developer-only test benchmarks.
+  When working on an item (explore, propose) from docs/plans/ACTIVE.md, move the item to the "In Progress" section in docs/plans/ACTIVE.md so that the active board stays up to date.
+
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
 rules:
   proposal:
     - Assess whether a version bump (major, minor, or patch) is required according to Semantic Versioning and explicitly state the target version and rationale in the proposal.
+    - When working on an item from docs/plans/ACTIVE.md (explore, propose), ensure the item is moved to the "In Progress" section in docs/plans/ACTIVE.md.
   tasks:
-    - Include a specific task to update CHANGELOG.md and bump the version in package.json when a version bump is required.
+    - Include a specific task to update CHANGELOG.md and bump the version in package.json when a version bump is required. Ensure CHANGELOG entries are strictly end-user facing (broad strokes, gameplay/UI impact) with no technical implementation details, script/file names, or internal task IDs.
     - Include a specific task to run `npm run build`.
 
 # Per-operation guidance (optional)
@@ -24,8 +29,8 @@ operations:
   apply:
     guidance:
       - Keep test summaries concise.
-      - Update CHANGELOG.md with implemented changes.
+      - Update CHANGELOG.md with end-user facing descriptions of implemented changes. Strictly avoid technical implementation details, file/script names, CSS properties, internal task IDs, or developer benchmarks; focus only on broad-stroke gameplay, UI, and balance changes players will notice.
   archive:
     guidance:
-      - Verify that CHANGELOG.md has an entry documenting the change under the corresponding version and date before finishing.
+      - Verify that CHANGELOG.md has an entry documenting the change under the corresponding version and date before finishing, ensuring notes are strictly end-user facing without technical or script details.
       - Ensure package.json version reflects the assessed version bump.

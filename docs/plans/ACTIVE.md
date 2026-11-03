@@ -16,6 +16,7 @@
 - [x] **B.11**: A unit that uses Skirmish and falls off a height 2 hex does not take fall damage. (Fixed in retreat displacement by evaluating elevation delta, applying fall damage when plunging dh <= -2, and adding canVaultOnRetreat for Cat Burglar).
 - [x] **B.12**: Challenging Shout can target Allies, it should only target Enemies. (Fixed in validator.ts by requiring opposing factions for all SINGLE_TARGET abilities regardless of damageType).
 - [x] **B.13**: Combat Log card shows "[Elevation: Low ground (-2)]" which is correct for my unit, but both the attack roll in the same Combat Card and the Dice Tray do not show this -2. (Fixed by modeling structured AttackModifierComponent breakdown in AttackRollContext/DiceRollBreakdown and rendering an in-engine glassmorphism hover tooltip on roll chips).
+- [x] **UX.9**: Shout out text is small and hard to read. (Fixed in v0.9.3: added high-contrast 3.5px SVG stroke outline with paint-order stroke fill, elevated y - 36 anchor, FloatingTextTier model with tiered 26px/21px/16px sizing, and dynamic vertical stacking for concurrent floaters).
 
 ---
 
@@ -40,7 +41,6 @@ Sketch and author class package (signature ability, 2 domain abilities, passive 
 - [ ] **UX.5**: Let the User place their units at opening. Enemy team to also do better at starting positions.
 - [ ] **UX.6**: Dice Tray: Evade/Miss can just say Miss.
 - [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close.
-- [ ] **UX.9**: Shout out text is small and hard to read.
 - [ ] **UX.11**: Dice Tray: The d20 roll is shown before the die stops rolling. Also the damage roll shows up before the die stops rolling.
 - [ ] **UX.12**: The map is not scrollable or draggable. You zoom in and then can only see the middle.
 - [ ] **UX.13**: Avoiding fall damage with Feline Grace has an unformated combat log card.

@@ -473,7 +473,46 @@ describe('useFloatingCombatText: collectInitiativeFloatingTexts', () => {
     expect(heroFloat?.delay).toBe(0);
     expect(goblinFloat?.text).toBe('🎲 8');
     expect(goblinFloat?.type).toBe('initiative');
+    expect(goblinFloat?.tier).toBe('standard');
     expect(goblinFloat?.delay).toBe(250);
+  });
+});
+
+describe('useFloatingCombatText: getDefaultFloaterTier & tiers', () => {
+  it('maps types and texts to expected semantic tiers', async () => {
+    const { getDefaultFloaterTier, resolveDamageFloatingText } = await import('./useFloatingCombatText');
+
+    expect(getDefaultFloaterTier('crit')).toBe('impact');
+    expect(getDefaultFloaterTier('slam')).toBe('impact');
+    expect(getDefaultFloaterTier('miss', '⚠️ Action Fault')).toBe('impact');
+    expect(getDefaultFloaterTier('damage')).toBe('standard');
+    expect(getDefaultFloaterTier('graze')).toBe('standard');
+    expect(getDefaultFloaterTier('miss')).toBe('standard');
+    expect(getDefaultFloaterTier('initiative')).toBe('standard');
+    expect(getDefaultFloaterTier('xp')).toBe('utility');
+    expect(getDefaultFloaterTier('buff')).toBe('utility');
+
+    const critEvent = {
+      type: 'DAMAGE' as const,
+      targetUnitId: 'dummy',
+      amount: 8,
+      damageType: 'PHYSICAL' as const,
+      reason: 'ATTACK' as const,
+      isCrit: true
+    };
+    const critRes = resolveDamageFloatingText(critEvent, 'CRITICAL_HIT');
+    expect(critRes.tier).toBe('impact');
+
+    const normalEvent = {
+      type: 'DAMAGE' as const,
+      targetUnitId: 'dummy',
+      amount: 4,
+      damageType: 'PHYSICAL' as const,
+      reason: 'ATTACK' as const,
+      isCrit: false
+    };
+    const normalRes = resolveDamageFloatingText(normalEvent, 'SOLID_HIT');
+    expect(normalRes.tier).toBe('standard');
   });
 });
 

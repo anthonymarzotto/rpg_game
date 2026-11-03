@@ -564,6 +564,117 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
     expect(html).toContain('Source: Alden');
     expect(html).toContain('Must attack Alden');
   });
+
+  it('renders floating combat text with high-contrast stroke outline and elevated anchor', () => {
+    const { state } = setupTestState();
+    const floaters = [
+      {
+        id: 'ft-1',
+        text: 'CRITICAL! -8',
+        type: 'crit' as const,
+        coord: { q: 0, r: 0 },
+        tier: 'impact' as const
+      }
+    ];
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={floaters}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('CRITICAL! -8');
+    expect(html).toContain('paint-order="stroke fill"');
+    expect(html).toContain('stroke="rgba(0, 0, 0, 0.85)"');
+    expect(html).toContain('stroke-width="3.5"');
+    expect(html).toContain('font-size="26"');
+    expect(html).toContain('font-weight="900"');
+    // Elevated anchor y - 36 (for tile {0,0} with elevation 0, y is 0 - 36 = -36)
+    expect(html).toContain('y="-36"');
+  });
+
+  it('displaces concurrent floaters on the same hex with dynamic vertical stacking', () => {
+    const { state } = setupTestState();
+    const floaters = [
+      {
+        id: 'ft-1',
+        text: 'CRITICAL! -8',
+        type: 'crit' as const,
+        coord: { q: 0, r: 0 },
+        tier: 'impact' as const
+      },
+      {
+        id: 'ft-2',
+        text: '+1 FORCE XP',
+        type: 'xp' as const,
+        coord: { q: 0, r: 0 },
+        tier: 'utility' as const
+      }
+    ];
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={floaters}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('CRITICAL! -8');
+    expect(html).toContain('+1 FORCE XP');
+    // First floater at y - 36 = -36
+    expect(html).toContain('y="-36"');
+    // Second stacked floater at y - 36 - 18 = -54
+    expect(html).toContain('y="-54"');
+    // Tiered sizing: crit is 26px, xp is 16px
+    expect(html).toContain('font-size="26"');
+    expect(html).toContain('font-size="16"');
+  });
+
+  it('renders standard tier floaters at 21px font size', () => {
+    const { state } = setupTestState();
+    const floaters = [
+      {
+        id: 'ft-1',
+        text: '-4',
+        type: 'damage' as const,
+        coord: { q: 0, r: 0 },
+        tier: 'standard' as const
+      }
+    ];
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={floaters}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('-4');
+    expect(html).toContain('font-size="21"');
+    expect(html).toContain('font-weight="800"');
+  });
 });
 
 

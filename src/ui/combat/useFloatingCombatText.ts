@@ -5,11 +5,41 @@ import { Ability } from '../../core/types/ability';
 import { predictTurnOrder } from '../../core/combat/turnClock';
 import { formatDisciplineName } from './combatXpUtils';
 
+export type FloatingTextTier = 'impact' | 'standard' | 'utility';
+
 export interface FloatingText {
   readonly id: string;
   readonly text: string;
   readonly type: 'damage' | 'crit' | 'graze' | 'miss' | 'xp' | 'buff' | 'slam' | 'initiative';
   readonly coord: HexCoord;
+  readonly tier?: FloatingTextTier;
+}
+
+/**
+ * Resolves the default semantic tier for a floating text item based on its type and text.
+ */
+export function getDefaultFloaterTier(
+  type: FloatingText['type'],
+  text?: string
+): FloatingTextTier {
+  if (text && (text.includes('Fault') || text.includes('⚠️'))) {
+    return 'impact';
+  }
+  switch (type) {
+    case 'crit':
+    case 'slam':
+      return 'impact';
+    case 'damage':
+    case 'graze':
+    case 'miss':
+    case 'initiative':
+      return 'standard';
+    case 'xp':
+    case 'buff':
+      return 'utility';
+    default:
+      return 'standard';
+  }
 }
 
 /**
@@ -18,7 +48,7 @@ export interface FloatingText {
 export function resolveDamageFloatingText(
   event: Extract<CombatEvent, { type: 'DAMAGE' }>,
   hitOutcome: HitOutcome
-): { text: string; textType: FloatingText['type'] } {
+): { text: string; textType: FloatingText['type']; tier: FloatingTextTier } {
   const textType: FloatingText['type'] =
     event.reason === 'COLLISION' || event.reason === 'COLLATERAL' || event.reason === 'SPLASH' || event.reason === 'FALL'
       ? 'slam'
@@ -44,9 +74,12 @@ export function resolveDamageFloatingText(
       ? 'GRAZE '
       : '';
 
+  const tier: FloatingTextTier = textType === 'crit' || textType === 'slam' ? 'impact' : 'standard';
+
   return {
     text: `${prefix}-${event.amount}`,
-    textType
+    textType,
+    tier
   };
 }
 
@@ -57,8 +90,8 @@ export function resolveDamageFloatingText(
 export function collectInitiativeFloatingTexts(
   state: CombatState,
   staggerMs = 250
-): Array<{ text: string; type: FloatingText['type']; coord: HexCoord; delay: number }> {
-  const result: Array<{ text: string; type: FloatingText['type']; coord: HexCoord; delay: number }> = [];
+): Array<{ text: string; type: FloatingText['type']; tier: FloatingTextTier; coord: HexCoord; delay: number }> {
+  const result: Array<{ text: string; type: FloatingText['type']; tier: FloatingTextTier; coord: HexCoord; delay: number }> = [];
 
   // Sort units according to turn order lookahead so initiative rolls pop in sequence of action
   const turnOrder = predictTurnOrder(state, state.units.size);
@@ -88,6 +121,7 @@ export function collectInitiativeFloatingTexts(
         result.push({
           text: `🎲 ${cu.initialInitiativeRoll}`,
           type: 'initiative',
+          tier: 'standard',
           coord,
           delay: index * staggerMs
         });
@@ -110,12 +144,12 @@ export function collectResolutionFloatingTexts(
   playerCoord: HexCoord | undefined,
   clickedCoord: HexCoord,
   targetUnitId?: string
-): Array<{ text: string; type: FloatingText['type']; coord: HexCoord; delay: number }> {
-  const result: Array<{ text: string; type: FloatingText['type']; coord: HexCoord; delay: number }> = [];
+): Array<{ text: string; type: FloatingText['type']; tier: FloatingTextTier; coord: HexCoord; delay: number }> {
+  const result: Array<{ text: string; type: FloatingText['type']; tier: FloatingTextTier; coord: HexCoord; delay: number }> = [];
 
   const hitOutcome = resolution.type === 'ATTACK' ? resolution.details.hitOutcome : 'SOLID_HIT';
   if (resolution.type === 'ATTACK' && hitOutcome === 'MISS' && targetCoordBefore) {
-    result.push({ text: 'MISS', type: 'miss', coord: targetCoordBefore, delay: 0 });
+    result.push({ text: 'MISS', type: 'miss', tier: 'standard', coord: targetCoordBefore, delay: 0 });
   }
 
   const events: readonly CombatEvent[] =
@@ -131,13 +165,13 @@ export function collectResolutionFloatingTexts(
           : state.arena.getUnitPosition(event.targetUnitId);
       if (unitPos) {
         const delay = event.reason === 'ATTACK' ? 0 : 350;
-        const { text, textType } = resolveDamageFloatingText(event, hitOutcome);
-        result.push({ text, type: textType, coord: unitPos, delay });
+        const { text, textType, tier } = resolveDamageFloatingText(event, hitOutcome);
+        result.push({ text, type: textType, tier, coord: unitPos, delay });
       }
     } else if (event.type === 'MISS') {
       const unitPos = state.arena.getUnitPosition(event.targetUnitId);
       if (unitPos) {
-        result.push({ text: 'RESIST!', type: 'miss', coord: unitPos, delay: 350 });
+        result.push({ text: 'RESIST!', type: 'miss', tier: 'standard', coord: unitPos, delay: 350 });
       }
     } else if (event.type === 'DISPLACEMENT') {
       const text =
@@ -146,13 +180,15 @@ export function collectResolutionFloatingTexts(
           : event.kind === 'RETREAT'
             ? 'RETREAT!'
             : 'KNOCKBACK!';
-      result.push({ text, type: 'buff', coord: event.toCoord, delay: 250 });
+      const tier: FloatingTextTier = event.kind === 'KNOCKBACK' ? 'impact' : 'standard';
+      result.push({ text, type: 'buff', tier, coord: event.toCoord, delay: 250 });
     } else if (event.type === 'STATUS_APPLIED') {
       const unitPos = state.arena.getUnitPosition(event.targetUnitId) ?? clickedCoord;
       if (event.modifier) {
         result.push({
           text: `+${event.modifier.value} ${event.modifier.stat.toUpperCase()}`,
           type: 'buff',
+          tier: 'utility',
           coord: unitPos,
           delay: 200
         });
@@ -160,6 +196,7 @@ export function collectResolutionFloatingTexts(
         result.push({
           text: event.condition.type,
           type: event.condition.type === 'POISON' || event.condition.type === 'BURN' ? 'damage' : 'buff',
+          tier: 'utility',
           coord: unitPos,
           delay: 200
         });
@@ -169,6 +206,7 @@ export function collectResolutionFloatingTexts(
       result.push({
         text: event.condition.type,
         type: event.condition.type === 'POISON' || event.condition.type === 'BURN' ? 'damage' : 'buff',
+        tier: 'utility',
         coord: unitPos,
         delay: 200
       });
@@ -185,6 +223,7 @@ export function collectResolutionFloatingTexts(
     result.push({
       text: `+${resolution.modifierApplied.value} ${resolution.modifierApplied.stat.toUpperCase()}`,
       type: 'buff',
+      tier: 'utility',
       coord: clickedCoord,
       delay: 0
     });
@@ -200,6 +239,7 @@ export function collectResolutionFloatingTexts(
       result.push({
         text: `+${xpAmount} ${discipline} XP`,
         type: 'xp',
+        tier: 'utility',
         coord: playerCoord,
         delay: 300
       });
@@ -216,9 +256,10 @@ export function useFloatingCombatText() {
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
 
   const addFloatingText = useCallback(
-    (text: string, type: FloatingText['type'], coord: HexCoord) => {
+    (text: string, type: FloatingText['type'], coord: HexCoord, tier?: FloatingTextTier) => {
       const id = `${Date.now()}-${Math.random()}`;
-      setFloatingTexts((prev) => [...prev, { id, text, type, coord }]);
+      const resolvedTier = tier ?? getDefaultFloaterTier(type, text);
+      setFloatingTexts((prev) => [...prev, { id, text, type, coord, tier: resolvedTier }]);
       setTimeout(() => {
         setFloatingTexts((prev) => prev.filter((item) => item.id !== id));
       }, 1400);
@@ -252,10 +293,10 @@ export function useFloatingCombatText() {
 
       for (const item of items) {
         if (item.delay === 0) {
-          addFloatingText(item.text, item.type, item.coord);
+          addFloatingText(item.text, item.type, item.coord, item.tier);
         } else {
           setTimeout(() => {
-            addFloatingText(item.text, item.type, item.coord);
+            addFloatingText(item.text, item.type, item.coord, item.tier);
           }, item.delay);
         }
       }

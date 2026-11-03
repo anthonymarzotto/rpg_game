@@ -2,116 +2,113 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.9.3] - 2026-11-03
+
+### Combat Text Readability
+- **High-Contrast Text**: Floating combat numbers and popups now feature clear dark outlines, ensuring they are easy to read over terrain and spell effects.
+- **Cleaner Placement**: Floating combat text now spawns higher above character tokens, keeping unit health and status icons visible.
+- **Visual Impact Hierarchy**: Critical hits and heavy spells now stand out with larger, bold impact text, while routine hits and buffs stay compact and unobtrusive.
+- **Anti-Overlap Stacking**: Multiple damage numbers or combat events occurring on the same tile now neatly stack vertically instead of overlapping.
+- **Smooth Scaling Animations**: Combat popups now smoothly scale and settle into place during action resolutions.
+
 ## [0.9.2] - 2026-11-02
 
-### Combat Blocker Bug Fixes & Attack Roll Breakdown Tooltip (B.11, B.12, B.13)
-- **Skirmish Retreat Fall Damage & Climb Barriers (B.11)**: Enforced vertical terrain rules during retreat displacement (`retreatHandler.ts`), inflicting unmitigated fall damage when plunging down ledges ($\Delta h \le -2$) and blocking impossible climbs ($\Delta h > \text{maxClimbElevation}$).
-- **Cat Burglar Retreat Vaulting**: Added `canVaultOnRetreat: true` to `PassiveTrait` and configured on `FELINE_GRACE`, enabling the Cat Burglar to vault over 1-hex obstacles and scale cliff barriers during retreat steps.
-- **Single-Target Hostile Ability Validation (B.12)**: Updated `canExecuteAbility` in `validator.ts` to strictly reject same-faction friendly targets for all `SINGLE_TARGET` abilities regardless of `damageType`, preventing abilities like `Challenging Shout` from targeting allies.
-- **Structured Attack Roll Modifier Breakdown (B.13 Core)**: Modeled `AttackModifierComponent` on `AttackRollContext`, `AttackRollResult`, `DiceRollBreakdown`, and `CombatLogMetadata`, tracking itemized contributions for base attributes, elevation high/low ground modifiers, auras, and active conditions.
-- **In-Engine Glassmorphic Hover Tooltips (B.13 UI)**: Implemented `.attack-roll-tooltip` inside `.log-roll-chip` in `CombatLogPanel` and `.mod-val` in `DiceTumblerTray`, providing instant, formatted calculation transparency on hover without native browser tooltip delay.
+### Combat Fixes & Roll Breakdown Tooltips
+- **Retreat Movement & Elevation**: Retreating now respects vertical terrain—units take fall damage when tumbling off steep cliffs and cannot climb impossible heights during a retreat.
+- **Cat Burglar Vaulting**: Cat Burglars can now vault over low obstacles and scale cliff ledges when retreating.
+- **Friendly Fire Targeting Fix**: Offensive single-target abilities (such as **Challenging Shout**) can no longer accidentally target friendly allies.
+- **Attack Roll Breakdown Tooltips**: Hovering over attack roll chips in the combat log or dice tray now shows an instant breakdown of the calculation, including stats, elevation bonuses, auras, and active status effects.
 
 ## [0.9.1] - 2026-10-30
 
-### Critical Damage Breakdown & Combat Log Presentation Polish (UX.8, UX.10)
-- **Explicit Critical Hit Breakdown**: Formatted critical hit breakdowns in `damageEngine.ts` with explicit labels (`[Crit: X max + Y roll] + mod - armor -> damage`) to clearly distinguish maximized base values from rolled dice.
-- **Spaced Attack Roll Modifiers (UX.10)**: Normalized d20 attack check operators with spaces (`16 + 1`, `20 - 2`) across combat logs and UI roll chips, eliminating confusing double signs like `20+-2`.
-- **Causal Combat Log Narrative**: Reordered log event appending so attack actions are recorded in the combat log prior to reactive condition outcomes.
-- **Dedicated Challenge Defied Card (UX.8)**: Styled challenge defiance events as distinct `CONDITION_BROKEN` cards with a `⚔️ CHALLENGE DEFIED` badge and warning context notes.
+### Critical Damage & Combat Log Polish
+- **Explicit Critical Hit Breakdown**: Critical hit rolls now clearly display maximized base damage alongside bonus rolled dice and modifiers.
+- **Cleaner Roll Math**: Attack roll bonuses and penalties are now formatted cleanly in combat logs and roll chips.
+- **Narrative Log Ordering**: The combat log now records the attack action before listing reactive status changes and outcomes.
+- **Challenge Defied Alert**: When an enemy ignores a challenge, a distinct **Challenge Defied** card highlights the defiance in the combat log.
 
 ## [0.9.0] - 2026-10-29
 
-### Visual Dice Tumbler Tray & Polyhedral Attack Breakdown
-- **Procedural 2.5D SVG Polyhedral Dice**: Pure SVG geometry and isometric gradient lighting for d20 and damage dice (d4, d6, d8, d10, d12) with 0 external 3D engine dependencies.
-- **Top-Center Celestial Clash Banner**: Glassmorphic obsidian clash tray overlaying the upper arena canvas with gold celestial borders and backdrop blur.
-- **Two-Stage Roll Sequencing**: Stage 1 animates the d20 attack check against the target's defense score; Stage 2 animates the kinetic damage dice roll on successful hits.
-- **Advantage & Disadvantage Dual Rolls**: Renders dual d20s for Advantage and Disadvantage checks with real-time dimming and strikethrough slash discard styling.
-- **Kinetic Impact & Settle Flares**: Dynamic CSS keyframe tumbling, landing zoom snaps, golden critical hit flares, and outcome stamps (`CRITICAL HIT!`, `SOLID HIT`, `GRAZE`, `MISS!`).
-- **Interactive Click-to-Skip**: Dismiss or fast-forward active tumbling animations instantly via mouse click anywhere, Spacebar, or Enter key, without delaying combat pacing.
-- **Persistent Combat Header Toggle**: Added `[🎲 Tray: ON/OFF]` button in the combat header with `localStorage` persistence, providing instant resolution when disabled.
-- **Headless Core Breakdown Architecture**: Pure TypeScript data contract (`DiceRollBreakdown`, `DamageDieRoll`) attached to `AttackResolution` across core resolvers and damage engines with 100% test coverage.
+### Animated Dice Tray & Roll Presentation
+- **Visual Polyhedral Dice Tray**: Added an animated celestial dice tray at the top of the combat screen showing 3D dice rolls for attacks and damage.
+- **Two-Stage Roll Sequences**: Attacks roll the d20 check against the target's defense, followed by damage dice rolling for successful hits.
+- **Advantage & Disadvantage Visuals**: Rolling with Advantage or Disadvantage now rolls two d20s simultaneously, highlighting the winning die and striking out the discarded one.
+- **Dynamic Outcome Stamps**: Rolls land with kinetic animations and distinct visual stamps for Critical Hit, Solid Hit, Graze, and Miss.
+- **Fast-Forward & Skip**: Press Space, Enter, or click anywhere to immediately skip or speed up dice animations.
+- **Dice Tray Toggle**: Enable or disable the animated dice tray anytime using the toggle button in the combat header.
 
 ## [0.8.0] - 2026-10-28
 
-### Movement Path Stepping Stones, 3D Elevation Lift & Step Badges (UX.1)
-- **Lifted Hex Stepping Stones**: Hovering any reachable tile in `MOVE` action mode physically lifts each sequential path hex by 5px (`projectElevationY - 5px`), casting a 3D dark under-lip shadow (`stepping-stone-lip`) onto the base terrain to create floating stepping-stone visibility.
-- **Amber & Gold Palette Contrast**: Tiles along the active path illuminate in warm amber/gold (`#fbbf24`, `rgba(245, 158, 11, 0.48)`) with soft glow filters, contrasting cleanly against the cyan field of all reachable hexes (`#06b6d4`).
-- **Sequential Step Number Badges**: Each path step displays a tactical circular step number badge (`1`, `2`, `3`...) centered on the lifted surface, matching the AP cost progression to that destination.
-- **Cliff-Drop Hazard Badges**: Steps plunging down cliffs ($\Delta h \le -2$) switch to crimson danger styling with hazard badges (`⚠️` + step number), coordinating with the destination fall hazard damage banner (`⚠️ Fall Hazard: -X HP`).
-- **Destination Pulse Ring**: The destination hex features an anchored pulsating dashed ring (`path-dest-ring`) marking the final landing position.
-- **Clean Tactical Typography**: Underlying coordinate labels (`q,r`) are automatically suppressed on active path steps to eliminate visual clutter.
+### Movement Path & Elevation Indicators
+- **Stepping Stone Path Preview**: Hovering over reachable tiles lifts the proposed movement path into elevated stepping stones with soft lighting and shadows.
+- **Step Number Badges**: Each tile along the planned path shows a numbered badge reflecting total Action Point cost.
+- **Cliff Hazard Warnings**: Steps that lead over steep cliffs display danger badges and estimated fall hazard damage.
+- **Destination Indicator**: The final arrival hex pulses with an animated destination ring.
+- **Reduced Visual Clutter**: Coordinate text along the active path is hidden while planning movement for a cleaner view.
 
 ## [0.7.2] - 2026-10-28
 
-### Harvest Trial Spoils UX Polish & XP Threshold Previews
-- **Master-Detail Squad Dock & Inspector**: Replaced cramped multi-column cards with a scalable master-detail layout featuring a left squad member dock and an expansive right-hand unit inspector, eliminating box overflow and future-proofing the dialog for larger party sizes.
-- **Aligned 3-Column Stepper Grid**: Structured stepper rows into a spacious 3-column CSS Grid (`100px 1fr 90px`) with full discipline labels (`FORCE`, `FINESSE`, `FOCUS`) and generous button padding.
-- **Clean Number Formatting**: Removed redundant `+` prefixes from stepper allocation values, displaying clean non-negative integers (`0`, `1`, `2`).
-- **Button Spacing & Ergonomics**: Added dedicated horizontal margins to `[-]` and `[+]` stepper buttons and expanded button targets to 30px squares.
-- **Level Requirement Card Meta**: Displayed hero progression thresholds once in the unit inspector meta header (e.g. `Level 0 (Req: 5 XP)` or `(MAX)`), removing redundant divisor clutter from individual rows.
-- **Milestone Readiness Badges**: Replaced raw `Total: #` strings with styled right-aligned pills that illuminate in emerald/amber with a `★` indicator in both the squad dock and inspector when projected archetype XP meets or exceeds the promotion threshold.
-- **Action Validation Tooltip**: Relocated bottom-left warning text to a hover tooltip (`"Allocate all remaining XP to continue"`) on the disabled "Proceed to Camp" button container, keeping the dialog footer clean.
+### Post-Battle Spoils & Hero Progression
+- **Redesigned Spoils Screen**: Replaced the cramped layout with an organized squad roster dock and detailed hero inspector.
+- **Spacious Discipline Steppers**: Force, Finesse, and Focus skill allocations now feature larger, more accessible stepper controls.
+- **Clean Number Displays**: Experience point allocation counters now display clean, easy-to-read numbers.
+- **Promotion Readiness Badges**: Heroes eligible for rank promotion now illuminate with gold readiness badges and star indicators.
+- **Proceed Button Guidance**: Hovering over the disabled continue button now explains remaining experience point allocations needed before advancing to camp.
 
 ## [0.7.1] - 2026-10-27
 
-### Combat Polish, UI Feedback & Bug Fixes
-- **Facing Compass Overlay Layer**: Hoisted facing compass chevrons to a top-level SVG overlay layer rendered above all unit standees, eliminating chevron occlusion during tactical facing selection.
-- **Skirmish Floating Text**: Skirmish tactical repositioning now displays a dedicated `'RETREAT!'` floating text instead of `'KNOCKBACK!'`.
-- **Infiltrator AI Self-Buff Scope**: Isolated self-targeted abilities (such as Smoke Veil) to only evaluate the acting unit, preventing AI from erroneously targeting teammates.
-- **Ground-Targeted AoE Resolution**: Ground targeting on unoccupied hexes (such as Arcane Blast) now displays the spellcast roll and score (e.g. `🎲 14+2 (Score 16)`) alongside total splash damage tagged with `(Total)`, giving players immediate transparency into why splash victims hit or resisted against their DCs.
-- **Rich Condition Combat Log Cards**: Added first-class styled combat log cards for stealth breaks (`👤 STEALTH BROKEN`) and turn-start Damage-over-Time ticks (`🔥 BURN TICK`, `🧪 POISON TICK`) with vitals tracking.
-- **Combat Manifest Archetype Badges**: Added colored archetype discipline badges (`FORCE`, `FINESSE`, `FOCUS`) to core class abilities in the Hero Progression Drawer.
+### Combat Polish & Interface Feedback
+- **Facing Compass Visibility**: Facing direction arrows now always render on top of unit models so they are never blocked by tall figures.
+- **Skirmish Movement Notice**: Tactical repositioning moves now display a dedicated **RETREAT!** floating text banner.
+- **Infiltrator AI Targeting**: Enemy Infiltrators now correctly prioritize self-buffing spells like **Smoke Veil** on themselves instead of teammates.
+- **Area-of-Effect Feedback**: Ground-targeted area spells now show the spellcasting roll and difficulty score alongside total splash damage.
+- **Status Event Log Cards**: The combat log now features dedicated cards for stealth breaks and damage-over-time effects like burning and poison.
+- **Discipline Badges**: Ability cards in the Hero Progression drawer now display color-coded discipline badges for Force, Finesse, and Focus.
 
 ## [0.7.0] - 2026-10-26
 
-### In-Combat Unit Inspection & Tactical Zero-Hover Badges
-- **Unit Pinning**: Click any combatant (ally or enemy) or timeline ribbon chip during combat to pin their inspection card in the secondary HUD slot.
-- **Equipped Ability Loadout & CTB Display**: Inspect pinned unit's equipped skills (name, AP cost, reach/range, description), remaining AP, and turn clock progress.
-- **Smart Condition Badges**: Active condition pills display source attribution (e.g. `⚔️ CHALLENGED (2t • Garrick): Disadv`) and tactical effect mnemonics (`+Adv`, `Disadv`, `2 dmg/t`) directly on cards and standees.
-- **Instant Condition & Passive Tooltips**: Hovering active condition badges or passive trait chips in unit cards and the action bar provides rich, zero-latency in-engine tooltips with names, source attribution, readiness states, and full mechanical rule text.
-- **Board-Side Standee Status Bubble Hover**: Standee status bubbles directly on the battlefield hexes now support native hover tooltips without losing targeting focus.
-- **Right-Click Targeting Cancellation**: Right-clicking anywhere on the combat canvas cancels ability targeting back to `IDLE` mode and suppresses the browser context menu. Dismiss pinned cards anytime with `Escape` or by clicking empty arena ground.
+### Combatant Inspection & Tooltips
+- **Pin Any Combatant**: Click any ally, enemy, or timeline portrait to pin their full status card in the secondary display.
+- **Inspect Equipped Skills & Turn Progress**: Check a pinned unit's equipped skills, Action Points, and upcoming turn order timing.
+- **Informative Status Badges**: Condition icons on unit cards and battlefield figures show remaining duration, who applied the effect, and active modifiers at a glance.
+- **Zero-Delay Tooltips**: Hover over status badges or passive traits anywhere on the screen to view clear descriptions and rule effects.
+- **Battlefield Status Bubbles**: Hovering over status bubbles directly above units on the grid displays full details without losing your current target.
+- **Right-Click to Cancel**: Right-clicking anywhere on the battlefield cancels current ability targeting. Close pinned inspection cards with Escape or by clicking open ground.
 
 ## [0.6.0] - 2026-10-25
 
-### Ruins Obstacles & Standees
-- Added 8-directional ruins obstacle tokens with pixel-art standees rendered directly on elevated hex surfaces.
-- Implemented deterministic rotation selection and realistic hex surface drop shadows.
+### Ruins Obstacles & Battlefield Cover
+- Added ancient ruins obstacles with pixel-art standees and shadows across elevated battlefield tiles.
 
-### Knight Commander Kit Rework & Synergy Taunt
-- Re-architected the Knight class into a tactical Commander archetype.
-- Added the **Exposed** status condition: foes that attack anyone other than their challenger suffer incoming Advantage on the next attack against them.
-- Enhanced **Lead the Charge** (2 AP) to grant a +2 Attack roll buff alongside +2 Speed and +2 Movement for nearby allies in a 3-hex radius.
-- Added +1d4 bonus physical damage to **Pommel Strike** against Challenged targets.
-- Added visual indicator badges and status card integration for the Exposed condition.
+### Knight Commander Kit Rework
+- Reworked the Knight into a tactical Commander archetype focused on battlefield control.
+- Added the **Exposed** condition: Enemies that attack someone other than their challenger suffer increased vulnerability on the next attack against them.
+- Enhanced **Lead the Charge** to grant bonus Attack, Speed, and Movement to nearby allies.
+- Added bonus damage to **Pommel Strike** when striking challenged foes.
+- Added visual status badges and card integration for the Exposed condition.
 
-### Tactical AI & Elevation Control
-- AI decision-making now evaluates threat weighting to target high-value backline casters despite low-ground hit penalties.
-- Added **Slow** movement denial heuristics to disrupt enemy approach routes.
-- Integrated fall damage and ledge drop calculations when applying knockback against targets near cliffs.
+### Smarter Enemy AI
+- Enemy AI now prioritizes high-value backline casters despite low-ground penalties.
+- Enemies intelligently use movement-slowing abilities to disrupt your party's advance.
+- Enemies take advantage of cliff edges to push heroes off ledges for fall damage.
 
-### Class Mobility & Signature Exclusivity
-- Enforced signature ability exclusivity across hero loadouts (wildcard slots are strictly reserved for Domain Pool and off-node skills).
-- Thief's **Shadow Step** now requires same-elevation hexes for rapid repositioning without cliff bypass.
-- Cat-Burglar's **Rooftop Vault** expanded to 3-hex range with full 3D vertical leaping and +2 Evasion.
+### Class Mobility & Abilities
+- Hero loadouts now maintain signature class abilities in their primary slots.
+- Thief's **Shadow Step** now requires level ground for teleportation.
+- Cat-Burglar's **Rooftop Vault** leap range increased to 3 tiles with vertical cliff scaling and bonus Evasion.
 
 ### World Lore Codex
-- Introduced the in-game Lore Codex with canonical background lore and starter articles on world factions.
+- Added the in-game Lore Codex featuring background stories and faction histories.
 
-### Ground Area-of-Effect & Defense Contests
-- Added ground-targeted **Arcane Blast** spells with unified defense contests.
-
----
+### Area-of-Effect Spells
+- Added ground-targeted **Arcane Blast** spells that can target open hexes to catch multiple foes.
 
 ## [0.5.0] - 2026-10-23
 
-### Highwayman & Witch Balance
-- Decoupled automatic attack roll Advantage from **Sneak Attack**, retaining +1d6 precision damage for true positional flank attacks.
-- Rebalanced the Witch kit: **Poppet Needle** (2 AP, 2d4 damage), **Baleful Hex** (poison & CTB turn delay vs Resolve), and **Witch's Talisman** (+2 Speed, +2 Ward).
+### Class Balance
+- **Sneak Attack**: Adjusted to reward true flanking positioning with +1d6 precision damage.
+- **Witch Kit**: Rebalanced **Poppet Needle** damage, enhanced **Baleful Hex** with turn delay and poison, and updated **Witch's Talisman** with bonus Speed and Ward.
 
-### Stealth Mechanics & Detection Cones
-- Implemented persistent stealth lifecycle with directional front-arc detection on movement steps and turn starts.
-- Added combat log notification cards for passive trigger events (Elusive Stride) and detection alerts (Spotted!).
-
-### Squad Simulation Benchmarks
-- Added 3v3 mixed-tier squad benchmark harness and automated cross-class simulation testing.
+### Stealth Mechanics & Detection
+- Enemies now actively monitor their frontal vision arc, spotting stealthy units that cross their sightline.
+- Added combat log alerts when stealth is broken or when enemies spot your heroes.

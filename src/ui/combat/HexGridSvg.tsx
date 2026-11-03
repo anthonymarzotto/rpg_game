@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { HexCoord, HexDirection, hexEquals, toHexKey, getFacingAngleDegrees, hexDistance } from '../../core/grid/hex';
 import { CombatState, CombatUnit } from '../../core/combat/types';
 import { TargetPreview } from '../../core/combat/targetPreview';
-import { FloatingText } from './useFloatingCombatText';
+import { FloatingText, FloatingTextTier, getDefaultFloaterTier } from './useFloatingCombatText';
 import { resolveTokenAssetPath } from './tokenAssets';
 import { getObstacleRotation, resolveObstacleAssetPath } from './obstacleAssets';
 import {
@@ -15,6 +15,15 @@ import {
 import { MovePathPreview } from './useCombatSimulation';
 import { formatConditionBadge, formatModifierBadge } from './conditionBadges';
 import { ConditionTooltipContent } from './UnitStatusCard';
+
+export const FLOATER_TIER_STYLES: Record<
+  FloatingTextTier,
+  { fontSize: number; fontWeight: string }
+> = {
+  impact: { fontSize: 26, fontWeight: '900' },
+  standard: { fontSize: 21, fontWeight: '800' },
+  utility: { fontSize: 16, fontWeight: '700' }
+};
 
 export interface HexGridSvgProps {
   readonly state: CombatState;
@@ -1179,57 +1188,65 @@ export function HexGridSvg({
 
       {/* 3. Floating Combat Feedback Numbers */}
       <g className="floating-text-layer pointer-events-none">
-        {floatingTexts.map((ft) => {
-          const base = hexToPixel(ft.coord);
-          const elev = state.arena.getElevation(ft.coord) ?? 0;
-          const x = base.x;
-          const y = projectElevationY(base.y, elev);
-          let color = '#ffffff';
-          let weight = '700';
-          let size = '12';
-          if (ft.text.includes('Fault')) {
-            color = '#f59e0b';
-            weight = '800';
-            size = '13';
-          } else if (ft.type === 'crit') {
-            color = '#fbbf24';
-            weight = '900';
-            size = '14';
-          } else if (ft.type === 'damage' || ft.type === 'slam') {
-            color = '#f87171';
-            size = '13';
-          } else if (ft.type === 'graze') {
-            color = '#cbd5e1';
-            size = '11';
-          } else if (ft.type === 'miss') {
-            color = '#94a3b8';
-          } else if (ft.type === 'xp') {
-            color = '#a855f7';
-            size = '11';
-          } else if (ft.type === 'buff') {
-            color = '#38bdf8';
-            size = '11';
-          } else if (ft.type === 'initiative') {
-            color = '#38bdf8';
-            weight = '800';
-            size = '13';
-          }
+        {(() => {
+          const coordOccurrences = new Map<string, number>();
 
-          return (
-            <text
-              key={ft.id}
-              x={x}
-              y={y - 25}
-              fill={color}
-              fontSize={size}
-              fontWeight={weight}
-              textAnchor="middle"
-              className="floating-combat-text"
-            >
-              {ft.text}
-            </text>
-          );
-        })}
+          return floatingTexts.map((ft) => {
+            const base = hexToPixel(ft.coord);
+            const elev = state.arena.getElevation(ft.coord) ?? 0;
+            const x = base.x;
+            const y = projectElevationY(base.y, elev);
+
+            // Compute stacking offset for concurrent floaters on the same hex
+            const coordKey = toHexKey(ft.coord);
+            const stackIndex = coordOccurrences.get(coordKey) ?? 0;
+            coordOccurrences.set(coordKey, stackIndex + 1);
+            const stackOffsetY = stackIndex * 18;
+            const finalY = y - 36 - stackOffsetY;
+
+            // Resolve semantic tier and styling
+            const tier = ft.tier ?? getDefaultFloaterTier(ft.type, ft.text);
+            const style = FLOATER_TIER_STYLES[tier];
+
+            let color = '#ffffff';
+            if (ft.text.includes('Fault')) {
+              color = '#f59e0b';
+            } else if (ft.type === 'crit') {
+              color = '#fbbf24';
+            } else if (ft.type === 'damage' || ft.type === 'slam') {
+              color = '#f87171';
+            } else if (ft.type === 'graze') {
+              color = '#cbd5e1';
+            } else if (ft.type === 'miss') {
+              color = '#94a3b8';
+            } else if (ft.type === 'xp') {
+              color = '#a855f7';
+            } else if (ft.type === 'buff') {
+              color = '#38bdf8';
+            } else if (ft.type === 'initiative') {
+              color = '#38bdf8';
+            }
+
+            return (
+              <text
+                key={ft.id}
+                x={x}
+                y={finalY}
+                fill={color}
+                stroke="rgba(0, 0, 0, 0.85)"
+                strokeWidth="3.5"
+                strokeLinejoin="round"
+                paintOrder="stroke fill"
+                fontSize={style.fontSize}
+                fontWeight={style.fontWeight}
+                textAnchor="middle"
+                className="floating-combat-text"
+              >
+                {ft.text}
+              </text>
+            );
+          });
+        })()}
       </g>
     </svg>
   );
