@@ -1239,7 +1239,8 @@ export function executeAbility(
       damageBreakdown: targetCu ? (damageResult.damageBreakdown || undefined) : undefined,
       targetHp: targetCu?.currentHp,
       targetMaxHp: targetCu?.unit.effectiveVitals.maxHp,
-      secondaryDetail: [elevDetail, auraDetail, secondaryDetail].filter(Boolean).join('').trim()
+      secondaryDetail: [elevDetail, auraDetail, secondaryDetail].filter(Boolean).join('').trim(),
+      attackRollBreakdown: rollResult.modifierBreakdown
     }
   });
 
@@ -1282,7 +1283,8 @@ export function executeAbility(
     hitOutcome: finalHitOutcome,
     damageDice: damageResult.damageDice ?? [],
     damageModifier: damageResult.damageModifier ?? 0,
-    totalDamage: totalDamageDealt
+    totalDamage: totalDamageDealt,
+    modifierBreakdown: rollResult.modifierBreakdown
   };
 
   return {

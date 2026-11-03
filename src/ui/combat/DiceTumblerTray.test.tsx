@@ -182,4 +182,34 @@ describe('DiceTumblerTray Component', () => {
     expect(htmlD12).toContain('sides-12');
     expect(htmlD12).toContain('d12-center-pentagon');
   });
+
+  it('renders attack-roll-tooltip inside mod-val when modifierBreakdown is present (B.13)', () => {
+    const breakdownWithMods: DiceRollBreakdown = {
+      ...baseBreakdown,
+      netModifier: 0,
+      totalScore: 15,
+      modifierBreakdown: [
+        { label: 'Finesse', value: 2, source: 'ATTRIBUTE' },
+        { label: 'Low Ground', value: -2, source: 'ELEVATION' }
+      ]
+    };
+
+    const html = renderToStaticMarkup(
+      <DiceTumblerTray
+        attackerName="Archer"
+        targetName="Sentry"
+        abilityName="Shoot"
+        diceBreakdown={breakdownWithMods}
+        onComplete={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('has-tooltip');
+    expect(html).toContain('attack-roll-tooltip');
+    expect(html).toContain('Attack Roll Formula');
+    expect(html).toContain('Low Ground');
+    expect(html).toContain('-2');
+    expect(html).toContain('Finesse');
+    expect(html).toContain('+2');
+  });
 });

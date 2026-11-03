@@ -84,6 +84,8 @@ export interface PassiveTrait {
   readonly immuneToCollisionDamage?: boolean;
   /** Whether the unit vaults onto cliffs or over obstacles when displaced by knockback */
   readonly canVaultOnKnockback?: boolean;
+  /** Whether the unit vaults onto cliffs or over obstacles when displaced by retreat */
+  readonly canVaultOnRetreat?: boolean;
   /** Whether the unit ignores upward low-ground attack roll penalties and disadvantage */
   readonly ignoresElevationPenalty?: boolean;
   /** Pluggable effect payload executed when the trigger hook fires */

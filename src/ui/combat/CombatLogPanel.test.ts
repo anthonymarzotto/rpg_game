@@ -857,6 +857,45 @@ describe('parseCombatLogMessage', () => {
       expect(html).toContain('⚔️ CHALLENGE DEFIED');
       expect(html).toContain('Defied the challenge and became EXPOSED!');
     });
+
+    it('renders attack-roll-tooltip on log-roll-chip when attackRollBreakdown is present (B.13)', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 3,
+        actorUnitId: 'player-archer',
+        actionId: 'shoot',
+        message: 'Archer used Shoot on Sentry: [d20: 17 + 0 vs DC 12 -> SOLID_HIT] [Elevation: Low ground (-2)] [Damage: 4]',
+        metadata: {
+          type: 'ATTACK',
+          actor: 'Archer',
+          ability: 'Shoot',
+          target: 'Sentry',
+          d20: '17 + 0',
+          defenseTarget: 12,
+          hitOutcome: 'SOLID_HIT',
+          damageTotal: '4',
+          totalScore: 17,
+          attackRollBreakdown: [
+            { label: 'Finesse', value: 2, source: 'ATTRIBUTE' },
+            { label: 'Low Ground', value: -2, source: 'ELEVATION' }
+          ]
+        }
+      };
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 3
+        })
+      );
+
+      expect(html).toContain('log-roll-chip');
+      expect(html).toContain('attack-roll-tooltip');
+      expect(html).toContain('Attack Roll Formula');
+      expect(html).toContain('Low Ground');
+      expect(html).toContain('-2');
+      expect(html).toContain('Finesse');
+      expect(html).toContain('+2');
+    });
   });
 
   describe('formatD20Roll', () => {

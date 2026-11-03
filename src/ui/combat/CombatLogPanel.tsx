@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { CombatLogEntry } from '../../core/combat/types';
+import { CombatLogEntry, AttackModifierComponent } from '../../core/combat/types';
+import { AttackRollTooltip } from './AttackRollTooltip';
 
 export interface CombatLogPanelProps {
   readonly logEntries: readonly CombatLogEntry[];
@@ -26,6 +27,7 @@ export type ParsedLogEntry =
       secondaryDetail: string;
       isAreaTarget?: boolean;
       totalScore?: number;
+      attackRollBreakdown?: readonly AttackModifierComponent[];
       rawMessage: string;
     }
   | {
@@ -223,6 +225,7 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       secondaryDetail: meta.secondaryDetail ?? '',
       isAreaTarget: Boolean(meta.isAreaTarget || (meta.target && meta.target.startsWith('hex '))),
       totalScore: meta.totalScore,
+      attackRollBreakdown: meta.attackRollBreakdown,
       rawMessage: msg
     };
   }
@@ -589,7 +592,13 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
                       {entry.d20 && (
                         <span
                           className="log-roll-chip"
-                          title={entry.isAreaTarget ? 'Spellcast Roll & Score' : 'Attack Roll vs Defense DC'}
+                          title={
+                            entry.attackRollBreakdown && entry.attackRollBreakdown.length > 0
+                              ? undefined
+                              : entry.isAreaTarget
+                              ? 'Spellcast Roll & Score'
+                              : 'Attack Roll vs Defense DC'
+                          }
                         >
                           🎲 {formatD20Roll(entry.d20)}
                           {entry.defenseTarget !== undefined
@@ -597,6 +606,15 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
                             : entry.totalScore !== undefined
                             ? ` (Score ${entry.totalScore})`
                             : ''}
+                          {entry.attackRollBreakdown && entry.attackRollBreakdown.length > 0 && (
+                            <AttackRollTooltip
+                              breakdown={entry.attackRollBreakdown}
+                              d20={entry.d20.split(' ')[0]}
+                              totalScore={entry.totalScore}
+                              targetDefense={entry.defenseTarget}
+                              placement="left"
+                            />
+                          )}
                         </span>
                       )}
                     </div>

@@ -159,6 +159,7 @@ describe('Class Packages & Catalog Verification', () => {
     expect(CAT_BURGLAR_PACKAGE.passive.immuneToFallDamage).toBe(true);
     expect(CAT_BURGLAR_PACKAGE.passive.immuneToCollisionDamage).toBe(true);
     expect(CAT_BURGLAR_PACKAGE.passive.canVaultOnKnockback).toBe(true);
+    expect(CAT_BURGLAR_PACKAGE.passive.canVaultOnRetreat).toBe(true);
     expect(CAT_BURGLAR_PACKAGE.passive.statModifiers?.evasion).toBe(2);
     expect(CAT_BURGLAR_PACKAGE.aiProfile).toBe('SKIRMISHER');
 

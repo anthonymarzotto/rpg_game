@@ -81,6 +81,15 @@ export interface DamageDieRoll {
 }
 
 /**
+ * Individual additive component contributing to an attack roll's net modifier.
+ */
+export interface AttackModifierComponent {
+  readonly label: string;
+  readonly value: number;
+  readonly source: 'ATTRIBUTE' | 'ELEVATION' | 'AURA' | 'CONDITION' | 'MODIFIER';
+}
+
+/**
  * Structured breakdown of an attack check and damage roll sequence for visual presentation.
  */
 export interface DiceRollBreakdown {
@@ -95,6 +104,7 @@ export interface DiceRollBreakdown {
   readonly damageDice: readonly DamageDieRoll[];
   readonly damageModifier: number;
   readonly totalDamage: number;
+  readonly modifierBreakdown?: readonly AttackModifierComponent[];
 }
 
 /**
@@ -228,6 +238,7 @@ export type CombatLogMetadata =
       readonly secondaryDetail?: string;
       readonly isAreaTarget?: boolean;
       readonly totalScore?: number;
+      readonly attackRollBreakdown?: readonly AttackModifierComponent[];
     }
   | {
       readonly type: 'MOVE';

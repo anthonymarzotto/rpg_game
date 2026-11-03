@@ -103,11 +103,12 @@ export const FLASH_POWDER: Ability = {
 export const FELINE_GRACE: PassiveTrait = {
   id: 'feline_grace',
   name: 'Feline Grace',
-  description: 'Cats always land on their feet: immune to Fall Impact Damage, rebounds safely over obstacles and onto cliff tops during knockback (immune to collision damage), and gains +2 Evasion.',
+  description: 'Cats always land on their feet: immune to Fall Impact Damage, rebounds safely over obstacles and onto cliff tops during knockback and retreat (immune to collision damage), and gains +2 Evasion.',
   hook: 'ALWAYS',
   immuneToFallDamage: true,
   immuneToCollisionDamage: true,
   canVaultOnKnockback: true,
+  canVaultOnRetreat: true,
   statModifiers: {
     evasion: 2
   }

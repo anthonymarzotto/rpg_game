@@ -4,6 +4,7 @@ import { createRecruit } from '../units/unitFactory';
 import { createCombatState } from './resolver';
 import { canMove, canExecuteAbility } from './validator';
 import { Ability } from '../types/ability';
+import { CHALLENGING_SHOUT } from '../../data/packages/knight';
 
 const STRIKE: Ability = {
   id: 'strike',
@@ -172,6 +173,32 @@ describe('Combat Validator', () => {
       if (!result.valid) {
         expect(result.reason).toContain('Cannot attack a friendly unit');
       }
+    });
+
+    it('rejects targeting a friendly ally with non-damaging single-target ability (Challenging Shout - B.12)', () => {
+      const arena = createRadialArena(2);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      const ally = createRecruit('ally', 'Ally', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('ally', { q: 1, r: 0 });
+      arena.setUnitPosition('enemy', { q: 0, r: 1 });
+      const state = createCombatState(arena, [hero, ally, enemy], 'hero');
+
+      const allyResult = canExecuteAbility(state, 'hero', CHALLENGING_SHOUT, {
+        coord: { q: 1, r: 0 },
+        targetUnitId: 'ally'
+      });
+      expect(allyResult.valid).toBe(false);
+      if (!allyResult.valid) {
+        expect(allyResult.reason).toContain('Cannot attack a friendly unit');
+      }
+
+      const enemyResult = canExecuteAbility(state, 'hero', CHALLENGING_SHOUT, {
+        coord: { q: 0, r: 1 },
+        targetUnitId: 'enemy'
+      });
+      expect(enemyResult.valid).toBe(true);
     });
 
     it('rejects targeting self with single-target damaging ability', () => {

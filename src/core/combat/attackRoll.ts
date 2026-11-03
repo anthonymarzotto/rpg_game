@@ -1,6 +1,7 @@
 import { Ability, AbilityEffect } from '../types/ability';
 import { EffectiveAbility } from '../types/modifier';
-import { CombatState, CombatUnit, HitOutcome } from './types';
+import { CombatState, CombatUnit, HitOutcome, AttackModifierComponent } from './types';
+export type { AttackModifierComponent } from './types';
 import { getEffectiveEvasion, getEffectiveResolve } from './effectiveVitals';
 import { DiceRoller, RollAdvantage } from './dice';
 import { COMBAT_RESOLUTION_CONFIG } from '../config/balance';
@@ -42,6 +43,7 @@ export interface AttackRollContext {
   readonly finalAdvantage: RollAdvantage;
   readonly neededRoll: number;
   readonly hitProbability: number;
+  readonly modifierBreakdown?: readonly AttackModifierComponent[];
 }
 
 /**
@@ -94,6 +96,7 @@ export interface AttackRollResult {
   readonly rawD20Rolls?: readonly number[];
   readonly advantage?: RollAdvantage;
   readonly defenseType?: 'Evasion' | 'Resolve';
+  readonly modifierBreakdown?: readonly AttackModifierComponent[];
 }
 
 /**
@@ -135,6 +138,56 @@ export function evaluateAttackRollContext(
   let totalPenalty = options?.rollPenalty ?? 0;
   const advantageSources: string[] = [];
   const disadvantageSources: string[] = [];
+  const modifierBreakdown: AttackModifierComponent[] = [];
+
+  // Base attribute modifier
+  const attr = ability.attackModifierAttribute;
+  const baseAttr = attr ? actorCu.unit.baseAttributes[attr] : 0;
+  if (attr) {
+    const attrLabel = attr.charAt(0).toUpperCase() + attr.slice(1);
+    modifierBreakdown.push({
+      label: attrLabel,
+      value: baseAttr,
+      source: 'ATTRIBUTE'
+    });
+  }
+
+  const abilityAttackBonus = (ability as EffectiveAbility).attackRollBonus ?? 0;
+  if (abilityAttackBonus !== 0) {
+    modifierBreakdown.push({
+      label: `${ability.name} Bonus`,
+      value: abilityAttackBonus,
+      source: 'MODIFIER'
+    });
+  }
+
+  if (actorCu.activeModifiers) {
+    for (const m of actorCu.activeModifiers) {
+      if (m.stat === 'attackRoll' && m.value !== 0) {
+        modifierBreakdown.push({
+          label: 'Attack Modifier',
+          value: m.value,
+          source: 'MODIFIER'
+        });
+      }
+    }
+  }
+
+  if (options?.rollBonus) {
+    modifierBreakdown.push({
+      label: 'Roll Bonus',
+      value: options.rollBonus,
+      source: 'MODIFIER'
+    });
+  }
+
+  if (options?.rollPenalty) {
+    modifierBreakdown.push({
+      label: 'Roll Penalty',
+      value: -options.rollPenalty,
+      source: 'MODIFIER'
+    });
+  }
 
   // 1. Explicit advantage/disadvantage in options
   if (options?.advantage === 'ADVANTAGE') {
@@ -154,9 +207,19 @@ export function evaluateAttackRollContext(
     }
     if (effect.attackRollBonus) {
       totalBonus += effect.attackRollBonus;
+      modifierBreakdown.push({
+        label: `${ability.name} Bonus`,
+        value: effect.attackRollBonus,
+        source: 'MODIFIER'
+      });
     }
     if (effect.attackRollPenalty) {
       totalPenalty += effect.attackRollPenalty;
+      modifierBreakdown.push({
+        label: `${ability.name} Penalty`,
+        value: -effect.attackRollPenalty,
+        source: 'MODIFIER'
+      });
     }
   }
 
@@ -176,6 +239,20 @@ export function evaluateAttackRollContext(
     const elevMod = calculateElevationAttackModifier(actorCu, elevationDelta, ability);
     totalBonus += elevMod.rollBonus;
     totalPenalty += elevMod.rollPenalty;
+    if (elevMod.rollBonus > 0) {
+      modifierBreakdown.push({
+        label: 'High Ground',
+        value: elevMod.rollBonus,
+        source: 'ELEVATION'
+      });
+    }
+    if (elevMod.rollPenalty > 0) {
+      modifierBreakdown.push({
+        label: 'Low Ground',
+        value: -elevMod.rollPenalty,
+        source: 'ELEVATION'
+      });
+    }
     if (elevMod.grantsAdvantage) {
       advantageSources.push(elevMod.description ?? 'Elevation Advantage');
     }
@@ -188,6 +265,17 @@ export function evaluateAttackRollContext(
   if (options?.rollPenalty === undefined && options?.state) {
     const auraEval = evaluateTargetAuras(targetCu, actorCu, options.state);
     totalPenalty += auraEval.attackRollPenalty;
+    if (auraEval.attackRollPenalty > 0) {
+      const auraName =
+        auraEval.sourceAuraNames.length > 0
+          ? `Aura (${auraEval.sourceAuraNames.join(', ')})`
+          : 'Aura Penalty';
+      modifierBreakdown.push({
+        label: auraName,
+        value: -auraEval.attackRollPenalty,
+        source: 'AURA'
+      });
+    }
   }
 
   // 5. Conditions on actor (outgoing)
@@ -203,9 +291,19 @@ export function evaluateAttackRollContext(
       }
       if (mod?.attackRollBonus) {
         totalBonus += mod.attackRollBonus;
+        modifierBreakdown.push({
+          label: mod.description ?? `${cond.type} Bonus`,
+          value: mod.attackRollBonus,
+          source: 'CONDITION'
+        });
       }
       if (mod?.attackRollPenalty) {
         totalPenalty += mod.attackRollPenalty;
+        modifierBreakdown.push({
+          label: mod.description ?? `${cond.type} Penalty`,
+          value: -mod.attackRollPenalty,
+          source: 'CONDITION'
+        });
       }
     }
   }
@@ -223,9 +321,19 @@ export function evaluateAttackRollContext(
       }
       if (mod?.attackRollBonus) {
         totalBonus += mod.attackRollBonus;
+        modifierBreakdown.push({
+          label: mod.description ?? `${cond.type} Bonus`,
+          value: mod.attackRollBonus,
+          source: 'CONDITION'
+        });
       }
       if (mod?.attackRollPenalty) {
         totalPenalty += mod.attackRollPenalty;
+        modifierBreakdown.push({
+          label: mod.description ?? `${cond.type} Penalty`,
+          value: -mod.attackRollPenalty,
+          source: 'CONDITION'
+        });
       }
     }
   }
@@ -269,7 +377,8 @@ export function evaluateAttackRollContext(
     hasDisadvantage,
     finalAdvantage,
     neededRoll,
-    hitProbability
+    hitProbability,
+    modifierBreakdown
   };
 }
 
@@ -339,6 +448,7 @@ export function resolveAttackRoll(
     targetDefense: context.targetDefense,
     rawD20Rolls,
     advantage: context.finalAdvantage,
-    defenseType: context.defenseType
+    defenseType: context.defenseType,
+    modifierBreakdown: context.modifierBreakdown
   };
 }

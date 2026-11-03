@@ -506,6 +506,32 @@
   color: #38bdf8;
 }
 
+.tray-equation .mod-val.has-tooltip {
+  position: relative;
+  cursor: pointer;
+  text-decoration: underline dotted rgba(56, 189, 248, 0.5);
+  text-underline-offset: 3px;
+}
+
+.tray-equation .mod-val.has-tooltip:hover {
+  color: #7dd3fc;
+  text-decoration-color: #38bdf8;
+}
+
+.tray-equation .mod-val.has-tooltip .attack-roll-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  pointer-events: none;
+}
+
+.tray-equation .mod-val.has-tooltip:hover .attack-roll-tooltip {
+  display: flex;
+}
+
 .tray-equation .equals {
   color: #64748b;
 }

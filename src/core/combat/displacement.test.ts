@@ -461,4 +461,175 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
       }
     });
   });
+
+  describe('Retreat Step, Elevation Traversal & Vaulting (B.11)', () => {
+    it('inflicts fall damage when Skirmish plunges down a ledge (dh <= -2)', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const dummy = createRecruit('dummy', 'Dummy');
+
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: { q: -1, r: 0 }, elevation: 0, isWalkable: true });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('dummy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, dummy], 'hero');
+      const heroInitialHp = state.units.get('hero')!.currentHp;
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [4] });
+
+      const result = executeAbility(state, 'hero', SKIRMISH, { targetUnitId: 'dummy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(arena.getUnitPosition('hero')).toEqual({ q: -1, r: 0 });
+        expect(result.details.fallDamage).toBe(8);
+
+        const fallDamageEvent = result.details.events.find(
+          (e) => e.type === 'DAMAGE' && (e as any).reason === 'FALL'
+        );
+        expect(fallDamageEvent).toBeDefined();
+        expect((fallDamageEvent as any).amount).toBe(8);
+        expect((fallDamageEvent as any).targetUnitId).toBe('hero');
+
+        const heroCu = state.units.get('hero')!;
+        expect(heroCu.currentHp).toBe(heroInitialHp - 8);
+        expect(state.combatLog[0].message).toContain('Plunged from ledge: Took +8 Fall Impact Damage!');
+      }
+    });
+
+    it('blocks retreat when destination elevation exceeds maxClimbElevation for standard units', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const dummy = createRecruit('dummy', 'Dummy');
+
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: -1, r: 0 }, elevation: 3, isWalkable: true });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('dummy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, dummy], 'hero');
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [4] });
+
+      const result = executeAbility(state, 'hero', SKIRMISH, { targetUnitId: 'dummy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(arena.getUnitPosition('hero')).toEqual({ q: 0, r: 0 });
+        const displacementEvent = result.details.events.find((e) => e.type === 'DISPLACEMENT');
+        expect(displacementEvent).toBeUndefined();
+      }
+    });
+
+    it('allows unit with canVaultOnRetreat to vault up cliffs exceeding maxClimbElevation', () => {
+      const arena = createRadialArena(3);
+      const acrobat = createRecruit('acrobat', 'Acrobat');
+      const dummy = createRecruit('dummy', 'Dummy');
+
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: -1, r: 0 }, elevation: 3, isWalkable: true });
+
+      arena.setUnitPosition('acrobat', { q: 0, r: 0 });
+      arena.setUnitPosition('dummy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [acrobat, dummy], 'acrobat');
+      const acrobatCu = state.units.get('acrobat')!;
+      (acrobatCu as any).passives = [
+        {
+          id: 'feline_grace',
+          name: 'Feline Grace',
+          description: 'Vaults up cliffs on retreat',
+          hook: 'ALWAYS',
+          canVaultOnRetreat: true
+        }
+      ];
+
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [4] });
+      const result = executeAbility(state, 'acrobat', SKIRMISH, { targetUnitId: 'dummy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(arena.getUnitPosition('acrobat')).toEqual({ q: -1, r: 0 });
+        expect(state.combatLog[0].message).toContain('Retreat Step to (-1, 0)');
+      }
+    });
+
+    it('allows unit with canVaultOnRetreat to vault over 1-hex obstacles during retreat', () => {
+      const arena = createRadialArena(3);
+      const acrobat = createRecruit('acrobat', 'Acrobat');
+      const dummy = createRecruit('dummy', 'Dummy');
+
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 0, isWalkable: true });
+      arena.setTile({ coord: { q: -1, r: 0 }, elevation: 0, isWalkable: false, terrainType: 'OBSTACLE' });
+      arena.setTile({ coord: { q: -2, r: 0 }, elevation: 0, isWalkable: true });
+
+      arena.setUnitPosition('acrobat', { q: 0, r: 0 });
+      arena.setUnitPosition('dummy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [acrobat, dummy], 'acrobat');
+      const acrobatCu = state.units.get('acrobat')!;
+      (acrobatCu as any).passives = [
+        {
+          id: 'feline_grace',
+          name: 'Feline Grace',
+          description: 'Vaults over obstacles on retreat',
+          hook: 'ALWAYS',
+          canVaultOnRetreat: true
+        }
+      ];
+
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [4] });
+      const result = executeAbility(state, 'acrobat', SKIRMISH, { targetUnitId: 'dummy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(arena.getUnitPosition('acrobat')).toEqual({ q: -2, r: 0 });
+        expect(state.combatLog[0].message).toContain('Retreat Step to (-2, 0)');
+      }
+    });
+
+    it('negates fall damage when retreating unit has immuneToFallDamage', () => {
+      const arena = createRadialArena(3);
+      const cat = createRecruit('cat', 'Cat Burglar');
+      const dummy = createRecruit('dummy', 'Dummy');
+
+      arena.setTile({ coord: { q: 0, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: { q: 1, r: 0 }, elevation: 2, isWalkable: true });
+      arena.setTile({ coord: { q: -1, r: 0 }, elevation: 0, isWalkable: true });
+
+      arena.setUnitPosition('cat', { q: 0, r: 0 });
+      arena.setUnitPosition('dummy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [cat, dummy], 'cat');
+      const catCu = state.units.get('cat')!;
+      (catCu as any).passives = [
+        {
+          id: 'feline_grace',
+          name: 'Feline Grace',
+          description: 'Immune to fall damage',
+          hook: 'ALWAYS',
+          immuneToFallDamage: true,
+          canVaultOnRetreat: true
+        }
+      ];
+
+      const catInitialHp = catCu.currentHp;
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [4] });
+      const result = executeAbility(state, 'cat', SKIRMISH, { targetUnitId: 'dummy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(arena.getUnitPosition('cat')).toEqual({ q: -1, r: 0 });
+        expect(catCu.currentHp).toBe(catInitialHp);
+        expect(result.details.fallDamage).toBe(0);
+        expect(state.combatLog[0].message).toContain('Plunged from ledge: Fall Damage Negated!');
+      }
+    });
+  });
 });
+

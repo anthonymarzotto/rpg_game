@@ -13,6 +13,9 @@
   - Headless architecture: Pure TS `diceBreakdown` contract in `src/core/` and declarative presentation in `src/ui/combat/`.
 - [x] **UX.10**: Attack roll in Combat Card in Combat log should just show + or -, not both. i.e. Right now it shows 17+-2=15, it should be 17-2=15.
 - [x] **UX.8**: Breaking Challenging Shout does not have a nice combat card.
+- [x] **B.11**: A unit that uses Skirmish and falls off a height 2 hex does not take fall damage. (Fixed in retreat displacement by evaluating elevation delta, applying fall damage when plunging dh <= -2, and adding canVaultOnRetreat for Cat Burglar).
+- [x] **B.12**: Challenging Shout can target Allies, it should only target Enemies. (Fixed in validator.ts by requiring opposing factions for all SINGLE_TARGET abilities regardless of damageType).
+- [x] **B.13**: Combat Log card shows "[Elevation: Low ground (-2)]" which is correct for my unit, but both the attack roll in the same Combat Card and the Dice Tray do not show this -2. (Fixed by modeling structured AttackModifierComponent breakdown in AttackRollContext/DiceRollBreakdown and rendering an in-engine glassmorphism hover tooltip on roll chips).
 
 ---
 
@@ -40,6 +43,7 @@ Sketch and author class package (signature ability, 2 domain abilities, passive 
 - [ ] **UX.9**: Shout out text is small and hard to read.
 - [ ] **UX.11**: Dice Tray: The d20 roll is shown before the die stops rolling. Also the damage roll shows up before the die stops rolling.
 - [ ] **UX.12**: The map is not scrollable or draggable. You zoom in and then can only see the middle.
+- [ ] **UX.13**: Avoiding fall damage with Feline Grace has an unformated combat log card.
 
 ---
 
@@ -47,9 +51,6 @@ Sketch and author class package (signature ability, 2 domain abilities, passive 
 - [ ] **B.3**: Active turn halo is generally not clearing well. Hard to pinpoint exactly what's going on, but I'm on turn 7 and 4 units have a halo.
 - [ ] **B.4**: When an enemy uses Smoke Veil I can still see them.
 - [ ] **B.10**: Shard effects don't show well in the Trial on ability cards.
-- [ ] **B.11**: A unit that uses Skirmish and falls off a height 2 hex does not take fall damage.
-- [ ] **B.12**: Challenging Shout can target Allies, it should only target Enemies.
-- [ ] **B.13**: Combat Log card shows "[Elevation: Low ground (-2)]" which is correct for my unit, but both the attack roll in the same Combat Card and the Dice Tray do not show this -2. Is it being calculated and not shown? Or completely ignored?
 - [ ] **B.14**: Dice Tray: Damage calculation doesn't show Armor/Ward soak value, though total damage is correctly calculated (e.g. unit with +2 armour. Shown is 3+2=3. The first 3 is the roll, the second 2 is the unit's bonus. This would be 5, but the enemy had +2 armour making it 3+2-2=3).
 
 ---

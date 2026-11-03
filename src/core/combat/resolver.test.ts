@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createCombatState } from './resolver';
+import { createCombatState, executeAbility } from './resolver';
 import { createRadialArena } from '../grid/templates';
 import { createRecruit } from '../units/unitFactory';
 import { SeededDiceRoller, MockDiceRoller } from './dice';
@@ -138,4 +138,53 @@ describe('createCombatState Initiative Seeding', () => {
     expect(openingFactions).toEqual(['PLAYER', 'PLAYER', 'ENEMY']);
   });
 });
+
+describe('Attack Roll Modifier Breakdown (B.13)', () => {
+  it('records attackRollBreakdown in combatLog metadata and diceBreakdown when attacking uphill', async () => {
+    const { STRIKE } = await import('../../data/abilities');
+    const arena = createRadialArena(3);
+    const hero = createRecruit('hero', 'Alden', { faction: 'PLAYER' });
+    (hero as any).baseAttributes = { force: 0, finesse: 2, focus: 0 };
+    const goblin = createRecruit('goblin', 'Goblin', { faction: 'ENEMY' });
+
+    arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+    arena.setTile({ coord: { q: 1, r: 0 }, elevation: 1, isWalkable: true });
+
+    arena.setUnitPosition('hero', { q: 0, r: 0 });
+    arena.setUnitPosition('goblin', { q: 1, r: 0 });
+
+    const state = createCombatState(arena, [hero, goblin], 'hero');
+    const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [4] });
+
+    const result = executeAbility(state, 'hero', STRIKE, { targetUnitId: 'goblin' }, dice);
+
+    expect(result.type).toBe('ATTACK');
+    if (result.type === 'ATTACK') {
+      expect(result.details.diceBreakdown?.modifierBreakdown).toBeDefined();
+      expect(result.details.diceBreakdown?.modifierBreakdown).toContainEqual({
+        label: 'Low Ground',
+        value: -2,
+        source: 'ELEVATION'
+      });
+      expect(result.details.diceBreakdown?.modifierBreakdown).toContainEqual({
+        label: 'Finesse',
+        value: 2,
+        source: 'ATTRIBUTE'
+      });
+
+      const log = state.combatLog.find((l) => l.actionId === 'strike')!;
+      expect(log).toBeDefined();
+      expect(log.metadata.type).toBe('ATTACK');
+      if (log.metadata.type === 'ATTACK') {
+        expect(log.metadata.attackRollBreakdown).toBeDefined();
+        expect(log.metadata.attackRollBreakdown).toContainEqual({
+          label: 'Low Ground',
+          value: -2,
+          source: 'ELEVATION'
+        });
+      }
+    }
+  });
+});
+
 

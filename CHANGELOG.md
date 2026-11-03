@@ -2,6 +2,15 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.9.2] - 2026-11-02
+
+### Combat Blocker Bug Fixes & Attack Roll Breakdown Tooltip (B.11, B.12, B.13)
+- **Skirmish Retreat Fall Damage & Climb Barriers (B.11)**: Enforced vertical terrain rules during retreat displacement (`retreatHandler.ts`), inflicting unmitigated fall damage when plunging down ledges ($\Delta h \le -2$) and blocking impossible climbs ($\Delta h > \text{maxClimbElevation}$).
+- **Cat Burglar Retreat Vaulting**: Added `canVaultOnRetreat: true` to `PassiveTrait` and configured on `FELINE_GRACE`, enabling the Cat Burglar to vault over 1-hex obstacles and scale cliff barriers during retreat steps.
+- **Single-Target Hostile Ability Validation (B.12)**: Updated `canExecuteAbility` in `validator.ts` to strictly reject same-faction friendly targets for all `SINGLE_TARGET` abilities regardless of `damageType`, preventing abilities like `Challenging Shout` from targeting allies.
+- **Structured Attack Roll Modifier Breakdown (B.13 Core)**: Modeled `AttackModifierComponent` on `AttackRollContext`, `AttackRollResult`, `DiceRollBreakdown`, and `CombatLogMetadata`, tracking itemized contributions for base attributes, elevation high/low ground modifiers, auras, and active conditions.
+- **In-Engine Glassmorphic Hover Tooltips (B.13 UI)**: Implemented `.attack-roll-tooltip` inside `.log-roll-chip` in `CombatLogPanel` and `.mod-val` in `DiceTumblerTray`, providing instant, formatted calculation transparency on hover without native browser tooltip delay.
+
 ## [0.9.1] - 2026-10-30
 
 ### Critical Damage Breakdown & Combat Log Presentation Polish (UX.8, UX.10)

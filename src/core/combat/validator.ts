@@ -247,8 +247,7 @@ export function canExecuteAbility(
       if (
         cu.faction &&
         targetCu.faction &&
-        cu.faction === targetCu.faction &&
-        effectiveAbility.damageType !== 'NONE'
+        cu.faction === targetCu.faction
       ) {
         return { valid: false, reason: 'Cannot attack a friendly unit.' };
       }

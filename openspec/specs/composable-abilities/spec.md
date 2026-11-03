@@ -9,6 +9,8 @@ Provides a composable atomic effect pipeline and declarative ability modifier en
 ### Requirement: Composable Ability Effects Pipeline
 The combat engine SHALL model abilities as an execution envelope containing an array of atomic `AbilityEffect` objects rather than a single monolithic damage profile and secondary effect. Each effect SHALL declare its type, execution payload, optional `targetScope` (`'TARGET' | 'SELF' | 'ALLIES'`), optional `applyOn` trigger condition (`'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY'`), optional tactical execution condition (`condition: 'FLANK_OR_REAR' | 'TARGET_CHALLENGED'`), optional `bonusDamage` dice profile evaluated when the condition is satisfied, and optional to-hit modifiers including `grantsAdvantage`, `grantsDisadvantage`, `attackRollBonus`, and `attackRollPenalty`.
 
+Displacement effects that move a unit across grid tiles—including `KNOCKBACK` and `RETREAT_STEP`—SHALL evaluate the elevation delta between origin and destination tiles. When displacement plunges off an elevated ledge ($\Delta h \le -2$), the system SHALL calculate raw fall impact damage ($|\Delta h| \times 4$) and resolve unmitigated fall damage against the displaced unit, dispatching a `DAMAGE` event with `reason: 'FALL'`. If a retreat step encounters an impassable elevation climb ($\Delta h > \text{maxClimbElevation}$) or an unwalkable obstacle, displacement SHALL be aborted unless the unit possesses a trait granting `canVaultOnRetreat`. Units with `canVaultOnRetreat` SHALL vault up onto the cliff top when the landing tile is walkable and unoccupied, or vault over an adjacent 1-hex obstacle onto the far-side hex if open.
+
 #### Scenario: Multi-effect execution on hit
 - **WHEN** an ability with both a physical damage effect and a knockback effect scores a solid hit against an enemy
 - **THEN** both the damage and the knockback displacement are dispatched and resolved against the target
@@ -32,6 +34,22 @@ The combat engine SHALL model abilities as an execution envelope containing an a
 #### Scenario: Tactical condition TARGET_CHALLENGED omitted when target is not challenged
 - **WHEN** an ability declaring an effect with `condition: 'TARGET_CHALLENGED'` and `bonusDamage` strikes a target that does not possess `CHALLENGED`
 - **THEN** the bonus damage dice are not rolled and only the baseline damage profile resolves
+
+#### Scenario: Retreat step down cliff ledge inflicts fall damage
+- **WHEN** a unit on elevation 2 executes `Skirmish` or an ability with `RETREAT_STEP` and steps backward onto a tile at elevation 0 ($\Delta h = -2$)
+- **THEN** the unit is displaced to the lower tile and suffers 8 direct Fall Impact Damage (`reason: 'FALL'`) unless protected by fall damage immunity
+
+#### Scenario: Retreat step blocked by impassable cliff climb
+- **WHEN** a unit without vaulting passives executes `Skirmish` with a retreat destination tile that is vertically higher than the actor's tile by more than `maxClimbElevation` ($\Delta h > 2$)
+- **THEN** the retreat displacement is aborted and the unit remains on their starting tile
+
+#### Scenario: Retreat step vaults up high cliff when unit has canVaultOnRetreat
+- **WHEN** a unit possessing `canVaultOnRetreat` (e.g. equipped with `Feline Grace`) executes `Skirmish` with a retreat destination tile at $\Delta h = 3$ that is walkable and unoccupied
+- **THEN** the unit vaults up onto the cliff top destination hex rather than being blocked
+
+#### Scenario: Retreat step vaults over obstacle when unit has canVaultOnRetreat
+- **WHEN** a unit possessing `canVaultOnRetreat` executes `Skirmish` with an adjacent unwalkable 1-hex obstacle in the retreat direction, and the far-side hex is walkable and unoccupied
+- **THEN** the unit vaults over the obstacle to the far-side hex
 
 ### Requirement: Universal Declarative Ability Modifiers
 The combat engine SHALL provide an `AbilityModifier` contract that declarative patches can use to modify any property of an ability. Modifiers SHALL support numeric deltas (`apCost`, `range`, `aoeRadius`), property overrides (`archetypeTag`, `defenseTarget`, `attackModifierAttribute`, `targetType`), effect appends, and damage profile patches (die steps, die counts, flat damage). Modifiers SHALL support lifecycle scoping (`isPermanent`, `durationTurns`, `consumesOnUse`) and applicability filtering (`abilityIds`, `archetypeTags`, `damageTypes`).
@@ -101,7 +119,7 @@ The combat system SHALL support declarative secondary damage labeling across abi
 - **THEN** the floating combat text on the struck enemy renders with prefix `SURGE! `
 
 ### Requirement: Non-Damaging Utility and Kinetic Feedback
-The combat system SHALL support distinct utility classification and combat log metadata for non-damaging abilities (`damageType: 'NONE'`) that target hostile units, cause displacement, or inflict conditions. When a non-damaging ability causes collision, collateral, or fall damage, the combat log SHALL record the damage amount, target vitals, and collision detail in `UTILITY` log metadata. The floating combat text system SHALL process damage, displacement, and status events across all ability resolution types, rendering appropriate visual floaters (`KNOCKBACK!`, `TELEPORT!`, `SLAM!`, `COLLISION!`, `RETREAT!`) on the battlefield.
+The combat system SHALL support distinct utility classification and combat log metadata for non-damaging abilities (`damageType: 'NONE'`) that target hostile units, cause displacement, or inflict conditions. Single-target abilities declaring `targetType: 'SINGLE_TARGET'` SHALL strictly restrict valid targets to opposing-faction units regardless of whether their `damageType` is physical, magical, or none. Friendly supportive abilities targeting another unit SHALL declare `targetType: 'ALLY'`. When a non-damaging ability causes collision, collateral, or fall damage, the combat log SHALL record the damage amount, target vitals, and collision detail in `UTILITY` log metadata. The floating combat text system SHALL process damage, displacement, and status events across all ability resolution types, rendering appropriate visual floaters (`KNOCKBACK!`, `TELEPORT!`, `SLAM!`, `COLLISION!`, `RETREAT!`) on the battlefield.
 
 #### Scenario: Gust knockback into obstacle emits displacement and wall slam floaters
 - **WHEN** an actor executes `Gust` on an enemy and the knockback pushes the target into a wall or obstacle
@@ -134,6 +152,10 @@ The combat system SHALL support distinct utility classification and combat log m
 - **WHEN** an actor executes `Skirmish` or an ability with retreat displacement moving away from an enemy
 - **THEN** a `DISPLACEMENT` event with `kind: 'RETREAT'` is dispatched
 - **THEN** floating combat text displays `RETREAT!` at the retreat destination hex rather than `KNOCKBACK!`
+
+#### Scenario: Single-target hostile utility rejects friendly targets
+- **WHEN** an actor selects a non-damaging `SINGLE_TARGET` ability (such as `Challenging Shout` or `Expose Weakness`) and attempts to target an allied unit of the same faction
+- **THEN** ability validation fails and rejects the ally as an illegal target
 
 ### Requirement: Ground-Targeted Damaging Abilities and Unified Blast Defense Contests
 The combat engine SHALL support damaging abilities (`damageType !== 'NONE'`) declaring `targetType: 'HEX'`. When resolving a damaging hex-targeted ability, the player or AI SHALL be permitted to target any reachable walkable hex in the arena, regardless of whether that hex is occupied or unoccupied.

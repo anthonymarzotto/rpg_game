@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { DiceRollBreakdown, DamageDieRoll } from '../../core/combat/types';
+import { AttackRollTooltip } from './AttackRollTooltip';
 import './DiceTumblerTray.css';
 
 export interface DiceTumblerTrayProps {
@@ -395,7 +396,26 @@ export const DiceTumblerTray: React.FC<DiceTumblerTrayProps> = ({
             {/* Score Equation */}
             <div className="tray-equation">
               <span className="die-val">{diceBreakdown.keptD20}</span>
-              <span className="mod-val">{sign}</span>
+              <span
+                className={`mod-val ${
+                  diceBreakdown.modifierBreakdown && diceBreakdown.modifierBreakdown.length > 0
+                    ? 'has-tooltip'
+                    : ''
+                }`}
+              >
+                {sign}
+                {diceBreakdown.modifierBreakdown && diceBreakdown.modifierBreakdown.length > 0 && (
+                  <AttackRollTooltip
+                    breakdown={diceBreakdown.modifierBreakdown}
+                    d20={diceBreakdown.keptD20}
+                    netModifier={diceBreakdown.netModifier}
+                    totalScore={diceBreakdown.totalScore}
+                    targetDefense={diceBreakdown.targetDefense}
+                    defenseType={diceBreakdown.defenseType}
+                    placement="top"
+                  />
+                )}
+              </span>
               <span className="equals">=</span>
               <span className={`score-val ${isCrit ? 'crit' : ''}`}>
                 {diceBreakdown.totalScore}

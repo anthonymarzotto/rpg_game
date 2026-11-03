@@ -177,4 +177,45 @@ describe('evaluateAttackRollContext', () => {
     expect(context.finalAdvantage).toBe('ADVANTAGE');
     expect(context.hitProbability).toBeCloseTo(0.7975, 4);
   });
+
+  it('populates structured modifierBreakdown with base attribute and Low Ground (-2) (B.13)', () => {
+    const arena = createRadialArena(3);
+    const archer = createRecruit('archer', 'Archer', { faction: 'PLAYER' });
+    (archer as any).baseAttributes = { force: 0, finesse: 2, focus: 0 };
+    const sentry = createRecruit('sentry', 'Sentry', { faction: 'ENEMY' });
+    (sentry as any).effectiveVitals = {
+      ...sentry.effectiveVitals,
+      evasion: 12
+    };
+
+    arena.setUnitPosition('archer', { q: 0, r: 0 });
+    arena.setUnitPosition('sentry', { q: 1, r: 0 });
+
+    // Archer on low ground (elevation 0), sentry on elevation 1 -> delta = -1 (Low ground -2)
+    arena.setTile({ coord: { q: 0, r: 0 }, elevation: 0, isWalkable: true });
+    arena.setTile({ coord: { q: 1, r: 0 }, elevation: 1, isWalkable: true });
+
+    const state = createCombatState(arena, [archer, sentry], 'archer');
+    const actorCu = state.units.get('archer')!;
+    const targetCu = state.units.get('sentry')!;
+
+    const context = evaluateAttackRollContext(actorCu, targetCu, BASIC_ATTACK, { state });
+
+    // Net modifier = 2 (Finesse) - 2 (Low Ground) = 0
+    expect(context.netModifier).toBe(0);
+    expect(context.modifierBreakdown).toBeDefined();
+    expect(context.modifierBreakdown).toContainEqual({
+      label: 'Finesse',
+      value: 2,
+      source: 'ATTRIBUTE'
+    });
+    expect(context.modifierBreakdown).toContainEqual({
+      label: 'Low Ground',
+      value: -2,
+      source: 'ELEVATION'
+    });
+
+    const sum = context.modifierBreakdown!.reduce((acc, c) => acc + c.value, 0);
+    expect(sum).toBe(context.netModifier);
+  });
 });
