@@ -35,6 +35,7 @@
 - [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close.
 - [ ] **UX.9**: Shout out text is small and hard to read.
 - [ ] **UX.11**: Dice Tray: The d20 roll is shown before the die stops rolling. Also the damage roll shows up before the die stops rolling.
+- [ ] **UX.12**: The map is not scrollable or draggable. You zoom in and then can only see the middle.
 
 ---
 
