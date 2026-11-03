@@ -1,0 +1,36 @@
+{
+  "group_id": "781819e1-ef2b-4158-b345-041acc0d92ea",
+  "states": [
+    {
+      "character": {
+        "id": "607e6b79-bf96-4510-ab87-6bf4698ee75b",
+        "name": "Idle",
+        "prompt": "Chibi male in a wide, grounded stance, hands raised to manipulate glowing geometric runes, large expressive eyes, wearing crisp scholar robes with parchment satchels, holding an engraved geometric ruler wand and an open grimoire, vibrant violet robes with glowing formula arrays, emerald trim on belts and quill straps, selective outline.",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-11-02T15:41:30.024724+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-11-03T01:07:33.159677"
+}

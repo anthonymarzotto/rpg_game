@@ -21,10 +21,14 @@
 ### 2. Enemy Threat Calibration & Pre-Ascension Snapshot
 - [ ] **2.1**: Investigate pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp). Balance against the player's ability to scout and plan for upcoming incursions rather than rubber-banding on deploy; re-evaluate alongside Horizon 2 sector map nodes. Generally, a bit too easy right now. Trial 3 and 6 were the most exciting and difficult tactically.
 
-### 3. Tier 4 Class Kits & Token Integration (Shield-bearer, Dragoon, Ballistician)
-- [ ] **3.1**: **Shield-bearer** (`#05`, Tier 4: `3F, 1R, 0M`): Sketch and author class package (signature ability, 2 domain abilities, passive trait, AI heuristic profile, and badge palette) and whitelist token `05_human_male`.
-- [ ] **3.2**: **Dragoon** (`#07`, Tier 4: `3F, 0R, 1M`): Sketch and author class package (signature ability, 2 domain abilities, passive trait, AI heuristic profile, and badge palette) and whitelist token `07_human_male`.
-- [ ] **3.3**: **Ballistician** (`#65`, Tier 4: `1F, 3R, 0M`): Sketch and author class package (signature ability, 2 domain abilities, passive trait, AI heuristic profile, and badge palette) and whitelist token `65_human_male`.
+### 3. Tier 4 Class Kits & Token Integration
+Sketch and author class package (signature ability, 2 domain abilities, passive trait, AI heuristic profile, and badge palette) and whitelist tokens for the following new classes:
+- [ ] **3.1**: **Shield-bearer** (`#05`, Tier 4: `3F, 1R, 0M`), `05_human_male`.
+- [ ] **3.2**: **Dragoon** (`#07`, Tier 4: `3F, 0R, 1M`), `07_human_male`.
+- [ ] **3.3**: **Ballistician** (`#65`, Tier 4: `1F, 3R, 0M`), `65_human_male`.
+- [ ] **3.4**: **Philanderer** (`#84`, Tier 4: `0F, 3R, 1M`), `84_human_male`.
+- [ ] **3.5**: **Theurge** (`#79`, Tier 4: `1F, 0R, 3M`), `79_human_male`.
+- [ ] **3.6**: **Arcanist** (`#96`, Tier 4: `0F, 1R, 3M`), `96_human_male`.
 
 ---
 
