@@ -11,6 +11,8 @@
   - Settle animations featuring kinetic zoom snaps, critical hit flare / stamp, and graze/fumble callouts.
   - Interactive click-to-skip (mouse click anywhere, Spacebar, Enter) and persistent `[🎲 Tray: ON/OFF]` combat header toggle saved to `localStorage`.
   - Headless architecture: Pure TS `diceBreakdown` contract in `src/core/` and declarative presentation in `src/ui/combat/`.
+- [x] **UX.10**: Attack roll in Combat Card in Combat log should just show + or -, not both. i.e. Right now it shows 17+-2=15, it should be 17-2=15.
+- [x] **UX.8**: Breaking Challenging Shout does not have a nice combat card.
 
 ---
 
@@ -31,9 +33,7 @@
 - [ ] **UX.5**: Let the User place their units at opening. Enemy team to also do better at starting positions.
 - [ ] **UX.6**: Dice Tray: Evade/Miss can just say Miss.
 - [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close.
-- [x] **UX.8**: Breaking Challenging Shout does not have a nice combat card.
 - [ ] **UX.9**: Shout out text is small and hard to read.
-- [x] **UX.10**: Attack roll in Combat Card in Combat log should just show + or -, not both. i.e. Right now it shows 17+-2=15, it should be 17-2=15.
 - [ ] **UX.11**: Dice Tray: The d20 roll is shown before the die stops rolling. Also the damage roll shows up before the die stops rolling.
 
 ---
