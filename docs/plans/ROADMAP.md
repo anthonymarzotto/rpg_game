@@ -4,21 +4,21 @@
 
 ---
 
-## Horizon 1: Combat Feel & Tactical Clarity
+## Horizon 1: Combat Feel & Tactical Clarity (✅ Completed)
 
 **Goal**: Transform the combat experience from "mechanically functional" to "tactile, clear, and perfectly balanced."
 
-1. **Unit Inspection & State Visibility**:
+1. **Unit Inspection & State Visibility** (✅ Completed):
    * Click-to-pin unit inspection cards during combat for both allies and enemies.
    * Interactive hover tooltips for active conditions (`POISON`, `BURN`, `STEALTH`, `CHALLENGED`, stat buffs).
    * Transparent enemy ability preview (view threat range, primary attacks, remaining AP).
-2. **Tactical Facing Control**:
+2. **Tactical Facing Control** (✅ Completed):
    * Post-move facing selection: upon moving to a destination hex, prompt a directional wheel/arrow to set unit orientation before ending the action or taking follow-up actions.
-3. **Initiative & Combat Tempo Balance**:
+3. **Initiative & Combat Tempo Balance** (✅ Completed):
    * Break the "player-always-acts-first" tempo lock. Add randomized initial CTB ticks, agility modifiers, or enemy ambush conditions.
    * Rebalance Rogue/Thief action economy to prevent disproportionate turn frequency and XP accumulation compared to Fighters and Mages.
-4. **Progression Smoothing**:
-   * Alleviate the friction of using basic Novice skills to grind off-archetype XP. Explore ability starring, secondary archetype victory resonance, or flexible skirmish XP allocation.
+4. **Progression Smoothing** (✅ Completed):
+   * Alleviate the friction of using basic Novice skills to grind off-archetype XP via flexible skirmish XP allocation (Harvest Distribution).
 
 ---
 
