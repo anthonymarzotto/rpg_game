@@ -5,18 +5,7 @@
 ---
 
 ## 🔨 In Progress
-- [x] **Visual Dice Tumbler Tray**:
-  - Implemented celestial glassmorphic top-banner dice tray overlay with procedural 2.5D SVG polyhedral dice (d20, d8, d6, etc.), faceted isometric lighting, and two-stage animation state machine (attack roll check vs defense, followed by damage dice on hit).
-  - Advantage/disadvantage dual d20 rolling with dimming and strikethrough slash discard styling.
-  - Settle animations featuring kinetic zoom snaps, critical hit flare / stamp, and graze/fumble callouts.
-  - Interactive click-to-skip (mouse click anywhere, Spacebar, Enter) and persistent `[🎲 Tray: ON/OFF]` combat header toggle saved to `localStorage`.
-  - Headless architecture: Pure TS `diceBreakdown` contract in `src/core/` and declarative presentation in `src/ui/combat/`.
-- [x] **UX.10**: Attack roll in Combat Card in Combat log should just show + or -, not both. i.e. Right now it shows 17+-2=15, it should be 17-2=15.
-- [x] **UX.8**: Breaking Challenging Shout does not have a nice combat card.
-- [x] **B.11**: A unit that uses Skirmish and falls off a height 2 hex does not take fall damage. (Fixed in retreat displacement by evaluating elevation delta, applying fall damage when plunging dh <= -2, and adding canVaultOnRetreat for Cat Burglar).
-- [x] **B.12**: Challenging Shout can target Allies, it should only target Enemies. (Fixed in validator.ts by requiring opposing factions for all SINGLE_TARGET abilities regardless of damageType).
-- [x] **B.13**: Combat Log card shows "[Elevation: Low ground (-2)]" which is correct for my unit, but both the attack roll in the same Combat Card and the Dice Tray do not show this -2. (Fixed by modeling structured AttackModifierComponent breakdown in AttackRollContext/DiceRollBreakdown and rendering an in-engine glassmorphism hover tooltip on roll chips).
-- [x] **UX.9**: Shout out text is small and hard to read. (Fixed in v0.9.3: added high-contrast 3.5px SVG stroke outline with paint-order stroke fill, elevated y - 36 anchor, FloatingTextTier model with tiered 26px/21px/16px sizing, and dynamic vertical stacking for concurrent floaters).
+Nothing to see here.
 
 ---
 
@@ -44,6 +33,7 @@ Sketch and author class package (signature ability, 2 domain abilities, passive 
 - [ ] **UX.11**: Dice Tray: The d20 roll is shown before the die stops rolling. Also the damage roll shows up before the die stops rolling.
 - [ ] **UX.12**: The map is not scrollable or draggable. You zoom in and then can only see the middle.
 - [ ] **UX.13**: Avoiding fall damage with Feline Grace has an unformated combat log card.
+- [ ] **UX.14**: Nice tooltip popover for damage bonus calculation like we have for the to hit calculation.
 
 ---
 
