@@ -33,7 +33,7 @@ describe('CampHub Integration Test Suite', () => {
 
     // Active squad dock with 3 units
     expect(html).toContain('The Vanguard');
-    expect(html).toContain('3 / 3');
+    expect(html).toContain('30 / 30 Pts (3 Deployed)');
     for (const unit of campaign.roster) {
       expect(html).toContain(unit.name);
     }
@@ -94,11 +94,11 @@ describe('CampHub Integration Test Suite', () => {
       />
     );
 
-    // Squad is 2/3 with an empty slot
-    expect(htmlWithEmptySlot).toContain('2 / 3');
-    expect(htmlWithEmptySlot).toContain('Vacant Conduit');
+    // Squad has 2 heroes deployed, within stage 1 budget (75 pts)
+    expect(htmlWithEmptySlot).toContain('2 Deployed');
+    expect(htmlWithEmptySlot).toContain('Deployment Available');
 
-    // HeroC is in reserve and shows Deploy button because active squad < 3
+    // HeroC is in reserve and shows Deploy button because active squad threat < budget
     expect(htmlWithEmptySlot).toContain(heroC.name);
     expect(htmlWithEmptySlot).toContain('Deploy');
 
@@ -116,7 +116,7 @@ describe('CampHub Integration Test Suite', () => {
 
     expect(htmlSwapped).toContain(heroA.name);
     expect(htmlSwapped).toContain(heroC.name);
-    expect(htmlSwapped).toContain('Vacant Conduit');
+    expect(htmlSwapped).toContain('Deployment Available');
     // HeroB is now in reserve
     expect(htmlSwapped).toContain('1 Wayfarer');
   });

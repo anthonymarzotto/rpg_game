@@ -1,11 +1,14 @@
 import { EncounterDefinition } from '../../core/combat/encounter';
 import { resolveTokenAssetPath } from '../combat/tokenAssets';
+import { computeUnitThreat, getStageDeploymentBudget } from '../../core/campaign/threatBudget';
 import './ExpeditionWarRoom.css';
 
 export interface ExpeditionWarRoomProps {
   readonly stage: number;
   readonly encounter?: EncounterDefinition;
   readonly activeSquadCount: number;
+  readonly activeSquadThreat?: number;
+  readonly deploymentBudget?: number;
   readonly minSquadRequired?: number;
   readonly onDeploySquad: () => void;
 }
@@ -14,17 +17,21 @@ export function ExpeditionWarRoom({
   stage,
   encounter,
   activeSquadCount,
+  activeSquadThreat,
+  deploymentBudget,
   minSquadRequired = 1,
   onDeploySquad
 }: ExpeditionWarRoomProps) {
-  const isSquadReady = activeSquadCount >= minSquadRequired;
+  const stageBudget = deploymentBudget ?? getStageDeploymentBudget(stage);
+  const isBudgetValid = activeSquadThreat == null || activeSquadThreat <= stageBudget;
+  const isSquadReady = activeSquadCount >= minSquadRequired && isBudgetValid;
 
   const enemyUnits = encounter
     ? encounter.units.filter((u) => u.unit.faction === 'ENEMY')
     : [];
 
   const estimatedThreat = enemyUnits.reduce(
-    (sum, u) => sum + (u.unit.progression.currentLevel === 0 ? 10 : 20),
+    (sum, u) => sum + computeUnitThreat(u.unit),
     0
   );
 
@@ -80,15 +87,20 @@ export function ExpeditionWarRoom({
         <div className="readiness-label font-ui">
           <span>Vanguard Readiness:</span>
           <span className={isSquadReady ? 'readiness-status-ready' : 'readiness-status-empty'}>
-            {activeSquadCount} / 3 Wayfarers Ready
+            {activeSquadThreat != null
+              ? `${activeSquadCount} Ready (${activeSquadThreat} / ${stageBudget} Pts)`
+              : `${activeSquadCount} / 3 Wayfarers Ready`}
           </span>
         </div>
         {!isSquadReady && (
           <span className="readiness-warning font-ui">
-            Attune at least 1 wayfarer into the active vanguard before entering the trial.
+            {activeSquadCount < minSquadRequired
+              ? 'Attune at least 1 wayfarer into the active vanguard before entering the trial.'
+              : `Vanguard threat (${activeSquadThreat} pts) exceeds stage deployment budget (${stageBudget} pts).`}
           </span>
         )}
       </div>
+
 
       {/* Deploy Primary CTA */}
       <button

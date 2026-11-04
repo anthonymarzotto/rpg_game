@@ -5,14 +5,16 @@
 ---
 
 ## 🔨 In Progress
-Nothing to see here.
+- [x] **2.1**: **Enemy Threat Calibration, Deployment Budget & Resonant Enemy Loadouts**:
+  - Implement point-based Vanguard deployment budget without artificial unit-count limits.
+  - Dynamically scale arena radius (Radius 3 for Stage 1, Radius 4 min for Stage 2+, Radius 5 if combined units >= 7).
+  - Pre-ascension threat projection (+1 level projection if threshold met) and stable incursion generation on victory.
+  - Spend enemy threat budget on multiple units of appropriate tiers (removing single-unit caps).
+  - Equip generated enemies with resonant domain abilities and passives from their constellation lineage (Scratchpad #4).
 
 ---
 
 ## 🎯 Next Up
-
-### 2. Enemy Threat Calibration & Pre-Ascension Snapshot
-- [ ] **2.1**: Investigate pre-ascension enemy threat snapshot (enemies for the next trial are currently determined before player ascensions take effect in Camp). Balance against the player's ability to scout and plan for upcoming incursions rather than rubber-banding on deploy; re-evaluate alongside Horizon 2 sector map nodes. Generally, a bit too easy right now. Trial 3 and 6 were the most exciting and difficult tactically.
 
 ### 3. Tier 4 Class Kits & Token Integration
 Sketch and author class package (signature ability, 2 domain abilities, passive trait, AI heuristic profile, and badge palette) and whitelist tokens for the following new classes:
@@ -22,6 +24,9 @@ Sketch and author class package (signature ability, 2 domain abilities, passive 
 - [ ] **3.4**: **Philanderer** (`#84`, Tier 4: `0F, 3R, 1M`), `84_human_male`.
 - [ ] **3.5**: **Theurge** (`#79`, Tier 4: `1F, 0R, 3M`), `79_human_male`.
 - [ ] **3.6**: **Arcanist** (`#96`, Tier 4: `0F, 1R, 3M`), `96_human_male`.
+
+### 4. No penalty for unit retreat/death
+When a unit is defeated in the arena, there's no penalty. Permadeath is too punishing for right now and is a point on the Roadmap to flesh out, but some sort of punishment seems warranted.
 
 ---
 

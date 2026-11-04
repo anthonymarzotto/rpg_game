@@ -12,9 +12,11 @@ import { ClassRegistry } from '../progression/registry';
 import { CLASS_REGISTRY } from '../../data/classes';
 import { getClassPackage } from '../../data/packages';
 import { CampaignState } from './types';
-import { EncounterDefinition } from '../combat/encounter';
-import { generateStageEncounter } from './encounterGenerator';
+import { EncounterDefinition, PlacedUnit } from '../combat/encounter';
+import { HEX_DIRECTIONS } from '../grid/hex';
+import { generateStageEncounter, getDeploymentZones } from './encounterGenerator';
 import { generateProceduralRecruit } from './campaignFactory';
+import { computeSquadThreat, getStageDeploymentBudget } from './threatBudget';
 
 export interface CampaignBattleResult {
   readonly encounterId: string;
@@ -56,7 +58,7 @@ export function resolveCampaignVictory(
   const nextStage = state.stage + 1;
   const nextSeed = state.currentSeed + 1;
   const activeSquad = updatedRoster.filter((u) => state.activeSquadIds.includes(u.id));
-  const nextEncounter = generateStageEncounter(nextStage, activeSquad, nextSeed);
+  const nextEncounter = generateStageEncounter(nextStage, activeSquad, nextSeed, { useProjectedThreat: true });
 
   const now = Date.now();
 
@@ -336,14 +338,41 @@ export function updateCampUnitLoadout(
 }
 
 /**
- * Reconfigures the active squad combat deployment.
+ * Synchronizes the placed player units in an EncounterDefinition with a newly selected active squad,
+ * preserving existing enemy hostiles, arena radius, and terrain overrides.
+ */
+export function syncEncounterActiveSquad(
+  encounter: EncounterDefinition,
+  activeSquad: readonly Unit[]
+): EncounterDefinition {
+  const radius = encounter.arenaRadius ?? 3;
+  const { playerCoords } = getDeploymentZones(radius);
+  const enemyUnits = encounter.units.filter((p) => p.unit.faction !== 'PLAYER');
+
+  const playerUnits: PlacedUnit[] = activeSquad.map((unit, idx) => {
+    const coord = playerCoords[idx] ?? { q: -Math.min(radius, 2), r: idx };
+    return {
+      unit: { ...unit, faction: 'PLAYER' as const },
+      coord,
+      facing: HEX_DIRECTIONS.EAST
+    };
+  });
+
+  return {
+    ...encounter,
+    units: [...enemyUnits, ...playerUnits]
+  };
+}
+
+/**
+ * Reconfigures the active squad combat deployment within the stage deployment point budget.
  */
 export function setCampActiveSquad(
   state: CampaignState,
   squadUnitIds: readonly string[]
 ): CampaignState {
-  if (squadUnitIds.length === 0 || squadUnitIds.length > 3) {
-    throw new Error('Active squad must contain between 1 and 3 units.');
+  if (squadUnitIds.length === 0) {
+    throw new Error('Active squad must contain at least 1 unit.');
   }
 
   for (const id of squadUnitIds) {
@@ -353,7 +382,18 @@ export function setCampActiveSquad(
   }
 
   const activeSquad = state.roster.filter((u) => squadUnitIds.includes(u.id));
-  const updatedEncounter = generateStageEncounter(state.stage, activeSquad, state.currentSeed);
+  const squadThreat = computeSquadThreat(activeSquad);
+  const budget = getStageDeploymentBudget(state.stage);
+
+  if (squadThreat > budget) {
+    throw new Error(
+      `Active squad threat (${squadThreat} pts) exceeds stage ${state.stage} deployment budget (${budget} pts).`
+    );
+  }
+
+  const updatedEncounter = state.currentEncounter
+    ? syncEncounterActiveSquad(state.currentEncounter, activeSquad)
+    : undefined;
 
   return {
     ...state,
@@ -362,6 +402,7 @@ export function setCampActiveSquad(
     updatedAt: Date.now()
   };
 }
+
 
 /**
  * Re-rolls the encounter for the current stage with a fresh seed.

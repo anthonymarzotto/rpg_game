@@ -30,11 +30,12 @@ function makeMockUnit(id: string, name: string): Unit {
 }
 
 describe('ActiveSquadDock Component', () => {
-  it('renders 2 hero cards and 1 empty slot when 2 heroes are deployed', () => {
+  it('renders hero cards and points badge when deployment budget is active', () => {
     const squad = [makeMockUnit('h1', 'Roland'), makeMockUnit('h2', 'Lyra')];
     const html = renderToStaticMarkup(
       <ActiveSquadDock
         activeSquad={squad}
+        stage={1}
         onInspectHero={vi.fn()}
         onBenchHero={vi.fn()}
         onSwapHero={vi.fn()}
@@ -42,13 +43,32 @@ describe('ActiveSquadDock Component', () => {
     );
 
     expect(html).toContain('The Vanguard');
+    expect(html).toContain('20 / 30 Pts (2 Deployed)');
+    expect(html).toContain('Roland');
+    expect(html).toContain('Lyra');
+    expect(html).toContain('Deployment Available');
+    expect(html).toContain('10 pts remaining');
+  });
+
+  it('renders legacy fixed slots when maxSquadSize is specified without budget', () => {
+    const squad = [makeMockUnit('h1', 'Roland'), makeMockUnit('h2', 'Lyra')];
+    const html = renderToStaticMarkup(
+      <ActiveSquadDock
+        activeSquad={squad}
+        maxSquadSize={3}
+        onInspectHero={vi.fn()}
+        onBenchHero={vi.fn()}
+        onSwapHero={vi.fn()}
+      />
+    );
+
     expect(html).toContain('2 / 3');
     expect(html).toContain('Roland');
     expect(html).toContain('Lyra');
     expect(html).toContain('Vacant Conduit');
   });
 
-  it('renders 3 hero cards and zero empty slots when squad is full (3/3)', () => {
+  it('renders all 3 hero cards without vacant hint when squad uses full budget', () => {
     const squad = [
       makeMockUnit('h1', 'Roland'),
       makeMockUnit('h2', 'Lyra'),
@@ -57,16 +77,17 @@ describe('ActiveSquadDock Component', () => {
     const html = renderToStaticMarkup(
       <ActiveSquadDock
         activeSquad={squad}
+        deploymentBudget={30}
         onInspectHero={vi.fn()}
         onBenchHero={vi.fn()}
         onSwapHero={vi.fn()}
       />
     );
 
-    expect(html).toContain('3 / 3');
+    expect(html).toContain('30 / 30 Pts (3 Deployed)');
     expect(html).toContain('Roland');
     expect(html).toContain('Lyra');
     expect(html).toContain('Vael');
-    expect(html).not.toContain('Vacant Conduit');
+    expect(html).not.toContain('Deployment Available');
   });
 });

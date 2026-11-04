@@ -8,10 +8,16 @@ import {
   EncounterTileOverride
 } from '../combat/encounter';
 import { createRng, shuffle } from '../prng';
-import { computeSquadThreat, computeStageThreatBudget } from './threatBudget';
+import {
+  computeSquadThreat,
+  computeProjectedSquadThreat,
+  computeStageThreatBudget,
+  getStageDeploymentBudget
+} from './threatBudget';
 import { createRecruit } from '../units/unitFactory';
 import { advanceArchetypeLevel } from '../progression/pyramid';
 import { CLASS_REGISTRY, CLASSES_BY_ID } from '../../data/classes';
+import { getClassPackage } from '../../data/packages';
 import { computeDerivedVitals } from '../units/vitals';
 import { assignEnemyTitles } from '../../data/names';
 
@@ -90,8 +96,41 @@ export function createEnemyUnit(
   };
   const effectiveVitals = computeDerivedVitals(baseAttributes, level);
 
-  // Wildcards selected from recruit's rolled starter abilities
-  const wildcardAbilities = recruit.starterAbilityIds.filter((aid) => aid !== 'strike').slice(0, 2);
+  // Collect candidate domain abilities and passives from prior unlocked classes in the constellation
+  const priorClassIds = progression.constellation.filter((c) => c !== classId);
+  const candidateDomainAbilities: string[] = [];
+  const candidatePassives: string[] = [];
+
+  for (const cId of priorClassIds) {
+    const pkg = getClassPackage(cId);
+    if (pkg) {
+      for (const dAbility of pkg.domainAbilities) {
+        if (!candidateDomainAbilities.includes(dAbility.id)) {
+          candidateDomainAbilities.push(dAbility.id);
+        }
+      }
+      if (pkg.passive && !candidatePassives.includes(pkg.passive.id)) {
+        candidatePassives.push(pkg.passive.id);
+      }
+    }
+  }
+
+  // If prior classes provided domain abilities, equip up to 2; otherwise fallback to non-strike starter abilities
+  let wildcardAbilities: string[];
+  if (candidateDomainAbilities.length > 0) {
+    const shuffled = rng ? shuffle(candidateDomainAbilities, rng) : candidateDomainAbilities;
+    wildcardAbilities = shuffled.slice(0, 2);
+  } else {
+    wildcardAbilities = recruit.starterAbilityIds.filter((aid) => aid !== 'strike').slice(0, 2);
+  }
+
+  // Select wildcard passive from prior classes or fallback to momentum
+  let wildcardPassive = 'momentum';
+  if (candidatePassives.length > 0) {
+    wildcardPassive = rng
+      ? candidatePassives[Math.floor(rng() * candidatePassives.length)]
+      : candidatePassives[0];
+  }
 
   return {
     ...recruit,
@@ -102,7 +141,7 @@ export function createEnemyUnit(
     loadout: {
       activeClassId: classId,
       wildcardAbilityIds: wildcardAbilities,
-      wildcardPassiveIds: ['momentum']
+      wildcardPassiveIds: [wildcardPassive]
     }
   };
 }
@@ -121,32 +160,43 @@ export function assembleEnemySquad(
   const squad: Unit[] = [];
   let unitIndex = 1;
 
-  // For Stage 5+, allow Tier-3 enemies (Cavalier, Berserker, Highwayman, Warlock, Witch) if budget allows (55 threat)
-  const canUseTier3 = stage >= 5 && remaining >= 55;
-  if (canUseTier3 && rng() < 0.6) {
-    const classPick = TIER3_CLASSES[Math.floor(rng() * TIER3_CLASSES.length)];
-    squad.push(createEnemyUnit(`enemy-${unitIndex++}`, classPick, rng));
-    remaining -= 55;
+  // For Stage 5+, allow Tier-3 enemies (Cavalier, Berserker, Highwayman, Warlock, Witch, Cat Burglar) if budget allows (55 threat)
+  if (stage >= 5) {
+    while (remaining >= 55) {
+      if (squad.length === 0 || rng() < 0.75 || remaining === 55) {
+        const classPick = TIER3_CLASSES[Math.floor(rng() * TIER3_CLASSES.length)];
+        squad.push(createEnemyUnit(`enemy-${unitIndex++}`, classPick, rng));
+        remaining -= 55;
+      } else {
+        break;
+      }
+    }
   }
 
   // For Stage 3+, allow Tier-2 enemies (Knight, Infiltrator, Sorcerer) if budget allows (40 threat)
-  const canUseTier2 = stage >= 3 && remaining >= 40 && squad.length < 4;
-  if (canUseTier2 && rng() < 0.5) {
-    const classPick = TIER2_CLASSES[Math.floor(rng() * TIER2_CLASSES.length)];
-    squad.push(createEnemyUnit(`enemy-${unitIndex++}`, classPick, rng));
-    remaining -= 40;
+  if (stage >= 3) {
+    while (remaining >= 40) {
+      if (squad.length === 0 || rng() < 0.75 || remaining === 40) {
+        const classPick = TIER2_CLASSES[Math.floor(rng() * TIER2_CLASSES.length)];
+        squad.push(createEnemyUnit(`enemy-${unitIndex++}`, classPick, rng));
+        remaining -= 40;
+      } else {
+        break;
+      }
+    }
   }
 
   // For Stage 2+, allow Tier-1 enemies (Warrior, Thief, Wizard) if budget allows (25 threat)
-  const canUseTier1 = stage >= 2 && remaining >= 25 && squad.length < 4;
-  if (canUseTier1 && rng() < 0.6) {
-    const classPick = TIER1_CLASSES[Math.floor(rng() * TIER1_CLASSES.length)];
-    squad.push(createEnemyUnit(`enemy-${unitIndex++}`, classPick, rng));
-    remaining -= 25;
+  if (stage >= 2) {
+    while (remaining >= 25) {
+      const classPick = TIER1_CLASSES[Math.floor(rng() * TIER1_CLASSES.length)];
+      squad.push(createEnemyUnit(`enemy-${unitIndex++}`, classPick, rng));
+      remaining -= 25;
+    }
   }
 
   // Fill remaining threat with Novices (10 threat each)
-  while (remaining >= 10 && squad.length < 4) {
+  while (remaining >= 10) {
     squad.push(createEnemyUnit(`enemy-${unitIndex++}`, 'novice', rng));
     remaining -= 10;
   }
@@ -193,19 +243,52 @@ export function getDeploymentZones(radius: number): {
     };
   }
 
-  // Radius 4 deployment
+  if (radius === 4) {
+    return {
+      playerCoords: [
+        { q: -3, r: 0 },
+        { q: -3, r: 1 },
+        { q: -3, r: -1 },
+        { q: -2, r: -1 },
+        { q: -2, r: 1 },
+        { q: -2, r: 0 }
+      ],
+      enemyCoords: [
+        { q: 3, r: 0 },
+        { q: 3, r: -1 },
+        { q: 3, r: -2 },
+        { q: 2, r: 1 },
+        { q: 2, r: -1 },
+        { q: 2, r: 0 }
+      ]
+    };
+  }
+
+  // Radius 5+ deployment (10 candidate spawns per side)
   return {
     playerCoords: [
+      { q: -4, r: 0 },
+      { q: -4, r: 1 },
+      { q: -4, r: 2 },
+      { q: -4, r: -1 },
       { q: -3, r: 0 },
       { q: -3, r: 1 },
       { q: -3, r: -1 },
-      { q: -2, r: -1 }
+      { q: -3, r: -2 },
+      { q: -3, r: 2 },
+      { q: -2, r: 0 }
     ],
     enemyCoords: [
+      { q: 4, r: 0 },
+      { q: 4, r: -1 },
+      { q: 4, r: -2 },
+      { q: 4, r: 1 },
       { q: 3, r: 0 },
       { q: 3, r: -1 },
+      { q: 3, r: 1 },
+      { q: 3, r: 2 },
       { q: 3, r: -2 },
-      { q: 2, r: 1 }
+      { q: 2, r: 0 }
     ]
   };
 }
@@ -348,26 +431,35 @@ export function generateArenaTerrain(
   return [];
 }
 
+export interface GenerateStageEncounterOptions {
+  readonly useProjectedThreat?: boolean;
+}
+
 /**
  * Procedurally generates a balanced combat encounter for the current stage and player squad.
  */
 export function generateStageEncounter(
   stage: number,
   playerSquad: readonly Unit[],
-  seed?: number
+  seed?: number,
+  options?: GenerateStageEncounterOptions
 ): EncounterDefinition {
   const effectiveSeed = seed ?? (1000 + stage * 37);
   const rng = createRng(effectiveSeed);
 
-  const squadThreat = computeSquadThreat(playerSquad);
-  const baseBudget = computeStageThreatBudget(squadThreat, stage);
-  const targetBudget = stage >= 5 ? Math.max(baseBudget, 60) : baseBudget;
+  const stageBudget = getStageDeploymentBudget(stage);
+  const squadThreat = options?.useProjectedThreat
+    ? computeProjectedSquadThreat(playerSquad)
+    : computeSquadThreat(playerSquad);
+  const scaledSquadBudget = computeStageThreatBudget(squadThreat, stage);
+  const targetBudget = Math.max(stageBudget, scaledSquadBudget);
 
-  const radius = stage <= 2 ? 3 : 4;
+  const enemies = assembleEnemySquad(targetBudget, stage, rng);
+  const totalUnits = playerSquad.length + enemies.length;
+  const radius = totalUnits >= 7 ? 5 : (stage === 1 ? 3 : 4);
   const { playerCoords, enemyCoords } = getDeploymentZones(radius);
 
   const tileOverrides = generateArenaTerrain(radius, playerCoords, enemyCoords, rng);
-  const enemies = assembleEnemySquad(targetBudget, stage, rng);
 
   const placedUnits: PlacedUnit[] = [];
 

@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { CampaignState } from '../../core/campaign/types';
 import { Unit } from '../../core/types/unit';
 import { setCampActiveSquad, recruitNovice } from '../../core/campaign/transitions';
+import { computeSquadThreat, computeUnitThreat, getStageDeploymentBudget } from '../../core/campaign/threatBudget';
 import { ActiveSquadDock } from './ActiveSquadDock';
 import { ExpeditionWarRoom } from './ExpeditionWarRoom';
 import { ReserveBarracksTray } from './ReserveBarracksTray';
@@ -53,6 +54,15 @@ export function CampHub({
     return campaign.roster.filter((u) => !campaign.activeSquadIds.includes(u.id));
   }, [campaign.activeSquadIds, campaign.roster]);
 
+  // Deployment budget for the current stage and active squad points
+  const deploymentBudget = useMemo(() => {
+    return getStageDeploymentBudget(campaign.stage);
+  }, [campaign.stage]);
+
+  const activeSquadThreat = useMemo(() => {
+    return computeSquadThreat(activeSquad);
+  }, [activeSquad]);
+
   // Swapping hero name for guidance banner
   const swappingHeroName = swappingHeroId
     ? campaign.roster.find((u) => u.id === swappingHeroId)?.name ?? null
@@ -74,13 +84,20 @@ export function CampHub({
     }
   }, [campaign, swappingHeroId, onUpdateCampaign]);
 
-  // Deploy a reserve hero into next empty active slot
+  // Deploy a reserve hero into active squad if budget permits
   const handleDeployHero = useCallback((unitId: string) => {
-    if (campaign.activeSquadIds.length >= 3) return;
+    const candidate = campaign.roster.find((u) => u.id === unitId);
+    if (!candidate) return;
+    const nextThreat = activeSquadThreat + computeUnitThreat(candidate);
+    if (nextThreat > deploymentBudget) return;
     const nextSquadIds = [...campaign.activeSquadIds, unitId];
-    const updated = setCampActiveSquad(campaign, nextSquadIds);
-    onUpdateCampaign(updated);
-  }, [campaign, onUpdateCampaign]);
+    try {
+      const updated = setCampActiveSquad(campaign, nextSquadIds);
+      onUpdateCampaign(updated);
+    } catch {
+      // Budget check caught by setCampActiveSquad
+    }
+  }, [campaign, activeSquadThreat, deploymentBudget, onUpdateCampaign]);
 
   // Toggle swap mode on an active slot
   const handleToggleSwapHero = useCallback((unitId: string) => {
@@ -93,8 +110,12 @@ export function CampHub({
     const nextSquadIds = campaign.activeSquadIds.map((id) =>
       id === swappingHeroId ? incomingUnitId : id
     );
-    const updated = setCampActiveSquad(campaign, nextSquadIds);
-    onUpdateCampaign(updated);
+    try {
+      const updated = setCampActiveSquad(campaign, nextSquadIds);
+      onUpdateCampaign(updated);
+    } catch {
+      // In case swap exceeds budget
+    }
     setSwappingHeroId(null);
   }, [campaign, swappingHeroId, onUpdateCampaign]);
 
@@ -153,6 +174,8 @@ export function CampHub({
           {/* Active Vanguard Dock */}
           <ActiveSquadDock
             activeSquad={activeSquad}
+            stage={campaign.stage}
+            deploymentBudget={deploymentBudget}
             onInspectHero={(unit) => setInspectingHeroId(unit.id)}
             onBenchHero={handleBenchHero}
             onSwapHero={handleToggleSwapHero}
@@ -164,6 +187,8 @@ export function CampHub({
             stage={campaign.stage}
             encounter={campaign.currentEncounter}
             activeSquadCount={activeSquad.length}
+            activeSquadThreat={activeSquadThreat}
+            deploymentBudget={deploymentBudget}
             onDeploySquad={onDeploySquad}
           />
         </div>
@@ -177,7 +202,7 @@ export function CampHub({
             onSelectForSwap={handleSelectForSwap}
             onRecruitNovice={handleRecruitNovice}
             onCancelSwap={() => setSwappingHeroId(null)}
-            canDeploy={activeSquad.length < 3}
+            canDeploy={activeSquadThreat < deploymentBudget}
             swappingHeroName={swappingHeroName}
           />
         </div>

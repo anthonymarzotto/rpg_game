@@ -2,6 +2,15 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.10.0] - 2026-11-03
+
+### Army-Building Deployment & Dynamic Battlefields
+- **Point-Based Vanguard Deployment**: Replaced the rigid 3-wayfarer limit with a flexible deployment points budget that scales as you advance through sectors. Spend your budget on an elite strike team of promoted champions or command a wider detachment of agile auxiliaries.
+- **Dynamic Arena Sizing**: Battle maps now dynamically expand to match the scale of engagement, beginning with focused close-quarters arenas in early trials and broadening to vast 91-hex battlegrounds when large forces clash.
+- **Tougher, Coordinated Enemy Squads**: Enemy incursions now deploy diverse combat teams with multiple advanced classes working in tandem rather than solitary champions.
+- **Resonant Enemy Class Kits**: Advanced enemy combatants now arrive wielding tactical domain techniques and passive masteries drawn from their class lineage rather than basic starter spells.
+- **Stable Astral Reconnaissance**: Swapping or tuning wayfarers in the Nexus retains your scouted enemy intelligence in the War Room, ensuring transparent expedition planning before entering trials.
+
 ## [0.9.3] - 2026-11-03
 
 ### Combat Text Readability

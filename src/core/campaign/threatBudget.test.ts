@@ -5,6 +5,8 @@ import {
   computeUnitThreat,
   computeSquadThreat,
   computeStageThreatBudget,
+  computeProjectedUnitThreat,
+  computeProjectedSquadThreat,
   BASE_RECRUIT_THREAT
 } from './threatBudget';
 
@@ -61,4 +63,45 @@ describe('Threat Budget & Challenge Rating', () => {
     expect(computeStageThreatBudget(squadThreat, 5)).toBe(42);
     expect(computeStageThreatBudget(squadThreat, 10)).toBe(57);
   });
+
+  it('computes projected unit and squad threat accounting for pending level ascensions', () => {
+    // Novice with 0 XP -> not ready, level 0 (10 pts)
+    const noviceNoXp = createRecruit('u1', 'Alden');
+    expect(computeProjectedUnitThreat(noviceNoXp)).toBe(10);
+
+    // Novice with 5 Fighter XP -> qualifies for Level 1 (threshold is 5) -> projected level 1 (25 pts)
+    const noviceReady: Unit = {
+      ...noviceNoXp,
+      progression: {
+        ...noviceNoXp.progression,
+        accumulatedXp: { fighter: 5, rogue: 0, mage: 0 }
+      }
+    };
+    expect(computeProjectedUnitThreat(noviceReady)).toBe(25);
+
+    // Promoted Level 1 unit with 10 Rogue XP -> qualifies for Level 2 (threshold is 10) -> projected level 2 (40 pts)
+    const lvl1Ready: Unit = {
+      ...createMockUnitAtLevel('u2', 1),
+      progression: {
+        ...createMockUnitAtLevel('u2', 1).progression,
+        accumulatedXp: { fighter: 0, rogue: 12, mage: 0 }
+      }
+    };
+    expect(computeProjectedUnitThreat(lvl1Ready)).toBe(40);
+
+    // Promoted Level 1 unit with only 4 XP -> does not meet threshold 10 -> stays at level 1 (25 pts)
+    const lvl1NotReady: Unit = {
+      ...createMockUnitAtLevel('u3', 1),
+      progression: {
+        ...createMockUnitAtLevel('u3', 1).progression,
+        accumulatedXp: { fighter: 4, rogue: 0, mage: 0 }
+      }
+    };
+    expect(computeProjectedUnitThreat(lvl1NotReady)).toBe(25);
+
+    // Squad with 2 ready units and 1 unready unit: 25 + 40 + 25 = 90
+    const mixedSquad = [noviceReady, lvl1Ready, lvl1NotReady];
+    expect(computeProjectedSquadThreat(mixedSquad)).toBe(90);
+  });
 });
+

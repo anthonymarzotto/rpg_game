@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createCampaign } from './campaignFactory';
+import { InBattleXp } from '../combat/types';
 import {
   resolveCampaignVictory,
   resolveCampaignDefeat,
@@ -8,7 +9,8 @@ import {
   updateCampUnitLoadout,
   setCampActiveSquad,
   regenerateCurrentStageEncounter,
-  recruitNovice
+  recruitNovice,
+  CampaignBattleResult
 } from './transitions';
 
 describe('Campaign State Transitions & Lifecycle Reducers', () => {
@@ -57,6 +59,36 @@ describe('Campaign State Transitions & Lifecycle Reducers', () => {
     expect(nextState.currentEncounter).toBeDefined();
     expect(nextState.currentEncounter!.id).toContain('stage-2');
   });
+
+  it('generates next stage encounter using projected squad threat when victory awards pending ascensions', () => {
+    const initial = createCampaign({ seed: 150 });
+    // Award 6 Fighter XP to each of the 3 active squad members (qualifying them for Level 1 ascension, threshold 5)
+    const unitXpGains: Record<string, InBattleXp> = {};
+    for (const id of initial.activeSquadIds) {
+      unitXpGains[id] = { fighter: 6, rogue: 0, mage: 0 };
+    }
+
+    const victoryResult: CampaignBattleResult = {
+      encounterId: 'stage-1-battle',
+      encounterName: 'Trial 1',
+      outcome: 'VICTORY',
+      unitXpGains
+    };
+
+    const nextState = resolveCampaignVictory(initial, victoryResult);
+    expect(nextState.currentEncounter).toBeDefined();
+
+    // Projected threat for 3 Level 1 units = 3 * 25 = 75 threat (stage 2 multiplier 1.1 -> ~83 threat)
+    // Contrast with unprojected threat of 3 Level 0 units = 30 threat (stage 2 multiplier 1.1 -> 33 threat)
+    const enemyUnits = nextState.currentEncounter!.units.filter((u) => u.unit.faction === 'ENEMY');
+    const totalEnemyThreat = enemyUnits.reduce(
+      (sum, u) => sum + (u.unit.progression.currentLevel === 0 ? 10 : 25),
+      0
+    );
+    // Enemy threat budget should reflect the projected promoted squad (> 33 threat)
+    expect(totalEnemyThreat).toBeGreaterThan(33);
+  });
+
 
   it('resolves campaign defeat: preserves stage, credits distributed 50% retained XP, logs history', () => {
     const initial = createCampaign({ seed: 200 });
@@ -207,17 +239,50 @@ describe('Campaign State Transitions & Lifecycle Reducers', () => {
     expect(enc2!.id).not.toBe(enc1?.id);
   });
 
-  it('configures active combat squad and regenerates pending encounter', () => {
+  it('configures active combat squad within stage deployment budget and preserves enemy incursion', () => {
     const initial = createCampaign({ seed: 700, initialSquadSize: 4 });
     expect(initial.roster).toHaveLength(4);
 
+    const initialEnemies = initial.currentEncounter!.units.filter((u) => u.unit.faction === 'ENEMY');
     const squad3 = [initial.roster[0].id, initial.roster[1].id, initial.roster[2].id];
     const stateSquad = setCampActiveSquad(initial, squad3);
 
     expect(stateSquad.activeSquadIds).toEqual(squad3);
     const playerUnits = stateSquad.currentEncounter!.units.filter((u) => u.unit.faction === 'PLAYER');
     expect(playerUnits).toHaveLength(3);
+
+    // Enemy units and encounter ID remain identical (stable incursion recon)
+    const afterEnemies = stateSquad.currentEncounter!.units.filter((u) => u.unit.faction === 'ENEMY');
+    expect(afterEnemies.map((e) => e.unit.id)).toEqual(initialEnemies.map((e) => e.unit.id));
+    expect(stateSquad.currentEncounter!.id).toBe(initial.currentEncounter!.id);
   });
+
+  it('rejects squad deployment when total threat exceeds stage deployment budget', () => {
+    // Stage 1 budget is 30 points.
+    // 3 Level 1 units = 3 * 25 = 75 points > 30 points
+    const initial = createCampaign({ seed: 750, initialSquadSize: 4 });
+    const promotedRoster = initial.roster.map((u) => ({
+      ...u,
+      progression: { ...u.progression, currentLevel: 1 }
+    }));
+    const statePromoted = { ...initial, roster: promotedRoster };
+
+    const overBudgetSquad = [promotedRoster[0].id, promotedRoster[1].id]; // 2 * 25 = 50 > 30
+    expect(() => setCampActiveSquad(statePromoted, overBudgetSquad)).toThrow(/exceeds stage 1 deployment budget/);
+  });
+
+  it('allows deploying more than 3 units if within stage deployment budget', () => {
+    // In Stage 2, budget is 80 points. 4 Level-0 Novices = 40 points <= 80 points
+    const initial = createCampaign({ seed: 760, initialSquadSize: 4 });
+    const stage2State = { ...initial, stage: 2 };
+
+    const squad4 = initial.roster.map((u) => u.id); // 4 * 10 = 40 pts
+    const stateSquad = setCampActiveSquad(stage2State, squad4);
+    expect(stateSquad.activeSquadIds).toHaveLength(4);
+    const placedPlayers = stateSquad.currentEncounter!.units.filter((u) => u.unit.faction === 'PLAYER');
+    expect(placedPlayers).toHaveLength(4);
+  });
+
 
   it('recruits a fresh Level-0 Novice into the campaign roster', () => {
     const initial = createCampaign({ seed: 800 });

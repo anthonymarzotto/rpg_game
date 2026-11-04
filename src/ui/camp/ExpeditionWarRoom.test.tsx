@@ -77,4 +77,33 @@ describe('ExpeditionWarRoom Component', () => {
     expect(html).toContain('disabled=""');
     expect(html).toContain('Attune at least 1 wayfarer into the active vanguard');
   });
+
+  it('renders activeSquadThreat points vs stage budget and disables when over budget', () => {
+    const htmlWithinBudget = renderToStaticMarkup(
+      <ExpeditionWarRoom
+        stage={1}
+        activeSquadCount={3}
+        activeSquadThreat={60}
+        deploymentBudget={75}
+        onDeploySquad={vi.fn()}
+      />
+    );
+
+    expect(htmlWithinBudget).toContain('3 Ready (60 / 75 Pts)');
+    expect(htmlWithinBudget).not.toContain('disabled=""');
+
+    const htmlOverBudget = renderToStaticMarkup(
+      <ExpeditionWarRoom
+        stage={1}
+        activeSquadCount={4}
+        activeSquadThreat={90}
+        deploymentBudget={75}
+        onDeploySquad={vi.fn()}
+      />
+    );
+
+    expect(htmlOverBudget).toContain('4 Ready (90 / 75 Pts)');
+    expect(htmlOverBudget).toContain('disabled=""');
+    expect(htmlOverBudget).toContain('Vanguard threat (90 pts) exceeds stage deployment budget (75 pts)');
+  });
 });
