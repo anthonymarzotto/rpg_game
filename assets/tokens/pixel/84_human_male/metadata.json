@@ -1,0 +1,36 @@
+{
+  "group_id": "c36a2172-2217-483c-9dd8-8ad151629ac9",
+  "states": [
+    {
+      "character": {
+        "id": "bf6ddfd4-8444-4a43-9444-958d9d838e25",
+        "name": "Idle",
+        "prompt": "A chibi male in a casual bow, one hand tipping his hat, the other holding a polished mirror and jeweled rose. He wears a tailored emerald velvet doublet with a ruffled lace cravat and silk stockings. Features large expressive anime eyes, a violet silk handkerchief, and a rose corsage. Confident and charming pose.",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-30T19:49:41.043132+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-11-03T01:07:28.161611"
+}
