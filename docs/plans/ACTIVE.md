@@ -36,6 +36,8 @@
 - [ ] **UX.9**: Shout out text is small and hard to read.
 - [ ] **UX.11**: Dice Tray: The d20 roll is shown before the die stops rolling. Also the damage roll shows up before the die stops rolling.
 - [ ] **UX.12**: The map is not scrollable or draggable. You zoom in and then can only see the middle.
+- [ ] **UX.13**: Make Vanguard Squad area in Post Trial XP distribution dialog scrollable.
+- [ ] **UX.14**: More interesting Vanguard area. Maybe some sort of campfire with the unit sprites randomly gathered around. Maybe animated milling about?
 
 ---
 
@@ -47,6 +49,7 @@
 - [ ] **B.12**: Challenging Shout can target Allies, it should only target Enemies.
 - [ ] **B.13**: Combat Log card shows "[Elevation: Low ground (-2)]" which is correct for my unit, but both the attack roll in the same Combat Card and the Dice Tray do not show this -2. Is it being calculated and not shown? Or completely ignored?
 - [ ] **B.14**: Dice Tray: Damage calculation doesn't show Armor/Ward soak value, though total damage is correctly calculated (e.g. unit with +2 armour. Shown is 3+2=3. The first 3 is the roll, the second 2 is the unit's bonus. This would be 5, but the enemy had +2 armour making it 3+2-2=3).
+- [ ] **B.15**: Ash Thief took 6 actions in a row: Move, Shadow Step, Skirmish, Shadow Step, Skirmish, Move. Was this 2 turns somehow one after another?
 
 ---
 
