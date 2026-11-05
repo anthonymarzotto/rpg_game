@@ -48,6 +48,9 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **UX.14**: Nice tooltip popover for damage bonus calculation like we have for the to hit calculation.
 - [ ] **UX.15**: Make Vanguard Squad area in Post Trial XP distribution dialog scrollable.
 - [ ] **UX.16**: More interesting Vanguard area. Maybe some sort of campfire with the unit sprites randomly gathered around. Maybe animated milling about?
+- [ ] **UX.18**: Combat Log: Every Combat Card uses the red-ish colour. These should be coloured by faction.
+- [ ] **UX.19**: Consecutive enemy turns happen too quickly, and each enemy action individually happens too quickly to process what has happened. I end up having to go back through the Combat Log to see what has occurred.
+- [ ] **UX.20**: When a unit is defeated they just pop out. This is tricky on multi-enemy turns when one or several of my units are defeated. After their turns, which go quickly (UX.19), I'm left to re-evaluate the battlefield.
 
 ---
 
@@ -56,7 +59,10 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **B.4**: When an enemy uses Smoke Veil I can still see them.
 - [ ] **B.10**: Shard effects don't show well in the Trial on ability cards.
 - [ ] **B.14**: Dice Tray: Damage calculation doesn't show Armor/Ward soak value, though total damage is correctly calculated (e.g. unit with +2 armour. Shown is 3+2=3. The first 3 is the roll, the second 2 is the unit's bonus. This would be 5, but the enemy had +2 armour making it 3+2-2=3).
+- [ ] **B.15**: When a unit starts their turn Challenged and the challenging unit is dead, the Challenged status should clear.
 
+## (icon) Ideas
+- [ ] **I.1**: Persist the last trial's combat log. Can help with identifying all kinds of things like AI behaviour enhancements.
 ---
 
 ## 📝 Playtest Scratchpad
@@ -67,7 +73,5 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
    * **1.3** *Possible path forward*: Effects have some way to resolve to text. Abilities get a normal text description for flavour, then a generated description that bundle effect descriptions plus the ability's values together for dynamically built descriptions.
 2. **Wildcard Loadout Impact on Combat Dynamics**:
    * *Observation*: In campaign generation (`createEnemyUnit`), enemies receive `wildcardPassiveIds: ['momentum']` and up to 2 starter abilities. Pure-kit benchmarks without wildcards hide natural synergies—e.g. Force units getting Advantage from `Momentum` after moving, or Cavalier using `Shield Bash` (1-hex knockback) to re-enable `Lance Charge` in close melee. Consider benchmark profiles that include standard starter wildcards.
-3. **Cavalier Kit Flow: Inherent Spacing vs. Wildcard Synergy**:
-   * *Observation*: Cavalier win rate rose from 38.1% to 50.0% and misses halved to 10.5% when equipped with Shield Bash (61 casts) and Momentum, breaking its range-1 lockout. Consider whether Cavalier needs an innate spacing mechanic in its base kit (e.g. minor shove or step) or if relying on brawler wildcards is the intended progression payoff.
 4. **Varied Resonant Loadouts for Generated Enemies**:
    * *Observation*: Generated enemies in encounters currently receive a static wildcard passive (Momentum) and starter abilities. Implement a "level up" generation system where enemies dynamically draw realistic resonant abilities and passives from their unlocked constellation path with randomized variation across encounters rather than a static list.
