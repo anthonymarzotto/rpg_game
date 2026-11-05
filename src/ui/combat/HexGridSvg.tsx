@@ -807,18 +807,33 @@ export function HexGridSvg({
                       />
                     )}
 
-                    {/* Active Unit Golden Halo */}
+                    {/* Active Unit Golden Halo and Beacon Pulse */}
                     {isActiveActor && (
-                      <ellipse
-                        cx="0"
-                        cy="2"
-                        rx="22"
-                        ry="8.5"
-                        fill="none"
-                        stroke="#fbbf24"
-                        strokeWidth="2.5"
-                        filter="url(#tile-glow-amber)"
-                      />
+                      <>
+                        <ellipse
+                          cx="0"
+                          cy="2"
+                          rx="22"
+                          ry="8.5"
+                          fill="none"
+                          stroke="#fbbf24"
+                          strokeWidth="2.5"
+                          filter="url(#tile-glow-amber)"
+                          className="unit-active-halo"
+                          data-testid={`unit-active-halo-${unitId}`}
+                        />
+                        <ellipse
+                          cx="0"
+                          cy="2"
+                          rx="22"
+                          ry="8.5"
+                          fill="none"
+                          stroke="#fbbf24"
+                          strokeWidth="2"
+                          className="unit-beacon-pulse"
+                          data-testid={`unit-beacon-pulse-${unitId}`}
+                        />
+                      </>
                     )}
 
                     {/* Pinned Unit Celestial Selection Bracket */}
@@ -995,13 +1010,25 @@ export function HexGridSvg({
 
                     {/* Active Unit Halo in Vector Fallback */}
                     {isActiveActor && (
-                      <circle
-                        r="21"
-                        fill="none"
-                        stroke="#fbbf24"
-                        strokeWidth="2.5"
-                        filter="url(#tile-glow-amber)"
-                      />
+                      <>
+                        <circle
+                          r="21"
+                          fill="none"
+                          stroke="#fbbf24"
+                          strokeWidth="2.5"
+                          filter="url(#tile-glow-amber)"
+                          className="unit-active-halo"
+                          data-testid={`unit-active-halo-${unitId}`}
+                        />
+                        <circle
+                          r="21"
+                          fill="none"
+                          stroke="#fbbf24"
+                          strokeWidth="2"
+                          className="unit-beacon-pulse-circle"
+                          data-testid={`unit-beacon-pulse-${unitId}`}
+                        />
+                      </>
                     )}
 
                     {/* Unit Token Circle */}

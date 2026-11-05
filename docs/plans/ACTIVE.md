@@ -5,12 +5,19 @@
 ---
 
 ## 🔨 In Progress
+- [x] **UX.17**: **Improve CTB bar UX with animation, turn start/end experience & log dividers**:
+  - OpenSpec change: `combat-turn-pacing-and-clarity`.
+  - Animate circular progress rings on CTB chips as ticks advance (paced to ~1s).
+  - Add active token beacon pulse and clean "My Turn!" call-out on turn start.
+  - Fix Turn End floating text: "+X Initiative" on banked AP, "Turn End" on 0 unspent AP.
+  - Insert visual turn dividers in CombatLogPanel grouping existing action cards.
 - [x] **2.1**: **Enemy Threat Calibration, Deployment Budget & Resonant Enemy Loadouts**:
   - Implement point-based Vanguard deployment budget without artificial unit-count limits.
   - Dynamically scale arena radius (Radius 3 for Stage 1, Radius 4 min for Stage 2+, Radius 5 if combined units >= 7).
   - Pre-ascension threat projection (+1 level projection if threshold met) and stable incursion generation on victory.
   - Spend enemy threat budget on multiple units of appropriate tiers (removing single-unit caps).
   - Equip generated enemies with resonant domain abilities and passives from their constellation lineage (Scratchpad #4).
+- [x] **B.15**: Ash Thief took 6 actions in a row: Move, Shadow Step, Skirmish, Shadow Step, Skirmish, Move. Was this 2 turns somehow one after another? - **RESOLVED** This was intentional based on speed and conserving all 3AP on turn 1.
 
 ---
 
@@ -49,7 +56,6 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **B.4**: When an enemy uses Smoke Veil I can still see them.
 - [ ] **B.10**: Shard effects don't show well in the Trial on ability cards.
 - [ ] **B.14**: Dice Tray: Damage calculation doesn't show Armor/Ward soak value, though total damage is correctly calculated (e.g. unit with +2 armour. Shown is 3+2=3. The first 3 is the roll, the second 2 is the unit's bonus. This would be 5, but the enemy had +2 armour making it 3+2-2=3).
-- [ ] **B.15**: Ash Thief took 6 actions in a row: Move, Shadow Step, Skirmish, Shadow Step, Skirmish, Move. Was this 2 turns somehow one after another?
 
 ---
 

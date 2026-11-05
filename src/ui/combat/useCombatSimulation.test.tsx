@@ -514,6 +514,105 @@ describe('useCombatSimulation movePreview & fall hazard detection', () => {
     // With tray disabled, activeDiceRoll remains null (immediate resolution)
     expect(capturedHook!.activeDiceRoll).toBeNull();
   });
+
+  it('emits "+X Initiative" when ending turn with banked AP and "Turn End" when AP is 0', () => {
+    const player = createRecruit('p1', 'Hero', { faction: 'PLAYER' });
+    const enemy = createRecruit('e1', 'Orc', { faction: 'ENEMY' });
+    const encounter: EncounterDefinition = {
+      id: 'end-turn-floating-text-test',
+      name: 'End Turn Test',
+      arenaRadius: 3,
+      initialActiveUnitId: 'p1',
+      units: [
+        { unit: player, coord: { q: 0, r: 0 } },
+        { unit: enemy, coord: { q: 2, r: 0 } }
+      ]
+    };
+
+    let capturedHook: ReturnType<typeof useCombatSimulation> | null = null;
+    function Harness() {
+      capturedHook = useCombatSimulation({
+        encounter
+      });
+      return null;
+    }
+
+    renderToStaticMarkup(<Harness />);
+    expect(capturedHook).not.toBeNull();
+
+    // 1. With 3 AP, ending turn should emit "+60 Initiative"
+    capturedHook!.state.units.get('p1')!.currentAp = 3;
+    capturedHook!.handleEndTurn();
+    expect(capturedHook!.floatingTexts.some((ft) => ft.text === '+60 Initiative')).toBe(true);
+
+    // 2. With 0 AP, ending turn should emit "Turn End", not "+0 Initiative"
+    capturedHook!.state.activeUnitId = 'p1';
+    capturedHook!.state.units.get('p1')!.currentAp = 0;
+    capturedHook!.handleEndTurn();
+    expect(capturedHook!.floatingTexts.some((ft) => ft.text === 'Turn End')).toBe(true);
+    expect(capturedHook!.floatingTexts.some((ft) => ft.text === '+0 Initiative')).toBe(false);
+  });
+
+  it('emits "My Turn!" on player turn start and unit name on hostile turn start', () => {
+    capturedEffects.length = 0;
+    const player = createRecruit('p1', 'Hero', { faction: 'PLAYER' });
+    const enemy = createRecruit('e1', 'Orc', { faction: 'ENEMY' });
+    const encounter: EncounterDefinition = {
+      id: 'turn-start-floating-text-test',
+      name: 'Turn Start Test',
+      arenaRadius: 3,
+      initialActiveUnitId: 'p1',
+      units: [
+        { unit: player, coord: { q: 0, r: 0 } },
+        { unit: enemy, coord: { q: 2, r: 0 } }
+      ]
+    };
+
+    let capturedHook: ReturnType<typeof useCombatSimulation> | null = null;
+    function Harness() {
+      capturedHook = useCombatSimulation({ encounter });
+      return null;
+    }
+
+    renderToStaticMarkup(<Harness />);
+    expect(capturedHook).not.toBeNull();
+
+    // Skip opening initiative to transition to active turn
+    capturedHook!.skipOpeningInitiative();
+
+    // Trigger registered effects
+    capturedEffects.forEach((e) => e.fn());
+
+    expect(capturedHook!.floatingTexts.some((ft) => ft.text === 'My Turn!')).toBe(true);
+
+    // Hostile turn start
+    capturedEffects.length = 0;
+    const hostileEncounter: EncounterDefinition = {
+      id: 'hostile-turn-start-test',
+      name: 'Hostile Turn Start Test',
+      arenaRadius: 3,
+      initialActiveUnitId: 'e1',
+      units: [
+        { unit: player, coord: { q: 0, r: 0 } },
+        { unit: enemy, coord: { q: 2, r: 0 } }
+      ]
+    };
+
+    let capturedHostileHook: ReturnType<typeof useCombatSimulation> | null = null;
+    function HostileHarness() {
+      capturedHostileHook = useCombatSimulation({ encounter: hostileEncounter });
+      return null;
+    }
+
+    renderToStaticMarkup(<HostileHarness />);
+    expect(capturedHostileHook).not.toBeNull();
+
+    capturedHostileHook!.skipOpeningInitiative();
+    capturedEffects.forEach((e) => e.fn());
+    expect(capturedHostileHook!.floatingTexts.some((ft) => ft.text === 'Orc')).toBe(true);
+  });
 });
+
+
 
 

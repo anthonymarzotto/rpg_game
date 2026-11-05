@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { HexCoord } from '../../core/grid/hex';
 import { CombatState, AbilityResolution, CombatEvent, HitOutcome } from '../../core/combat/types';
 import { Ability } from '../../core/types/ability';
@@ -254,13 +254,17 @@ export function collectResolutionFloatingTexts(
  */
 export function useFloatingCombatText() {
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
+  const floatingTextsRef = useRef<FloatingText[]>([]);
 
   const addFloatingText = useCallback(
     (text: string, type: FloatingText['type'], coord: HexCoord, tier?: FloatingTextTier) => {
       const id = `${Date.now()}-${Math.random()}`;
       const resolvedTier = tier ?? getDefaultFloaterTier(type, text);
-      setFloatingTexts((prev) => [...prev, { id, text, type, coord, tier: resolvedTier }]);
+      const item: FloatingText = { id, text, type, coord, tier: resolvedTier };
+      floatingTextsRef.current = [...floatingTextsRef.current, item];
+      setFloatingTexts((prev) => [...prev, item]);
       setTimeout(() => {
+        floatingTextsRef.current = floatingTextsRef.current.filter((i) => i.id !== id);
         setFloatingTexts((prev) => prev.filter((item) => item.id !== id));
       }, 1400);
     },
@@ -268,6 +272,7 @@ export function useFloatingCombatText() {
   );
 
   const clearFloatingTexts = useCallback(() => {
+    floatingTextsRef.current = [];
     setFloatingTexts([]);
   }, []);
 
@@ -306,6 +311,7 @@ export function useFloatingCombatText() {
 
   return {
     floatingTexts,
+    floatingTextsRef,
     addFloatingText,
     clearFloatingTexts,
     dispatchResolutionFeedback

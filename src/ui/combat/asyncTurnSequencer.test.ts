@@ -3,10 +3,12 @@ import { Unit } from '../../core/types/unit';
 import { createRadialArena } from '../../core/grid/templates';
 import { createCombatState } from '../../core/combat/resolver';
 import { SeededDiceRoller } from '../../core/combat/dice';
+import { calculateTurnTransitionTicks } from '../../core/combat/turnClock';
 import {
   executeHostileTurnAsync,
   formatActionDescription,
   delayWithAbort,
+  calculateClockPacing,
   PACING_PRESETS,
   CombatExecutionObserver
 } from './asyncTurnSequencer';
@@ -222,8 +224,9 @@ describe('asyncTurnSequencer', () => {
       expect(resolvedActions.length).toBe(2);
       expect(resolvedActions[1]).toBe('ABILITY');
 
-      // Finish step 2's post-action delay (600ms) to conclude turn
+      // Finish step 2's post-action delay (600ms) and clock advancement pacing (1000ms) to conclude turn
       await vi.advanceTimersByTimeAsync(600);
+      await vi.advanceTimersByTimeAsync(1000);
 
       await promise;
       expect(state.units.get(enemy.id)!.currentAp).toBe(0);
@@ -452,6 +455,104 @@ describe('asyncTurnSequencer', () => {
       expect(firstTrace.actorUnitId).toBe(enemy.id);
       expect(firstTrace.chosenAction).toBeDefined();
       expect(firstTrace.topCandidates.length).toBeGreaterThan(0);
+    });
+
+    it('calculates turn transition ticks correctly', () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockCombatUnit('enemy', 'Orc', 'ENEMY', { speed: 10 });
+      const hero = createMockCombatUnit('hero', 'Alden', 'PLAYER', { speed: 10 });
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+      const state = createCombatState(arena, [enemy, hero], enemy.id);
+
+      // 1. Both units have 0 gauge -> requires ticks to reach 100
+      const ticks = calculateTurnTransitionTicks(state, enemy.id, 0);
+      expect(ticks).toBe(10); // 10 ticks * 10 speed = 100
+
+      // 2. If hero already has 100 gauge -> 0 ticks (immediate transition)
+      state.units.get(hero.id)!.initiativeGauge = 100;
+      expect(calculateTurnTransitionTicks(state, enemy.id, 0)).toBe(0);
+
+      // 3. If acting unit had overflow 40 and banked 3 AP (40 + 60 = 100) -> 0 ticks
+      state.units.get(hero.id)!.initiativeGauge = 0;
+      state.units.get(enemy.id)!.initiativeGauge = 140; // 40 overflow
+      expect(calculateTurnTransitionTicks(state, enemy.id, 3)).toBe(0);
+    });
+
+    it('calculates clock pacing based on speed mode and tick count', () => {
+      // 0 ticks -> 0ms duration across all speeds
+      expect(calculateClockPacing(0, 'NORMAL')).toEqual({ totalDurationMs: 0, stepIntervalMs: 0 });
+      expect(calculateClockPacing(0, 'FAST')).toEqual({ totalDurationMs: 0, stepIntervalMs: 0 });
+      expect(calculateClockPacing(0, 'INSTANT')).toEqual({ totalDurationMs: 0, stepIntervalMs: 0 });
+
+      // INSTANT speed always 0ms
+      expect(calculateClockPacing(10, 'INSTANT')).toEqual({ totalDurationMs: 0, stepIntervalMs: 0 });
+
+      // NORMAL: 1000ms duration, floor(1000 / 5) = 200ms step interval
+      const normalPacing = calculateClockPacing(5, 'NORMAL');
+      expect(normalPacing.totalDurationMs).toBe(1000);
+      expect(normalPacing.stepIntervalMs).toBe(200);
+
+      // NORMAL: clamping min interval to 50ms when ticks are high
+      const highTickPacing = calculateClockPacing(50, 'NORMAL');
+      expect(highTickPacing.totalDurationMs).toBe(1000);
+      expect(highTickPacing.stepIntervalMs).toBe(50);
+
+      // FAST: 300ms duration, floor(300 / 3) = 100ms step interval
+      const fastPacing = calculateClockPacing(3, 'FAST');
+      expect(fastPacing.totalDurationMs).toBe(300);
+      expect(fastPacing.stepIntervalMs).toBe(100);
+    });
+
+    it('invokes onClockAdvancing during turn handoff when ticks > 0 and transitions immediately when ticks === 0', async () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockCombatUnit('enemy', 'Orc', 'ENEMY', { speed: 10 });
+      const hero = createMockCombatUnit('hero', 'Alden', 'PLAYER', { speed: 50 });
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+      const state = createCombatState(arena, [enemy, hero], enemy.id);
+
+      let clockAdvancingCalled = false;
+      let advancedTicks = 0;
+      const observer: CombatExecutionObserver = {
+        onClockAdvancing: (ticks) => {
+          clockAdvancingCalled = true;
+          advancedTicks = ticks;
+        }
+      };
+
+      // Mock decideNextAction to immediately conserve AP
+      const decideSpy = vi.spyOn(aiModule, 'decideNextAction').mockReturnValue({
+        type: 'CONSERVE_AP',
+        score: 1,
+        reason: 'done',
+        unspentAp: 3
+      });
+
+      const promise = executeHostileTurnAsync(
+        state,
+        enemy.id,
+        PACING_PRESETS.NORMAL,
+        observer,
+        undefined,
+        new SeededDiceRoller(42)
+      );
+
+      // Initial transition delay: 400ms
+      await vi.advanceTimersByTimeAsync(400);
+
+      // Turn conservation happens, entering finally block with ticks > 0
+      // onClockAdvancing is called
+      expect(clockAdvancingCalled).toBe(true);
+      expect(advancedTicks).toBeGreaterThan(0);
+
+      // Advance clock advancement pacing (1000ms)
+      await vi.advanceTimersByTimeAsync(1000);
+      await promise;
+
+      expect(state.activeUnitId).toBe(hero.id);
+
+      decideSpy.mockRestore();
     });
   });
 });

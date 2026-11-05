@@ -1187,6 +1187,98 @@
   text-align: center;
 }
 
+/* Turn Header Divider Banners */
+.log-turn-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.55rem 0 0.15rem 0;
+  padding: 0.2rem 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  user-select: none;
+}
+
+.log-turn-divider::before,
+.log-turn-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.02));
+}
+
+.log-turn-divider::before {
+  background: linear-gradient(270deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.02));
+}
+
+.log-turn-divider.player-turn {
+  color: #7dd3fc;
+}
+
+.log-turn-divider.player-turn::before {
+  background: linear-gradient(270deg, rgba(56, 189, 248, 0.4), rgba(56, 189, 248, 0.04));
+}
+.log-turn-divider.player-turn::after {
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.4), rgba(56, 189, 248, 0.04));
+}
+
+.log-turn-divider.enemy-turn {
+  color: #fca5a5;
+}
+
+.log-turn-divider.enemy-turn::before {
+  background: linear-gradient(270deg, rgba(248, 113, 113, 0.4), rgba(248, 113, 113, 0.04));
+}
+.log-turn-divider.enemy-turn::after {
+  background: linear-gradient(90deg, rgba(248, 113, 113, 0.4), rgba(248, 113, 113, 0.04));
+}
+
+.log-turn-divider.init-turn {
+  color: #fbbf24;
+}
+
+.log-turn-divider.init-turn::before {
+  background: linear-gradient(270deg, rgba(251, 191, 36, 0.4), rgba(251, 191, 36, 0.04));
+}
+.log-turn-divider.init-turn::after {
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.4), rgba(251, 191, 36, 0.04));
+}
+
+.log-turn-divider-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.log-turn-divider-badge {
+  font-size: 0.6rem;
+  padding: 0.08rem 0.35rem;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.log-turn-divider.player-turn .log-turn-divider-badge {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+}
+
+.log-turn-divider.enemy-turn .log-turn-divider-badge {
+  background: rgba(39, 7, 7, 0.6);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: #f87171;
+}
+
+.log-turn-divider-actor {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
 /* Card Styling */
 .log-card {
   background: rgba(255, 255, 255, 0.035);
@@ -2828,6 +2920,59 @@
     filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.9));
   }
 }
+
+/* ==========================================================================
+   Active Unit Beacon Pulse (UX.17)
+   ========================================================================== */
+
+.unit-beacon-pulse {
+  transform-origin: 0px 2px;
+  animation: beaconPulseRipple 1.4s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes beaconPulseRipple {
+  0% {
+    transform: scale(1);
+    opacity: 0.95;
+    stroke-width: 2.5px;
+  }
+  60% {
+    transform: scale(1.6);
+    opacity: 0.3;
+    stroke-width: 1.5px;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+    stroke-width: 0.5px;
+  }
+}
+
+.unit-beacon-pulse-circle {
+  transform-origin: 0px 0px;
+  animation: beaconPulseRippleCircle 1.4s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes beaconPulseRippleCircle {
+  0% {
+    transform: scale(1);
+    opacity: 0.95;
+    stroke-width: 2.5px;
+  }
+  60% {
+    transform: scale(1.5);
+    opacity: 0.3;
+    stroke-width: 1.5px;
+  }
+  100% {
+    transform: scale(2.0);
+    opacity: 0;
+    stroke-width: 0.5px;
+  }
+}
+
 
 
 

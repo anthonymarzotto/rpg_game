@@ -316,3 +316,38 @@ export function endActiveTurn(
   state.outcome = evaluateEncounterOutcome(state.objectives, state);
   return nextActive;
 }
+
+/**
+ * Calculates the number of CTB clock ticks required to advance to the next ready unit
+ * after the currently acting unit concludes their turn with unspent AP.
+ * Returns 0 if another unit is already ready (>= 100) or if the actor's banked AP puts them >= 100.
+ */
+export function calculateTurnTransitionTicks(
+  state: CombatState,
+  actingUnitId: string,
+  unspentAp: number
+): number {
+  const livingUnits = Array.from(state.units.values()).filter((cu) => !cu.isDefeated);
+  if (livingUnits.length === 0) return 0;
+
+  const participants = livingUnits.map((cu) => {
+    let gauge = cu.initiativeGauge;
+    if (cu.unit.id === actingUnitId) {
+      const overflow = Math.max(0, gauge - ACTION_ECONOMY_CONFIG.gaugeTurnThreshold);
+      gauge = calculateTurnResetGauge(unspentAp, overflow);
+    }
+    return {
+      id: cu.unit.id,
+      gauge,
+      speed: getEffectiveSpeed(cu)
+    };
+  });
+
+  if (participants.some((p) => p.gauge >= ACTION_ECONOMY_CONFIG.gaugeTurnThreshold)) {
+    return 0;
+  }
+
+  const { ticks } = stepClockUntilReady(participants);
+  return ticks;
+}
+

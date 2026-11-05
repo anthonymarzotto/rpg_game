@@ -6,7 +6,8 @@ import { UnitLoadout } from '../../core/types/loadout';
 import { CombatState, InBattleXp, DiceRollBreakdown } from '../../core/combat/types';
 import { canMove, canExecuteAbility, getAbilityRangeCoords } from '../../core/combat/validator';
 import { executeMove, executeSetFacing, executeAbility } from '../../core/combat/resolver';
-import { endActiveTurn } from '../../core/combat/turnClock';
+import { endActiveTurn, calculateTurnTransitionTicks } from '../../core/combat/turnClock';
+import { getEffectiveSpeed } from '../../core/combat/effectiveVitals';
 import {
   EncounterDefinition,
   buildEncounterState
@@ -18,7 +19,8 @@ import {
   AISpeedMode,
   PACING_PRESETS,
   CombatExecutionObserver,
-  executeHostileTurnAsync
+  executeHostileTurnAsync,
+  calculateClockPacing
 } from './asyncTurnSequencer';
 
 export type ActionMode = 'IDLE' | 'MOVE' | 'ABILITY';
@@ -132,10 +134,20 @@ export function useCombatSimulation({
   }, []);
 
   const openingTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const clockIntervalRef = useRef<ReturnType<typeof setInterval>[]>([]);
   const pendingInitiativeItemsRef = useRef<Array<{ text: string; type: FloatingText['type']; coord: HexCoord }>>([]);
 
+  useEffect(() => {
+    return () => {
+      for (const t of clockIntervalRef.current) {
+        clearInterval(t);
+      }
+      clockIntervalRef.current = [];
+    };
+  }, []);
+
   const {
-    floatingTexts,
+    floatingTextsRef,
     addFloatingText,
     clearFloatingTexts,
     dispatchResolutionFeedback
@@ -209,6 +221,37 @@ export function useCombatSimulation({
       openingTimeoutsRef.current = [];
     };
   }, [encounterSession, addFloatingText]);
+
+  const lastTurnStartEmittedRef = useRef<number>(-1);
+
+  // Emit turn start floating text ("My Turn!" for players, unit name for hostiles)
+  useEffect(() => {
+    if (
+      !state.activeUnitId ||
+      state.outcome !== 'IN_PROGRESS' ||
+      isOpeningInitiativeActiveRef.current ||
+      lastTurnStartEmittedRef.current === state.turnNumber
+    ) {
+      return;
+    }
+
+    lastTurnStartEmittedRef.current = state.turnNumber;
+    const cu = state.units.get(state.activeUnitId);
+    const coord = state.arena.getUnitPosition(state.activeUnitId);
+    if (cu && coord) {
+      const isPlayer = (cu.faction ?? cu.unit.faction ?? 'PLAYER') === 'PLAYER';
+      const text = isPlayer ? 'My Turn!' : cu.unit.name;
+      addFloatingText(text, 'buff', coord);
+    }
+  }, [
+    state.activeUnitId,
+    state.turnNumber,
+    isOpeningInitiativeActive,
+    state.outcome,
+    state.units,
+    state.arena,
+    addFloatingText
+  ]);
 
   // Authoritative interaction phase
   const phase = useMemo<CombatPhase>(() => {
@@ -330,6 +373,9 @@ export function useCombatSimulation({
       onTurnTransitionStart: () => {
         setHostileActionStatus('Preparing turn...');
       },
+      onClockAdvancing: () => {
+        setHostileActionStatus('Advancing initiative...');
+      },
       onActionStart: (_actor, _action, description) => {
         setHostileActionStatus(description);
       },
@@ -370,10 +416,16 @@ export function useCombatSimulation({
         });
       },
       onTurnCompleted: (actor, unspentAp) => {
+        const actorCoord = state.arena.getUnitPosition(actor.unit.id);
         if (unspentAp > 0) {
-          const actorCoord = state.arena.getUnitPosition(actor.unit.id);
           addFloatingText(
-            `+${unspentAp * 20} CTB Gauge`,
+            `+${unspentAp * 20} Initiative`,
+            'buff',
+            actorCoord ?? { q: 0, r: 0 }
+          );
+        } else {
+          addFloatingText(
+            'Turn End',
             'buff',
             actorCoord ?? { q: 0, r: 0 }
           );
@@ -552,20 +604,57 @@ export function useCombatSimulation({
     }
     if (phase !== 'PLAYER_ACTION' || !activeCu) return;
     const unspent = activeCu.currentAp;
-    addFloatingText(`+${unspent * 20} Initiative`, 'buff', activeCoord ?? { q: 0, r: 0 });
-
-    endActiveTurn(state);
+    if (unspent > 0) {
+      addFloatingText(`+${unspent * 20} Initiative`, 'buff', activeCoord ?? { q: 0, r: 0 });
+    } else {
+      addFloatingText('Turn End', 'buff', activeCoord ?? { q: 0, r: 0 });
+    }
 
     setActionMode('IDLE');
     setSelectedAbility(null);
     setFacingCompassCoord(null);
-    setState({ ...state, combatLog: [...state.combatLog] });
-    checkEncounterProgression(state);
+
+    const ticks = calculateTurnTransitionTicks(state, activeCu.unit.id, unspent);
+    const clockPacing = calculateClockPacing(ticks, aiSpeed);
+
+    if (clockPacing.totalDurationMs === 0) {
+      endActiveTurn(state);
+      setState({ ...state, combatLog: [...state.combatLog] });
+      checkEncounterProgression(state);
+    } else {
+      setHostileActionStatus('Advancing initiative...');
+      let elapsedTicks = 0;
+      for (const t of clockIntervalRef.current) {
+        clearInterval(t);
+      }
+      clockIntervalRef.current = [];
+
+      const timer = setInterval(() => {
+        elapsedTicks++;
+        if (elapsedTicks >= ticks) {
+          clearInterval(timer);
+          clockIntervalRef.current = clockIntervalRef.current.filter((t) => t !== timer);
+          endActiveTurn(state);
+          setHostileActionStatus(null);
+          setState({ ...state, combatLog: [...state.combatLog] });
+          checkEncounterProgression(state);
+        } else {
+          for (const cu of state.units.values()) {
+            if (!cu.isDefeated) {
+              cu.initiativeGauge = Math.min(100, cu.initiativeGauge + getEffectiveSpeed(cu));
+            }
+          }
+          setState({ ...state });
+        }
+      }, clockPacing.stepIntervalMs);
+      clockIntervalRef.current.push(timer);
+    }
   }, [
     phase,
     activeCu,
     activeCoord,
     state,
+    aiSpeed,
     isOpeningInitiativeActive,
     skipOpeningInitiative,
     addFloatingText,
@@ -676,8 +765,10 @@ export function useCombatSimulation({
         }
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
   }, [actionMode, pinnedUnitId]);
 
   return {
@@ -709,7 +800,9 @@ export function useCombatSimulation({
     get activeDiceRoll() {
       return activeDiceRollRef.current;
     },
-    floatingTexts,
+    get floatingTexts() {
+      return floatingTextsRef.current;
+    },
     reachableCoords,
     abilityRangeCoords,
     candidateTargetCoords,

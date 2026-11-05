@@ -675,6 +675,29 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
     expect(html).toContain('font-size="21"');
     expect(html).toContain('font-weight="800"');
   });
+
+  it('renders expanding unit-beacon-pulse ripple on the active actor pedestal', () => {
+    const { state } = setupTestState();
+    // In setupTestState, 'p1' is at (-1, 0) and is activeUnitId
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('data-testid="unit-beacon-pulse-p1"');
+    expect(html).toContain('unit-beacon-pulse');
+    expect(html).not.toContain('data-testid="unit-beacon-pulse-e1"');
+  });
 });
 
 

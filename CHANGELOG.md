@@ -2,6 +2,15 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.11.0] - 2026-11-04
+
+### Combat Turn Pacing & Timeline Clarity
+- **Animated Timeline Gauge Rings**: Initiative chips along the turn queue ribbon now feature circular progress rings (cyan for party allies, rose for enemy combatants) that fill clockwise as initiative builds toward each combatant's next action.
+- **Paced Turn Transitions**: When the battle clock advances across ticks to determine who acts next, transitions now animate smoothly over approximately one second so you can visually watch gauges fill and track turn order progression in real time.
+- **Active Unit Beacon Waves**: When a combatant takes the stage, an expanding celestial ripple pulses outward from their pedestal base, making it immediately clear who is active across large battlefields.
+- **Turn Start & End Call-Outs**: Clear floating notifications announce the start of each turn ("My Turn!" for allies, unit name for foes) and cleanly distinguish between concluding a turn with zero unspent AP versus banking unused Action Points for bonus initiative.
+- **Combat Chronicle Turn Banners**: Prominent horizontal turn divider headers now clearly separate distinct turns in the combat log while preserving every detail, tooltip, and roll breakdown within each turn's action cards.
+
 ## [0.10.0] - 2026-11-03
 
 ### Army-Building Deployment & Dynamic Battlefields

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Fragment } from 'react';
 import { CombatLogEntry, AttackModifierComponent } from '../../core/combat/types';
 import { AttackRollTooltip } from './AttackRollTooltip';
 
@@ -526,8 +526,10 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
         ) : (
           displayedEntries.map((entry, idx) => {
             const isNewest = idx === 0;
+            const showTurnDivider = idx === 0 || entry.turn !== displayedEntries[idx - 1].turn;
 
-            if (entry.type === 'ATTACK') {
+            const card = (() => {
+              if (entry.type === 'ATTACK') {
               const isCrit = entry.hitOutcome.includes('CRIT');
               const isGraze = entry.hitOutcome.includes('GRAZE');
               const isMiss = entry.hitOutcome.includes('MISS');
@@ -934,7 +936,41 @@ export function CombatLogPanel({ logEntries, turnNumber }: CombatLogPanelProps) 
                 <span className="generic-msg">{entry.rawMessage}</span>
               </div>
             );
-          })
+          })();
+
+          const entryIsPlayer = 'isPlayer' in entry ? entry.isPlayer : false;
+          const entryActor = 'actor' in entry ? (entry as { actor: string }).actor : undefined;
+
+          return (
+            <Fragment key={idx}>
+              {showTurnDivider && (
+                <div
+                  className={`log-turn-divider ${
+                    entry.turn === 0 ? 'init-turn' : entryIsPlayer ? 'player-turn' : 'enemy-turn'
+                  }`}
+                  data-testid={`log-turn-divider-${entry.turn}`}
+                >
+                  <div className="log-turn-divider-title">
+                    {entry.turn === 0 ? (
+                      <>
+                        <span className="log-turn-divider-icon">⏳</span>
+                        <span>Opening Initiative</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="log-turn-divider-badge">Turn {entry.turn}</span>
+                        <span className="log-turn-divider-actor">
+                          {entryActor ? entryActor : entryIsPlayer ? 'Player Turn' : 'Enemy Turn'}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+              {card}
+            </Fragment>
+          );
+        })
         )}
       </div>
     </div>

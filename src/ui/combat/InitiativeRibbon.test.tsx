@@ -120,5 +120,27 @@ describe('InitiativeRibbon Component', () => {
     expect(html).toContain('1');
     expect(html).toContain('Squad Combat XP Pool: 3 Force, 2 Finesse, 1 Focus');
   });
+
+  it('renders circular SVG progress rings around chip avatars filling clockwise based on gauge', () => {
+    const { state, bandit } = setupTestState();
+    // bandit is not currently active, set gauge to 50
+    state.units.get(bandit.id)!.initiativeGauge = 50;
+
+    const html = renderToStaticMarkup(<InitiativeRibbon state={state} />);
+
+    // Renders SVG gauge ring
+    expect(html).toContain('chip-gauge-ring');
+    expect(html).toContain('chip-gauge-track');
+    expect(html).toContain('chip-gauge-fill');
+
+    // Circumference for r=18: 2 * Math.PI * 18 ≈ 113.1
+    // Active player unit (hero) has 100% gauge -> stroke-dashoffset: 0
+    expect(html).toContain('class="chip-gauge-fill player"');
+    expect(html).toContain('stroke-dashoffset="0"');
+
+    // Enemy unit with 50% gauge -> stroke-dashoffset: 113.1 * 0.5 = 56.55
+    expect(html).toContain('class="chip-gauge-fill enemy"');
+    expect(html).toContain('stroke-dashoffset="56.55"');
+  });
 });
 

@@ -12,6 +12,9 @@ export interface InitiativeRibbonProps {
   readonly onPinUnit?: (unitId: string) => void;
 }
 
+const RING_RADIUS = 18;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
 export function InitiativeRibbon({
   state,
   highlightedUnitId,
@@ -49,6 +52,18 @@ export function InitiativeRibbon({
             ? `${turn.name} • Level ${level} ${className} • HP: ${cu.currentHp}/${maxHp}`
             : turn.name;
 
+          const isFirstOccurrence =
+            projectedTurns.findIndex((t) => t.unitId === turn.unitId) === index;
+          const currentGauge = turn.isCurrentActive
+            ? 100
+            : isFirstOccurrence
+            ? (cu?.initiativeGauge ?? 0)
+            : 0;
+          const gaugePercent = Math.min(100, Math.max(0, currentGauge)) / 100;
+          const strokeDashoffset = Number(
+            (RING_CIRCUMFERENCE * (1 - gaugePercent)).toFixed(2)
+          );
+
           return (
             <div
               key={`${turn.unitId}-${index}`}
@@ -64,6 +79,30 @@ export function InitiativeRibbon({
               title={tooltip}
             >
               <div className="chip-avatar-wrap">
+                <svg
+                  className="chip-gauge-ring"
+                  viewBox="0 0 42 42"
+                  width="42"
+                  height="42"
+                  aria-hidden="true"
+                  data-testid={`chip-gauge-ring-${turn.unitId}-${index}`}
+                >
+                  <circle
+                    className="chip-gauge-track"
+                    cx="21"
+                    cy="21"
+                    r={RING_RADIUS}
+                  />
+                  <circle
+                    className={`chip-gauge-fill ${isPlayer ? 'player' : 'enemy'}`}
+                    cx="21"
+                    cy="21"
+                    r={RING_RADIUS}
+                    strokeDasharray={Number(RING_CIRCUMFERENCE.toFixed(2))}
+                    strokeDashoffset={strokeDashoffset}
+                    transform="rotate(-90 21 21)"
+                  />
+                </svg>
                 {tokenSrc ? (
                   <img
                     src={tokenSrc}

@@ -908,6 +908,74 @@ describe('parseCombatLogMessage', () => {
       expect(formatD20Roll('-')).toBe('-');
     });
   });
+
+  describe('Turn Demarcation Dividers', () => {
+    it('renders turn header divider banners separating cards into turns', () => {
+      const entries: CombatLogEntry[] = [
+        {
+          turnNumber: 9,
+          actorUnitId: 'enemy-1',
+          actionId: 'move',
+          message: 'Ash Thief moved to (1, 2). [Remaining AP: 2]',
+          metadata: { type: 'MOVE', actor: 'Ash Thief', coord: { q: 1, r: 2 }, remainingAp: 2 }
+        },
+        {
+          turnNumber: 9,
+          actorUnitId: 'enemy-1',
+          actionId: 'skirmish',
+          message: 'Ash Thief used Skirmish on Osric Brand: [d20: 17 - 1 vs DC 10 -> SOLID_HIT] [Damage: 3] (HP: 9/12)',
+          metadata: {
+            type: 'ATTACK',
+            actor: 'Ash Thief',
+            ability: 'Skirmish',
+            target: 'Osric Brand',
+            d20: '17 - 1',
+            defenseTarget: 10,
+            hitOutcome: 'SOLID_HIT',
+            damageTotal: '3',
+            targetHp: 9,
+            targetMaxHp: 12
+          }
+        },
+        {
+          turnNumber: 10,
+          actorUnitId: 'enemy-1',
+          actionId: 'skirmish',
+          message: 'Ash Thief used Skirmish on Osric Brand: [d20: 4 - 1 vs DC 10 -> MISS] [Damage: 0]',
+          metadata: {
+            type: 'ATTACK',
+            actor: 'Ash Thief',
+            ability: 'Skirmish',
+            target: 'Osric Brand',
+            d20: '4 - 1',
+            defenseTarget: 10,
+            hitOutcome: 'MISS',
+            damageTotal: '0',
+            targetHp: 9,
+            targetMaxHp: 12
+          }
+        }
+      ];
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: entries,
+          turnNumber: 10
+        })
+      );
+
+      // Verify turn dividers exist for both Turn 10 and Turn 9
+      expect(html).toContain('data-testid="log-turn-divider-10"');
+      expect(html).toContain('data-testid="log-turn-divider-9"');
+      expect(html).toContain('Turn 10');
+      expect(html).toContain('Turn 9');
+      expect(html).toContain('Ash Thief');
+
+      // Verify action cards within both turns remain intact
+      expect(html).toContain('Skirmish');
+      expect(html).toContain('moved to <strong>(1, 2)</strong>');
+    });
+  });
 });
 
 

@@ -6,7 +6,7 @@ import {
   executeAiAction,
   AIActionResult
 } from '../../core/ai';
-import { endActiveTurn } from '../../core/combat/turnClock';
+import { endActiveTurn, calculateTurnTransitionTicks } from '../../core/combat/turnClock';
 import { canMove, canExecuteAbility } from '../../core/combat/validator';
 
 export type AISpeedMode = 'NORMAL' | 'FAST' | 'INSTANT';
@@ -14,16 +14,46 @@ export type AISpeedMode = 'NORMAL' | 'FAST' | 'INSTANT';
 export interface TurnPacingConfig {
   readonly stepDelayMs: number;
   readonly turnTransitionDelayMs: number;
+  readonly clockAdvancementTotalMs?: number;
 }
 
 export const PACING_PRESETS: Record<AISpeedMode, TurnPacingConfig> = {
-  NORMAL: { stepDelayMs: 600, turnTransitionDelayMs: 400 },
-  FAST: { stepDelayMs: 200, turnTransitionDelayMs: 150 },
-  INSTANT: { stepDelayMs: 0, turnTransitionDelayMs: 0 }
+  NORMAL: { stepDelayMs: 600, turnTransitionDelayMs: 400, clockAdvancementTotalMs: 1000 },
+  FAST: { stepDelayMs: 200, turnTransitionDelayMs: 150, clockAdvancementTotalMs: 300 },
+  INSTANT: { stepDelayMs: 0, turnTransitionDelayMs: 0, clockAdvancementTotalMs: 0 }
 };
+
+export interface ClockPacingResult {
+  readonly totalDurationMs: number;
+  readonly stepIntervalMs: number;
+}
+
+/**
+ * Calculates the visual CTB clock advancement pacing.
+ * When ticks > 0:
+ * - NORMAL: ~1000ms duration, interval = Math.max(50, Math.floor(1000 / ticks))
+ * - FAST: ~300ms duration, interval = Math.max(25, Math.floor(300 / ticks))
+ * - INSTANT: 0ms duration, interval = 0
+ * When ticks === 0: 0ms duration (immediate transition).
+ */
+export function calculateClockPacing(
+  ticks: number,
+  speed: AISpeedMode
+): ClockPacingResult {
+  if (ticks <= 0 || speed === 'INSTANT') {
+    return { totalDurationMs: 0, stepIntervalMs: 0 };
+  }
+
+  const totalDurationMs = speed === 'FAST' ? 300 : 1000;
+  const minInterval = speed === 'FAST' ? 25 : 50;
+  const stepIntervalMs = Math.max(minInterval, Math.floor(totalDurationMs / ticks));
+
+  return { totalDurationMs, stepIntervalMs };
+}
 
 export interface CombatExecutionObserver {
   readonly onTurnTransitionStart?: (actor: CombatUnit) => void;
+  readonly onClockAdvancing?: (ticks: number, stepIntervalMs: number) => void;
   readonly onActionStart?: (
     actor: CombatUnit,
     action: AIAction,
@@ -299,6 +329,25 @@ export async function executeHostileTurnAsync(
       state.outcome === 'IN_PROGRESS'
     ) {
       const unspent = actor.currentAp;
+      const ticks = calculateTurnTransitionTicks(state, actorUnitId, unspent);
+      const speedMode: AISpeedMode =
+        pacing.clockAdvancementTotalMs !== undefined
+          ? pacing.clockAdvancementTotalMs === 0
+            ? 'INSTANT'
+            : pacing.clockAdvancementTotalMs <= 300
+            ? 'FAST'
+            : 'NORMAL'
+          : pacing.stepDelayMs === 0
+          ? 'INSTANT'
+          : pacing.stepDelayMs <= 200
+          ? 'FAST'
+          : 'NORMAL';
+
+      const clockPacing = calculateClockPacing(ticks, speedMode);
+      if (clockPacing.totalDurationMs > 0) {
+        observer?.onClockAdvancing?.(ticks, clockPacing.stepIntervalMs);
+        await delayWithAbort(clockPacing.totalDurationMs, signal);
+      }
       endActiveTurn(state);
       observer?.onTurnCompleted?.(actor, unspent);
     }
