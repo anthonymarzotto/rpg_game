@@ -676,7 +676,7 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
     expect(html).toContain('font-weight="800"');
   });
 
-  it('renders expanding unit-beacon-pulse ripple on the active actor pedestal', () => {
+  it('renders static unit-active-halo on the active actor pedestal without animated ripple', () => {
     const { state } = setupTestState();
     // In setupTestState, 'p1' is at (-1, 0) and is activeUnitId
 
@@ -694,10 +694,59 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
       />
     );
 
-    expect(html).toContain('data-testid="unit-beacon-pulse-p1"');
-    expect(html).toContain('unit-beacon-pulse');
-    expect(html).not.toContain('data-testid="unit-beacon-pulse-e1"');
+    expect(html).toContain('data-testid="unit-active-halo-p1"');
+    expect(html).toContain('unit-active-halo');
+    expect(html).not.toContain('unit-beacon-pulse');
+  });
+
+  it('shifts viewBox when panOffset is provided at zoomed levels', () => {
+    const { state } = setupTestState();
+
+    const htmlBase = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        zoom={1.5}
+        panOffset={{ x: 0, y: 0 }}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    const htmlPanned = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        zoom={1.5}
+        panOffset={{ x: 40, y: -30 }}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    const viewBoxBaseMatch = htmlBase.match(/viewBox="([^"]+)"/);
+    const viewBoxPannedMatch = htmlPanned.match(/viewBox="([^"]+)"/);
+
+    expect(viewBoxBaseMatch).not.toBeNull();
+    expect(viewBoxPannedMatch).not.toBeNull();
+
+    const [bx, by] = viewBoxBaseMatch![1].split(' ').map(Number);
+    const [px, py] = viewBoxPannedMatch![1].split(' ').map(Number);
+
+    expect(px).toBe(bx + 40);
+    expect(py).toBe(by - 30);
   });
 });
+
 
 

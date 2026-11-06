@@ -18,6 +18,14 @@
   - Spend enemy threat budget on multiple units of appropriate tiers (removing single-unit caps).
   - Equip generated enemies with resonant domain abilities and passives from their constellation lineage (Scratchpad #4).
 - [x] **B.15**: Ash Thief took 6 actions in a row: Move, Shadow Step, Skirmish, Shadow Step, Skirmish, Move. Was this 2 turns somehow one after another? - **RESOLVED** This was intentional based on speed and conserving all 3AP on turn 1.
+- [x] **UX.12**: **Arena Camera Panning, Scrolling & Unit Centering**:
+  - OpenSpec change: `arena-camera-panning-and-zoom`.
+  - Right-click drag navigation with 1:1 screen-to-viewBox tracking.
+  - Keyboard arrow key camera panning.
+  - Dynamic zoom-aware camera bounding preventing arena loss.
+  - Centering camera on units when clicked in the CTB Initiative Ribbon.
+  - Top bar view reset for both zoom and camera pan.
+  - Parallax astral background coordinate translation.
 
 ---
 
@@ -43,7 +51,6 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **UX.6**: Dice Tray: Evade/Miss can just say Miss.
 - [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close.
 - [ ] **UX.11**: Dice Tray: The d20 roll is shown before the die stops rolling. Also the damage roll shows up before the die stops rolling.
-- [ ] **UX.12**: The map is not scrollable or draggable. You zoom in and then can only see the middle.
 - [ ] **UX.13**: Avoiding fall damage with Feline Grace has an unformated combat log card.
 - [ ] **UX.14**: Nice tooltip popover for damage bonus calculation like we have for the to hit calculation.
 - [ ] **UX.15**: Make Vanguard Squad area in Post Trial XP distribution dialog scrollable.

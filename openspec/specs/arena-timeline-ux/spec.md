@@ -23,7 +23,7 @@ The system SHALL support bidirectional hover highlighting between the CTB initia
 - **THEN** the camera viewport SHALL NOT automatically pan or re-center, maintaining stable visual anchoring
 
 ### Requirement: Transient Unit Status Preview on Hover
-The combat status overlay card SHALL temporarily preview the vitals, defenses, and conditions of any hovered combatant, and support locking the preview into a persistent pinned inspection card upon selection.
+The combat status overlay card SHALL temporarily preview the vitals, defenses, and conditions of any hovered combatant, and support locking the preview into a persistent pinned inspection card upon selection, optionally centering the camera on the selected combatant.
 
 #### Scenario: Hovering timeline chip previews unit in status card
 - **WHEN** the player hovers over an initiative chip on the timeline ribbon
@@ -38,6 +38,7 @@ The combat status overlay card SHALL temporarily preview the vitals, defenses, a
 - **THEN** the system SHALL set that combatant as the pinned unit
 - **AND** the inspection card SHALL remain persistently displayed under the active unit card even as the cursor moves across the screen
 - **AND** the pinned unit on the battlefield SHALL display a distinct selection ring
+- **AND** clicking a timeline chip SHALL center the camera viewport on the combatant's hex position
 
 #### Scenario: Dismissing pinned unit card
 - **WHEN** the player clicks an empty tile on the battlefield, clicks the active unit, presses the `Escape` key, or clicks the close button on the pinned card
@@ -112,12 +113,17 @@ The system SHALL present active condition badges with clear source attribution a
 - **THEN** the system SHALL display the rich condition tooltip directly in the arena viewport adjacent to the combatant
 
 ### Requirement: Tactical Targeting Cancellation via Right-Click
-The system SHALL allow players to cancel ability targeting and return to neutral idle mode via secondary mouse interaction.
+The system SHALL allow players to cancel ability targeting and return to neutral idle mode via secondary mouse interaction when not performing a camera pan drag.
 
 #### Scenario: Right-clicking cancels ability targeting mode
-- **WHEN** the player right-clicks anywhere within the hex arena viewport while in `ABILITY` targeting mode
+- **WHEN** the player taps the right mouse button without dragging (movement <= 5px) anywhere within the hex arena viewport while in `ABILITY` targeting mode
 - **THEN** the system SHALL cancel targeting and revert the action mode to `IDLE`
 - **AND** suppress the default browser context menu
+
+#### Scenario: Right-drag pans without canceling targeting
+- **WHEN** the player right-clicks and drags across the arena viewport while in `ABILITY` targeting mode
+- **THEN** the camera viewport SHALL pan to follow the drag
+- **AND** the active `ABILITY` targeting mode SHALL remain active without cancellation
 
 ### Requirement: Interactive Movement Path Preview and Hazard Segmentation
 When an active player unit is in `MOVE` action mode, the combat arena SHALL render a visible movement path connecting the active unit's coordinate to the hovered destination hex along the calculated traversal path.

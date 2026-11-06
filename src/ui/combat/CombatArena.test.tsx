@@ -99,9 +99,17 @@ describe('CombatArena', () => {
     expect(preventDefault).toHaveBeenCalled();
     expect(selectAction).not.toHaveBeenCalled();
 
-    // 3. Canvas container is rendered within CombatArena DOM layout
+    // 3. Right drag (isDrag = true) suppresses ability cancellation
+    preventDefault.mockClear();
+    selectAction.mockClear();
+    handleArenaContextMenu({ preventDefault }, 'ABILITY', selectAction, true);
+    expect(preventDefault).toHaveBeenCalled();
+    expect(selectAction).not.toHaveBeenCalled();
+
+    // 4. Canvas container is rendered within CombatArena DOM layout
     const encounter = createNoviceSandboxEncounter();
     const html = renderToStaticMarkup(<CombatArena encounter={encounter} onExit={vi.fn()} />);
     expect(html).toContain('arena-canvas-container');
+    expect(html).toContain('dev-zoom-controls');
   });
 });

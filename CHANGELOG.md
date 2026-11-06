@@ -2,6 +2,16 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.12.0] - 2026-11-05
+
+### Arena Camera Panning & Tactical Navigation
+- **Freeform Battlefield Panning**: Hold and drag the right mouse button across the arena to smoothly pan the camera anywhere on the map, keeping every flank and perimeter hex within clear view even at high zoom.
+- **Keyboard Arrow Navigation**: Nudge the battlefield camera in any direction using the keyboard arrow keys for effortless tactile map control.
+- **Turn Queue Focus**: Clicking any wayfarer or enemy chip along the Initiative Ribbon pins their combat card and smoothly glides the camera directly to their position on the battlefield.
+- **Clean Active Indicator**: Streamlined the active unit indicator to a crisp, static golden pedestal halo without distracting animated ripples.
+- **Instant View Reset**: A unified reset button in the header bar quickly recenters the battlefield and restores magnification to default.
+- **Deep Celestial Parallax**: The starfield background shifts subtly as you pan across the arena, enhancing the feeling of commanding your squad across the astral void.
+
 ## [0.11.0] - 2026-11-04
 
 ### Combat Turn Pacing & Timeline Clarity

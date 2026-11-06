@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCombatSimulation } from './useCombatSimulation';
 import { DiceMode } from './devDice';
 import { createNoviceSandboxEncounter } from '../../data/encounters/noviceSandbox';
@@ -21,6 +21,12 @@ import { HarvestDistributionModal } from './HarvestDistributionModal';
 import { resolveArenaBackground, computeBackgroundTransform } from './arenaBackground';
 import { DiceTumblerTray } from './DiceTumblerTray';
 import { isLocalhost } from '../../core/config/environment';
+import {
+  computeArenaCamera,
+  computeCenterUnitPan,
+  screenDeltaToViewBoxDelta,
+  PanOffset
+} from './cameraGeometry';
 import './CombatArena.css';
 
 export interface CombatArenaProps {
@@ -33,10 +39,11 @@ export interface CombatArenaProps {
 export function handleArenaContextMenu(
   e: { preventDefault: () => void },
   actionMode: string,
-  selectAction: (ability: null) => void
+  selectAction: (ability: null) => void,
+  isDrag = false
 ) {
   e.preventDefault();
-  if (actionMode === 'ABILITY') {
+  if (!isDrag && actionMode === 'ABILITY') {
     selectAction(null);
   }
 }
@@ -48,6 +55,16 @@ export function CombatArena({
   onExit
 }: CombatArenaProps = {}) {
   const [fieldZoom, setFieldZoom] = useState<number>(1.0);
+  const [panOffset, setPanOffset] = useState<PanOffset>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const canvasContainerRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    initialPanX: number;
+    initialPanY: number;
+    didMove: boolean;
+  } | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [ribbonHoveredUnitId, setRibbonHoveredUnitId] = useState<string | null>(null);
   const [isHarvestModalOpen, setIsHarvestModalOpen] = useState<boolean>(false);
@@ -107,6 +124,12 @@ export function CombatArena({
       ? 'VICTORY'
       : harvestOutcome;
 
+  const allTiles = useMemo(() => state.arena.getAllTiles(), [state.arena]);
+  const arenaCamera = useMemo(
+    () => computeArenaCamera(allTiles, fieldZoom, panOffset),
+    [allTiles, fieldZoom, panOffset]
+  );
+
   const handleCanvasWheel = (e: React.WheelEvent) => {
     // Smooth mouse-wheel field zoom
     if (e.deltaY < 0) {
@@ -116,9 +139,123 @@ export function CombatArena({
     }
   };
 
+  const handleCanvasMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 2) {
+      dragRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        initialPanX: panOffset.x,
+        initialPanY: panOffset.y,
+        didMove: false
+      };
+      setIsDragging(true);
+    }
+  };
+
+  // Window mousemove and mouseup listeners while dragging
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragRef.current) return;
+      const dx = e.clientX - dragRef.current.startX;
+      const dy = e.clientY - dragRef.current.startY;
+      if (Math.hypot(dx, dy) > 5) {
+        dragRef.current.didMove = true;
+      }
+      const container = canvasContainerRef.current;
+      const containerWidth = container?.clientWidth || 800;
+      const containerHeight = container?.clientHeight || 600;
+      const viewBoxDelta = screenDeltaToViewBoxDelta(
+        dx,
+        dy,
+        arenaCamera.bounds.width,
+        arenaCamera.bounds.height,
+        containerWidth,
+        containerHeight
+      );
+      const newPanX = dragRef.current.initialPanX + viewBoxDelta.dx;
+      const newPanY = dragRef.current.initialPanY + viewBoxDelta.dy;
+      setPanOffset({
+        x: Math.max(-arenaCamera.bounds.maxPanX, Math.min(arenaCamera.bounds.maxPanX, Math.round(newPanX))),
+        y: Math.max(-arenaCamera.bounds.maxPanY, Math.min(arenaCamera.bounds.maxPanY, Math.round(newPanY)))
+      });
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button === 2 || e.buttons === 0) {
+        setIsDragging(false);
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, arenaCamera.bounds]);
+
+  // Keyboard arrow key camera panning
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.getAttribute('contenteditable') === 'true')
+      ) {
+        return;
+      }
+      if (isExportModalOpen || effectiveHarvestModalOpen) {
+        return;
+      }
+
+      const STEP = 40;
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setPanOffset((p) => ({
+          x: p.x,
+          y: Math.max(-arenaCamera.bounds.maxPanY, p.y - STEP)
+        }));
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setPanOffset((p) => ({
+          x: p.x,
+          y: Math.min(arenaCamera.bounds.maxPanY, p.y + STEP)
+        }));
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setPanOffset((p) => ({
+          x: Math.max(-arenaCamera.bounds.maxPanX, p.x - STEP),
+          y: p.y
+        }));
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setPanOffset((p) => ({
+          x: Math.min(arenaCamera.bounds.maxPanX, p.x + STEP),
+          y: p.y
+        }));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [arenaCamera.bounds.maxPanX, arenaCamera.bounds.maxPanY, isExportModalOpen, effectiveHarvestModalOpen]);
+
+  const handleResetView = () => {
+    setFieldZoom(1.0);
+    setPanOffset({ x: 0, y: 0 });
+  };
+
   const handleCanvasContextMenu = useCallback(
     (e: React.MouseEvent) => {
-      handleArenaContextMenu(e, actionMode, selectAction);
+      const didDrag = dragRef.current?.didMove ?? false;
+      handleArenaContextMenu(e, actionMode, selectAction, didDrag);
+      if (dragRef.current) {
+        dragRef.current = null;
+      }
     },
     [actionMode, selectAction]
   );
@@ -175,8 +312,8 @@ export function CombatArena({
   );
 
   const backgroundTransform = useMemo(
-    () => computeBackgroundTransform(bgConfig, fieldZoom),
-    [bgConfig, fieldZoom]
+    () => computeBackgroundTransform(bgConfig, fieldZoom, panOffset),
+    [bgConfig, fieldZoom, panOffset]
   );
 
   return (
@@ -226,11 +363,12 @@ export function CombatArena({
               >
                 +
               </button>
-              {fieldZoom !== 1.0 && (
+              {(fieldZoom !== 1.0 || panOffset.x !== 0 || panOffset.y !== 0) && (
                 <button
                   className="btn-zoom-reset"
-                  onClick={() => setFieldZoom(1.0)}
-                  title="Reset zoom to 100%"
+                  onClick={handleResetView}
+                  title="Reset view (zoom 100% and center camera)"
+                  data-testid="btn-reset-view"
                 >
                   ⟲
                 </button>
@@ -331,19 +469,27 @@ export function CombatArena({
 
         </div>
 
-        {/* CTB Timeline Initiative Ribbon */}
-        <div className="arena-ribbon-dock">
-          <InitiativeRibbon
-            state={state}
-            highlightedUnitId={highlightedUnitId}
-            pinnedUnitId={pinnedUnitId}
-            onHoverUnit={setRibbonHoveredUnitId}
-            onPinUnit={(id) => setPinnedUnitId((prev) => (prev === id ? null : id))}
-          />
-        </div>
-
         {/* Main Arena Content Layout */}
         <div className="arena-main-layout">
+          {/* CTB Timeline Initiative Ribbon Floating Overlay */}
+          <div className="arena-ribbon-dock">
+            <InitiativeRibbon
+              state={state}
+              highlightedUnitId={highlightedUnitId}
+              pinnedUnitId={pinnedUnitId}
+              onHoverUnit={setRibbonHoveredUnitId}
+              onPinUnit={(id) => {
+                setPinnedUnitId((prev) => (prev === id ? null : id));
+                const unitCoord = state.arena.getUnitPosition(id);
+                if (unitCoord) {
+                  const elev = state.arena.getElevation(unitCoord) ?? 0;
+                  const centerPan = computeCenterUnitPan(unitCoord, elev, allTiles, fieldZoom);
+                  setPanOffset(centerPan);
+                }
+              }}
+            />
+          </div>
+
           {/* Status Overlay HUD */}
           <UnitStatusCard
             activeCu={activeCu}
@@ -356,8 +502,10 @@ export function CombatArena({
 
           {/* Center SVG Hex Arena */}
           <div
-            className="arena-canvas-container"
+            ref={canvasContainerRef}
+            className={`arena-canvas-container ${isDragging ? 'is-panning' : ''}`}
             onWheel={handleCanvasWheel}
+            onMouseDown={handleCanvasMouseDown}
             onClick={isOpeningInitiativeActive ? skipOpeningInitiative : undefined}
             onContextMenu={handleCanvasContextMenu}
           >
@@ -375,6 +523,7 @@ export function CombatArena({
               facingCompassCoord={facingCompassCoord}
               onSelectFacing={handleSelectFacing}
               zoom={fieldZoom}
+              panOffset={panOffset}
               onTileClick={handleTileClick}
               onTileHover={setHoveredCoord}
             />

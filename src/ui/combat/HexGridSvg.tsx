@@ -9,12 +9,12 @@ import {
   hexToPixel,
   projectElevationY,
   getHexPolygonPoints,
-  getExtrudedPrismWalls,
-  DEFAULT_HEX_RADIUS
+  getExtrudedPrismWalls
 } from './elevationGeometry';
 import { MovePathPreview } from './useCombatSimulation';
 import { formatConditionBadge, formatModifierBadge } from './conditionBadges';
 import { ConditionTooltipContent } from './UnitStatusCard';
+import { computeArenaCamera, PanOffset } from './cameraGeometry';
 
 export const FLOATER_TIER_STYLES: Record<
   FloatingTextTier,
@@ -35,6 +35,7 @@ export interface HexGridSvgProps {
   readonly targetPreview: TargetPreview | null;
   readonly movePreview?: MovePathPreview | null;
   readonly zoom?: number;
+  readonly panOffset?: PanOffset;
   readonly facingCompassCoord?: HexCoord | null;
   readonly onSelectFacing?: (direction: HexDirection) => void;
   readonly highlightedUnitId?: string | null;
@@ -137,6 +138,7 @@ export function HexGridSvg({
   targetPreview,
   movePreview,
   zoom = 1,
+  panOffset,
   facingCompassCoord,
   onSelectFacing,
   onTileClick,
@@ -188,45 +190,10 @@ export function HexGridSvg({
     return [...allTiles].sort((a, b) => a.coord.r - b.coord.r || a.coord.q - b.coord.q);
   }, [allTiles]);
 
-  // Compute dynamic viewBox and backdrop radius based on arena bounds, elevation offsets, and zoom
+  // Compute dynamic viewBox and backdrop radius based on arena bounds, elevation offsets, zoom, and panOffset
   const { viewBox, backdropRadius } = useMemo(() => {
-    if (allTiles.length === 0) {
-      return { viewBox: '-320 -280 640 560', backdropRadius: 230 };
-    }
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
-    for (const tile of allTiles) {
-      const base = hexToPixel(tile.coord);
-      const elev = tile.elevation ?? 0;
-      const projY = projectElevationY(base.y, elev);
-      if (base.x < minX) minX = base.x;
-      if (base.x > maxX) maxX = base.x;
-      if (projY < minY) minY = projY;
-      if (base.y > maxY) maxY = base.y;
-    }
-    const paddingX = DEFAULT_HEX_RADIUS + 35;
-    const paddingY = DEFAULT_HEX_RADIUS + 55;
-    const origWidth = Math.round(maxX - minX + paddingX * 2);
-    const origHeight = Math.round(maxY - minY + paddingY * 2);
-    const origX = Math.round(minX - paddingX);
-    const origY = Math.round(minY - paddingY);
-
-    const safeZoom = Math.max(0.5, Math.min(2.2, zoom));
-    const width = Math.round(origWidth / safeZoom);
-    const height = Math.round(origHeight / safeZoom);
-    const x = Math.round(origX + (origWidth - width) / 2);
-    const y = Math.round(origY + (origHeight - height) / 2);
-
-    const maxDimension = Math.max(maxX - minX, maxY - minY);
-    const backdropRadius = Math.round(maxDimension / 2 + DEFAULT_HEX_RADIUS * 0.7);
-
-    return {
-      viewBox: `${x} ${y} ${width} ${height}`,
-      backdropRadius
-    };
-  }, [allTiles, zoom]);
+    return computeArenaCamera(allTiles, zoom, panOffset);
+  }, [allTiles, zoom, panOffset]);
 
   return (
     <svg
@@ -807,33 +774,20 @@ export function HexGridSvg({
                       />
                     )}
 
-                    {/* Active Unit Golden Halo and Beacon Pulse */}
+                    {/* Active Unit Golden Halo */}
                     {isActiveActor && (
-                      <>
-                        <ellipse
-                          cx="0"
-                          cy="2"
-                          rx="22"
-                          ry="8.5"
-                          fill="none"
-                          stroke="#fbbf24"
-                          strokeWidth="2.5"
-                          filter="url(#tile-glow-amber)"
-                          className="unit-active-halo"
-                          data-testid={`unit-active-halo-${unitId}`}
-                        />
-                        <ellipse
-                          cx="0"
-                          cy="2"
-                          rx="22"
-                          ry="8.5"
-                          fill="none"
-                          stroke="#fbbf24"
-                          strokeWidth="2"
-                          className="unit-beacon-pulse"
-                          data-testid={`unit-beacon-pulse-${unitId}`}
-                        />
-                      </>
+                      <ellipse
+                        cx="0"
+                        cy="2"
+                        rx="22"
+                        ry="8.5"
+                        fill="none"
+                        stroke="#fbbf24"
+                        strokeWidth="2.5"
+                        filter="url(#tile-glow-amber)"
+                        className="unit-active-halo"
+                        data-testid={`unit-active-halo-${unitId}`}
+                      />
                     )}
 
                     {/* Pinned Unit Celestial Selection Bracket */}
@@ -1010,25 +964,15 @@ export function HexGridSvg({
 
                     {/* Active Unit Halo in Vector Fallback */}
                     {isActiveActor && (
-                      <>
-                        <circle
-                          r="21"
-                          fill="none"
-                          stroke="#fbbf24"
-                          strokeWidth="2.5"
-                          filter="url(#tile-glow-amber)"
-                          className="unit-active-halo"
-                          data-testid={`unit-active-halo-${unitId}`}
-                        />
-                        <circle
-                          r="21"
-                          fill="none"
-                          stroke="#fbbf24"
-                          strokeWidth="2"
-                          className="unit-beacon-pulse-circle"
-                          data-testid={`unit-beacon-pulse-${unitId}`}
-                        />
-                      </>
+                      <circle
+                        r="21"
+                        fill="none"
+                        stroke="#fbbf24"
+                        strokeWidth="2.5"
+                        filter="url(#tile-glow-amber)"
+                        className="unit-active-halo"
+                        data-testid={`unit-active-halo-${unitId}`}
+                      />
                     )}
 
                     {/* Unit Token Circle */}

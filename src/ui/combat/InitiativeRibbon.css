@@ -10,6 +10,7 @@
   box-shadow: var(--shadow-glass);
   max-width: fit-content;
   margin: 0 auto;
+  pointer-events: all;
 }
 
 .initiative-label-box {

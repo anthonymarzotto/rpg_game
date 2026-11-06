@@ -57,6 +57,16 @@ describe('arenaBackground', () => {
     expect(transformBase).not.toEqual(transformZoomIn);
   });
 
+  it('calculates parallax pan translation smoothly', () => {
+    const bg = resolveArenaBackground('novice-sandbox');
+    const transformNeutral = computeBackgroundTransform(bg, 1.0, { x: 0, y: 0 });
+    const transformPanned = computeBackgroundTransform(bg, 1.0, { x: 100, y: 80 });
+
+    expect(transformNeutral).toContain('translate(');
+    expect(transformPanned).toContain('translate(');
+    expect(transformNeutral).not.toEqual(transformPanned);
+  });
+
   it('computes stable positive 32-bit hashes from string inputs', () => {
     const h1 = hashString('test-encounter');
     const h2 = hashString('test-encounter');

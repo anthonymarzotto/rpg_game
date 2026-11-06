@@ -100,14 +100,24 @@ export function resolveArenaBackground(
 }
 
 /**
- * Computes the CSS transform string incorporating base framing and subtle camera parallax zoom.
+ * Computes the CSS transform string incorporating base framing, subtle camera parallax zoom,
+ * and coordinated celestial parallax pan translation.
  */
 export function computeBackgroundTransform(
   config: ArenaBackgroundConfig,
-  fieldZoom = 1.0
+  fieldZoom = 1.0,
+  panOffset?: { readonly x: number; readonly y: number }
 ): string {
   // Parallax zoom: background scales at ~15% the rate of the hex field
   const parallaxScale = Math.round((config.scale * (1 + (fieldZoom - 1) * 0.15)) * 1000) / 1000;
   const flip = config.flipX ? 'scaleX(-1) ' : '';
-  return `scale(${parallaxScale}) ${flip}translate(${config.translateX}%, ${config.translateY}%)`;
+
+  // Parallax pan: translate background subtly in opposition to camera pan (~8% rate)
+  const panXPercent = panOffset ? Math.round((-panOffset.x * 0.08 / 10) * 100) / 100 : 0;
+  const panYPercent = panOffset ? Math.round((-panOffset.y * 0.08 / 10) * 100) / 100 : 0;
+  const totalX = Math.round((config.translateX + panXPercent) * 100) / 100;
+  const totalY = Math.round((config.translateY + panYPercent) * 100) / 100;
+
+  return `scale(${parallaxScale}) ${flip}translate(${totalX}%, ${totalY}%)`;
 }
+
