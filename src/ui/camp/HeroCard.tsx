@@ -1,6 +1,7 @@
 import { Unit } from '../../core/types/unit';
 import { resolveTokenAssetPath } from '../combat/tokenAssets';
 import { checkHeroLevelReady, getArchetypeProgress, getHeroDisplayTitle } from './heroUtils';
+import { computeUnitThreat } from '../../core/campaign/threatBudget';
 import './HeroCard.css';
 
 export interface HeroCardProps {
@@ -26,6 +27,7 @@ export function HeroCard({
   const threshold = levelStatus.threshold;
 
   const maxHp = unit.effectiveVitals.maxHp;
+  const unitThreat = computeUnitThreat(unit);
 
   return (
     <div
@@ -42,7 +44,16 @@ export function HeroCard({
           )}
         </div>
         <div className="hero-card-identity">
-          <h3 className="hero-card-name font-display">{unit.name}</h3>
+          <div className="hero-card-title-row">
+            <h3 className="hero-card-name font-display">{unit.name}</h3>
+            <span
+              className="hero-threat-pill font-mono"
+              title={`Threat Value: ${unitThreat} Pts`}
+              data-testid={`hero-threat-${unit.id}`}
+            >
+              {unitThreat} Pts
+            </span>
+          </div>
           <span className="hero-card-class-tag font-ui">
             Lv {unit.progression.currentLevel} {getHeroDisplayTitle(unit)}
           </span>

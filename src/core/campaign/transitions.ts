@@ -16,7 +16,6 @@ import { EncounterDefinition, PlacedUnit } from '../combat/encounter';
 import { HEX_DIRECTIONS } from '../grid/hex';
 import { generateStageEncounter, getDeploymentZones } from './encounterGenerator';
 import { generateProceduralRecruit } from './campaignFactory';
-import { computeSquadThreat, getStageDeploymentBudget } from './threatBudget';
 
 export interface CampaignBattleResult {
   readonly encounterId: string;
@@ -382,15 +381,6 @@ export function setCampActiveSquad(
   }
 
   const activeSquad = state.roster.filter((u) => squadUnitIds.includes(u.id));
-  const squadThreat = computeSquadThreat(activeSquad);
-  const budget = getStageDeploymentBudget(state.stage);
-
-  if (squadThreat > budget) {
-    throw new Error(
-      `Active squad threat (${squadThreat} pts) exceeds stage ${state.stage} deployment budget (${budget} pts).`
-    );
-  }
-
   const updatedEncounter = state.currentEncounter
     ? syncEncounterActiveSquad(state.currentEncounter, activeSquad)
     : undefined;

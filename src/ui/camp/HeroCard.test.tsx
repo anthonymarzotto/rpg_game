@@ -48,6 +48,8 @@ describe('HeroCard Component', () => {
 
     expect(html).toContain('Roland');
     expect(html).toContain('Lv 0 Novice');
+    expect(html).toContain('10 Pts');
+    expect(html).toContain('data-testid="hero-threat-hero-1"');
     expect(html).toContain('20 / 20');
     expect(html).toContain('Force 1');
     expect(html).toContain('Finesse 0');
@@ -77,6 +79,7 @@ describe('HeroCard Component', () => {
     );
 
     expect(html).toContain('Lv 1 Warrior • Wayfarer I');
+    expect(html).toContain('25 Pts');
   });
 
   it('renders ASCENSION READY banner and Ascend CTA when archetype threshold is reached', () => {

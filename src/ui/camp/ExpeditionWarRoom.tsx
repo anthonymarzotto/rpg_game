@@ -92,11 +92,9 @@ export function ExpeditionWarRoom({
               : `${activeSquadCount} / 3 Wayfarers Ready`}
           </span>
         </div>
-        {!isSquadReady && (
+        {activeSquadCount < minSquadRequired && (
           <span className="readiness-warning font-ui">
-            {activeSquadCount < minSquadRequired
-              ? 'Attune at least 1 wayfarer into the active vanguard before entering the trial.'
-              : `Vanguard threat (${activeSquadThreat} pts) exceeds stage deployment budget (${stageBudget} pts).`}
+            Attune at least 1 wayfarer into the active vanguard before entering the trial.
           </span>
         )}
       </div>
@@ -108,6 +106,13 @@ export function ExpeditionWarRoom({
         className="deploy-squad-btn font-ui"
         onClick={onDeploySquad}
         disabled={!isSquadReady}
+        title={
+          !isSquadReady
+            ? activeSquadCount < minSquadRequired
+              ? 'Attune at least 1 wayfarer into the active vanguard before entering the trial.'
+              : `Vanguard threat (${activeSquadThreat} pts) exceeds stage deployment budget (${stageBudget} pts)`
+            : 'Enter the astral trial'
+        }
         data-testid="deploy-squad-btn"
       >
         ✦ ENTER TRIAL

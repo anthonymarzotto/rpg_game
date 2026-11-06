@@ -91,6 +91,7 @@ describe('ExpeditionWarRoom Component', () => {
 
     expect(htmlWithinBudget).toContain('3 Ready (60 / 75 Pts)');
     expect(htmlWithinBudget).not.toContain('disabled=""');
+    expect(htmlWithinBudget).toContain('title="Enter the astral trial"');
 
     const htmlOverBudget = renderToStaticMarkup(
       <ExpeditionWarRoom
@@ -104,6 +105,7 @@ describe('ExpeditionWarRoom Component', () => {
 
     expect(htmlOverBudget).toContain('4 Ready (90 / 75 Pts)');
     expect(htmlOverBudget).toContain('disabled=""');
-    expect(htmlOverBudget).toContain('Vanguard threat (90 pts) exceeds stage deployment budget (75 pts)');
+    expect(htmlOverBudget).toContain('title="Vanguard threat (90 pts) exceeds stage deployment budget (75 pts)"');
+    expect(htmlOverBudget).not.toContain('readiness-warning');
   });
 });

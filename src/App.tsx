@@ -18,6 +18,7 @@ import {
   getSlotSummaries,
   getFirstOpenSlot
 } from './core/storage/saveManager';
+import { computeSquadThreat, getStageDeploymentBudget } from './core/campaign/threatBudget';
 import {
   triggerSaveDownload,
   importCampaignJson
@@ -146,8 +147,15 @@ export function App() {
 
   // Camp Hub Actions
   const handleDeploySquad = useCallback(() => {
+    if (!campaignState) return;
+    const activeSquad = campaignState.roster.filter((u) => campaignState.activeSquadIds.includes(u.id));
+    const budget = getStageDeploymentBudget(campaignState.stage);
+    const threat = computeSquadThreat(activeSquad);
+    if (activeSquad.length < 1 || threat > budget) {
+      return;
+    }
     setCurrentView('ARENA');
-  }, []);
+  }, [campaignState]);
 
   const handleExitToTitle = useCallback(async () => {
     setCurrentView('START');

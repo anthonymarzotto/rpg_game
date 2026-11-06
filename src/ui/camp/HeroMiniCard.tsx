@@ -1,6 +1,7 @@
 import { Unit } from '../../core/types/unit';
 import { resolveTokenAssetPath } from '../combat/tokenAssets';
 import { checkHeroLevelReady, getHeroDisplayTitle } from './heroUtils';
+import { computeUnitThreat } from '../../core/campaign/threatBudget';
 import './HeroMiniCard.css';
 
 export interface HeroMiniCardProps {
@@ -22,6 +23,7 @@ export function HeroMiniCard({
 }: HeroMiniCardProps) {
   const tokenSrc = resolveTokenAssetPath(unit);
   const levelStatus = checkHeroLevelReady(unit);
+  const unitThreat = computeUnitThreat(unit);
 
   return (
     <div
@@ -37,7 +39,16 @@ export function HeroMiniCard({
           )}
         </div>
         <div className="mini-card-info">
-          <h4 className="mini-card-name font-ui">{unit.name}</h4>
+          <div className="mini-card-title-row">
+            <h4 className="mini-card-name font-ui">{unit.name}</h4>
+            <span
+              className="mini-threat-pill font-mono"
+              title={`Threat Value: ${unitThreat} Pts`}
+              data-testid={`reserve-threat-${unit.id}`}
+            >
+              {unitThreat} Pts
+            </span>
+          </div>
           <span className="mini-card-class font-mono">
             Lv {unit.progression.currentLevel} {getHeroDisplayTitle(unit)}
           </span>
@@ -73,7 +84,7 @@ export function HeroMiniCard({
             className="mini-action-btn deploy font-ui"
             onClick={() => onDeploy(unit.id)}
             disabled={!canDeploy}
-            title={canDeploy ? 'Deploy to active squad' : 'Squad full (3/3) - bench a hero first or click Swap'}
+            title={canDeploy ? 'Deploy to active vanguard' : 'Cannot deploy wayfarer'}
             data-testid="reserve-deploy-btn"
           >
             Deploy

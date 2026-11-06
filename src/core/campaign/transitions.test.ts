@@ -257,9 +257,9 @@ describe('Campaign State Transitions & Lifecycle Reducers', () => {
     expect(stateSquad.currentEncounter!.id).toBe(initial.currentEncounter!.id);
   });
 
-  it('rejects squad deployment when total threat exceeds stage deployment budget', () => {
+  it('allows configuring an over-budget squad in camp while synchronizing placed units', () => {
     // Stage 1 budget is 30 points.
-    // 3 Level 1 units = 3 * 25 = 75 points > 30 points
+    // 2 Level 1 units = 2 * 25 = 50 points > 30 points
     const initial = createCampaign({ seed: 750, initialSquadSize: 4 });
     const promotedRoster = initial.roster.map((u) => ({
       ...u,
@@ -268,7 +268,10 @@ describe('Campaign State Transitions & Lifecycle Reducers', () => {
     const statePromoted = { ...initial, roster: promotedRoster };
 
     const overBudgetSquad = [promotedRoster[0].id, promotedRoster[1].id]; // 2 * 25 = 50 > 30
-    expect(() => setCampActiveSquad(statePromoted, overBudgetSquad)).toThrow(/exceeds stage 1 deployment budget/);
+    const stateSquad = setCampActiveSquad(statePromoted, overBudgetSquad);
+    expect(stateSquad.activeSquadIds).toEqual(overBudgetSquad);
+    const placedPlayers = stateSquad.currentEncounter!.units.filter((u) => u.unit.faction === 'PLAYER');
+    expect(placedPlayers.map((p) => p.unit.id)).toEqual(overBudgetSquad);
   });
 
   it('allows deploying more than 3 units if within stage deployment budget', () => {

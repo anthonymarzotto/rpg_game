@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CampHub } from './CampHub';
 import { createCampaign } from '../../core/campaign/campaignFactory';
+import { CampaignState } from '../../core/campaign/types';
 import {
   setCampActiveSquad,
   recruitNovice,
@@ -203,4 +204,99 @@ describe('CampHub Integration Test Suite', () => {
 
     expect(htmlWithoutSave).not.toContain('camp-save-btn');
   });
+
+  it('allows benching a hero from an over-budget squad and reflects updated vanguard state', () => {
+    const initial = createCampaign({ seed: 750, initialSquadSize: 4 });
+    const promotedRoster = initial.roster.map((u) => ({
+      ...u,
+      progression: { ...u.progression, currentLevel: 1 }
+    }));
+    let campaign: CampaignState = {
+      ...initial,
+      roster: promotedRoster,
+      activeSquadIds: [promotedRoster[0].id, promotedRoster[1].id, promotedRoster[2].id] // 3 * 25 = 75 > 30
+    };
+
+    // Render over-budget squad (75 / 30 Pts, 1 in reserve)
+    const htmlOverBudget = renderToStaticMarkup(
+      <CampHub
+        campaign={campaign}
+        onDeploySquad={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+      />
+    );
+    expect(htmlOverBudget).toContain('75 / 30 Pts (3 Deployed)');
+    expect(htmlOverBudget).toContain('1 Wayfarer');
+    expect(htmlOverBudget).toContain('Withdraw');
+    // War room deploy button is disabled with over-budget tooltip and no inline warning
+    expect(htmlOverBudget).toContain('title="Vanguard threat (75 pts) exceeds stage deployment budget (30 pts)"');
+    expect(htmlOverBudget).not.toContain('readiness-warning');
+
+    // Bench hero 0: remaining squad is still over budget (2 * 25 = 50 > 30 pts)
+    campaign = setCampActiveSquad(campaign, [promotedRoster[1].id, promotedRoster[2].id]);
+    expect(campaign.activeSquadIds).toEqual([promotedRoster[1].id, promotedRoster[2].id]);
+
+    const htmlAfterBench = renderToStaticMarkup(
+      <CampHub
+        campaign={campaign}
+        onDeploySquad={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+      />
+    );
+    expect(htmlAfterBench).toContain('50 / 30 Pts (2 Deployed)');
+    expect(htmlAfterBench).toContain('2 Wayfarers'); // Hero 0 and Hero 3 are now in The Enclave
+    // Still over budget -> disabled with updated tooltip
+    expect(htmlAfterBench).toContain('title="Vanguard threat (50 pts) exceeds stage deployment budget (30 pts)"');
+
+    // Bench hero 1: squad is now 1 * 25 = 25 <= 30 pts (within budget!)
+    campaign = setCampActiveSquad(campaign, [promotedRoster[2].id]);
+    expect(campaign.activeSquadIds).toEqual([promotedRoster[2].id]);
+
+    const htmlWithinBudget = renderToStaticMarkup(
+      <CampHub
+        campaign={campaign}
+        onDeploySquad={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+      />
+    );
+    expect(htmlWithinBudget).toContain('25 / 30 Pts (1 Deployed)');
+    expect(htmlWithinBudget).toContain('3 Wayfarers'); // Heroes 0, 1, and 3 are now in The Enclave
+    // Now within budget -> deploy button is enabled with active title tooltip!
+    expect(htmlWithinBudget).toContain('title="Enter the astral trial"');
+  });
+
+  it('allows deploying a reserve hero even when squad is or becomes over threat budget', () => {
+    const initial = createCampaign({ seed: 750, initialSquadSize: 4 });
+    const [heroA, heroB, heroC, heroD] = initial.roster;
+    // Squad starts with heroA, heroB, heroC (30 / 30 pts)
+    // heroD is in reserve (The Enclave)
+    const campaignWithReserve = {
+      ...initial,
+      activeSquadIds: [heroA.id, heroB.id, heroC.id]
+    };
+    const htmlAtBudget = renderToStaticMarkup(
+      <CampHub
+        campaign={campaignWithReserve}
+        onDeploySquad={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+      />
+    );
+    // HeroD in reserve has an enabled Deploy button even if deploying brings squad over budget (40 / 30 pts)
+    expect(htmlAtBudget).toContain(heroD.name);
+    expect(htmlAtBudget).toContain('title="Deploy to active vanguard"');
+
+    // Deploying heroD brings squad to 40 / 30 pts
+    const campaignOverBudget = setCampActiveSquad(campaignWithReserve, [...campaignWithReserve.activeSquadIds, heroD.id]);
+    expect(campaignOverBudget.activeSquadIds).toHaveLength(4);
+
+    const htmlOverBudget = renderToStaticMarkup(
+      <CampHub
+        campaign={campaignOverBudget}
+        onDeploySquad={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+      />
+    );
+    expect(htmlOverBudget).toContain('40 / 30 Pts (4 Deployed)');
+  });
 });
+

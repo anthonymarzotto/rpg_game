@@ -51,6 +51,8 @@ describe('ReserveBarracksTray Component', () => {
     expect(html).toContain('+ Awaken Novice');
     expect(html).toContain('Garrick');
     expect(html).toContain('Kaelen');
+    expect(html).toContain('10 Pts');
+    expect(html).toContain('data-testid="reserve-threat-h1"');
     expect(html).toContain('All (2)');
     expect(html).toContain('Ascension Ready (1)');
   });

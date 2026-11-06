@@ -2,6 +2,13 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.12.1] - 2026-11-06
+
+### Vanguard Deployment Flexibility & War Room Polish
+- **Flexible Wayfarer Deployment & Withdrawal**: You can now freely deploy, withdraw, or swap wayfarers between The Enclave and The Vanguard even when your squad is or will be over Threat budget (for example, reorganizing after promotions in Camp), allowing you to adjust your strike team step-by-step.
+- **Wayfarer Threat Value Badges**: Character cards in both The Vanguard and The Enclave now display each wayfarer's exact threat rating (e.g., 10 Pts, 25 Pts) directly alongside their name, making squad planning intuitive without having to guess point costs.
+- **Streamlined War Room Readiness**: Cleaned up the Expedition War Room display by moving verbose threat overage notices into a helpful hover tooltip on the Enter Trial button, keeping the interface uncluttered while the trial gate safely stays locked until your Vanguard is within budget.
+
 ## [0.12.0] - 2026-11-05
 
 ### Arena Camera Panning & Tactical Navigation
