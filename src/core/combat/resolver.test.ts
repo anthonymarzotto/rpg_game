@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { createCombatState, executeAbility } from './resolver';
+import { createCombatState, executeAbility, applyCombatEvents } from './resolver';
 import { createRadialArena } from '../grid/templates';
 import { createRecruit } from '../units/unitFactory';
 import { SeededDiceRoller, MockDiceRoller } from './dice';
+import { CombatEvent } from './types';
 
 describe('createCombatState Initiative Seeding', () => {
   it('seeds initiativeGauge and initialInitiativeRoll with a 1d20 roll', () => {
@@ -186,5 +187,79 @@ describe('Attack Roll Modifier Breakdown (B.13)', () => {
     }
   });
 });
+
+describe('applyCombatEvents Fallback Logging', () => {
+  it('automatically emits an ENVIRONMENT card for unclaimed standalone fall damage', () => {
+    const arena = createRadialArena(3);
+    const hero = createRecruit('campaign-hero-1', 'Garrick', { faction: 'PLAYER' });
+    const state = createCombatState(arena, [hero], 'campaign-hero-1');
+
+    const fallEvent: CombatEvent = {
+      type: 'DAMAGE',
+      targetUnitId: 'campaign-hero-1',
+      amount: 8,
+      damageType: 'PHYSICAL',
+      reason: 'FALL'
+    };
+
+    applyCombatEvents(state, [fallEvent]);
+
+    const envLog = state.combatLog.find((l) => l.metadata.type === 'ENVIRONMENT');
+    expect(envLog).toBeDefined();
+    expect(envLog?.faction).toBe('PLAYER');
+    expect(envLog?.actorUnitId).toBe('campaign-hero-1');
+    if (envLog?.metadata.type === 'ENVIRONMENT') {
+      expect(envLog.metadata.hazardName).toBe('Ledge Plunge');
+      expect(envLog.metadata.damage).toBe(8);
+    }
+  });
+
+  it('automatically emits an ENVIRONMENT card for unclaimed collision damage', () => {
+    const arena = createRadialArena(3);
+    const enemy = createRecruit('stage-enemy-1', 'Ash Thief', { faction: 'ENEMY' });
+    const state = createCombatState(arena, [enemy], 'stage-enemy-1');
+
+    const collisionEvent: CombatEvent = {
+      type: 'DAMAGE',
+      targetUnitId: 'stage-enemy-1',
+      amount: 4,
+      damageType: 'PHYSICAL',
+      reason: 'COLLISION',
+      label: 'Wall Slam'
+    };
+
+    applyCombatEvents(state, [collisionEvent]);
+
+    const envLog = state.combatLog.find((l) => l.metadata.type === 'ENVIRONMENT');
+    expect(envLog).toBeDefined();
+    expect(envLog?.faction).toBe('ENEMY');
+    expect(envLog?.actorUnitId).toBe('stage-enemy-1');
+    if (envLog?.metadata.type === 'ENVIRONMENT') {
+      expect(envLog.metadata.hazardName).toBe('Collision');
+      expect(envLog.metadata.damage).toBe(4);
+      expect(envLog.metadata.effectDetail).toBe('Wall Slam');
+    }
+  });
+
+  it('does NOT emit fallback logs when events are marked claimed', () => {
+    const arena = createRadialArena(3);
+    const hero = createRecruit('campaign-hero-1', 'Garrick', { faction: 'PLAYER' });
+    const state = createCombatState(arena, [hero], 'campaign-hero-1');
+
+    const fallEvent: CombatEvent = {
+      type: 'DAMAGE',
+      targetUnitId: 'campaign-hero-1',
+      amount: 8,
+      damageType: 'PHYSICAL',
+      reason: 'FALL'
+    };
+
+    applyCombatEvents(state, [fallEvent], { claimed: true });
+
+    const envLog = state.combatLog.find((l) => l.metadata.type === 'ENVIRONMENT');
+    expect(envLog).toBeUndefined();
+  });
+});
+
 
 

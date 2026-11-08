@@ -39,6 +39,7 @@ import { PassiveTriggerHook } from '../types/passive';
 import { evaluateTargetAuras } from './auras';
 import { getConditionDefinition, evaluateFrontArcDetection } from './conditions';
 import { applyConditionToUnit } from './effects/conditionHandler';
+import { combatLogger } from './combatLogger';
 
 const defaultDiceRoller = new SeededDiceRoller();
 
@@ -136,17 +137,11 @@ export function triggerPassiveHook(
         }
         if (result.logDetail) {
           const detail = result.logDetail.trim();
-          state.combatLog.push({
-            turnNumber: state.turnNumber,
-            actorUnitId: actorCu.unit.id,
-            actionId: passive.id,
-            message: `${actorCu.unit.name}'s ${passive.name} triggered: ${detail}`,
-            metadata: {
-              type: 'PASSIVE',
-              actor: actorCu.unit.name,
-              passiveName: passive.name,
-              effectDetail: detail
-            }
+          combatLogger.logPassive(state, {
+            cu: actorCu,
+            passiveName: passive.name,
+            passiveId: passive.id,
+            effectDetail: detail
           });
         }
       }
@@ -288,13 +283,16 @@ export function createCombatState(
   }
 
   if (shouldRollInitiative) {
-    const rollDetails: Array<{ unitName: string; roll: number; isPlayer: boolean }> = [];
+    const rollDetails: Array<{ unitName: string; unitId: string; roll: number; isPlayer: boolean; faction: Faction }> = [];
     for (const cu of combatUnits.values()) {
       if (cu.initialInitiativeRoll !== undefined) {
+        const faction = cu.faction ?? cu.unit.faction ?? 'PLAYER';
         rollDetails.push({
           unitName: cu.unit.name,
+          unitId: cu.unit.id,
           roll: cu.initialInitiativeRoll,
-          isPlayer: (cu.faction ?? cu.unit.faction ?? 'PLAYER') === 'PLAYER'
+          isPlayer: faction === 'PLAYER',
+          faction
         });
       }
     }
@@ -303,15 +301,9 @@ export function createCombatState(
 
     if (rollDetails.length > 0) {
       const rollSummaries = rollDetails.map((r) => `${r.unitName} (${r.roll})`);
-      state.combatLog.push({
-        turnNumber: 0,
-        actorUnitId: '',
-        actionId: 'initiative',
-        message: `Combat begins! Initiative rolled: ${rollSummaries.join(', ')}`,
-        metadata: {
-          type: 'INITIATIVE',
-          rolls: rollDetails
-        }
+      combatLogger.logInitiative(state, {
+        rolls: rollDetails,
+        message: `Combat begins! Initiative rolled: ${rollSummaries.join(', ')}`
       });
     }
   }
@@ -391,30 +383,24 @@ export function executeMove(
         damageType: 'PHYSICAL',
         reason: 'FALL'
       };
-      applyCombatEvents(state, [fallEvent]);
+      applyCombatEvents(state, [fallEvent], { claimed: true });
 
-      state.combatLog.push({
-        turnNumber: state.turnNumber,
-        actorUnitId,
-        actionId: 'move',
-        message: `💥 ${cu.unit.name} plunged from a ledge and suffered ${actualFallDamage} direct Fall Impact Damage! (HP: ${cu.currentHp}/${cu.unit.effectiveVitals.maxHp})`,
-        metadata: {
-          type: 'GENERIC',
-          actor: cu.unit.name,
-          text: `Plunged from ledge: ${actualFallDamage} Fall Impact Damage`
-        }
+      combatLogger.logEnvironment(state, {
+        cu,
+        hazardName: 'Ledge Plunge',
+        damage: actualFallDamage,
+        effectDetail: 'Direct Fall Impact Damage',
+        message: `💥 ${cu.unit.name} plunged from a ledge and suffered ${actualFallDamage} direct Fall Impact Damage! (HP: ${cu.currentHp}/${cu.unit.effectiveVitals.maxHp})`
       });
     } else {
-      state.combatLog.push({
-        turnNumber: state.turnNumber,
-        actorUnitId,
-        actionId: 'move',
-        message: `🐾 ${cu.unit.name} plunged from a ledge safely with Fall Damage Immunity!`,
-        metadata: {
-          type: 'GENERIC',
-          actor: cu.unit.name,
-          text: 'Plunged from ledge safely with Fall Damage Immunity'
-        }
+      const immunityPassive = cu.passives?.find((p) => p.immuneToFallDamage);
+      const passiveName = immunityPassive?.name ?? 'Feline Grace';
+      combatLogger.logPassive(state, {
+        cu,
+        passiveName,
+        passiveId: immunityPassive?.id ?? 'feline_grace',
+        effectDetail: 'Negated Fall Impact Damage from plunging ledge',
+        message: `🐾 ${cu.unit.name} plunged from a ledge safely with Fall Damage Immunity!`
       });
     }
   }
@@ -426,30 +412,18 @@ export function executeMove(
   }
 
   if (interrupted) {
-    state.combatLog.push({
-      turnNumber: state.turnNumber,
-      actorUnitId,
+    combatLogger.logMove(state, {
+      cu,
+      destination: currentCoord,
+      remainingAp: cu.currentAp,
       actionId: 'move_interrupted',
-      message: `${cu.unit.name} moved to (${currentCoord.q}, ${currentCoord.r}) and was interrupted by spotting a hidden enemy! [Remaining AP: ${cu.currentAp}]`,
-      metadata: {
-        type: 'MOVE',
-        actor: cu.unit.name,
-        coord: { q: currentCoord.q, r: currentCoord.r },
-        remainingAp: cu.currentAp
-      }
+      message: `${cu.unit.name} moved to (${currentCoord.q}, ${currentCoord.r}) and was interrupted by spotting a hidden enemy! [Remaining AP: ${cu.currentAp}]`
     });
   } else {
-    state.combatLog.push({
-      turnNumber: state.turnNumber,
-      actorUnitId,
-      actionId: 'move',
-      message: `${cu.unit.name} moved to (${destination.q}, ${destination.r}). [Remaining AP: ${cu.currentAp}]`,
-      metadata: {
-        type: 'MOVE',
-        actor: cu.unit.name,
-        coord: { q: destination.q, r: destination.r },
-        remainingAp: cu.currentAp
-      }
+    combatLogger.logMove(state, {
+      cu,
+      destination,
+      remainingAp: cu.currentAp
     });
   }
 }
@@ -477,10 +451,18 @@ export function executeSetFacing(
 }
 
 
+export interface ApplyCombatEventsOptions {
+  readonly claimed?: boolean;
+}
+
 /**
  * Applies a stream of atomic combat events to the mutable battle state.
  */
-function applyCombatEvents(state: CombatState, events: readonly CombatEvent[]): void {
+export function applyCombatEvents(
+  state: CombatState,
+  events: readonly CombatEvent[],
+  options?: ApplyCombatEventsOptions
+): void {
   for (const event of events) {
     if (event.type === 'DAMAGE') {
       const cu = state.units.get(event.targetUnitId);
@@ -503,23 +485,42 @@ function applyCombatEvents(state: CombatState, events: readonly CombatEvent[]): 
               state
             );
             if (reaction?.removeCondition) {
-              state.combatLog.push({
-                turnNumber: state.turnNumber,
-                actorUnitId: cu.unit.id,
-                actionId: 'condition_removed',
-                message: `${cu.unit.name}'s ${cond.type} was broken by taking damage!`,
-                metadata: {
-                  type: 'CONDITION_BROKEN',
-                  actor: cu.unit.name,
-                  condition: cond.type,
-                  reason: 'taking damage',
-                  text: `${cond.type} broken by damage`
-                }
+              combatLogger.logConditionBroken(state, {
+                cu,
+                condition: cond.type,
+                reason: 'taking damage',
+                text: `${cond.type} broken by damage`,
+                message: `${cu.unit.name}'s ${cond.type} was broken by taking damage!`
               });
               return false;
             }
             return true;
           });
+        }
+
+        // Automatic fallback logging for unclaimed damage events (e.g. ambient hazards, standalone falls/collisions)
+        if (!options?.claimed && !event.logged && event.amount > 0) {
+          if (event.reason === 'FALL') {
+            combatLogger.logEnvironment(state, {
+              cu,
+              hazardName: 'Ledge Plunge',
+              damage: event.amount,
+              effectDetail: 'Direct Fall Impact Damage'
+            });
+          } else if (event.reason === 'COLLISION') {
+            combatLogger.logEnvironment(state, {
+              cu,
+              hazardName: 'Collision',
+              damage: event.amount,
+              effectDetail: event.label ?? 'Collision Impact Damage'
+            });
+          } else if (event.reason === 'ENVIRONMENT') {
+            combatLogger.logEnvironment(state, {
+              cu,
+              hazardName: event.label ?? 'Environmental Hazard',
+              damage: event.amount
+            });
+          }
         }
 
         if (cu.currentHp === 0) {
@@ -707,7 +708,7 @@ export function executeAbility(
         }
       }
 
-      applyCombatEvents(state, allEvents);
+      applyCombatEvents(state, allEvents, { claimed: true });
       state.outcome = evaluateEncounterOutcome(state.objectives, state);
 
       const externalTargets = targetCus.filter((c) => c.unit.id !== actorCu.unit.id);
@@ -715,10 +716,6 @@ export function executeAbility(
         externalTargets.length > 0
           ? ` on ${externalTargets.map((c) => c.unit.name).join(', ')}`
           : '';
-      const targetMetadata =
-        externalTargets.length > 0
-          ? externalTargets.map((c) => c.unit.name).join(', ')
-          : undefined;
 
       const aoeDamageEvents = allEvents.filter(
         (e): e is Extract<CombatEvent, { type: 'DAMAGE' }> => e.type === 'DAMAGE'
@@ -726,29 +723,24 @@ export function executeAbility(
       const totalAoeDamage = aoeDamageEvents.reduce((acc, d) => acc + d.amount, 0);
       const isAoeHostile = !isFriendlyTargeting || totalAoeDamage > 0;
 
-      state.combatLog.push({
-        turnNumber: state.turnNumber,
-        actorUnitId,
-        actionId: effectiveAbility.id,
-        message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${combinedLog}`,
-        metadata: isAoeHostile
-          ? {
-              type: 'UTILITY',
-              actor: actorCu.unit.name,
-              ability: effectiveAbility.name,
-              target: targetMetadata,
-              effectDetail: totalAoeDamage === 0 ? combinedLog.trim() || undefined : undefined,
-              damageTotal: totalAoeDamage > 0 ? String(totalAoeDamage) : undefined,
-              secondaryDetail: combinedLog.trim() || undefined
-            }
-          : {
-              type: 'BUFF',
-              actor: actorCu.unit.name,
-              ability: effectiveAbility.name,
-              target: targetMetadata,
-              effectDetail: combinedLog.trim()
-            }
-      });
+      if (isAoeHostile) {
+        combatLogger.logUtility(state, {
+          actorCu,
+          ability: effectiveAbility,
+          effectDetail: totalAoeDamage === 0 ? combinedLog.trim() || undefined : undefined,
+          damageTotal: totalAoeDamage > 0 ? String(totalAoeDamage) : undefined,
+          secondaryDetail: combinedLog.trim() || undefined,
+          affectedUnitIds: targetCus.map((c) => c.unit.id),
+          message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${combinedLog}`
+        });
+      } else {
+        combatLogger.logBuff(state, {
+          actorCu,
+          ability: effectiveAbility,
+          effectDetail: combinedLog.trim(),
+          message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${combinedLog}`
+        });
+      }
 
       return {
         type: 'SUPPORT',
@@ -771,7 +763,7 @@ export function executeAbility(
       diceRoller
     });
 
-    applyCombatEvents(state, effectResult.events);
+    applyCombatEvents(state, effectResult.events, { claimed: true });
     state.outcome = evaluateEncounterOutcome(state.objectives, state);
 
     const statusEvent = effectResult.events.find(
@@ -797,31 +789,28 @@ export function executeAbility(
     const collisionDetail = effectResult.logDetail?.trim() || undefined;
 
     const targetClause = isSelfTarget ? '' : ` on ${targetCu.unit.name}`;
-    state.combatLog.push({
-      turnNumber: state.turnNumber,
-      actorUnitId,
-      actionId: effectiveAbility.id,
-      message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${effectResult.logDetail ?? ''}`,
-      metadata: isHostile
-        ? {
-            type: 'UTILITY',
-            actor: actorCu.unit.name,
-            ability: effectiveAbility.name,
-            target: isSelfTarget ? undefined : targetCu.unit.name,
-            effectDetail: totalDamage === 0 ? collisionDetail : undefined,
-            damageTotal: totalDamage > 0 ? String(totalDamage) : undefined,
-            targetHp: totalDamage > 0 ? targetCu.currentHp : undefined,
-            targetMaxHp: totalDamage > 0 ? targetCu.unit.effectiveVitals.maxHp : undefined,
-            secondaryDetail: collisionDetail
-          }
-        : {
-            type: 'BUFF',
-            actor: actorCu.unit.name,
-            ability: effectiveAbility.name,
-            target: isSelfTarget ? undefined : targetCu.unit.name,
-            effectDetail: effectResult.logDetail?.trim() ?? ''
-          }
-    });
+    if (isHostile) {
+      combatLogger.logUtility(state, {
+        actorCu,
+        ability: effectiveAbility,
+        targetCu: isSelfTarget ? undefined : targetCu,
+        effectDetail: totalDamage === 0 ? collisionDetail : undefined,
+        damageTotal: totalDamage > 0 ? String(totalDamage) : undefined,
+        targetHp: totalDamage > 0 ? targetCu.currentHp : undefined,
+        targetMaxHp: totalDamage > 0 ? targetCu.unit.effectiveVitals.maxHp : undefined,
+        secondaryDetail: collisionDetail,
+        affectedUnitIds: isSelfTarget ? [actorCu.unit.id] : [actorCu.unit.id, targetCu.unit.id],
+        message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${effectResult.logDetail ?? ''}`
+      });
+    } else {
+      combatLogger.logBuff(state, {
+        actorCu,
+        ability: effectiveAbility,
+        targetCu: isSelfTarget ? undefined : targetCu,
+        effectDetail: effectResult.logDetail?.trim() ?? '',
+        message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${effectResult.logDetail ?? ''}`
+      });
+    }
 
     return {
       type: 'BUFF',
@@ -929,16 +918,13 @@ export function executeAbility(
     // Single-attack consumption of EXPOSED: condition is consumed upon being attacked
     if (targetCu.activeConditions?.some((c) => c.type === 'EXPOSED')) {
       targetCu.activeConditions = targetCu.activeConditions.filter((c) => c.type !== 'EXPOSED');
-      state.combatLog.push({
-        turnNumber: state.turnNumber,
-        actorUnitId: targetCu.unit.id,
+      combatLogger.logConditionBroken(state, {
+        cu: targetCu,
+        condition: 'EXPOSED',
+        reason: 'consumed',
         actionId: 'condition_removed',
-        message: `${targetCu.unit.name}'s EXPOSED condition was consumed!`,
-        metadata: {
-          type: 'GENERIC',
-          actor: targetCu.unit.name,
-          text: 'EXPOSED consumed'
-        }
+        text: 'EXPOSED consumed',
+        message: `${targetCu.unit.name}'s EXPOSED condition was consumed!`
       });
     }
   } else {
@@ -1123,7 +1109,7 @@ export function executeAbility(
   }
 
   // Apply all events to state
-  applyCombatEvents(state, events);
+  applyCombatEvents(state, events, { claimed: true });
 
   // When a unit is hit with an attack, their facing direction updates to face the attack (or away if FORCE_FACING_AWAY)
   if (targetCu && rollResult.hitOutcome !== 'MISS' && !targetCu.isDefeated) {
@@ -1220,28 +1206,18 @@ export function executeAbility(
     ? `${actorCu.unit.name} used ${ability.name} on ${targetDesc}: [d20: ${d20Formatted}${dcClause}]${elevDetail}${auraDetail}${damageDetail}${hpClause}${secondaryDetail}`
     : `${actorCu.unit.name} cast ${ability.name} at ${targetDesc}: [Spellcast roll: ${d20Formatted}${dcClause}]${elevDetail}${auraDetail}${secondaryDetail}`;
 
-  state.combatLog.push({
-    turnNumber: state.turnNumber,
-    actorUnitId,
-    actionId: ability.id,
-    message: logMessage,
-    metadata: {
-      type: 'ATTACK',
-      actor: actorCu.unit.name,
-      ability: ability.name,
-      target: targetCu ? targetCu.unit.name : targetDesc,
-      d20: d20Formatted,
-      defenseTarget: targetCu ? rollResult.targetDefense : undefined,
-      totalScore: rollResult.totalScore,
-      isAreaTarget: !targetCu,
-      hitOutcome: targetCu ? rollResult.hitOutcome : (totalDamageDealt > 0 ? 'SOLID_HIT' : 'MISS'),
-      damageTotal: String(totalDamageDealt),
-      damageBreakdown: targetCu ? (damageResult.damageBreakdown || undefined) : undefined,
-      targetHp: targetCu?.currentHp,
-      targetMaxHp: targetCu?.unit.effectiveVitals.maxHp,
-      secondaryDetail: [elevDetail, auraDetail, secondaryDetail].filter(Boolean).join('').trim(),
-      attackRollBreakdown: rollResult.modifierBreakdown
-    }
+  combatLogger.logAttack(state, {
+    actorCu,
+    ability,
+    targetCu,
+    targetDesc,
+    rollResult,
+    damageTotal: String(totalDamageDealt),
+    damageBreakdown: targetCu ? (damageResult.damageBreakdown || undefined) : undefined,
+    secondaryDetail: [elevDetail, auraDetail, secondaryDetail].filter(Boolean).join('').trim(),
+    isAreaTarget: !targetCu,
+    affectedUnitIds: targetedUnitIds,
+    message: logMessage
   });
 
   // Post-action condition triggers (logged after attack so cause precedes effect)
@@ -1255,18 +1231,13 @@ export function executeAbility(
         toApply.sourceUnitId ?? actorCu.unit.id
       );
       events.push(event);
-      state.combatLog.push({
-        turnNumber: state.turnNumber,
-        actorUnitId: unitToApply.unit.id,
+      combatLogger.logConditionBroken(state, {
+        cu: unitToApply,
+        condition: 'CHALLENGED',
+        reason: 'defied',
         actionId: 'condition_applied',
-        message: `${unitToApply.unit.name} defied the challenge and became EXPOSED!`,
-        metadata: {
-          type: 'CONDITION_BROKEN',
-          actor: unitToApply.unit.name,
-          condition: 'CHALLENGED',
-          reason: 'defied',
-          text: `${unitToApply.unit.name} defied the challenge and became EXPOSED!`
-        }
+        text: `${unitToApply.unit.name} defied the challenge and became EXPOSED!`,
+        message: `${unitToApply.unit.name} defied the challenge and became EXPOSED!`
       });
     }
   }

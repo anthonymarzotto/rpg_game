@@ -544,6 +544,11 @@ export function CombatArena({
           <CombatLogPanel
             logEntries={state.combatLog}
             turnNumber={state.turnNumber}
+            combatants={Array.from(state.units.values()).map((cu) => ({
+              id: cu.unit.id,
+              name: cu.unit.name,
+              faction: cu.faction ?? cu.unit.faction
+            }))}
           />
         </div>
 

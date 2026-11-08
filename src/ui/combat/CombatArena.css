@@ -1136,6 +1136,31 @@
   border-radius: 4px;
 }
 
+.log-header-center {
+  display: flex;
+  width: 100%;
+}
+
+.log-unit-select {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.log-unit-select:hover,
+.log-unit-select:focus {
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(15, 23, 42, 0.9);
+}
+
 .log-filter-tabs {
   display: flex;
   gap: 0.3rem;
@@ -1257,6 +1282,17 @@
   background: linear-gradient(90deg, rgba(251, 191, 36, 0.4), rgba(251, 191, 36, 0.04));
 }
 
+.log-turn-divider.neutral-turn {
+  color: #fcd34d;
+}
+
+.log-turn-divider.neutral-turn::before {
+  background: linear-gradient(270deg, rgba(252, 211, 77, 0.4), rgba(252, 211, 77, 0.04));
+}
+.log-turn-divider.neutral-turn::after {
+  background: linear-gradient(90deg, rgba(252, 211, 77, 0.4), rgba(252, 211, 77, 0.04));
+}
+
 .log-turn-divider-title {
   display: flex;
   align-items: center;
@@ -1308,14 +1344,51 @@
   border-color: rgba(255, 255, 255, 0.14);
 }
 
-.log-card.player-card {
+.log-card.player-card,
+.log-card.faction-player {
   border-left-color: #38bdf8;
   background: rgba(56, 189, 248, 0.03);
 }
 
-.log-card.enemy-card {
+.log-card.enemy-card,
+.log-card.faction-enemy {
   border-left-color: #f87171;
   background: rgba(239, 68, 68, 0.03);
+}
+
+.log-card.faction-neutral {
+  border-left-color: #fcd34d;
+  background: rgba(252, 211, 77, 0.03);
+}
+
+.log-card.log-environment-card {
+  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.log-card.log-environment-card .log-hazard-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.log-card.log-environment-card .log-hazard-name {
+  font-size: 0.72rem;
+  color: #e2e8f0;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.log-hazard-detail {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-style: italic;
+  padding-left: 0.2rem;
 }
 
 .log-card.entry-fresh {
@@ -1354,12 +1427,19 @@
   white-space: nowrap;
 }
 
-.actor-player {
+.actor-player,
+.actor-faction-player {
   color: #7dd3fc;
 }
 
-.actor-enemy {
+.actor-enemy,
+.actor-faction-enemy {
   color: #fca5a5;
+}
+
+.actor-neutral,
+.actor-faction-neutral {
+  color: #fcd34d;
 }
 
 .log-ability-name {

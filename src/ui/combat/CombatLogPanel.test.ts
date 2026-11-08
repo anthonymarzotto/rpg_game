@@ -976,6 +976,291 @@ describe('parseCombatLogMessage', () => {
       expect(html).toContain('moved to <strong>(1, 2)</strong>');
     });
   });
+
+  describe('Faction Theming (UX.18)', () => {
+    it('correctly styles player cards with procedural campaign IDs using faction: PLAYER', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 1,
+        actorUnitId: 'campaign-1731034-unit-1',
+        faction: 'PLAYER',
+        actionId: 'power_strike',
+        message: 'Alden used Power Strike on Goblin: [d20: 15 + 1 vs DC 10 -> SOLID_HIT] [Damage: 5] (HP: 5/10)',
+        metadata: {
+          type: 'ATTACK',
+          actor: 'Alden',
+          ability: 'Power Strike',
+          target: 'Goblin',
+          d20: '15 + 1',
+          hitOutcome: 'SOLID_HIT',
+          damageTotal: '5'
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.faction).toBe('PLAYER');
+      expect(parsed.isPlayer).toBe(true);
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 1
+        })
+      );
+
+      expect(html).toContain('faction-player');
+      expect(html).toContain('actor-faction-player');
+      expect(html).not.toContain('faction-enemy');
+    });
+
+    it('correctly styles enemy cards using faction: ENEMY', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 2,
+        actorUnitId: 'custom-bandit-boss',
+        faction: 'ENEMY',
+        actionId: 'cleave',
+        message: 'Bandit Boss used Cleave on Alden: [d20: 12 + 2 vs DC 11 -> SOLID_HIT] [Damage: 4]',
+        metadata: {
+          type: 'ATTACK',
+          actor: 'Bandit Boss',
+          ability: 'Cleave',
+          target: 'Alden',
+          hitOutcome: 'SOLID_HIT',
+          damageTotal: '4'
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.faction).toBe('ENEMY');
+      expect(parsed.isPlayer).toBe(false);
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 2
+        })
+      );
+
+      expect(html).toContain('faction-enemy');
+      expect(html).toContain('actor-faction-enemy');
+    });
+
+    it('correctly styles neutral entity cards using faction: NEUTRAL', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 3,
+        actorUnitId: 'arena-spire-trap',
+        faction: 'NEUTRAL',
+        actionId: 'arcane_pulse',
+        message: 'Arcane Spire emitted a pulse: [Damage: 3]',
+        metadata: {
+          type: 'ENVIRONMENT',
+          actor: 'Arcane Spire',
+          hazardName: 'Pylon Pulse',
+          damage: 3
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.faction).toBe('NEUTRAL');
+      expect(parsed.isPlayer).toBe(false);
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 3
+        })
+      );
+
+      expect(html).toContain('faction-neutral');
+      expect(html).toContain('actor-faction-neutral');
+    });
+  });
+
+  describe('Structured Passive and Hazard Cards (UX.13)', () => {
+    it('renders Feline Grace negating fall damage into a styled PASSIVE card', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 1,
+        actorUnitId: 'campaign-thief-1',
+        faction: 'PLAYER',
+        actionId: 'feline_grace',
+        message: '🐾 Lyra plunged from a ledge safely with Fall Damage Immunity!',
+        metadata: {
+          type: 'PASSIVE',
+          actor: 'Lyra',
+          passiveName: 'Feline Grace',
+          effectDetail: 'Negated Fall Impact Damage from plunging ledge'
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.type).toBe('PASSIVE');
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 1
+        })
+      );
+
+      expect(html).toContain('log-passive-card');
+      expect(html).toContain('⚡ PASSIVE');
+      expect(html).toContain('Feline Grace');
+      expect(html).toContain('Lyra');
+      expect(html).toContain('Negated Fall Impact Damage from plunging ledge');
+    });
+
+    it('renders direct ledge plunge fall damage into a styled ENVIRONMENT card', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 2,
+        actorUnitId: 'goblin-scout',
+        faction: 'ENEMY',
+        actionId: 'environment_hazard',
+        message: '💥 Goblin Scout plunged from a ledge and suffered 4 direct Fall Impact Damage! (HP: 6/10)',
+        metadata: {
+          type: 'ENVIRONMENT',
+          actor: 'Goblin Scout',
+          hazardName: 'Ledge Plunge',
+          damage: 4,
+          targetHp: 6,
+          targetMaxHp: 10,
+          effectDetail: 'Direct Fall Impact Damage'
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.type).toBe('ENVIRONMENT');
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 2
+        })
+      );
+
+      expect(html).toContain('log-environment-card');
+      expect(html).toContain('⚠️ HAZARD');
+      expect(html).toContain('Ledge Plunge');
+      expect(html).toContain('Goblin Scout');
+      expect(html).toContain('4');
+      expect(html).toContain('6/10');
+      expect(html).toContain('Direct Fall Impact Damage');
+    });
+  });
+
+  describe('Interactive Unit Filtering (UX.4)', () => {
+    const heroEntry: CombatLogEntry = {
+      turnNumber: 1,
+      actorUnitId: 'hero-1',
+      affectedUnitIds: ['hero-1', 'boss-1'],
+      faction: 'PLAYER',
+      actionId: 'slash',
+      message: 'Hero slashed Boss: [Damage: 5]',
+      metadata: {
+        type: 'ATTACK',
+        actor: 'Hero',
+        ability: 'Slash',
+        target: 'Boss',
+        hitOutcome: 'SOLID_HIT',
+        damageTotal: '5'
+      }
+    };
+
+    const bossEntry: CombatLogEntry = {
+      turnNumber: 2,
+      actorUnitId: 'boss-1',
+      affectedUnitIds: ['boss-1', 'minion-1'],
+      faction: 'ENEMY',
+      actionId: 'rally',
+      message: 'Boss rallied Minion.',
+      metadata: {
+        type: 'BUFF',
+        actor: 'Boss',
+        ability: 'Rally',
+        target: 'Minion',
+        effectDetail: 'Attack +1'
+      }
+    };
+
+    it('renders unit filter selector controls in the chronicle header', () => {
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [heroEntry, bossEntry],
+          turnNumber: 2,
+          combatants: [
+            { id: 'hero-1', name: 'Hero' },
+            { id: 'boss-1', name: 'Boss' },
+            { id: 'minion-1', name: 'Minion' }
+          ]
+        })
+      );
+
+      expect(html).toContain('log-unit-select');
+      expect(html).toContain('value="ALL"');
+      expect(html).toContain('All Units');
+      expect(html).toContain('<option value="hero-1">Hero</option>');
+      expect(html).toContain('<option value="boss-1">Boss</option>');
+      expect(html).toContain('<option value="minion-1">Minion</option>');
+    });
+
+    it('displays all events when All Units is selected', () => {
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [heroEntry, bossEntry],
+          turnNumber: 2
+        })
+      );
+
+      expect(html).toContain('Slash');
+      expect(html).toContain('Rally');
+    });
+
+    it('filters cards to only relevant actions when a specific unit is selected', () => {
+      // Hero was actor in Slash (attacking Boss); Boss was actor in Rally (buffing Minion)
+      // When filtering to hero-1: Slash should be visible, Rally should be hidden
+      const heroFilteredHtml = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [heroEntry, bossEntry],
+          turnNumber: 2,
+          initialUnitFilter: 'hero-1'
+        })
+      );
+
+      expect(heroFilteredHtml).toContain('Slash');
+      expect(heroFilteredHtml).not.toContain('Rally');
+
+      // When filtering to minion-1: Rally should be visible (affected), Slash should be hidden
+      const minionFilteredHtml = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [heroEntry, bossEntry],
+          turnNumber: 2,
+          initialUnitFilter: 'minion-1'
+        })
+      );
+
+      expect(minionFilteredHtml).toContain('Rally');
+      expect(minionFilteredHtml).not.toContain('Slash');
+    });
+
+    it('displays empty state hint when a unit with zero matching actions is selected', () => {
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [heroEntry, bossEntry],
+          turnNumber: 2,
+          combatants: [
+            { id: 'hero-1', name: 'Hero' },
+            { id: 'boss-1', name: 'Boss' },
+            { id: 'spectator-1', name: 'Spectator' }
+          ],
+          initialUnitFilter: 'spectator-1'
+        })
+      );
+
+      expect(html).toContain('No actions logged for Spectator yet.');
+      expect(html).not.toContain('Slash');
+      expect(html).not.toContain('Rally');
+    });
+  });
 });
+
+
 
 

@@ -34,6 +34,7 @@ export type CombatEvent =
       readonly sourceUnitId?: string;
       readonly isCrit?: boolean;
       readonly label?: string;
+      readonly logged?: boolean;
     }
   | {
       readonly type: 'DISPLACEMENT';
@@ -302,6 +303,16 @@ export type CombatLogMetadata =
       readonly text?: string;
     }
   | {
+      readonly type: 'ENVIRONMENT';
+      readonly actor: string;
+      readonly hazardName: string;
+      readonly effectDetail?: string;
+      readonly damage?: number;
+      readonly targetHp?: number;
+      readonly targetMaxHp?: number;
+      readonly text?: string;
+    }
+  | {
       readonly type: 'GENERIC';
       readonly actor?: string;
       readonly text?: string;
@@ -316,6 +327,8 @@ export interface CombatLogEntry {
   readonly actionId: string;
   readonly message: string;
   readonly metadata: CombatLogMetadata;
+  readonly faction?: Faction;
+  readonly affectedUnitIds?: readonly string[];
 }
 
 /**

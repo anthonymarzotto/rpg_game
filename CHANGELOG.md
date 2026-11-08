@@ -2,6 +2,13 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.13.0] - 2026-11-07
+
+### Combat Chronicle Theming & Battlefield Filtering
+- **Faction-Themed Chronicle Cards**: Action entries in the Astral Chronicle now proudly display allegiance colors—radiant celestial cyan for party wayfarers, void crimson for enemy combatants, and warm amber for neutral or environmental forces. Hero units generated across your campaign now correctly showcase party borders and name highlights.
+- **Structured Hazard & Fall Cards**: Plunging off cliff edges and falling from high terrain now generates dedicated chronicle hazard cards detailing impact damage and remaining vitals, replacing generic plain text. Acrobatic trait reactions—such as the Cat Burglar's Feline Grace negating fall damage—now render as structured passive reaction cards.
+- **Chronicle Unit Filter**: An interactive filter in the Astral Chronicle header allows you to focus the combat log on any specific combatant to easily review their individual attacks, maneuvers, and received effects, complete with helpful status guidance when no events have been recorded.
+
 ## [0.12.1] - 2026-11-06
 
 ### Vanguard Deployment Flexibility & War Room Polish

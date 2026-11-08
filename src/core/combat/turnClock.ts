@@ -5,6 +5,7 @@ import { evaluateEncounterOutcome } from './objectives';
 import { onTurnStartPassives } from './passives';
 import { getConditionDefinition, evaluateFrontArcDetection } from './conditions';
 import { Faction } from '../types/unit';
+import { combatLogger } from './combatLogger';
 
 /**
  * Minimal interface required to participate in CTB clock ticking.
@@ -124,20 +125,13 @@ export function advanceTurnClock(state: CombatState): string {
         const dmg = turnStartResult.damage;
         const updatedHp = Math.max(0, nextActive.currentHp - (dotDamageTotal + dmg));
         dotDamageTotal += dmg;
-        state.combatLog.push({
-          turnNumber: state.turnNumber,
-          actorUnitId: nextActive.unit.id,
-          actionId: cond.type.toLowerCase(),
-          message: `${nextActive.unit.name} suffered ${dmg} ${cond.type} damage! (HP: ${updatedHp}/${nextActive.unit.effectiveVitals.maxHp})`,
-          metadata: {
-            type: 'DOT_DAMAGE',
-            actor: nextActive.unit.name,
-            condition: cond.type,
-            damage: dmg,
-            targetHp: updatedHp,
-            targetMaxHp: nextActive.unit.effectiveVitals.maxHp,
-            text: `Suffered ${dmg} ${cond.type} status damage`
-          }
+        combatLogger.logDot(state, {
+          cu: nextActive,
+          condition: cond.type,
+          damage: dmg,
+          targetHp: updatedHp,
+          text: `Suffered ${dmg} ${cond.type} status damage`,
+          message: `${nextActive.unit.name} suffered ${dmg} ${cond.type} damage! (HP: ${updatedHp}/${nextActive.unit.effectiveVitals.maxHp})`
         });
       }
     }
@@ -161,16 +155,13 @@ export function advanceTurnClock(state: CombatState): string {
       nextActive.isDefeated = true;
       nextActive.currentAp = 0;
       state.arena.removeUnit(nextActive.unit.id);
-      state.combatLog.push({
-        turnNumber: state.turnNumber,
+      combatLogger.logGeneric(state, {
         actorUnitId: nextActive.unit.id,
+        actorName: nextActive.unit.name,
+        faction: nextActive.unit.faction,
         actionId: 'defeat',
-        message: `${nextActive.unit.name} was defeated by status condition damage!`,
-        metadata: {
-          type: 'GENERIC',
-          actor: nextActive.unit.name,
-          text: `${nextActive.unit.name} was defeated by status condition damage`
-        }
+        text: `${nextActive.unit.name} was defeated by status condition damage`,
+        message: `${nextActive.unit.name} was defeated by status condition damage!`
       });
       state.outcome = evaluateEncounterOutcome(state.objectives, state);
 

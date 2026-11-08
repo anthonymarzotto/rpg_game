@@ -5,27 +5,13 @@
 ---
 
 ## 🔨 In Progress
-- [x] **UX.17**: **Improve CTB bar UX with animation, turn start/end experience & log dividers**:
-  - OpenSpec change: `combat-turn-pacing-and-clarity`.
-  - Animate circular progress rings on CTB chips as ticks advance (paced to ~1s).
-  - Add active token beacon pulse and clean "My Turn!" call-out on turn start.
-  - Fix Turn End floating text: "+X Initiative" on banked AP, "Turn End" on 0 unspent AP.
-  - Insert visual turn dividers in CombatLogPanel grouping existing action cards.
-- [x] **2.1**: **Enemy Threat Calibration, Deployment Budget & Resonant Enemy Loadouts**:
-  - Implement point-based Vanguard deployment budget without artificial unit-count limits.
-  - Dynamically scale arena radius (Radius 3 for Stage 1, Radius 4 min for Stage 2+, Radius 5 if combined units >= 7).
-  - Pre-ascension threat projection (+1 level projection if threshold met) and stable incursion generation on victory.
-  - Spend enemy threat budget on multiple units of appropriate tiers (removing single-unit caps).
-  - Equip generated enemies with resonant domain abilities and passives from their constellation lineage (Scratchpad #4).
-- [x] **B.15**: Ash Thief took 6 actions in a row: Move, Shadow Step, Skirmish, Shadow Step, Skirmish, Move. Was this 2 turns somehow one after another? - **RESOLVED** This was intentional based on speed and conserving all 3AP on turn 1.
-- [x] **UX.12**: **Arena Camera Panning, Scrolling & Unit Centering**:
-  - OpenSpec change: `arena-camera-panning-and-zoom`.
-  - Right-click drag navigation with 1:1 screen-to-viewBox tracking.
-  - Keyboard arrow key camera panning.
-  - Dynamic zoom-aware camera bounding preventing arena loss.
-  - Centering camera on units when clicked in the CTB Initiative Ribbon.
-  - Top bar view reset for both zoom and camera pan.
-  - Parallax astral background coordinate translation.
+- [x] **UX.18 / UX.13 / UX.4**: **Combat Log Polish, Faction Theming & Unit Filtering**:
+  - OpenSpec change: `combat-log-polish-and-filtering`.
+  - Architecture: Strongly-typed logging pipeline (`combatLogger.ts`) with automatic `faction: Faction` resolution and affected unit attribution.
+  - Fix UX.18: Color combat log cards by faction (`.faction-player`, `.faction-enemy`, `.faction-neutral`) instead of binary `isPlayer` prefix check.
+  - Fix UX.13: Emit structured `⚡ PASSIVE` card for Feline Grace fall negation and `⚠️ ENVIRONMENT` card for ledge plunge.
+  - Feature UX.4: Unit filter control in Astral Chronicle header to filter events where selected unit was actor, target, or splash affected.
+  - Event-stream fallback in `applyCombatEvents` ensuring new mechanics never produce raw unformatted strings.
 
 ---
 
@@ -46,16 +32,13 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 ---
 
 ## 🎨 UX Updates
-- [ ] **UX.4**: Combat Log: Filter by unit. Show actions where it was the actor or was targeted (or splash damaged).
 - [ ] **UX.5**: Let the User place their units at opening. Enemy team to also do better at starting positions.
 - [ ] **UX.6**: Dice Tray: Evade/Miss can just say Miss.
 - [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close.
 - [ ] **UX.11**: Dice Tray: The d20 roll is shown before the die stops rolling. Also the damage roll shows up before the die stops rolling.
-- [ ] **UX.13**: Avoiding fall damage with Feline Grace has an unformated combat log card.
 - [ ] **UX.14**: Nice tooltip popover for damage bonus calculation like we have for the to hit calculation.
 - [ ] **UX.15**: Make Vanguard Squad area in Post Trial XP distribution dialog scrollable.
 - [ ] **UX.16**: More interesting Vanguard area. Maybe some sort of campfire with the unit sprites randomly gathered around. Maybe animated milling about?
-- [ ] **UX.18**: Combat Log: Every Combat Card uses the red-ish colour. These should be coloured by faction.
 - [ ] **UX.19**: Consecutive enemy turns happen too quickly, and each enemy action individually happens too quickly to process what has happened. I end up having to go back through the Combat Log to see what has occurred.
 - [ ] **UX.20**: When a unit is defeated they just pop out. This is tricky on multi-enemy turns when one or several of my units are defeated. After their turns, which go quickly (UX.19), I'm left to re-evaluate the battlefield.
 
@@ -70,6 +53,7 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 
 ## (icon) Ideas
 - [ ] **I.1**: Persist the last trial's combat log. Can help with identifying all kinds of things like AI behaviour enhancements.
+- [ ] **I.2**: Extend `EffectHandler` & `EffectExecutionResult`: return structured effect metadata (e.g. condition badges, displacement chips, damage tags) rather than plain text strings in `logDetail`, enabling rich visual secondary effect badges in the Combat Log.
 ---
 
 ## 📝 Playtest Scratchpad
