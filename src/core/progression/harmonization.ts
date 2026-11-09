@@ -147,7 +147,11 @@ export type AstralShardId =
   | 'hex_shard'
   | 'toll_shard'
   | 'buckshot_shard'
-  | 'holdup_shard';
+  | 'holdup_shard'
+  | 'bastion_shard'
+  | 'interchange_shard'
+  | 'concussion_shard'
+  | 'anchorite_shard';
 
 export interface AstralAugmentShard {
   readonly id: AstralShardId;
@@ -735,6 +739,101 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
           magnitude: 10,
           targetScope: 'SELF',
           applyOn: 'HIT_OR_CRIT'
+        }
+      ]
+    }
+  },
+  bastion_shard: {
+    id: 'bastion_shard',
+    name: 'Bastion Shard',
+    category: 'INFUSION',
+    description: 'Plants an immovable phalanx perimeter (+2 Armor to self, locks Move to 0, and establishes Zone of Control for 1 turn upon executing ability)',
+    icon: '🏰',
+    modifier: {
+      id: 'shard_bastion_shard',
+      name: 'Bastion Shard',
+      isPermanent: true,
+      appendEffects: [
+        {
+          type: 'ARMOR_BUFF',
+          magnitude: 2,
+          durationTurns: 1,
+          targetScope: 'SELF',
+          applyOn: 'ALWAYS'
+        },
+        {
+          type: 'BASTION_STANCE',
+          durationTurns: 1,
+          targetScope: 'SELF',
+          applyOn: 'ALWAYS'
+        }
+      ]
+    }
+  },
+  interchange_shard: {
+    id: 'interchange_shard',
+    name: 'Interchange Shard',
+    category: 'GEOMETRY',
+    description: 'Transposes coordinates with target (swaps positions with target on hit/crit or ally ability execution)',
+    icon: '🔀',
+    modifier: {
+      id: 'shard_interchange_shard',
+      name: 'Interchange Shard',
+      isPermanent: true,
+      appendEffects: [
+        {
+          type: 'POSITION_SWAP',
+          targetScope: 'TARGET',
+          applyOn: 'HIT_OR_CRIT'
+        }
+      ]
+    }
+  },
+  concussion_shard: {
+    id: 'concussion_shard',
+    name: 'Concussion Shard',
+    category: 'INFUSION',
+    description: 'Jarring bludgeon daze (reduces target Move by -1 and Speed by -2 for 2 turns on hit/crit)',
+    icon: '💫',
+    modifier: {
+      id: 'shard_concussion_shard',
+      name: 'Concussion Shard',
+      isPermanent: true,
+      appendEffects: [
+        {
+          type: 'STAT_MODIFIER',
+          magnitude: 2,
+          durationTurns: 2,
+          statModifiers: {
+            move: -1,
+            speed: -2
+          },
+          applyOn: 'HIT_OR_CRIT'
+        }
+      ]
+    }
+  },
+  anchorite_shard: {
+    id: 'anchorite_shard',
+    name: 'Anchorite Shard',
+    category: 'POWER',
+    description: 'Unshakable grounding (grants immunity to displacement, +1 Armor, and +1 Resolve for 1 turn upon executing ability)',
+    icon: '⚓',
+    modifier: {
+      id: 'shard_anchorite_shard',
+      name: 'Anchorite Shard',
+      isPermanent: true,
+      appendEffects: [
+        {
+          type: 'STAT_MODIFIER',
+          durationTurns: 1,
+          targetScope: 'SELF',
+          statModifiers: {
+            armor: 1,
+            resolve: 1,
+            displacementImmunity: 1
+          },
+          applyOn: 'ALWAYS'
         }
       ]
     }

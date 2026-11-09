@@ -27,6 +27,11 @@ export interface ReachableTileInfo {
   readonly path: readonly HexCoord[];
 }
 
+export interface MovementOptions {
+  /** Hex keys where entering stops further movement traversal (e.g. Zone of Control) */
+  readonly terminalHexKeys?: ReadonlySet<string>;
+}
+
 export type CollisionType = 'VOID' | 'WALL' | 'CLIFF' | 'UNIT';
 
 export type LoSObstructionType = 'VOID' | 'HILL' | 'OBSTACLE' | 'UNIT';
@@ -147,6 +152,27 @@ export class Arena {
   }
 
   /**
+   * Atomically swaps the positions of two units on the board.
+   */
+  public swapUnits(unitIdA: string, unitIdB: string): void {
+    const posA = this.unitPositions.get(unitIdA);
+    const posB = this.unitPositions.get(unitIdB);
+    if (!posA || !posB) {
+      throw new Error(`Cannot swap units ${unitIdA} and ${unitIdB}: both must be placed on the arena.`);
+    }
+    const tileA = this.getTile(posA);
+    const tileB = this.getTile(posB);
+    if (!tileA || !tileB) {
+      throw new Error(`Invalid tiles for units ${unitIdA} and ${unitIdB}.`);
+    }
+
+    tileA.occupiedByUnitId = unitIdB;
+    tileB.occupiedByUnitId = unitIdA;
+    this.unitPositions.set(unitIdA, posB);
+    this.unitPositions.set(unitIdB, posA);
+  }
+
+  /**
    * Computes all reachable tiles and optimal paths within a movement budget (MP)
    * using Dijkstra search over discrete elevation terrain.
    * - Step cost: 1 + Math.max(0, dh) MP.
@@ -156,7 +182,8 @@ export class Arena {
    */
   public getReachableHexInfo(
     origin: HexCoord,
-    moveBudget: number
+    moveBudget: number,
+    options?: MovementOptions
   ): Map<string, ReachableTileInfo> {
     const startTile = this.getTile(origin);
     if (!startTile || moveBudget <= 0) {
@@ -267,6 +294,11 @@ export class Arena {
           });
         }
 
+        // If entering a terminal hex (e.g. Zone of Control), record destination but do not expand further
+        if (options?.terminalHexKeys?.has(neighborKey)) {
+          continue;
+        }
+
         queue.push({
           coord: neighbor,
           cost: nextCost,
@@ -284,9 +316,10 @@ export class Arena {
    */
   public getReachableHexes(
     origin: HexCoord,
-    moveBudget: number
+    moveBudget: number,
+    options?: MovementOptions
   ): HexCoord[] {
-    const reachableMap = this.getReachableHexInfo(origin, moveBudget);
+    const reachableMap = this.getReachableHexInfo(origin, moveBudget, options);
     return Array.from(reachableMap.values()).map((info) => info.coord);
   }
 
@@ -297,9 +330,10 @@ export class Arena {
   public findPath(
     origin: HexCoord,
     destination: HexCoord,
-    moveBudget: number
+    moveBudget: number,
+    options?: MovementOptions
   ): ReachableTileInfo | undefined {
-    return this.getReachableHexInfo(origin, moveBudget).get(toHexKey(destination));
+    return this.getReachableHexInfo(origin, moveBudget, options).get(toHexKey(destination));
   }
 
   /**

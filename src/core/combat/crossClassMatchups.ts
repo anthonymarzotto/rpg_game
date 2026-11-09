@@ -22,7 +22,9 @@ export const MATCHUP_CLASSES: readonly ClassMatchupProfile[] = [
   { classId: 'highwayman', name: 'Highwayman', shortCode: 'HWM', tier: 3 },
   { classId: 'cat-burglar', name: 'Cat-Burglar', shortCode: 'CTB', tier: 3 },
   { classId: 'warlock', name: 'Warlock', shortCode: 'WLK', tier: 3 },
-  { classId: 'witch', name: 'Witch', shortCode: 'WTC', tier: 3 }
+  { classId: 'witch', name: 'Witch', shortCode: 'WTC', tier: 3 },
+  // Tier 4
+  { classId: 'shield-bearer', name: 'Shield-bearer', shortCode: 'SBR', tier: 4 }
 ];
 
 export interface MatchupRecord {

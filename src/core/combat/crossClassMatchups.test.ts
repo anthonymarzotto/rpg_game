@@ -19,11 +19,11 @@ describe('Cross-Class Matchup Matrix Simulation', () => {
       maxTurnsPerTrial
     });
 
-    // 12 classes -> 12 * 11 / 2 = 66 matchups
-    // 66 matchups * 10 duels = 660 duels
-    expect(result.totalMatchups).toBe(66);
-    expect(result.totalDuels).toBe(660);
-    expect(result.leaderboard.length).toBe(12);
+    // 13 classes -> 13 * 12 / 2 = 78 matchups
+    // 78 matchups * 10 duels = 780 duels
+    expect(result.totalMatchups).toBe(78);
+    expect(result.totalDuels).toBe(780);
+    expect(result.leaderboard.length).toBe(13);
 
     // Format ASCII report and display in console
     const asciiReport = formatCrossClassReport(result);
@@ -43,11 +43,12 @@ describe('Cross-Class Matchup Matrix Simulation', () => {
     expect(markdownReport.length).toBeGreaterThan(500);
 
     // Basic sanity checks on matrix integrity
+    const expectedTrialsPerClass = (MATCHUP_CLASSES.length - 1) * trialsPerMatchup;
     for (const c of MATCHUP_CLASSES) {
       const stats = result.leaderboard.find((l) => l.profile.classId === c.classId);
       expect(stats).toBeDefined();
-      expect(stats!.totalTrials).toBe(11 * trialsPerMatchup); // 11 opponents * 10
-      expect(stats!.totalWins + stats!.totalLosses + stats!.totalTimeouts).toBe(110);
+      expect(stats!.totalTrials).toBe(expectedTrialsPerClass);
+      expect(stats!.totalWins + stats!.totalLosses + stats!.totalTimeouts).toBe(expectedTrialsPerClass);
     }
   }, 120000); // 120s timeout allowance
 });

@@ -12,6 +12,7 @@ import {
   WARLOCK_PACKAGE,
   WITCH_PACKAGE,
   CAT_BURGLAR_PACKAGE,
+  SHIELD_BEARER_PACKAGE,
   MOMENTUM,
   getClassPackage,
   getAbilityById,
@@ -221,5 +222,38 @@ describe('Class Packages & Catalog Verification', () => {
     expect(getAbilityById('pact_blade')).toBeDefined();
     expect(getAbilityById('hellfire_brand')).toBeDefined();
     expect(getPassiveById('soul_carapace')).toBeDefined();
+  });
+
+  it('correctly maps Shield-bearer abilities, passive, and profile', () => {
+    expect(SHIELD_BEARER_PACKAGE.classId).toBe('shield-bearer');
+    expect(SHIELD_BEARER_PACKAGE.className).toBe('Shield-bearer');
+    expect(SHIELD_BEARER_PACKAGE.signatureAbility.id).toBe('bastion_plant');
+    expect(SHIELD_BEARER_PACKAGE.signatureAbility.apCost).toBe(2);
+    expect(SHIELD_BEARER_PACKAGE.signatureAbility.effects?.some((e) => e.type === 'ARMOR_BUFF' && e.magnitude === 3)).toBe(true);
+    expect(SHIELD_BEARER_PACKAGE.signatureAbility.effects?.some((e) => e.type === 'BASTION_STANCE')).toBe(true);
+
+    expect(SHIELD_BEARER_PACKAGE.domainAbilities.map((a) => a.id)).toEqual(['intercept_step', 'concussive_slam']);
+    const interceptStep = SHIELD_BEARER_PACKAGE.domainAbilities.find((a) => a.id === 'intercept_step')!;
+    expect(interceptStep.archetypeTag).toBe('ROGUE');
+    expect(interceptStep.range).toBe(3);
+    expect(interceptStep.targetType).toBe('ALLY');
+
+    const concussiveSlam = SHIELD_BEARER_PACKAGE.domainAbilities.find((a) => a.id === 'concussive_slam')!;
+    expect(concussiveSlam.archetypeTag).toBe('FIGHTER');
+    expect(concussiveSlam.range).toBe(1);
+    expect(concussiveSlam.effects?.some((e) => e.type === 'SLOW' && e.magnitude === 2)).toBe(true);
+
+    expect(SHIELD_BEARER_PACKAGE.passive.id).toBe('unyielding_stance');
+    expect(SHIELD_BEARER_PACKAGE.passive.immuneToDisplacement).toBe(true);
+    expect(SHIELD_BEARER_PACKAGE.passive.aura?.attackRollPenalty).toBe(2);
+    expect(SHIELD_BEARER_PACKAGE.passive.aura?.targetScope).toBe('ALLIES');
+    expect(SHIELD_BEARER_PACKAGE.aiProfile).toBe('BRAWLER');
+
+    expect(getAbilityById('bastion_plant')).toBeDefined();
+    expect(getAbilityById('intercept_step')).toBeDefined();
+    expect(getAbilityById('concussive_slam')).toBeDefined();
+    expect(getPassiveById('unyielding_stance')).toBeDefined();
+    expect(getClassPackage('shield-bearer')).toBe(SHIELD_BEARER_PACKAGE);
+    expect(getClassPackage('shieldbearer')).toBe(SHIELD_BEARER_PACKAGE);
   });
 });

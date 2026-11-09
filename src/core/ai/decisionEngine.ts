@@ -1,6 +1,7 @@
 import { CombatState, CombatUnit, AbilityResolution } from '../combat/types';
 import { HexCoord, hexDistance, hexEquals, getCombatArc } from '../grid/hex';
 import { getEffectiveMove } from '../combat/effectiveVitals';
+import { getBastionZocHexKeys } from '../combat/bastionStance';
 import { computeAbilityMetrics } from '../combat/targetPreview';
 import { canExecuteAbility, getAbilityRangeCoords } from '../combat/validator';
 import { getEffectiveAbility } from '../combat/modifiers';
@@ -345,8 +346,9 @@ export function decideNextActionWithTrace(
           const selfBuff = ability.effects?.find((e) => e.type === 'STAT_MODIFIER' && e.targetScope === 'SELF');
           const selfBuffScore = selfBuff ? 4.0 : 0;
 
+          const zocKeys = getBastionZocHexKeys(state, actorUnitId);
           const isReachableByWalk = state.arena
-            .getReachableHexes(currentCoord, getEffectiveMove(cu))
+            .getReachableHexes(currentCoord, getEffectiveMove(cu), { terminalHexKeys: zocKeys })
             .some((h) => hexEquals(h, candHex));
 
           // If destination is already reachable by walk and ability offers no self-buff or elevation climb, prefer standard move
@@ -541,7 +543,10 @@ export function decideNextActionWithTrace(
 
   // 2. Evaluate composite move-and-act options
   if (cu.currentAp >= 1 && cu.unit.effectiveVitals.move > 0) {
-    const reachable = state.arena.getReachableHexes(currentCoord, getEffectiveMove(cu));
+    const zocKeys = getBastionZocHexKeys(state, actorUnitId);
+    const reachable = state.arena.getReachableHexes(currentCoord, getEffectiveMove(cu), {
+      terminalHexKeys: zocKeys
+    });
 
     for (const candCoord of reachable) {
       if (hexEquals(candCoord, currentCoord)) continue;

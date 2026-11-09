@@ -13,6 +13,7 @@ import { initiativeBoostHandler } from './initiativeBoostHandler';
 import { wildSurgeHandler } from './wildSurgeHandler';
 import { penetrateHandler } from './penetrateHandler';
 import { bloodFrenzyHandler } from './bloodFrenzyHandler';
+import { positionSwapHandler } from './positionSwapHandler';
 import { CombatEvent } from '../types';
 
 export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
@@ -20,6 +21,8 @@ export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
   KNOCKBACK: knockbackHandler,
   RETREAT_STEP: retreatHandler,
   PENETRATE_STEP: penetrateHandler,
+  POSITION_SWAP: positionSwapHandler,
+  BASTION_STANCE: modifierHandler,
   SLOW: modifierHandler,
   ARMOR_BUFF: modifierHandler,
   WARD_BUFF: modifierHandler,

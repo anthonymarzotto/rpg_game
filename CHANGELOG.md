@@ -2,6 +2,21 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.14.0] - 2026-11-08
+
+### Tier 4 Shield-bearer & Phalanx Defense
+- **New Advanced Class — Shield-bearer**: Harness the power of the celestial constellation node with the new Tier 4 Shield-bearer. Built as a heavy frontline bulwark, this guardian anchors your battle line with impenetrable defensive stances and ally bodyguarding.
+- **Bastion Plant Stance**: Plant your reinforced kite shield into the hex ground to gain substantial physical armor, hold your ground against advancing enemies with a frontal Zone of Control, and shield rearward allies from incoming ranged fire.
+- **Tactical Intercept Step**: Swiftly switch positions with an ally under pressure within 3 hexes, pulling vulnerable comrades to safety while fortifying their armor.
+- **Concussive Melee Slam**: Stun and slow adjacent foes with a punishing shield strike that pins targets in place without displacing them.
+- **Unyielding Stance & Phalanx Aura**: Stand immovable against knockbacks, pulls, and forced displacements while projecting a protective aura that imposes attack penalties on enemies striking adjacent allies.
+- **Pixel Sprite & Emblem Palette**: The Shield-bearer arrives complete with multi-directional animated pixel battle tokens and a bespoke Slate Iron and Emerald class badge emblem.
+- **Four New Astral Augment Shards**: Forge and socket new tactical augment modules discovered from the Shield-bearer constellation:
+  - **Bastion Shard**: Plants an immovable phalanx perimeter upon executing an ability, granting bonus armor and projecting a Zone of Control that halts advancing foes.
+  - **Interchange Shard**: Warps tactical positioning by swapping coordinates with your target upon landing a hit or casting a support ability on an ally.
+  - **Concussion Shard**: Delivers a jarring bludgeon daze that penalizes enemy movement and speed for two turns on strike.
+  - **Anchorite Shard**: Grounds your center of gravity, granting complete immunity to knockbacks and forced displacement alongside defensive armor and resolve boosts.
+
 ## [0.13.0] - 2026-11-07
 
 ### Combat Chronicle Theming & Battlefield Filtering

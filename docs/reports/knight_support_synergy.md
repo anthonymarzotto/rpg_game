@@ -1,6 +1,6 @@
 # 2v2 Support Synergy Benchmark: Knight vs Warrior (Control)
 
-**Candidate:** Knight | **Control:** Warrior | **Gauntlet Comps:** 6 | **Trials/Pair:** 6 | **Total Matches:** 720
+**Candidate:** Knight | **Control:** Warrior | **Gauntlet Comps:** 6 | **Trials/Pair:** 6 | **Total Matches:** 792
 
 ## Benchmark Overview
 
@@ -20,7 +20,8 @@ This benchmark evaluates whether bringing **Knight** as a partner enables other 
 | **Cat-Burglar** | T3 | 44.4% | 41.7% | **+2.7%** | 44.4% | 36.1% | **+8.3%** | 19.8 | 16.3 | **+3.5** | 10.3 vs 15.9 (-5.6) |
 | **Warlock** | T3 | 52.8% | 58.3% | **-5.5%** | 52.8% | 52.8% | **0.0%** | 26.2 | 20.0 | **+6.2** | 6.7 vs 16.2 (-9.5) |
 | **Witch** | T3 | 58.3% | 52.8% | **+5.5%** | 58.3% | 47.2% | **+11.1%** | 22.7 | 13.2 | **+9.5** | 8.6 vs 21.5 (-12.9) |
-| **NET AVERAGE** | **--** | **32.8%** | **37.8%** | **-5.0%** | **30.3%** | **29.4%** | **+0.8%** | **19.4** | **14.5** | **+5.0** | **7.3 vs 16.4 (-9.0)** |
+| **Shield-bearer** | T4 | 36.1% | 33.3% | **+2.8%** | 38.9% | 33.3% | **+5.6%** | 18.3 | 13.6 | **+4.7** | 7.6 vs 14.6 (-7.0) |
+| **NET AVERAGE** | **--** | **33.1%** | **37.4%** | **-4.3%** | **31.1%** | **29.8%** | **+1.3%** | **19.3** | **14.4** | **+4.9** | **7.4 vs 16.2 (-8.8)** |
 
 ## Gauntlet Compositions
 

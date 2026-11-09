@@ -5,6 +5,11 @@
 ---
 
 ## 🔨 In Progress
+- [x] **3.1: Shield-bearer Class Kit & Token Integration**:
+  - OpenSpec change: `tier-4-shield-bearer`.
+  - Class package: Signature `Bastion Plant`, domain abilities `Intercept Step` and `Concussive Slam`, passive `Unyielding Stance`.
+  - Visual identity: Badge palette (Slate Iron / Emerald Trim) and token whitelist (`05_human_male`).
+  - AI heuristics: `BRAWLER` profile prioritizing frontline body-blocking and slow/pinning.
 - [x] **UX.18 / UX.13 / UX.4**: **Combat Log Polish, Faction Theming & Unit Filtering**:
   - OpenSpec change: `combat-log-polish-and-filtering`.
   - Architecture: Strongly-typed logging pipeline (`combatLogger.ts`) with automatic `faction: Faction` resolution and affected unit attribution.
@@ -19,7 +24,6 @@
 
 ### 3. Tier 4 Class Kits & Token Integration
 Sketch and author class package (signature ability, 2 domain abilities, passive trait, AI heuristic profile, and badge palette) and whitelist tokens for the following new classes:
-- [ ] **3.1**: **Shield-bearer** (`#05`, Tier 4: `3F, 1R, 0M`), `05_human_male`.
 - [ ] **3.2**: **Dragoon** (`#07`, Tier 4: `3F, 0R, 1M`), `07_human_male`.
 - [ ] **3.3**: **Ballistician** (`#65`, Tier 4: `1F, 3R, 0M`), `65_human_male`.
 - [ ] **3.4**: **Philanderer** (`#84`, Tier 4: `0F, 3R, 1M`), `84_human_male`.

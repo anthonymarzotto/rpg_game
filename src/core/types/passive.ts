@@ -82,6 +82,8 @@ export interface PassiveTrait {
   readonly immuneToFallDamage?: boolean;
   /** Whether the unit is immune to wall-slam and collision damage */
   readonly immuneToCollisionDamage?: boolean;
+  /** Whether the unit is immune to forced displacement (knockback, pull, slide) */
+  readonly immuneToDisplacement?: boolean;
   /** Whether the unit vaults onto cliffs or over obstacles when displaced by knockback */
   readonly canVaultOnKnockback?: boolean;
   /** Whether the unit vaults onto cliffs or over obstacles when displaced by retreat */

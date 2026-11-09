@@ -256,6 +256,27 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       );
     });
 
+    it('resolves shield-bearer (05_human_male) to pixel idle rotation paths and badge palette', () => {
+      const shieldBearer = createMockUnit({
+        gender: 'male',
+        race: 'human',
+        loadout: {
+          activeClassId: 'shield-bearer',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        }
+      });
+
+      expect(resolvePixelTokenBase(shieldBearer)).toBe('05_human_male');
+      expect(resolveTokenAssetPath(shieldBearer, HEX_DIRECTIONS.EAST)).toBe(
+        '/assets/tokens/pixel/05_human_male/Idle/rotations/east.png'
+      );
+      expect(getClassBadgePalette('shield-bearer')).toEqual({
+        primary: '#334155',
+        border: '#10b981'
+      });
+    });
+
     it('returns null for ungenerated pixel classes to trigger the default vector fallback', () => {
       // Elementalist (class 60) does not exist in pixel assets yet
       const elementalist = createMockUnit({
@@ -374,8 +395,14 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       expect(getClassBadgePalette('novice')).toEqual(CLASS_BADGE_PALETTES.novice);
     });
 
+    it('returns dedicated palette colors for Tier 4 Shield-bearer', () => {
+      expect(getClassBadgePalette('shield-bearer')).toEqual({ primary: '#334155', border: '#10b981' });
+      expect(getClassBadgePalette('shieldbearer')).toEqual({ primary: '#334155', border: '#10b981' });
+    });
+
     it('handles case-insensitivity and falls back to novice palette for unknown or undefined classes', () => {
       expect(getClassBadgePalette('CAVALIER')).toEqual(CLASS_BADGE_PALETTES.cavalier);
+      expect(getClassBadgePalette('SHIELD-BEARER')).toEqual(CLASS_BADGE_PALETTES['shield-bearer']);
       expect(getClassBadgePalette('Witch')).toEqual(CLASS_BADGE_PALETTES.witch);
       expect(getClassBadgePalette('unknown_class')).toEqual(CLASS_BADGE_PALETTES.novice);
       expect(getClassBadgePalette(undefined)).toEqual(CLASS_BADGE_PALETTES.novice);

@@ -37,7 +37,9 @@ export type AbilityEffectType =
   | 'STAT_MODIFIER'    // Applies stat modifier (e.g. Expose Weakness -2 Armor & -2 Evasion)
   | 'RUSH_CHARGE'      // Rushes along straight line into melee contact with target
   | 'PENETRATE_STEP'   // Advances through target to the rear hex if open
-  | 'BLOOD_FRENZY';    // Primes pending ability modifier for next physical attack (+1 die step, +2 attack roll)
+  | 'BLOOD_FRENZY'     // Primes pending ability modifier for next physical attack (+1 die step, +2 attack roll)
+  | 'POSITION_SWAP'   // Swaps coordinates between actor and target ally
+  | 'BASTION_STANCE';  // Stance: Phalanx Front ZOC and rear cover
 
 export type EffectTargetScope = 'TARGET' | 'SELF' | 'ALLIES';
 export type EffectApplyCondition = 'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY';
@@ -56,7 +58,7 @@ export interface AbilityEffect {
   readonly flatDamage?: number;
   readonly durationTurns?: number;
   readonly conditionType?: ConditionType;
-  readonly statModifiers?: Partial<Record<'armor' | 'ward' | 'speed' | 'move' | 'evasion' | 'resolve' | 'attackRoll', number>>;
+  readonly statModifiers?: Partial<Record<'armor' | 'ward' | 'speed' | 'move' | 'evasion' | 'resolve' | 'attackRoll' | 'displacementImmunity', number>>;
   /** Tactical condition required for this effect to apply (e.g. FLANK_OR_REAR for Sneak Attack) */
   readonly condition?: AbilityCondition;
   /** Optional bonus damage dice applied when condition is satisfied */

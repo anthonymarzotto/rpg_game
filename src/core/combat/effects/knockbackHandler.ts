@@ -4,6 +4,7 @@ import { CombatEvent } from '../types';
 import { resolveCollisionDamage, resolveFallDamage } from '../damageEngine';
 import { DISPLACEMENT_CONFIG } from '../../config/balance';
 import { hexEquals } from '../../grid/hex';
+import { isDisplacementImmune } from '../displacementImmunity';
 
 export const knockbackHandler: EffectHandler = {
   apply(effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
@@ -16,6 +17,11 @@ export const knockbackHandler: EffectHandler = {
     const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);
     if (!actorCoord || !targetCoord) {
       return { events: [] };
+    }
+
+    const isImmune = isDisplacementImmune(targetCu);
+    if (isImmune) {
+      return { events: [], logDetail: ' 🛡️ [Resisted Knockback]' };
     }
 
     const canVault = targetCu.passives?.some((p) => p.canVaultOnKnockback);

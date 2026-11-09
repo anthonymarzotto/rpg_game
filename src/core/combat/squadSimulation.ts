@@ -20,7 +20,8 @@ export const ALL_AUTHORED_CLASS_IDS = [
   'highwayman',
   'cat-burglar',
   'warlock',
-  'witch'
+  'witch',
+  'shield-bearer'
 ] as const;
 
 export type AuthoredClassId = typeof ALL_AUTHORED_CLASS_IDS[number];
@@ -82,6 +83,10 @@ export const DEFAULT_CLASS_RESONANT_LOADOUTS: Readonly<Record<string, ResonantLo
   witch: {
     wildcardAbilityIds: ['skirmish', 'minor_ward'],
     wildcardPassiveIds: ['quickstep']
+  },
+  'shield-bearer': {
+    wildcardAbilityIds: ['brace', 'shield_bash'],
+    wildcardPassiveIds: ['momentum']
   }
 };
 
@@ -166,6 +171,7 @@ export interface SquadSimulationResult {
   readonly teamAWins: number;
   readonly teamBWins: number;
   readonly avgTurnsPerMatch: number;
+  readonly totalZocHalts?: number;
   readonly classTelemetry: Record<string, ClassSquadTelemetry>;
 }
 
@@ -243,6 +249,7 @@ export function runSquadSimulation(options?: SquadSimulationOptions): SquadSimul
   let teamBWins = 0;
   let timeouts = 0;
   let totalTurns = 0;
+  let totalZocHalts = 0;
 
   const deployment = getDeploymentZones(arenaRadius);
   const playerSpawns = deployment.playerCoords.slice(0, 3);
@@ -450,7 +457,15 @@ export function runSquadSimulation(options?: SquadSimulationOptions): SquadSimul
             hpsBefore.set(uid, u.currentHp);
           }
 
+          const logsBefore = state.combatLog.length;
           const execResult = executeAiAction(state, activeId, action, diceRoller);
+
+          if (execResult.type === 'MOVE') {
+            const newLogs = state.combatLog.slice(logsBefore);
+            if (newLogs.some((l) => l.actionId === 'zone_of_control_halted')) {
+              totalZocHalts++;
+            }
+          }
 
           if (execResult.type === 'ABILITY' && execResult.resolution) {
             const res = execResult.resolution;
@@ -615,6 +630,7 @@ export function runSquadSimulation(options?: SquadSimulationOptions): SquadSimul
     teamAWins,
     teamBWins,
     avgTurnsPerMatch: matches > 0 ? Math.round((totalTurns / matches) * 10) / 10 : 0,
+    totalZocHalts,
     classTelemetry: telemetry
   };
 }
@@ -630,7 +646,7 @@ export function formatSquadSimulationReport(result: SquadSimulationResult): stri
   const lines: string[] = [
     '=========================================================================================================',
     `SQUAD COMBAT SIMULATION REPORT (3v3 Mixed Tiers)`,
-    `Matches: ${result.totalMatches} | Team A Wins: ${result.teamAWins} | Team B Wins: ${result.teamBWins} | Timeouts: ${result.timeouts} | Avg Turns: ${result.avgTurnsPerMatch}`,
+    `Matches: ${result.totalMatches} | Team A Wins: ${result.teamAWins} | Team B Wins: ${result.teamBWins} | Timeouts: ${result.timeouts} | Avg Turns: ${result.avgTurnsPerMatch} | ZOC Halts: ${result.totalZocHalts ?? 0}`,
     '=========================================================================================================',
     'CLASS LEADERBOARD (Sorted by Win Contribution)',
     '---------------------------------------------------------------------------------------------------------',

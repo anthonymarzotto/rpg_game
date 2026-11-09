@@ -5,6 +5,7 @@ import { Ability } from '../types/ability';
 import { AIProfile, AIArchetypeWeights } from './types';
 import { getClassPackage } from '../../data/packages';
 import { getEffectiveMove } from '../combat/effectiveVitals';
+import { isBastionStanceActive } from '../combat/bastionStance';
 
 export const DEFAULT_ARCHETYPE_WEIGHTS: Record<AIProfile, AIArchetypeWeights> = {
   BRAWLER: {
@@ -391,6 +392,45 @@ export function scoreBuffAbility(
     return { score: 0 };
   }
 
+  // Bastion Plant evaluation (prioritize when hostiles are within frontline engagement distance <= 2)
+  const isBastion = ability.id === 'bastion_plant' || ability.effects?.some((e) => e.type === 'BASTION_STANCE');
+  if (isBastion) {
+    if (!isSelf) return { score: 0 };
+    if (isBastionStanceActive(actorCu)) return { score: 0 };
+
+    // Find distance to closest living hostile unit
+    let minHostileDist = Infinity;
+    for (const h of hostileUnits) {
+      const hPos = state.arena.getUnitPosition(h.unit.id);
+      if (hPos) {
+        const d = hexDistance(targetCoord, hPos);
+        if (d < minHostileDist) minHostileDist = d;
+      }
+    }
+
+    if (minHostileDist > 2) {
+      return { score: 0 };
+    }
+
+    let plantScore = 20.0;
+    const reasons: string[] = ['Activate Bastion Plant Phalanx Stance'];
+    if (minHostileDist === 1) {
+      plantScore += 12.0;
+      reasons.push('Engaged in frontline melee (+3 Armor, ZOC wall)');
+    } else if (minHostileDist === 2) {
+      plantScore += 6.0;
+      reasons.push('Hostiles approaching frontline');
+    }
+    if (profile === 'BRAWLER') {
+      plantScore += 6.0;
+      reasons.push('Brawler frontline defensive anchor');
+    }
+    return {
+      score: Math.round(plantScore * 10) / 10,
+      reason: reasons.join('; ')
+    };
+  }
+
   // 1. Guard against re-applying active modifier
   const buffEffect = ability.effects?.find((e) => e.type === 'WARD_BUFF' || e.type === 'ARMOR_BUFF' || e.type === 'SLOW');
   const targetStat =
@@ -655,6 +695,15 @@ export function scoreDebuffAndUtility(
         if (isMeleeThreat && dist >= 2) {
           score += 4.0;
           reasons.push('Kite advancing melee threat');
+        }
+
+        if (profile === 'BRAWLER') {
+          score += 4.0;
+          reasons.push('Brawler target pinning');
+        }
+        if (isBastionStanceActive(actorCu)) {
+          score += 3.0;
+          reasons.push('Pin target in Phalanx Front ZOC');
         }
       }
     } else {

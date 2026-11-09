@@ -4,6 +4,7 @@ import { CombatState, CombatUnit, ValidationResult } from './types';
 import { getEffectiveMove } from './effectiveVitals';
 import { getEffectiveAbility } from './modifiers';
 import { getConditionDefinition } from './conditions';
+import { getBastionZocHexKeys } from './bastionStance';
 import { Arena, LineOfSightObstruction } from '../grid/arena';
 
 /**
@@ -118,7 +119,10 @@ export function canMove(
   }
 
   const effectiveMove = getEffectiveMove(cu);
-  const reachable = state.arena.getReachableHexes(currentCoord, effectiveMove);
+  const zocKeys = getBastionZocHexKeys(state, actorUnitId);
+  const reachable = state.arena.getReachableHexes(currentCoord, effectiveMove, {
+    terminalHexKeys: zocKeys
+  });
 
   if (!reachable.some((h) => h.q === destination.q && h.r === destination.r)) {
     return { valid: false, reason: `Destination (${destination.q}, ${destination.r}) is not reachable.` };
@@ -260,6 +264,9 @@ export function canExecuteAbility(
     }
 
     if (effectiveAbility.targetType === 'ALLY') {
+      if (effectiveAbility.effects?.some((e) => e.type === 'POSITION_SWAP') && targetUnitId === actorUnitId) {
+        return { valid: false, reason: 'Cannot swap positions with self.' };
+      }
       if (
         targetUnitId !== actorUnitId &&
         cu.faction &&

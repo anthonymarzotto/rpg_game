@@ -38,6 +38,7 @@ import { getClassPackage, getAbilityById, getPassiveById } from '../../data/pack
 import { PassiveTriggerHook } from '../types/passive';
 import { evaluateTargetAuras } from './auras';
 import { getConditionDefinition, evaluateFrontArcDetection } from './conditions';
+import { getBastionZocHexKeys, evaluateZoneOfControl, hasBastionRangedCover } from './bastionStance';
 import { applyConditionToUnit } from './effects/conditionHandler';
 import { combatLogger } from './combatLogger';
 
@@ -341,7 +342,8 @@ export function executeMove(
   const cu = requireCombatUnit(state, actorUnitId);
   const prevPos = state.arena.getUnitPosition(actorUnitId);
   const effectiveMove = getEffectiveMove(cu);
-  const pathInfo = prevPos ? state.arena.findPath(prevPos, destination, effectiveMove) : undefined;
+  const zocKeys = getBastionZocHexKeys(state, actorUnitId);
+  const pathInfo = prevPos ? state.arena.findPath(prevPos, destination, effectiveMove, { terminalHexKeys: zocKeys }) : undefined;
 
   const fullPath = pathInfo && pathInfo.path.length > 0
     ? pathInfo.path
@@ -360,6 +362,23 @@ export function executeMove(
     accumulatedFallDamage += calculateRawFallDamage(dh);
     currentCoord = nextStep;
     stepsTaken++;
+
+    const zocInterrupt = evaluateZoneOfControl(state, actorUnitId, currentCoord);
+    if (zocInterrupt) {
+      interrupted = true;
+      state.combatLog.push({
+        turnNumber: state.turnNumber,
+        actorUnitId,
+        actionId: 'zone_of_control_halted',
+        message: `🛡️ [Zone of Control] ${cu.unit.name}'s advance was halted by ${zocInterrupt.unit.name}'s Phalanx Front!`,
+        metadata: {
+          type: 'GENERIC',
+          actor: cu.unit.name,
+          text: `🛡️ [Zone of Control] ${cu.unit.name}'s advance was halted by ${zocInterrupt.unit.name}'s Phalanx Front!`
+        }
+      });
+      break;
+    }
 
     const detected = evaluateFrontArcDetection(state, actorUnitId, currentCoord, cu.facing, 'MOVE');
     if (detected.length > 0) {
@@ -529,7 +548,16 @@ export function applyCombatEvents(
         }
       }
     } else if (event.type === 'DISPLACEMENT') {
-      state.arena.setUnitPosition(event.unitId, event.toCoord);
+      if (event.kind === 'SWAP') {
+        const otherUnitId = state.arena.getUnitAt(event.toCoord);
+        if (otherUnitId && otherUnitId !== event.unitId) {
+          state.arena.swapUnits(event.unitId, otherUnitId);
+        } else if (!otherUnitId) {
+          state.arena.setUnitPosition(event.unitId, event.toCoord);
+        }
+      } else {
+        state.arena.setUnitPosition(event.unitId, event.toCoord);
+      }
     } else if (event.type === 'STATUS_APPLIED') {
       const cu = state.units.get(event.targetUnitId);
       if (cu && !cu.isDefeated) {
@@ -973,13 +1001,16 @@ export function executeAbility(
   };
 
   if (targetCu) {
+    const hasRangedCover = hasBastionRangedCover(state, targetCu, attackOriginCoord, effectiveAbility);
     damageResult = resolveDamage(
       rollResult.hitOutcome,
       effectiveAbility,
       actorCu,
       targetCu,
       diceRoller,
-      bonusDamageProfile
+      bonusDamageProfile,
+      undefined,
+      { hasRangedCover }
     );
 
     if (damageResult.damageDealt > 0) {
@@ -1029,6 +1060,7 @@ export function executeAbility(
               type: 'DAMAGE',
               damageProfile: splashProfile
             };
+            const splashHasCover = hasBastionRangedCover(state, splashCu, attackOriginCoord, effectiveAbility);
             const splashDmg = resolveDamage(
               splashOutcome,
               effectiveAbility,
@@ -1036,7 +1068,8 @@ export function executeAbility(
               splashCu,
               diceRoller,
               undefined,
-              splashEffect
+              splashEffect,
+              { hasRangedCover: splashHasCover }
             );
             if (splashDmg.damageDealt > 0) {
               const damageType = effectiveAbility.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL';

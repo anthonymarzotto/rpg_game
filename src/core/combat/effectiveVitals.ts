@@ -1,15 +1,24 @@
 import { CombatUnit, ModifiableCombatStat } from './types';
 import { getPassiveStatModifier } from './passives';
+import { isBastionStanceActive } from './bastionStance';
+import { isDisplacementImmune } from './displacementImmunity';
 
 /**
  * Computes a combat unit's dynamic effective stat value after applying active modifiers,
  * respecting minimum stat floors (speed and move floor at 1, other stats floor at 0).
+ * Units with active Bastion Stance are locked in place with effective move of 0.
  */
 export function getEffectiveStat(cu: CombatUnit, stat: ModifiableCombatStat): number {
   if (stat === 'attackRoll') {
     return cu.activeModifiers
       .filter((m) => m.stat === 'attackRoll')
       .reduce((sum, m) => sum + m.value, 0);
+  }
+  if (stat === 'bastionStance') {
+    return isBastionStanceActive(cu) ? 1 : 0;
+  }
+  if (stat === 'displacementImmunity') {
+    return isDisplacementImmune(cu) ? 1 : 0;
   }
   const base = cu.unit.effectiveVitals[stat];
   const modSum = cu.activeModifiers
@@ -19,8 +28,15 @@ export function getEffectiveStat(cu: CombatUnit, stat: ModifiableCombatStat): nu
 
   const total = base + modSum + passiveSum;
 
-  // Speed and Move have a minimum floor of 1
-  if (stat === 'move' || stat === 'speed') {
+  if (stat === 'move') {
+    if (isBastionStanceActive(cu)) {
+      return 0;
+    }
+    return Math.max(1, total);
+  }
+
+  // Speed has a minimum floor of 1
+  if (stat === 'speed') {
     return Math.max(1, total);
   }
   return Math.max(0, total);

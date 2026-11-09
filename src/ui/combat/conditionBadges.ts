@@ -132,15 +132,19 @@ export function formatModifierBadge(mod: ActiveModifier): FormattedModifierBadge
   } else if (mod.stat === 'resolve') {
     icon = '🔮 ';
     ruleText = `Modifies magical To-Hit DC (RES) by ${mod.value > 0 ? `+${mod.value}` : mod.value}.`;
+  } else if (mod.stat === 'bastionStance') {
+    icon = '🛡️ ';
+    ruleText = 'Bastion Plant: Halts enemy forward advance (ZOC) and grants 50% ranged damage reduction to allies directly behind.';
   }
 
-  const sign = mod.value > 0 ? `+${mod.value}` : `${mod.value}`;
-  const statLabel = mod.stat.toUpperCase();
-  const text = `${icon}${sign} ${statLabel} (${mod.durationTurns}t)`;
+  const isBastion = mod.stat === 'bastionStance';
+  const sign = isBastion ? '' : (mod.value > 0 ? `+${mod.value}` : `${mod.value}`);
+  const statLabel = isBastion ? 'BASTION STANCE' : mod.stat.toUpperCase();
+  const text = isBastion ? `${icon}BASTION STANCE (${mod.durationTurns}t)` : `${icon}${sign} ${statLabel} (${mod.durationTurns}t)`;
 
   const tooltip: ConditionTooltipInfo = {
     icon: icon.trim(),
-    name: `${sign} ${statLabel}`,
+    name: isBastion ? 'Bastion Stance' : `${sign} ${statLabel}`,
     durationText: `${mod.durationTurns} turn${mod.durationTurns === 1 ? '' : 's'} remaining`,
     ruleText
   };

@@ -15,6 +15,7 @@ import { STRIKE, SPARK, FROSTBITE } from '../../data/packages/novice';
 import { SMOKE_VEIL } from '../../data/packages/infiltrator';
 import { ARCANE_BLAST } from '../../data/packages/wizard';
 import { ELDRITCH_BLAST } from '../../data/packages/warlock';
+import { BASTION_PLANT, CONCUSSIVE_SLAM } from '../../data/packages/shieldBearer';
 import { scoreTargetThreat, scoreDebuffAndUtility } from './heuristics';
 
 function createMockUnit(
@@ -1560,6 +1561,88 @@ describe('Headless AI Decision Engine', () => {
         if (action.type === 'ABILITY') {
           // Despite wizard having 0 armor and high threat, enemy attacks Knight to avoid defiance penalty and EXPOSED
           expect(action.target?.targetUnitId).toBe(knight.id);
+        }
+      });
+    });
+
+    describe('Shield-bearer AI Integration (BRAWLER)', () => {
+      it('shield-bearer brawler prioritizes Bastion Plant when engaged adjacent to an enemy', () => {
+        const arena = createRadialArena(3);
+        const sb = createMockUnit('sb-1', 'Enemy Shield-bearer', 'ENEMY', {
+          activeClassId: 'shield-bearer',
+          baseAttributes: { force: 3, finesse: 1, focus: 0 },
+          armor: 3
+        });
+        const hero = createMockUnit('hero', 'Player Hero', 'PLAYER', {
+          maxHp: 30,
+          armor: 1
+        });
+
+        arena.setUnitPosition(sb.id, { q: 0, r: 0 });
+        arena.setUnitPosition(hero.id, { q: 1, r: 0 }); // Adjacent (distance 1)
+
+        const state = createCombatState(arena, [sb, hero], sb.id);
+        const sbCu = state.units.get(sb.id)!;
+        (sbCu as { abilities: readonly any[] }).abilities = [BASTION_PLANT, CONCUSSIVE_SLAM];
+
+        const action = decideNextAction(state, sb.id);
+        expect(action.type).toBe('ABILITY');
+        if (action.type === 'ABILITY') {
+          expect(action.ability.id).toBe('bastion_plant');
+        }
+      });
+
+      it('shield-bearer brawler avoids Bastion Plant when enemies are far away (> 2 hexes), advancing instead', () => {
+        const arena = createRadialArena(4);
+        const sb = createMockUnit('sb-1', 'Enemy Shield-bearer', 'ENEMY', {
+          activeClassId: 'shield-bearer',
+          move: 3,
+          armor: 3
+        });
+        const distantHero = createMockUnit('hero', 'Player Hero', 'PLAYER', {
+          maxHp: 30,
+          armor: 1
+        });
+
+        arena.setUnitPosition(sb.id, { q: -3, r: 0 });
+        arena.setUnitPosition(distantHero.id, { q: 2, r: 0 }); // Distance 5
+
+        const state = createCombatState(arena, [sb, distantHero], sb.id);
+        const sbCu = state.units.get(sb.id)!;
+        (sbCu as { abilities: readonly any[] }).abilities = [BASTION_PLANT, CONCUSSIVE_SLAM];
+
+        const action = decideNextAction(state, sb.id);
+        // Does not waste 2 AP to lock self in place with 0 move when enemy is 5 hexes away!
+        expect(action.type).toBe('MOVE');
+      });
+
+      it('shield-bearer brawler executes Concussive Slam to pin adjacent enemy when already in Bastion Stance', () => {
+        const arena = createRadialArena(3);
+        const sb = createMockUnit('sb-1', 'Enemy Shield-bearer', 'ENEMY', {
+          activeClassId: 'shield-bearer',
+          armor: 6
+        });
+        const hero = createMockUnit('hero', 'Player Hero', 'PLAYER', {
+          maxHp: 30,
+          armor: 1
+        });
+
+        arena.setUnitPosition(sb.id, { q: 0, r: 0 });
+        arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+
+        const state = createCombatState(arena, [sb, hero], sb.id);
+        const sbCu = state.units.get(sb.id)!;
+        (sbCu as { abilities: readonly any[] }).abilities = [BASTION_PLANT, CONCUSSIVE_SLAM];
+
+        // Put Shield-bearer into Bastion Stance
+        sbCu.activeModifiers.push({ stat: 'bastionStance', value: 1, durationTurns: 1 });
+        sbCu.currentAp = 1;
+
+        const action = decideNextAction(state, sb.id);
+        expect(action.type).toBe('ABILITY');
+        if (action.type === 'ABILITY') {
+          expect(action.ability.id).toBe('concussive_slam');
+          expect(action.target?.targetUnitId).toBe(hero.id);
         }
       });
     });

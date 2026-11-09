@@ -14,6 +14,10 @@ export interface DamageResult {
   readonly damageModifier?: number;
 }
 
+export interface DamageOptions {
+  readonly hasRangedCover?: boolean;
+}
+
 /**
  * Calculates raw attack damage, mitigation soak, graze scaling, minimum damage,
  * and a human-readable formula breakdown. Supports optional bonus dice profiles
@@ -26,7 +30,8 @@ export function resolveDamage(
   targetCu: CombatUnit,
   diceRoller: DiceRoller,
   bonusDamage?: DiceProfile,
-  damageEffect?: AbilityEffect
+  damageEffect?: AbilityEffect,
+  options?: DamageOptions
 ): DamageResult {
   const eff = damageEffect ?? ability.effects?.find((e) => e.type === 'DAMAGE');
   const damageProfile = eff?.damageProfile;
@@ -154,6 +159,11 @@ export function resolveDamage(
   if (isGraze) {
     subtotal = Math.floor(subtotal * COMBAT_RESOLUTION_CONFIG.grazeDamageMultiplier);
     modifierSuffix = ' (x0.5 Graze)';
+  }
+
+  if (options?.hasRangedCover) {
+    subtotal = Math.floor(subtotal * 0.5);
+    modifierSuffix += ' (x0.5 Bastion Cover)';
   }
 
   let damageDealt = subtotal;

@@ -17,6 +17,7 @@ import { HIGHWAYMAN_PACKAGE } from './highwayman';
 import { WARLOCK_PACKAGE } from './warlock';
 import { WITCH_PACKAGE } from './witch';
 import { CAT_BURGLAR_PACKAGE } from './catBurglar';
+import { SHIELD_BEARER_PACKAGE } from './shieldBearer';
 
 export * from './novice';
 export * from './warrior';
@@ -31,6 +32,7 @@ export * from './highwayman';
 export * from './warlock';
 export * from './witch';
 export * from './catBurglar';
+export * from './shieldBearer';
 
 export const CLASS_PACKAGES: Readonly<Record<string, ClassPackage>> = {
   warrior: WARRIOR_PACKAGE,
@@ -44,7 +46,8 @@ export const CLASS_PACKAGES: Readonly<Record<string, ClassPackage>> = {
   highwayman: HIGHWAYMAN_PACKAGE,
   warlock: WARLOCK_PACKAGE,
   witch: WITCH_PACKAGE,
-  'cat-burglar': CAT_BURGLAR_PACKAGE
+  'cat-burglar': CAT_BURGLAR_PACKAGE,
+  'shield-bearer': SHIELD_BEARER_PACKAGE
 };
 
 /**
@@ -53,6 +56,7 @@ export const CLASS_PACKAGES: Readonly<Record<string, ClassPackage>> = {
 export function getClassPackage(classId: string): ClassPackage | undefined {
   const normalized = classId.toLowerCase();
   if (normalized === 'catburglar') return CLASS_PACKAGES['cat-burglar'];
+  if (normalized === 'shieldbearer') return CLASS_PACKAGES['shield-bearer'];
   return CLASS_PACKAGES[normalized];
 }
 

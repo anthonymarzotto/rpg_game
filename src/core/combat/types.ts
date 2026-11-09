@@ -17,7 +17,7 @@ export type CombatDamageReason =
   | 'ENVIRONMENT'
   | 'FALL';
 
-export type DisplacementKind = 'KNOCKBACK' | 'RETREAT' | 'PULL' | 'TELEPORT' | 'CHARGE';
+export type DisplacementKind = 'KNOCKBACK' | 'RETREAT' | 'PULL' | 'TELEPORT' | 'CHARGE' | 'SWAP';
 
 export type CollisionKind = 'WALL' | 'UNIT' | 'CLIFF' | 'VOID';
 
@@ -145,7 +145,9 @@ export type ModifiableCombatStat =
   | 'move'
   | 'evasion'
   | 'resolve'
-  | 'attackRoll';
+  | 'attackRoll'
+  | 'bastionStance'
+  | 'displacementImmunity';
 
 /**
  * Active stat modifier (positive for buffs, negative for penalties)

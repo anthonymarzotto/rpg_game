@@ -116,7 +116,7 @@ describe('harmonization domain engine', () => {
   });
 
   describe('ASTRAL_AUGMENT_SHARDS', () => {
-    it('registers all 26 canonical shards with expected categories and modifiers', () => {
+    it('registers all 33 canonical shards with expected categories and modifiers', () => {
       const shardIds: AstralShardId[] = [
         'starlight_lens',
         'force_shard',
@@ -150,9 +150,14 @@ describe('harmonization domain engine', () => {
         // Highwayman shards
         'toll_shard',
         'buckshot_shard',
-        'holdup_shard'
+        'holdup_shard',
+        // Shield-bearer shards
+        'bastion_shard',
+        'interchange_shard',
+        'concussion_shard',
+        'anchorite_shard'
       ];
-      expect(shardIds).toHaveLength(29);
+      expect(shardIds).toHaveLength(33);
       for (const id of shardIds) {
         const shard = getShardById(id);
         expect(shard).toBeDefined();
@@ -307,6 +312,42 @@ describe('harmonization domain engine', () => {
       expect(shard.modifier.appendEffects?.[1].type).toBe('INITIATIVE_BOOST');
       expect(shard.modifier.appendEffects?.[1].magnitude).toBe(10);
       expect(shard.modifier.appendEffects?.[1].targetScope).toBe('SELF');
+    });
+
+    it('verifies Bastion Shard (Shield-bearer) has ARMOR_BUFF and BASTION_STANCE effects', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.bastion_shard;
+      expect(shard.category).toBe('INFUSION');
+      expect(shard.modifier.appendEffects?.[0].type).toBe('ARMOR_BUFF');
+      expect(shard.modifier.appendEffects?.[0].magnitude).toBe(2);
+      expect(shard.modifier.appendEffects?.[0].targetScope).toBe('SELF');
+      expect(shard.modifier.appendEffects?.[1].type).toBe('BASTION_STANCE');
+      expect(shard.modifier.appendEffects?.[1].targetScope).toBe('SELF');
+    });
+
+    it('verifies Interchange Shard (Shield-bearer) has POSITION_SWAP geometry effect', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.interchange_shard;
+      expect(shard.category).toBe('GEOMETRY');
+      expect(shard.modifier.appendEffects?.[0].type).toBe('POSITION_SWAP');
+      expect(shard.modifier.appendEffects?.[0].applyOn).toBe('HIT_OR_CRIT');
+    });
+
+    it('verifies Concussion Shard (Shield-bearer) inflicts Move -1 and Speed -2 statModifiers', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.concussion_shard;
+      expect(shard.category).toBe('INFUSION');
+      expect(shard.modifier.appendEffects?.[0].type).toBe('STAT_MODIFIER');
+      expect(shard.modifier.appendEffects?.[0].durationTurns).toBe(2);
+      expect(shard.modifier.appendEffects?.[0].statModifiers?.move).toBe(-1);
+      expect(shard.modifier.appendEffects?.[0].statModifiers?.speed).toBe(-2);
+    });
+
+    it('verifies Anchorite Shard (Shield-bearer) has displacementImmunity, armor, and resolve statModifiers', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.anchorite_shard;
+      expect(shard.category).toBe('POWER');
+      expect(shard.modifier.appendEffects?.[0].type).toBe('STAT_MODIFIER');
+      expect(shard.modifier.appendEffects?.[0].statModifiers?.displacementImmunity).toBe(1);
+      expect(shard.modifier.appendEffects?.[0].statModifiers?.armor).toBe(1);
+      expect(shard.modifier.appendEffects?.[0].statModifiers?.resolve).toBe(1);
+      expect(shard.modifier.appendEffects?.[0].targetScope).toBe('SELF');
     });
   });
 

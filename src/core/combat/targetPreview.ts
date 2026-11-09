@@ -10,6 +10,7 @@ import { canExecuteAbility, formatLoSObstructionReason } from './validator';
 import { isFlankOrRear } from './flanking';
 import { getEffectiveAbility } from './modifiers';
 import { evaluateAttackRollContext } from './attackRoll';
+import { hasBastionRangedCover } from './bastionStance';
 import { RollAdvantage } from './dice';
 
 /**
@@ -327,13 +328,21 @@ export function computeAbilityMetrics(
   const baseCount = diceProfile?.count ?? 0;
   const baseSides = diceProfile?.sides ?? 0;
 
-  const minDmg = Math.max(1, baseCount + bonusCount + damageModifier - mitigation);
-  const maxDmg = Math.max(1, baseCount * baseSides + bonusCount * bonusSides + damageModifier - mitigation);
+  const hasCover = hasBastionRangedCover(state, targetCu, effectiveOrigin, effectiveAbility);
+  let minDmg = Math.max(1, baseCount + bonusCount + damageModifier - mitigation);
+  let maxDmg = Math.max(1, baseCount * baseSides + bonusCount * bonusSides + damageModifier - mitigation);
 
   const avgBaseRoll = baseCount * ((baseSides + 1) / 2);
   const avgBonusRoll = bonusCount * ((bonusSides + 1) / 2);
   const avgUnmitigated = avgBaseRoll + avgBonusRoll + damageModifier;
-  const avgHitDamage = Math.max(1, avgUnmitigated - mitigation);
+  let avgHitDamage = Math.max(1, avgUnmitigated - mitigation);
+
+  if (hasCover) {
+    minDmg = Math.max(1, Math.floor(minDmg * 0.5));
+    maxDmg = Math.max(1, Math.floor(maxDmg * 0.5));
+    avgHitDamage = Math.max(1, Math.floor(avgHitDamage * 0.5));
+  }
+
   const centerExpectedDamage = Math.round((toHitChance / 100) * avgHitDamage * 10) / 10;
 
   const enemySplashExpDmg = splashUnits

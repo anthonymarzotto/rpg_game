@@ -13,6 +13,7 @@ export const AVAILABLE_PIXEL_TOKENS = new Set<string>([
   '01_human_male',  // Cavalier
   '02_human_male',  // Knight
   '03_human_male',  // Berserker
+  '05_human_male',  // Shield-bearer
   '64_human_male',  // Highwayman
   '80_human_male',  // Warlock
   '81_human_male',  // Thief
@@ -40,7 +41,9 @@ export const CLASS_BADGE_PALETTES: Record<string, { primary: string; border: str
   warlock: { primary: '#4f46e5', border: '#6366f1' },
   witch: { primary: '#9333ea', border: '#a855f7' },
   'cat-burglar': { primary: '#0f766e', border: '#14b8a6' }, // Teal / Cyan (Rogue/Mage hybrid)
-  catburglar: { primary: '#0f766e', border: '#14b8a6' }
+  catburglar: { primary: '#0f766e', border: '#14b8a6' },
+  'shield-bearer': { primary: '#334155', border: '#10b981' }, // Slate Iron / Emerald
+  shieldbearer: { primary: '#334155', border: '#10b981' }
 };
 
 /**

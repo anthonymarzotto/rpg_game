@@ -22,7 +22,11 @@ export const modifierHandler: EffectHandler = {
         logDetail = ` ❄️ [Slow: -${mag} Move for ${effect.durationTurns ?? 1} turn(s)]`;
       }
     } else if (effect.type === 'ARMOR_BUFF') {
-      targetUnitId = ability.targetType === 'ALLY' && targetCu ? targetCu.unit.id : actorCu.unit.id;
+      targetUnitId = effect.targetScope === 'SELF'
+        ? actorCu.unit.id
+        : (effect.targetScope === 'TARGET' && targetCu
+          ? targetCu.unit.id
+          : (ability.targetType === 'ALLY' && targetCu ? targetCu.unit.id : actorCu.unit.id));
       const mag = effect.magnitude ?? 1;
       modifier = {
         stat: 'armor',
@@ -63,6 +67,14 @@ export const modifierHandler: EffectHandler = {
         events,
         logDetail: ` 📊 [Stat Modifier: ${parts.join(', ')} for ${durationTurns} turn(s)]`
       };
+    } else if (effect.type === 'BASTION_STANCE') {
+      targetUnitId = actorCu.unit.id;
+      modifier = {
+        stat: 'bastionStance',
+        value: 1,
+        durationTurns: effect.durationTurns ?? 1
+      };
+      logDetail = ` 🛡️ [Bastion Stance: Zone of Control & Rear Cover active for ${effect.durationTurns ?? 1} turn(s)]`;
     }
 
     if (!targetUnitId || !modifier) {
