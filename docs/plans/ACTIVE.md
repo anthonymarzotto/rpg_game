@@ -59,7 +59,7 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **B.15**: When a unit starts their turn Challenged and the challenging unit is dead, the Challenged status should clear.
 - [ ] **B.17**: I think I saw my Cavalier shout out "Knockback" when I used Ride Through. That's not a great description to shout.
 
-## (icon) Ideas
+## 💡 Ideas
 - [ ] **I.1**: Persist the last trial's combat log. Can help with identifying all kinds of things like AI behaviour enhancements.
 - [ ] **I.2**: Extend `EffectHandler` & `EffectExecutionResult`: return structured effect metadata (e.g. condition badges, displacement chips, damage tags) rather than plain text strings in `logDetail`, enabling rich visual secondary effect badges in the Combat Log.
 ---
