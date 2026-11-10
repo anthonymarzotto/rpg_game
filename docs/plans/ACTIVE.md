@@ -54,6 +54,8 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **B.10**: Shard effects don't show well in the Trial on ability cards.
 - [ ] **B.14**: Dice Tray: Damage calculation doesn't show Armor/Ward soak value, though total damage is correctly calculated (e.g. unit with +2 armour. Shown is 3+2=3. The first 3 is the roll, the second 2 is the unit's bonus. This would be 5, but the enemy had +2 armour making it 3+2-2=3).
 - [ ] **B.15**: When a unit starts their turn Challenged and the challenging unit is dead, the Challenged status should clear.
+- [ ] **B.16**: Trial threat is way out of whack. By trial 5 I had 8 units and the trial threat is at 475pts, but my vanguard is locked to 220pts.
+- [ ] **B.17**: I think I saw my Cavalier shout out "Knockback" when I used Ride Through. That's not a great description to shout.
 
 ## (icon) Ideas
 - [ ] **I.1**: Persist the last trial's combat log. Can help with identifying all kinds of things like AI behaviour enhancements.
@@ -70,3 +72,4 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
    * *Observation*: In campaign generation (`createEnemyUnit`), enemies receive `wildcardPassiveIds: ['momentum']` and up to 2 starter abilities. Pure-kit benchmarks without wildcards hide natural synergies—e.g. Force units getting Advantage from `Momentum` after moving, or Cavalier using `Shield Bash` (1-hex knockback) to re-enable `Lance Charge` in close melee. Consider benchmark profiles that include standard starter wildcards.
 4. **Varied Resonant Loadouts for Generated Enemies**:
    * *Observation*: Generated enemies in encounters currently receive a static wildcard passive (Momentum) and starter abilities. Implement a "level up" generation system where enemies dynamically draw realistic resonant abilities and passives from their unlocked constellation path with randomized variation across encounters rather than a static list.
+5. **Cavalier**: What does he do after a Lance Charge? It's 2AP, so a move doesn't help. He ends up 1 space away from his target. If he doesn't start beside a target or have a ranged Resonant ability he is awkward, taking that last AP and saving it.
