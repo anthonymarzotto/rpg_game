@@ -16,7 +16,10 @@
   - Fix UX.18: Color combat log cards by faction (`.faction-player`, `.faction-enemy`, `.faction-neutral`) instead of binary `isPlayer` prefix check.
   - Fix UX.13: Emit structured `⚡ PASSIVE` card for Feline Grace fall negation and `⚠️ ENVIRONMENT` card for ledge plunge.
   - Feature UX.4: Unit filter control in Astral Chronicle header to filter events where selected unit was actor, target, or splash affected.
-  - Event-stream fallback in `applyCombatEvents` ensuring new mechanics never produce raw unformatted strings.
+- [x] **B.16**: **Trial Threat Re-calibration & War Room Reroll**:
+  - OpenSpec change: `stage-anchored-threat-and-reroll`.
+  - Fix trial threat runaway (475 pts vs 220 pt vanguard cap) by anchoring enemy encounter threat directly to stage deployment budget plus one highest-tier hostile bonus.
+  - Add "Re-roll Trial" / "Astral Re-scry" control in Expedition War Room using `regenerateCurrentStageEncounter`.
 
 ---
 
@@ -54,7 +57,6 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **B.10**: Shard effects don't show well in the Trial on ability cards.
 - [ ] **B.14**: Dice Tray: Damage calculation doesn't show Armor/Ward soak value, though total damage is correctly calculated (e.g. unit with +2 armour. Shown is 3+2=3. The first 3 is the roll, the second 2 is the unit's bonus. This would be 5, but the enemy had +2 armour making it 3+2-2=3).
 - [ ] **B.15**: When a unit starts their turn Challenged and the challenging unit is dead, the Challenged status should clear.
-- [ ] **B.16**: Trial threat is way out of whack. By trial 5 I had 8 units and the trial threat is at 475pts, but my vanguard is locked to 220pts.
 - [ ] **B.17**: I think I saw my Cavalier shout out "Knockback" when I used Ride Through. That's not a great description to shout.
 
 ## (icon) Ideas

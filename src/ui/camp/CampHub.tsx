@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { CampaignState } from '../../core/campaign/types';
 import { Unit } from '../../core/types/unit';
-import { setCampActiveSquad, recruitNovice } from '../../core/campaign/transitions';
+import { setCampActiveSquad, recruitNovice, regenerateCurrentStageEncounter } from '../../core/campaign/transitions';
 import { computeSquadThreat, getStageDeploymentBudget } from '../../core/campaign/threatBudget';
 import { ActiveSquadDock } from './ActiveSquadDock';
 import { ExpeditionWarRoom } from './ExpeditionWarRoom';
@@ -115,6 +115,12 @@ export function CampHub({
     onUpdateCampaign(updated);
   }, [campaign, onUpdateCampaign]);
 
+  // Re-roll the encounter for the current stage
+  const handleRerollEncounter = useCallback(() => {
+    const updated = regenerateCurrentStageEncounter(campaign);
+    onUpdateCampaign(updated);
+  }, [campaign, onUpdateCampaign]);
+
   return (
     <div className="camp-hub-root" data-testid="camp-hub">
       {/* Header */}
@@ -180,6 +186,7 @@ export function CampHub({
             activeSquadThreat={activeSquadThreat}
             deploymentBudget={deploymentBudget}
             onDeploySquad={onDeploySquad}
+            onRerollEncounter={handleRerollEncounter}
           />
         </div>
 

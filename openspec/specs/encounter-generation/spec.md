@@ -17,11 +17,15 @@ The system SHALL compute an aggregate Threat Rating for the active player squad 
 - **THEN** the system evaluates their threat at their projected level (Level 1, 25 threat points) when generating the next stage encounter
 
 ### Requirement: Stage-Scaled Threat Budget
-The system SHALL compute the target encounter threat budget by multiplying the squad threat rating by a stage scaling factor derived from the campaign stage index.
+The system SHALL compute the target encounter threat budget anchored directly to the stage deployment budget plus a stage tier hostile bonus equal to approximately one additional hostile of the highest eligible tier unlocked for that stage (Stage 1: +0 pts parity recruit trial, Stage 2: +25 pts Tier 1 bonus, Stage 3–4: +40 pts Tier 2 bonus, Stage 5+: +55 pts Tier 3 bonus), decoupled from deployed player squad size and accumulated pre-ascension XP.
 
 #### Scenario: Threat scaling across stages
 - **WHEN** an encounter is generated for Stage 1 versus a later Stage N
-- **THEN** the target threat budget increases monotonically with higher stage indices
+- **THEN** the target threat budget increases monotonically anchored to the stage deployment budget plus highest-tier hostile bonus
+
+#### Scenario: Threat decoupled from squad size
+- **WHEN** an encounter is generated for a large player squad (e.g. 8 wayfarers) or a party with pre-ascension level projections
+- **THEN** the target threat budget remains anchored to the stage deployment budget plus stage tier bonus rather than multiplying uncapped squad threat
 
 ### Requirement: Procedural Enemy Composition
 The system SHALL assemble an enemy combatant roster whose total threat budget matches the target encounter budget, selecting from verified class packages across Novices (10 threat), Tier-1 classes (25 threat), Tier-2 classes (40 threat), and Tier-3 hybrid classes (55 threat). The system SHALL dynamically spend the threat budget on multiple units of the highest appropriate tiers for the stage rather than capping the squad at one unit per tier, and SHALL NOT enforce an arbitrary 4-unit squad cap on enemy forces.

@@ -298,5 +298,19 @@ describe('CampHub Integration Test Suite', () => {
     );
     expect(htmlOverBudget).toContain('40 / 30 Pts (4 Deployed)');
   });
+
+  it('renders reroll trial button in the expedition war room', () => {
+    const campaign = createCampaign({ seed: 42 });
+    const html = renderToStaticMarkup(
+      <CampHub
+        campaign={campaign}
+        onDeploySquad={vi.fn()}
+        onUpdateCampaign={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('data-testid="reroll-trial-btn"');
+    expect(html).toContain('Re-roll Trial');
+  });
 });
 

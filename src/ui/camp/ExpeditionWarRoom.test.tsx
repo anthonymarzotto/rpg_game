@@ -108,4 +108,26 @@ describe('ExpeditionWarRoom Component', () => {
     expect(htmlOverBudget).toContain('title="Vanguard threat (90 pts) exceeds stage deployment budget (75 pts)"');
     expect(htmlOverBudget).not.toContain('readiness-warning');
   });
+
+  it('renders reroll trial button when onRerollEncounter is provided', () => {
+    const htmlWithReroll = renderToStaticMarkup(
+      <ExpeditionWarRoom
+        stage={2}
+        activeSquadCount={3}
+        onDeploySquad={vi.fn()}
+        onRerollEncounter={vi.fn()}
+      />
+    );
+    expect(htmlWithReroll).toContain('data-testid="reroll-trial-btn"');
+    expect(htmlWithReroll).toContain('Re-roll Trial');
+
+    const htmlWithoutReroll = renderToStaticMarkup(
+      <ExpeditionWarRoom
+        stage={2}
+        activeSquadCount={3}
+        onDeploySquad={vi.fn()}
+      />
+    );
+    expect(htmlWithoutReroll).not.toContain('data-testid="reroll-trial-btn"');
+  });
 });

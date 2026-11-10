@@ -7,6 +7,7 @@ import {
   computeStageThreatBudget,
   computeProjectedUnitThreat,
   computeProjectedSquadThreat,
+  getStageHostileBonusThreat,
   BASE_RECRUIT_THREAT
 } from './threatBudget';
 
@@ -102,6 +103,20 @@ describe('Threat Budget & Challenge Rating', () => {
     // Squad with 2 ready units and 1 unready unit: 25 + 40 + 25 = 90
     const mixedSquad = [noviceReady, lvl1Ready, lvl1NotReady];
     expect(computeProjectedSquadThreat(mixedSquad)).toBe(90);
+  });
+
+  it('evaluates stage hostile bonus threat based on highest tier unlocked', () => {
+    // Stage 1: Novice (+0 pts for parity recruit trial)
+    expect(getStageHostileBonusThreat(1)).toBe(0);
+    // Stage 2: Tier 1 (+25 pts)
+    expect(getStageHostileBonusThreat(2)).toBe(25);
+    // Stage 3-4: Tier 2 (+40 pts)
+    expect(getStageHostileBonusThreat(3)).toBe(40);
+    expect(getStageHostileBonusThreat(4)).toBe(40);
+    // Stage 5+: Tier 3 (+55 pts)
+    expect(getStageHostileBonusThreat(5)).toBe(55);
+    expect(getStageHostileBonusThreat(6)).toBe(55);
+    expect(getStageHostileBonusThreat(10)).toBe(55);
   });
 });
 

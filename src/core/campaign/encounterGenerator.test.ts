@@ -174,9 +174,10 @@ describe('Procedural Encounter Generator', () => {
 
   describe('Procedural Multi-Peak Terraced Arenas & Elevation', () => {
     it('uses Radius 3 for Stage 1 (<7 units), Radius 4 min for Stage 2+, and expands to Radius 5 for large battles (>= 7 units)', () => {
+      const twoRecruitSquad = recruitSquad.slice(0, 2);
       const encStage1 = generateStageEncounter(1, recruitSquad, 100);
-      const encStage2 = generateStageEncounter(2, recruitSquad, 100);
-      const encStage3 = generateStageEncounter(3, recruitSquad, 100);
+      const encStage2 = generateStageEncounter(2, twoRecruitSquad, 100);
+      const encStage3 = generateStageEncounter(3, twoRecruitSquad, 100);
 
       expect(encStage1.arenaRadius).toBe(3);
       expect(encStage2.arenaRadius).toBe(4);
@@ -342,6 +343,61 @@ describe('Procedural Encounter Generator', () => {
       const validLineagePassives = ['arcane_aegis', 'wild_surge', 'momentum'];
       for (const passiveId of witch.loadout.wildcardPassiveIds) {
         expect(validLineagePassives).toContain(passiveId);
+      }
+    });
+  });
+
+  describe('Stage-Anchored Threat Calibration & Squad Decoupling', () => {
+    it('generates identical enemy composition regardless of whether squad has 3 or 8 units', () => {
+      const smallSquad = [
+        createRecruit('p1', 'P1'),
+        createRecruit('p2', 'P2'),
+        createRecruit('p3', 'P3')
+      ];
+      const largeSquad = [
+        createRecruit('p1', 'P1'),
+        createRecruit('p2', 'P2'),
+        createRecruit('p3', 'P3'),
+        createRecruit('p4', 'P4'),
+        createRecruit('p5', 'P5'),
+        createRecruit('p6', 'P6'),
+        createRecruit('p7', 'P7'),
+        createRecruit('p8', 'P8')
+      ];
+
+      const seed = 12345;
+      const encSmall = generateStageEncounter(5, smallSquad, seed);
+      const encLarge = generateStageEncounter(5, largeSquad, seed);
+
+      const enemiesSmall = encSmall.units.filter((u) => u.unit.faction === 'ENEMY');
+      const enemiesLarge = encLarge.units.filter((u) => u.unit.faction === 'ENEMY');
+
+      expect(enemiesSmall).toHaveLength(enemiesLarge.length);
+      for (let i = 0; i < enemiesSmall.length; i++) {
+        expect(enemiesSmall[i].unit.name).toBe(enemiesLarge[i].unit.name);
+        expect(enemiesSmall[i].unit.loadout.activeClassId).toBe(enemiesLarge[i].unit.loadout.activeClassId);
+      }
+    });
+
+    it('generates identical enemy composition regardless of useProjectedThreat option', () => {
+      const promotedSquad = recruitSquad.map((u) => ({
+        ...u,
+        progression: {
+          ...u.progression,
+          accumulatedXp: { fighter: 20, rogue: 20, mage: 20 }
+        }
+      }));
+
+      const seed = 9999;
+      const standardEnc = generateStageEncounter(5, promotedSquad, seed);
+      const projectedEnc = generateStageEncounter(5, promotedSquad, seed, { useProjectedThreat: true });
+
+      const enemiesStandard = standardEnc.units.filter((u) => u.unit.faction === 'ENEMY');
+      const enemiesProjected = projectedEnc.units.filter((u) => u.unit.faction === 'ENEMY');
+
+      expect(enemiesStandard).toHaveLength(enemiesProjected.length);
+      for (let i = 0; i < enemiesStandard.length; i++) {
+        expect(enemiesStandard[i].unit.name).toBe(enemiesProjected[i].unit.name);
       }
     });
   });

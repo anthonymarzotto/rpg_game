@@ -9,10 +9,8 @@ import {
 } from '../combat/encounter';
 import { createRng, shuffle } from '../prng';
 import {
-  computeSquadThreat,
-  computeProjectedSquadThreat,
-  computeStageThreatBudget,
-  getStageDeploymentBudget
+  getStageDeploymentBudget,
+  getStageHostileBonusThreat
 } from './threatBudget';
 import { createRecruit } from '../units/unitFactory';
 import { advanceArchetypeLevel } from '../progression/pyramid';
@@ -442,17 +440,14 @@ export function generateStageEncounter(
   stage: number,
   playerSquad: readonly Unit[],
   seed?: number,
-  options?: GenerateStageEncounterOptions
+  _options?: GenerateStageEncounterOptions
 ): EncounterDefinition {
   const effectiveSeed = seed ?? (1000 + stage * 37);
   const rng = createRng(effectiveSeed);
 
   const stageBudget = getStageDeploymentBudget(stage);
-  const squadThreat = options?.useProjectedThreat
-    ? computeProjectedSquadThreat(playerSquad)
-    : computeSquadThreat(playerSquad);
-  const scaledSquadBudget = computeStageThreatBudget(squadThreat, stage);
-  const targetBudget = Math.max(stageBudget, scaledSquadBudget);
+  const hostileBonus = getStageHostileBonusThreat(stage);
+  const targetBudget = stageBudget + hostileBonus;
 
   const enemies = assembleEnemySquad(targetBudget, stage, rng);
   const totalUnits = playerSquad.length + enemies.length;

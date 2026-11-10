@@ -40,6 +40,22 @@ export function getStageDeploymentBudget(stage: number): number {
   return 200 + (safeStage - 5) * 20;
 }
 
+/**
+ * Hostile bonus threat points added to the stage encounter budget,
+ * representing approximately one extra hostile of the highest unlocked tier for that stage.
+ * - Stage 1: +0 pts (Parity 3v3 recruit trial, 30 pts)
+ * - Stage 2: +25 pts (Tier 1 bonus, 105 pts)
+ * - Stage 3-4: +40 pts (Tier 2 bonus, 160 / 200 pts)
+ * - Stage 5+: +55 pts (Tier 3 bonus, 255+ pts)
+ */
+export function getStageHostileBonusThreat(stage: number): number {
+  const safeStage = Math.max(1, stage);
+  if (safeStage === 1) return 0;
+  if (safeStage === 2) return 25;
+  if (safeStage <= 4) return 40;
+  return 55;
+}
+
 
 /**
  * Evaluates whether a unit qualifies for a single-step level ascension based on accumulated XP.

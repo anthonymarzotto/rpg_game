@@ -2,6 +2,12 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.14.1] - 2026-11-09
+
+### Trial Threat Balance & In-Camp Reconnaissance
+- **Stage-Anchored Trial Threat**: Enemy incursion strength is now calibrated directly to the stage deployment budget plus approximately one additional adversary of the highest available tier for that stage, preventing runaway enemy swarm sizes in mid-to-late campaign trials regardless of your roster size or pending ascensions.
+- **In-Camp Trial Re-Scry**: You can now re-roll the pending stage trial directly from the Expedition War Room in Camp using the new Re-roll Trial button, refreshing hostile enemy compositions and arena terrain with a fresh astral seed before embarking.
+
 ## [0.14.0] - 2026-11-08
 
 ### Tier 4 Shield-bearer & Phalanx Defense

@@ -11,6 +11,7 @@ export interface ExpeditionWarRoomProps {
   readonly deploymentBudget?: number;
   readonly minSquadRequired?: number;
   readonly onDeploySquad: () => void;
+  readonly onRerollEncounter?: () => void;
 }
 
 export function ExpeditionWarRoom({
@@ -20,7 +21,8 @@ export function ExpeditionWarRoom({
   activeSquadThreat,
   deploymentBudget,
   minSquadRequired = 1,
-  onDeploySquad
+  onDeploySquad,
+  onRerollEncounter
 }: ExpeditionWarRoomProps) {
   const stageBudget = deploymentBudget ?? getStageDeploymentBudget(stage);
   const isBudgetValid = activeSquadThreat == null || activeSquadThreat <= stageBudget;
@@ -39,10 +41,23 @@ export function ExpeditionWarRoom({
     <aside className="expedition-war-room" data-testid="expedition-war-room">
       {/* Header */}
       <div className="war-room-header">
-        <span className="war-room-badge font-mono">Astral Scrying & Recon</span>
-        <h2 className="war-room-stage-title font-display">
-          Stage {stage}: {encounter?.name ?? 'Approaching Trial'}
-        </h2>
+        <div className="war-room-header-left">
+          <span className="war-room-badge font-mono">Astral Scrying & Recon</span>
+          <h2 className="war-room-stage-title font-display">
+            Stage {stage}: {encounter?.name ?? 'Approaching Trial'}
+          </h2>
+        </div>
+        {onRerollEncounter && (
+          <button
+            type="button"
+            className="reroll-trial-btn font-ui"
+            onClick={onRerollEncounter}
+            title="Re-scry sector to reveal a different hostile layout"
+            data-testid="reroll-trial-btn"
+          >
+            ⟳
+          </button>
+        )}
       </div>
 
       {/* Detected Hostiles / Intel */}
