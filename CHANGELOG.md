@@ -2,6 +2,16 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.15.0] - 2026-11-10
+
+### Tier 4 Dragoon & Aerial Vaulting
+- **New Advanced Class — Dragoon**: Unlocked through the warrior's constellation with three Fighter masteries and one Mage discipline (`3 Fighter, 0 Rogue, 1 Mage`), the Dragoon combines heavy polearm tactics, draconic incantations, and soaring aerial maneuvers to dominate the battlefield from above.
+- **Dragon Dive**: Take to the air in a soaring trajectory that vaults over intervening obstacles, chasms, and combatants, descending behind your quarry with a devastating physical strike while unleashing a concussive shockwave splash that staggers surrounding foes.
+- **Piercing Thrust**: Drive your spear forward with pinpoint accuracy, punching through a frontline adversary to strike an aligned enemy directly behind them in a single clean puncture.
+- **Wyrmflame Breath**: Exhale an expanding four-hex cone of incandescent dragonfire across the arena, scouring enemy resolve and setting targets ablaze with lingering Burn damage over time.
+- **Coiled Apex Passive**: Patiently conserve momentum between maneuvers. Unspent Action Points at the end of your turn coil into virtual vantage height, granting high-ground attack accuracy bonuses and heightened impact damage on your subsequent assault.
+- **Pixel Sprite & Dragon Badge Palette**: The Dragoon takes the field equipped with directional pixel battle animations and a regal Deep Dragon Violet and Radiant Crimson class badge.
+
 ## [0.14.1] - 2026-11-09
 
 ### Trial Threat Balance & In-Camp Reconnaissance

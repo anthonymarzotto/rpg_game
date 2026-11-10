@@ -39,7 +39,9 @@ export type AbilityEffectType =
   | 'PENETRATE_STEP'   // Advances through target to the rear hex if open
   | 'BLOOD_FRENZY'     // Primes pending ability modifier for next physical attack (+1 die step, +2 attack roll)
   | 'POSITION_SWAP'   // Swaps coordinates between actor and target ally
-  | 'BASTION_STANCE';  // Stance: Phalanx Front ZOC and rear cover
+  | 'BASTION_STANCE'  // Stance: Phalanx Front ZOC and rear cover
+  | 'AERIAL_VAULT'    // Aerial jump over obstacles landing adjacent to target
+  | 'LINE_PIERCE';    // Piercing thrust penetrating secondary rear target
 
 export type EffectTargetScope = 'TARGET' | 'SELF' | 'ALLIES';
 export type EffectApplyCondition = 'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY';
@@ -132,6 +134,8 @@ export interface Ability {
   readonly effects: readonly AbilityEffect[];
   /** Blast AoE radius in hexes (undefined or 0 = single target hex, 1 = target + adjacent ring) */
   readonly aoeRadius?: number;
+  /** Whether the ability projects a 4-hex directional forward cone (1 apex at dist 1, 3 fan hexes at dist 2) */
+  readonly coneTemplate?: boolean;
   /** Optional custom floater label for AoE splash damage (e.g. 'BLAST', 'SPLASH'). Defaults to 'SPLASH'. */
   readonly splashLabel?: string;
   /** Optional secondary AoE splash damage profile on surrounding hexes */

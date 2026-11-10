@@ -1,5 +1,5 @@
 import { Ability } from '../types/ability';
-import { HexCoord, hexDistance, CombatArc, getCombatArc, getHexesInRange, hexEquals } from '../grid/hex';
+import { HexCoord, hexDistance, CombatArc, getCombatArc, getHexesInRange, hexEquals, getForwardConeHexes, getDirectionBetween } from '../grid/hex';
 import { CombatState } from './types';
 import { TriadAttributes } from '../types/stats';
 import {
@@ -11,6 +11,7 @@ import { isFlankOrRear } from './flanking';
 import { getEffectiveAbility } from './modifiers';
 import { evaluateAttackRollContext } from './attackRoll';
 import { hasBastionRangedCover } from './bastionStance';
+import { resolveAerialVaultLandingHex } from './aerialVault';
 import { RollAdvantage } from './dice';
 
 /**
@@ -135,20 +136,32 @@ export function computeAbilityMetrics(
     return null;
   }
 
-  const obstruction = state.arena.getLineOfSightObstruction(effectiveOrigin, targetCoord, {
-    isUnitScreening: (unitId) =>
-      !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
-  });
+  const isAerialVault = effectiveAbility.effects?.some((e) => e.type === 'AERIAL_VAULT');
+  const projectedLanding = isAerialVault
+    ? resolveAerialVaultLandingHex(state, effectiveOrigin, targetCoord)
+    : undefined;
+  const strikeOrigin = projectedLanding ?? effectiveOrigin;
+
+  const obstruction = isAerialVault
+    ? null
+    : state.arena.getLineOfSightObstruction(effectiveOrigin, targetCoord, {
+        isUnitScreening: (unitId) =>
+          !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
+      });
   const hasLoS = obstruction === null;
   const blockReason = obstruction ? formatLoSObstructionReason(state, obstruction) : undefined;
 
-  // Evaluate secondary splash targets across blast radius
+  // Evaluate secondary splash targets across blast radius / cone area
+  const isCone = Boolean(effectiveAbility.coneTemplate);
   const splashUnits: SplashTargetMetrics[] = [];
-  if ((effectiveAbility.aoeRadius ?? 0) > 0) {
-    const aoeHexes = getHexesInRange(targetCoord, effectiveAbility.aoeRadius!);
+  if ((effectiveAbility.aoeRadius ?? 0) > 0 || isCone) {
+    const splashOrigin = isAerialVault && projectedLanding ? projectedLanding : targetCoord;
+    const aoeHexes = isCone
+      ? getForwardConeHexes(strikeOrigin, getDirectionBetween(strikeOrigin, targetCoord))
+      : getHexesInRange(splashOrigin, effectiveAbility.aoeRadius!);
     const primaryDamageEffect = effectiveAbility.effects?.find((e) => e.type === 'DAMAGE');
     const defaultSplashProfile = primaryDamageEffect?.damageProfile
-      ? { count: primaryDamageEffect.damageProfile.count, sides: primaryDamageEffect.damageProfile.sides }
+      ? { count: primaryDamageEffect.damageProfile.count, sides: primaryDamageEffect.damageProfile.sides, modifierAttribute: primaryDamageEffect.damageProfile.modifierAttribute }
       : undefined;
     const splashProfile = effectiveAbility.splashDamageProfile ?? defaultSplashProfile;
     const splashFlatDamage = effectiveAbility.splashDamageProfile ? 0 : (primaryDamageEffect?.flatDamage ?? 0);
@@ -157,15 +170,18 @@ export function computeAbilityMetrics(
 
     for (const hex of aoeHexes) {
       if (targetCu && hexEquals(hex, targetCoord)) continue;
+      if (projectedLanding && hexEquals(hex, projectedLanding)) continue;
       const secUnitId = state.arena.getUnitAt(hex);
       if (!secUnitId || secUnitId === actorUnitId) continue;
       const secCu = state.units.get(secUnitId);
       if (!secCu || secCu.isDefeated || secCu.currentHp <= 0) continue;
+      const isAlly = (secCu.unit.faction ?? secCu.faction) === (actorCu.unit.faction ?? actorCu.faction);
+      if ((isAerialVault || isCone) && isAlly) continue;
 
-      const secElevDelta = actorElevation - state.arena.getElevation(hex);
+      const secElevDelta = state.arena.getElevation(strikeOrigin) - state.arena.getElevation(hex);
       const splashRollContext = evaluateAttackRollContext(actorCu, secCu, effectiveAbility, {
         state,
-        originCoord: effectiveOrigin,
+        originCoord: strikeOrigin,
         targetCoord: hex,
         elevationDelta: secElevDelta
       });
@@ -183,7 +199,6 @@ export function computeAbilityMetrics(
       const avgBase = sCount * ((sSides + 1) / 2);
       const avgHit = Math.max(1, avgBase + splashAttrMod - splashMitigation);
       const expDmg = Math.round((splashToHit / 100) * avgHit * 10) / 10;
-      const isAlly = (secCu.unit.faction ?? secCu.faction) === (actorCu.unit.faction ?? actorCu.faction);
 
       splashUnits.push({
         targetUnitId: secCu.unit.id,
@@ -211,12 +226,16 @@ export function computeAbilityMetrics(
     const avgHitChance = Math.round(splashUnits.reduce((acc, s) => acc + s.toHitChance, 0) / splashUnits.length);
     const minDmg = splashUnits.length > 0 ? Math.min(...splashUnits.map((s) => s.minDamage)) : 0;
     const maxDmg = splashUnits.length > 0 ? Math.max(...splashUnits.map((s) => s.maxDamage)) : 0;
-    const diceProfile = effectiveAbility.splashDamageProfile;
-    const diceDesc = diceProfile ? `${diceProfile.count}d${diceProfile.sides} (Splash)` : 'AoE Blast';
+    const diceProfile = isCone
+      ? (effectiveAbility.effects?.find((e) => e.type === 'DAMAGE')?.damageProfile ?? effectiveAbility.splashDamageProfile)
+      : effectiveAbility.splashDamageProfile;
+    const diceDesc = isCone
+      ? (diceProfile ? `${diceProfile.count}d${diceProfile.sides} + Focus (Cone Breath)` : 'Cone Breath')
+      : (diceProfile ? `${diceProfile.count}d${diceProfile.sides} (Splash)` : 'AoE Blast');
 
     return {
       targetUnitId: '',
-      targetName: `Ground Blast (${splashUnits.length} targets)`,
+      targetName: isCone ? `Wyrmflame Breath (${splashUnits.length} targets)` : `Ground Blast (${splashUnits.length} targets)`,
       toHitChance: avgHitChance,
       targetDefense: splashUnits[0].targetDefense,
       defenseType: splashUnits[0].defenseType,
@@ -237,7 +256,7 @@ export function computeAbilityMetrics(
   }
 
   // Direct center unit calculations
-  const combatArc = getCombatArc(targetCu.facing, targetCoord, effectiveOrigin);
+  const combatArc = getCombatArc(targetCu.facing, targetCoord, strikeOrigin);
   let isFlankAdvantage = false;
   let bonusDamageProfile = undefined;
 
@@ -267,11 +286,14 @@ export function computeAbilityMetrics(
   const hasTacticalAdvantage = isFlankAdvantage || isChallengedAdvantage || isMomentumAdvantage;
 
   // Evaluate centralized attack roll context
+  const strikeElev = state.arena.getElevation(strikeOrigin);
+  const strikeElevDelta =
+    strikeElev + (actorCu.virtualElevation ?? 0) - (targetElevation + (targetCu.virtualElevation ?? 0));
   const rollContext = evaluateAttackRollContext(actorCu, targetCu, effectiveAbility, {
     state,
-    originCoord: effectiveOrigin,
+    originCoord: strikeOrigin,
     targetCoord,
-    elevationDelta,
+    elevationDelta: strikeElevDelta,
     advantage: hasTacticalAdvantage ? 'ADVANTAGE' : undefined
   });
 
@@ -283,7 +305,20 @@ export function computeAbilityMetrics(
   const toHitChance = Math.round(rollContext.hitProbability * 100);
 
   const damageAttr = diceProfile?.modifierAttribute;
-  const damageModifier = (damageAttr ? actorCu.unit.baseAttributes[damageAttr] : 0) + flatDamage;
+  let damageModifier = (damageAttr ? actorCu.unit.baseAttributes[damageAttr] : 0) + flatDamage;
+
+  const actorVirtual = actorCu.virtualElevation ?? 0;
+  const targetVirtual = targetCu.virtualElevation ?? 0;
+  const actorElev = (effectiveOrigin ? state.arena.getElevation(effectiveOrigin) : 0) + actorVirtual;
+  const targetElev = (targetCoord ? state.arena.getElevation(targetCoord) : 0) + targetVirtual;
+  const elevDelta = actorElev - targetElev;
+  if (elevDelta >= 1 && actorCu.passives) {
+    for (const p of actorCu.passives) {
+      if (p.lowerElevationDamageBonus) {
+        damageModifier += p.lowerElevationDamageBonus;
+      }
+    }
+  }
 
   const bonusCount = bonusDamageProfile?.count ?? 0;
   const bonusSides = bonusDamageProfile?.sides ?? 0;

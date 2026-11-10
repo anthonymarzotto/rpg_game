@@ -5,6 +5,7 @@ import { getEffectiveMove } from './effectiveVitals';
 import { getEffectiveAbility } from './modifiers';
 import { getConditionDefinition } from './conditions';
 import { getBastionZocHexKeys } from './bastionStance';
+import { resolveAerialVaultLandingHex } from './aerialVault';
 import { Arena, LineOfSightObstruction } from '../grid/arena';
 
 /**
@@ -206,7 +207,7 @@ export function canExecuteAbility(
     if (!destTile.isWalkable) {
       return { valid: false, reason: `Destination (${destCoord.q}, ${destCoord.r}) is not walkable.` };
     }
-    const isAoE = (effectiveAbility.aoeRadius ?? 0) > 0;
+    const isAoE = (effectiveAbility.aoeRadius ?? 0) > 0 || Boolean(effectiveAbility.coneTemplate);
     if (!isAoE && destTile.occupiedByUnitId) {
       return { valid: false, reason: `Destination (${destCoord.q}, ${destCoord.r}) is already occupied.` };
     }
@@ -313,12 +314,34 @@ export function canExecuteAbility(
       }
     }
 
-    const obstruction = state.arena.getLineOfSightObstruction(actorCoord, targetCoord, {
-      isUnitScreening: (unitId) =>
-        !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
-    });
-    if (obstruction) {
-      return { valid: false, reason: formatLoSObstructionReason(state, obstruction) };
+    const isLinePierce = effectiveAbility.effects?.some((e) => e.type === 'LINE_PIERCE');
+    if (isLinePierce && dist > 1) {
+      const isStraightLine =
+        actorCoord.q === targetCoord.q ||
+        actorCoord.r === targetCoord.r ||
+        actorCoord.q + actorCoord.r === targetCoord.q + targetCoord.r;
+      if (!isStraightLine) {
+        return { valid: false, reason: `${effectiveAbility.name} must follow a straight hex ray.` };
+      }
+    }
+
+    const isAerialVault = effectiveAbility.effects?.some((e) => e.type === 'AERIAL_VAULT');
+    if (isAerialVault) {
+      if (dist < 2) {
+        return { valid: false, reason: 'Dragon Dive requires at least 2 hexes of diving distance.' };
+      }
+      const landingHex = resolveAerialVaultLandingHex(state, actorCoord, targetCoord);
+      if (!landingHex) {
+        return { valid: false, reason: 'Target is surrounded; no valid landing hex.' };
+      }
+    } else {
+      const obstruction = state.arena.getLineOfSightObstruction(actorCoord, targetCoord, {
+        isUnitScreening: (unitId) =>
+          !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
+      });
+      if (obstruction) {
+        return { valid: false, reason: formatLoSObstructionReason(state, obstruction) };
+      }
     }
   }
 

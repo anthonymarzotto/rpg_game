@@ -21,9 +21,9 @@ describe('2v2 Support Synergy Benchmark', () => {
 
     expect(result.candidateClassId).toBe('knight');
     expect(result.controlClassId).toBe('warrior');
-    expect(result.records.length).toBe(11);
-    // 11 partners * 6 gauntlet teams * 6 trials * 2 teams = 792 matches
-    expect(result.totalMatches).toBe(792);
+    expect(result.records.length).toBe(12);
+    // 12 partners * 6 gauntlet teams * 6 trials * 2 teams = 864 matches
+    expect(result.totalMatches).toBe(864);
 
     // Format ASCII report and display in console
     const asciiReport = formatSupportSynergyReport(result);

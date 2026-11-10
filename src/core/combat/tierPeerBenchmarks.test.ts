@@ -28,6 +28,11 @@ const TIER_3_CLASSES: TierClassInfo[] = [
   { classId: 'witch', name: 'Witch', tier: 3 }
 ];
 
+const TIER_4_CLASSES: TierClassInfo[] = [
+  { classId: 'shield-bearer', name: 'Shield-bearer', tier: 4 },
+  { classId: 'dragoon', name: 'Dragoon', tier: 4 }
+];
+
 function runTierBenchmarks(tierName: string, classes: TierClassInfo[], trials = 25) {
   console.log(`\n================================================================================`);
   console.log(`BENCHMARK SUITE: ${tierName.toUpperCase()} (Trials per matchup: ${trials})`);
@@ -136,5 +141,9 @@ describe('Tier Peer Benchmarks', () => {
 
   it('runs 25 trials for Tier 3 peers', () => {
     runTierBenchmarks('Tier 3', TIER_3_CLASSES, 25);
+  }, 30000);
+
+  it('runs 25 trials for Tier 4 peers', () => {
+    runTierBenchmarks('Tier 4', TIER_4_CLASSES, 25);
   }, 30000);
 });

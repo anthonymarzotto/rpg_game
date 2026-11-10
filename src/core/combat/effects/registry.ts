@@ -14,6 +14,7 @@ import { wildSurgeHandler } from './wildSurgeHandler';
 import { penetrateHandler } from './penetrateHandler';
 import { bloodFrenzyHandler } from './bloodFrenzyHandler';
 import { positionSwapHandler } from './positionSwapHandler';
+import { linePierceHandler } from './linePierceHandler';
 import { CombatEvent } from '../types';
 
 export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
@@ -29,6 +30,7 @@ export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
   STAT_MODIFIER: modifierHandler,
   TELEPORT: teleportHandler,
   CLEAVE: cleaveHandler,
+  LINE_PIERCE: linePierceHandler,
   CTB_DELAY: ctbDelayHandler,
   INITIATIVE_BOOST: initiativeBoostHandler,
   CONDITION: conditionHandler,

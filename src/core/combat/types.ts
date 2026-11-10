@@ -219,6 +219,8 @@ export interface CombatUnit {
   hexesMovedThisTurn?: number;
   /** IDs of abilities executed during the current turn (used by oncePerTurn) */
   abilitiesUsedThisTurn?: string[];
+  /** Virtual elevation bonus (e.g. from Coiled Apex / unspent AP) acting as vantage in combat checks */
+  virtualElevation?: number;
 }
 
 

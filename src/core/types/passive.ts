@@ -104,4 +104,8 @@ export interface PassiveTrait {
   readonly triggerFilter?: {
     readonly damageType?: DamageType;
   };
+  /** If true, grants +1 Virtual Height per unspent AP on turn end (max +2) */
+  readonly unspentApVirtualHeight?: boolean;
+  /** Flat bonus damage when attacking a target at lower elevation (dh >= 1 or Virtual Height) */
+  readonly lowerElevationDamageBonus?: number;
 }

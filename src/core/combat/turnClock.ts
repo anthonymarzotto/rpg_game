@@ -303,6 +303,10 @@ export function endActiveTurn(
   activeCombatUnit.abilitiesUsedThisTurn = undefined;
   activeCombatUnit.hexesMovedThisTurn = 0;
 
+  if (activeCombatUnit.passives?.some((p) => p.unspentApVirtualHeight)) {
+    activeCombatUnit.virtualElevation = Math.min(1, Math.max(0, unspent));
+  }
+
   const nextActive = advanceTurnClock(state);
   state.outcome = evaluateEncounterOutcome(state.objectives, state);
   return nextActive;

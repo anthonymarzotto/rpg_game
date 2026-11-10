@@ -13,6 +13,7 @@ import {
   WITCH_PACKAGE,
   CAT_BURGLAR_PACKAGE,
   SHIELD_BEARER_PACKAGE,
+  DRAGOON_PACKAGE,
   MOMENTUM,
   getClassPackage,
   getAbilityById,
@@ -255,5 +256,38 @@ describe('Class Packages & Catalog Verification', () => {
     expect(getPassiveById('unyielding_stance')).toBeDefined();
     expect(getClassPackage('shield-bearer')).toBe(SHIELD_BEARER_PACKAGE);
     expect(getClassPackage('shieldbearer')).toBe(SHIELD_BEARER_PACKAGE);
+  });
+
+  it('correctly maps Dragoon abilities, passive, and profile', () => {
+    expect(DRAGOON_PACKAGE.classId).toBe('dragoon');
+    expect(DRAGOON_PACKAGE.className).toBe('Dragoon');
+    expect(DRAGOON_PACKAGE.signatureAbility.id).toBe('dragon_dive');
+    expect(DRAGOON_PACKAGE.signatureAbility.apCost).toBe(2);
+    expect(DRAGOON_PACKAGE.signatureAbility.range).toBe(3);
+    expect(DRAGOON_PACKAGE.signatureAbility.effects?.some((e) => e.type === 'AERIAL_VAULT')).toBe(true);
+    expect(DRAGOON_PACKAGE.signatureAbility.splashDamageProfile).toEqual({ count: 1, sides: 4 });
+
+    expect(DRAGOON_PACKAGE.domainAbilities.map((a) => a.id)).toEqual(['piercing_thrust', 'wyrmflame_breath']);
+    const piercingThrust = DRAGOON_PACKAGE.domainAbilities.find((a) => a.id === 'piercing_thrust')!;
+    expect(piercingThrust.archetypeTag).toBe('FIGHTER');
+    expect(piercingThrust.range).toBe(2);
+    expect(piercingThrust.effects?.some((e) => e.type === 'LINE_PIERCE')).toBe(true);
+
+    const wyrmflameBreath = DRAGOON_PACKAGE.domainAbilities.find((a) => a.id === 'wyrmflame_breath')!;
+    expect(wyrmflameBreath.archetypeTag).toBe('MAGE');
+    expect(wyrmflameBreath.range).toBe(2);
+    expect(wyrmflameBreath.coneTemplate).toBe(true);
+    expect(wyrmflameBreath.effects?.some((e) => e.type === 'CONDITION' && e.conditionType === 'BURN')).toBe(true);
+
+    expect(DRAGOON_PACKAGE.passive.id).toBe('coiled_apex');
+    expect(DRAGOON_PACKAGE.passive.unspentApVirtualHeight).toBe(true);
+    expect(DRAGOON_PACKAGE.passive.lowerElevationDamageBonus).toBe(2);
+    expect(DRAGOON_PACKAGE.aiProfile).toBe('BRAWLER');
+
+    expect(getAbilityById('dragon_dive')).toBeDefined();
+    expect(getAbilityById('piercing_thrust')).toBeDefined();
+    expect(getAbilityById('wyrmflame_breath')).toBeDefined();
+    expect(getPassiveById('coiled_apex')).toBeDefined();
+    expect(getClassPackage('dragoon')).toBe(DRAGOON_PACKAGE);
   });
 });

@@ -1,5 +1,5 @@
 import { CombatState, CombatUnit, AbilityResolution } from '../combat/types';
-import { HexCoord, hexDistance, hexEquals, getCombatArc } from '../grid/hex';
+import { HexCoord, hexDistance, hexEquals, getCombatArc, getForwardConeHexes, getDirectionBetween } from '../grid/hex';
 import { getEffectiveMove } from '../combat/effectiveVitals';
 import { getBastionZocHexKeys } from '../combat/bastionStance';
 import { computeAbilityMetrics } from '../combat/targetPreview';
@@ -177,17 +177,25 @@ export function decideNextActionWithTrace(
         });
       }
     } else if (ability.targetType === 'HEX') {
-      if ((ability.aoeRadius ?? 0) > 0) {
+      if ((ability.aoeRadius ?? 0) > 0 || ability.coneTemplate) {
         const rangeHexes = getAbilityRangeCoords(state.arena, currentCoord, ability, cu);
 
         if (ability.damageType !== 'NONE') {
-          // Damaging AoE hex ability (e.g. Arcane Blast)
-          const candHexes = rangeHexes.filter((hex) =>
-            hostileUnits.some((h) => {
+          // Damaging AoE hex ability (e.g. Arcane Blast or Wyrmflame Breath)
+          const candHexes = rangeHexes.filter((hex) => {
+            if (ability.coneTemplate) {
+              const facing = getDirectionBetween(currentCoord, hex);
+              const cone = getForwardConeHexes(currentCoord, facing);
+              return hostileUnits.some((h) => {
+                const hPos = state.arena.getUnitPosition(h.unit.id);
+                return hPos && cone.some((c) => hexEquals(c, hPos));
+              });
+            }
+            return hostileUnits.some((h) => {
               const hPos = state.arena.getUnitPosition(h.unit.id);
               return hPos && hexDistance(hex, hPos) <= ability.aoeRadius!;
-            })
-          );
+            });
+          });
 
           for (const candHex of candHexes) {
             const val = canExecuteAbility(state, actorUnitId, ability, { coord: candHex });

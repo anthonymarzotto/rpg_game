@@ -16,6 +16,7 @@ export interface DamageResult {
 
 export interface DamageOptions {
   readonly hasRangedCover?: boolean;
+  readonly elevationDelta?: number;
 }
 
 /**
@@ -86,6 +87,10 @@ export function resolveDamage(
             flatBonus += passive.targetForceBonus.flatDamageBonus;
           }
         }
+      }
+
+      if (passive.lowerElevationDamageBonus && options?.elevationDelta !== undefined && options.elevationDelta >= 1) {
+        flatBonus += passive.lowerElevationDamageBonus;
       }
     }
   }

@@ -52,7 +52,8 @@ export function ExpeditionWarRoom({
             type="button"
             className="reroll-trial-btn font-ui"
             onClick={onRerollEncounter}
-            title="Re-scry sector to reveal a different hostile layout"
+            title="Re-roll Trial: Re-scry sector to reveal a different hostile layout"
+            aria-label="Re-roll Trial"
             data-testid="reroll-trial-btn"
           >
             ⟳

@@ -91,6 +91,26 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       );
     });
 
+    it('resolves dragoon (07_human_male) to pixel idle rotation paths', () => {
+      const dragoon = createMockUnit({
+        gender: 'male',
+        race: 'human',
+        loadout: {
+          activeClassId: 'dragoon',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        }
+      });
+
+      expect(resolvePixelTokenBase(dragoon)).toBe('07_human_male');
+      expect(resolveTokenAssetPath(dragoon, HEX_DIRECTIONS.EAST)).toBe(
+        '/assets/tokens/pixel/07_human_male/Idle/rotations/east.png'
+      );
+      expect(resolveTokenAssetPath(dragoon, HEX_DIRECTIONS.SOUTHWEST)).toBe(
+        '/assets/tokens/pixel/07_human_male/Idle/rotations/south-west.png'
+      );
+    });
+
     it('resolves thief (81_human_male) to pixel idle rotation paths', () => {
       const thief = createMockUnit({
         gender: 'male',
@@ -395,9 +415,10 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       expect(getClassBadgePalette('novice')).toEqual(CLASS_BADGE_PALETTES.novice);
     });
 
-    it('returns dedicated palette colors for Tier 4 Shield-bearer', () => {
+    it('returns dedicated palette colors for Tier 4 Shield-bearer and Dragoon', () => {
       expect(getClassBadgePalette('shield-bearer')).toEqual({ primary: '#334155', border: '#10b981' });
       expect(getClassBadgePalette('shieldbearer')).toEqual({ primary: '#334155', border: '#10b981' });
+      expect(getClassBadgePalette('dragoon')).toEqual({ primary: '#312e81', border: '#e11d48' });
     });
 
     it('handles case-insensitivity and falls back to novice palette for unknown or undefined classes', () => {

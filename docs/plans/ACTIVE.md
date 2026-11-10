@@ -5,6 +5,11 @@
 ---
 
 ## 🔨 In Progress
+- [x] **3.2: Dragoon Class Kit & Token Integration**:
+  - OpenSpec change: `tier-4-dragoon`.
+  - Class package: Signature `Dragon Dive`, domain abilities `Piercing Thrust` and `Wyrmflame Breath`, passive `Coiled Apex`.
+  - Visual identity: Badge palette (Deep Dragon Violet / Radiant Crimson) and token whitelist (`07_human_male`).
+  - AI heuristics: `BRAWLER` profile with high-offensive dive priority.
 - [x] **3.1: Shield-bearer Class Kit & Token Integration**:
   - OpenSpec change: `tier-4-shield-bearer`.
   - Class package: Signature `Bastion Plant`, domain abilities `Intercept Step` and `Concussive Slam`, passive `Unyielding Stance`.
@@ -27,7 +32,6 @@
 
 ### 3. Tier 4 Class Kits & Token Integration
 Sketch and author class package (signature ability, 2 domain abilities, passive trait, AI heuristic profile, and badge palette) and whitelist tokens for the following new classes:
-- [ ] **3.2**: **Dragoon** (`#07`, Tier 4: `3F, 0R, 1M`), `07_human_male`.
 - [ ] **3.3**: **Ballistician** (`#65`, Tier 4: `1F, 3R, 0M`), `65_human_male`.
 - [ ] **3.4**: **Philanderer** (`#84`, Tier 4: `0F, 3R, 1M`), `84_human_male`.
 - [ ] **3.5**: **Theurge** (`#79`, Tier 4: `1F, 0R, 3M`), `79_human_male`.

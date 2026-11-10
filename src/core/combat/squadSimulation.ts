@@ -21,7 +21,8 @@ export const ALL_AUTHORED_CLASS_IDS = [
   'cat-burglar',
   'warlock',
   'witch',
-  'shield-bearer'
+  'shield-bearer',
+  'dragoon'
 ] as const;
 
 export type AuthoredClassId = typeof ALL_AUTHORED_CLASS_IDS[number];
@@ -86,6 +87,10 @@ export const DEFAULT_CLASS_RESONANT_LOADOUTS: Readonly<Record<string, ResonantLo
   },
   'shield-bearer': {
     wildcardAbilityIds: ['brace', 'shield_bash'],
+    wildcardPassiveIds: ['momentum']
+  },
+  dragoon: {
+    wildcardAbilityIds: ['power_strike', 'spark'],
     wildcardPassiveIds: ['momentum']
   }
 };

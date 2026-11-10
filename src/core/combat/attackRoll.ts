@@ -223,16 +223,22 @@ export function evaluateAttackRollContext(
     }
   }
 
-  // 3. Elevation modifier (computed from coordinates or explicit elevationDelta)
+  // 3. Elevation modifier (computed from coordinates or explicit elevationDelta, factored with virtual elevation)
+  const actorVirtual = actorCu.virtualElevation ?? 0;
+  const targetVirtual = targetCu.virtualElevation ?? 0;
   let elevationDelta = options?.elevationDelta;
   if (elevationDelta === undefined && options?.state) {
     const effectiveOrigin = options.originCoord ?? options.state.arena.getUnitPosition(actorCu.unit.id);
     const effectiveTarget = options.targetCoord ?? options.state.arena.getUnitPosition(targetCu.unit.id);
     if (effectiveOrigin && effectiveTarget) {
-      const actorElevation = options.state.arena.getElevation(effectiveOrigin);
-      const targetElevation = options.state.arena.getElevation(effectiveTarget);
+      const actorElevation = options.state.arena.getElevation(effectiveOrigin) + actorVirtual;
+      const targetElevation = options.state.arena.getElevation(effectiveTarget) + targetVirtual;
       elevationDelta = actorElevation - targetElevation;
     }
+  } else if (elevationDelta !== undefined) {
+    elevationDelta += (actorVirtual - targetVirtual);
+  } else if (actorVirtual !== 0 || targetVirtual !== 0) {
+    elevationDelta = actorVirtual - targetVirtual;
   }
 
   if (elevationDelta !== undefined && elevationDelta !== 0) {

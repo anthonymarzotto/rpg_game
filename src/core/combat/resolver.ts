@@ -7,7 +7,8 @@ import {
   hexEquals,
   hexDistance,
   getDirectionBetween,
-  getHexLine
+  getHexLine,
+  getForwardConeHexes
 } from '../grid/hex';
 import { Arena, calculateRawFallDamage } from '../grid/arena';
 import { Ability, AbilityEffect, ConditionType } from '../types/ability';
@@ -39,6 +40,7 @@ import { PassiveTriggerHook } from '../types/passive';
 import { evaluateTargetAuras } from './auras';
 import { getConditionDefinition, evaluateFrontArcDetection } from './conditions';
 import { getBastionZocHexKeys, evaluateZoneOfControl, hasBastionRangedCover } from './bastionStance';
+import { resolveAerialVaultLandingHex } from './aerialVault';
 import { applyConditionToUnit } from './effects/conditionHandler';
 import { combatLogger } from './combatLogger';
 
@@ -885,6 +887,30 @@ export function executeAbility(
     }
   }
 
+  // AERIAL_VAULT leap to rear arc (Far Hex) or Near Hex fallback
+  const vaultEffect = effectiveAbility.effects?.find((e) => e.type === 'AERIAL_VAULT');
+  if (vaultEffect && targetCu) {
+    const actorPos = state.arena.getUnitPosition(actorUnitId);
+    const targetPos = state.arena.getUnitPosition(targetCu.unit.id);
+    if (actorPos && targetPos) {
+      const landingHex = resolveAerialVaultLandingHex(state, actorPos, targetPos);
+      if (landingHex) {
+        state.arena.setUnitPosition(actorUnitId, landingHex);
+        attackOriginCoord = landingHex;
+        const vaultDist = hexDistance(actorPos, landingHex);
+        actorCu.hexesMovedThisTurn = (actorCu.hexesMovedThisTurn ?? 0) + vaultDist;
+        actorCu.facing = getDirectionBetween(landingHex, targetPos);
+        events.push({
+          type: 'DISPLACEMENT',
+          unitId: actorUnitId,
+          fromCoord: actorPos,
+          toCoord: landingHex,
+          kind: 'CHARGE'
+        });
+      }
+    }
+  }
+
   // Tactical condition evaluation (e.g. Sneak Attack)
   let rollAdvantage: RollAdvantage = 'NORMAL';
   let bonusDamageProfile = undefined;
@@ -926,8 +952,8 @@ export function executeAbility(
   const targetPos = targetCu
     ? state.arena.getUnitPosition(targetCu.unit.id)
     : targetCoord;
-  const actorElevation = attackOriginCoord ? state.arena.getElevation(attackOriginCoord) : 0;
-  const targetElevation = targetPos ? state.arena.getElevation(targetPos) : 0;
+  const actorElevation = (attackOriginCoord ? state.arena.getElevation(attackOriginCoord) : 0) + (actorCu.virtualElevation ?? 0);
+  const targetElevation = (targetPos ? state.arena.getElevation(targetPos) : 0) + (targetCu?.virtualElevation ?? 0);
   const elevationDelta = actorElevation - targetElevation;
   const elevMod = calculateElevationAttackModifier(
     actorCu,
@@ -1010,7 +1036,7 @@ export function executeAbility(
       diceRoller,
       bonusDamageProfile,
       undefined,
-      { hasRangedCover }
+      { hasRangedCover, elevationDelta }
     );
 
     if (damageResult.damageDealt > 0) {
@@ -1026,17 +1052,28 @@ export function executeAbility(
     }
   }
 
-  // Secondary AoE Splash Resolution
+  // Secondary AoE Splash / Cone Resolution
+  const isCone = Boolean(effectiveAbility.coneTemplate);
   const splashLogDetails: string[] = [];
-  const splashLabel = effectiveAbility.splashLabel ?? 'SPLASH';
-  if (effectiveAbility.aoeRadius && effectiveAbility.aoeRadius > 0 && targetCoord) {
-    const aoeHexes = getHexesInRange(targetCoord, effectiveAbility.aoeRadius);
+  const splashLabel = effectiveAbility.splashLabel ?? (isCone ? 'BREATH' : 'SPLASH');
+  const splashOrigin = vaultEffect ? attackOriginCoord : targetCoord;
+  const aoeHexes = isCone && actorCoord && actorCu.facing !== undefined
+    ? getForwardConeHexes(actorCoord, actorCu.facing)
+    : (effectiveAbility.aoeRadius && effectiveAbility.aoeRadius > 0 && splashOrigin
+        ? getHexesInRange(splashOrigin, effectiveAbility.aoeRadius)
+        : []);
+
+  if (aoeHexes.length > 0) {
     for (const hex of aoeHexes) {
-      if (targetCu && hexEquals(hex, targetCoord)) continue;
+      if (targetCu && targetCoord && hexEquals(hex, targetCoord)) continue;
+      if (attackOriginCoord && hexEquals(hex, attackOriginCoord)) continue;
       const secondaryUnitId = state.arena.getUnitAt(hex);
       if (secondaryUnitId && secondaryUnitId !== actorCu.unit.id) {
         const splashCu = state.units.get(secondaryUnitId);
         if (splashCu && !splashCu.isDefeated && splashCu.currentHp > 0) {
+          if ((vaultEffect || isCone) && actorCu.faction && splashCu.faction && actorCu.faction === splashCu.faction) {
+            continue;
+          }
           // Secondary unit contests the spellcast attack roll against their defense
           const splashDefense =
             effectiveAbility.defenseTarget === 'EVASION'
@@ -1053,7 +1090,7 @@ export function executeAbility(
           if (splashOutcome !== 'MISS') {
             const primaryDamageEffect = effectiveAbility.effects?.find((e) => e.type === 'DAMAGE');
             const defaultSplashProfile = primaryDamageEffect?.damageProfile
-              ? { count: primaryDamageEffect.damageProfile.count, sides: primaryDamageEffect.damageProfile.sides }
+              ? { count: primaryDamageEffect.damageProfile.count, sides: primaryDamageEffect.damageProfile.sides, modifierAttribute: primaryDamageEffect.damageProfile.modifierAttribute }
               : undefined;
             const splashProfile = effectiveAbility.splashDamageProfile ?? defaultSplashProfile;
             const splashEffect: AbilityEffect = {
@@ -1087,6 +1124,21 @@ export function executeAbility(
               splashLogDetails.push(
                 `${splashCu.unit.name} for ${splashDmg.damageDealt} ${damageType.toLowerCase()} damage [${splashOutcome === 'GRAZE' ? 'Graze ' : ''}vs DC ${splashDefense}] (HP: ${remainingHp}/${splashCu.unit.effectiveVitals.maxHp})`
               );
+            }
+
+            if (isCone) {
+              for (const eff of effectiveAbility.effects ?? []) {
+                if (eff.type === 'CONDITION' && eff.conditionType) {
+                  const condRes = applyConditionToUnit(
+                    splashCu,
+                    eff.conditionType,
+                    eff.durationTurns ?? 2,
+                    actorCu.unit.id,
+                    eff.magnitude
+                  );
+                  events.push(condRes.event);
+                }
+              }
             }
           } else {
             splashLogDetails.push(`${splashCu.unit.name} resisted [Miss vs DC ${splashDefense}]`);
@@ -1291,7 +1343,7 @@ export function executeAbility(
     modifierBreakdown: rollResult.modifierBreakdown
   };
 
-  return {
+  const resolution: AbilityResolution = {
     type: 'ATTACK',
     details: {
       hitOutcome: finalHitOutcome,
@@ -1311,5 +1363,12 @@ export function executeAbility(
       diceBreakdown
     }
   };
+
+  // Consume actor's virtual elevation after completing attack resolution
+  if (actorCu.virtualElevation) {
+    actorCu.virtualElevation = undefined;
+  }
+
+  return resolution;
 }
 

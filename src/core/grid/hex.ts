@@ -313,3 +313,17 @@ export function getHexRaySteps(from: HexCoord, to: HexCoord): HexRayStep[] {
 
   return steps;
 }
+
+/**
+ * Computes the 4 forward cone hexes for directional breath attacks:
+ * 1 apex hex at distance 1 along facing, and 3 fan hexes at distance 2.
+ */
+export function getForwardConeHexes(origin: HexCoord, facing: HexDirection): HexCoord[] {
+  const apex = getHexNeighbor(origin, facing);
+  const leftDir = ((facing + 1) % 6) as HexDirection;
+  const rightDir = ((facing + 5) % 6) as HexDirection;
+  const fanLeft = getHexNeighbor(apex, leftDir);
+  const fanCenter = getHexNeighbor(apex, facing);
+  const fanRight = getHexNeighbor(apex, rightDir);
+  return [apex, fanLeft, fanCenter, fanRight];
+}
