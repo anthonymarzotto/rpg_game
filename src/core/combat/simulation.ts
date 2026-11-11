@@ -14,6 +14,8 @@ export interface SimulationCombatantConfig {
   readonly name?: string;
   readonly classId: string;
   readonly level?: number;
+  readonly normalizedLevel?: number;
+  readonly rng?: () => number;
   readonly baseAttributes?: Partial<TriadAttributes>;
   readonly wildcardAbilityIds?: readonly string[];
   readonly wildcardPassiveIds?: readonly string[];
@@ -65,8 +67,51 @@ export interface SimulationResult {
 }
 
 /**
+ * Computes archetype-weighted attribute distribution for a normalized combatant at a target level.
+ * Guarantees minimum class requirements are met, then distributes remaining points randomly
+ * among the class's non-zero requirement archetypes.
+ */
+export function computeNormalizedAttributes(
+  classId: string,
+  targetLevel = 4,
+  rng?: () => number
+): TriadAttributes {
+  const classDef = CLASS_CATALOG.find((c) => c.id === classId);
+  const req = classDef?.requirements ?? { fighter: 1, rogue: 0, mage: 0 };
+
+  const baseForce = req.fighter;
+  const baseFinesse = req.rogue;
+  const baseFocus = req.mage;
+  const currentTotal = baseForce + baseFinesse + baseFocus;
+  const remaining = Math.max(0, targetLevel - currentTotal);
+
+  const eligible: ('force' | 'finesse' | 'focus')[] = [];
+  if (baseForce > 0) eligible.push('force');
+  if (baseFinesse > 0) eligible.push('finesse');
+  if (baseFocus > 0) eligible.push('focus');
+
+  if (eligible.length === 0) {
+    eligible.push('force');
+  }
+
+  let force = baseForce;
+  let finesse = baseFinesse;
+  let focus = baseFocus;
+
+  for (let i = 0; i < remaining; i++) {
+    const pick = rng ? eligible[Math.floor(rng() * eligible.length)] : eligible[0];
+    if (pick === 'force') force += 1;
+    else if (pick === 'finesse') finesse += 1;
+    else focus += 1;
+  }
+
+  return { force, finesse, focus };
+}
+
+/**
  * Creates a fully initialized combatant Unit configured for automated simulations.
- * Automatically derives standard base attributes from class requirements if not explicitly specified.
+ * Automatically derives standard base attributes from class requirements if not explicitly specified,
+ * or scales attributes and vitals to a normalized level when normalizedLevel is set.
  */
 export function createSimulatedCombatant(
   config: SimulationCombatantConfig,
@@ -76,11 +121,15 @@ export function createSimulatedCombatant(
   const classDef = CLASS_CATALOG.find((c) => c.id === config.classId);
   const id = config.id ?? `${config.classId}-${suffix}`;
   const name = config.name ?? classDef?.name ?? config.classId;
-  const level = config.level ?? (classDef?.totalPoints ?? 3);
+  const level = config.normalizedLevel ?? config.level ?? (classDef?.totalPoints ?? 3);
 
-  const defaultForce = classDef?.requirements.fighter ?? 1;
-  const defaultFinesse = classDef?.requirements.rogue ?? 0;
-  const defaultFocus = classDef?.requirements.mage ?? 0;
+  const normalizedAttrs = config.normalizedLevel !== undefined
+    ? computeNormalizedAttributes(config.classId, config.normalizedLevel, config.rng)
+    : undefined;
+
+  const defaultForce = normalizedAttrs?.force ?? classDef?.requirements.fighter ?? 1;
+  const defaultFinesse = normalizedAttrs?.finesse ?? classDef?.requirements.rogue ?? 0;
+  const defaultFocus = normalizedAttrs?.focus ?? classDef?.requirements.mage ?? 0;
 
   const baseAttributes: TriadAttributes = {
     force: config.baseAttributes?.force ?? defaultForce,

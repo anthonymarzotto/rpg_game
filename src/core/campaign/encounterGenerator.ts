@@ -22,6 +22,7 @@ import { assignEnemyTitles } from '../../data/names';
 export type EnemyTier1Class = 'warrior' | 'thief' | 'wizard';
 export type EnemyTier2Class = 'knight' | 'infiltrator' | 'sorcerer';
 export type EnemyTier3Class = 'cavalier' | 'berserker' | 'highwayman' | 'warlock' | 'witch' | 'cat-burglar';
+export type EnemyTier4Class = 'shield-bearer' | 'dragoon';
 
 export const TIER1_CLASSES: readonly EnemyTier1Class[] = ['warrior', 'thief', 'wizard'];
 export const TIER2_CLASSES: readonly EnemyTier2Class[] = ['knight', 'infiltrator', 'sorcerer'];
@@ -33,13 +34,14 @@ export const TIER3_CLASSES: readonly EnemyTier3Class[] = [
   'witch',
   'cat-burglar'
 ];
+export const TIER4_CLASSES: readonly EnemyTier4Class[] = ['shield-bearer', 'dragoon'];
 
 /**
- * Creates an enemy combatant using core class archetypes (Novice, Tier 1, Tier 2, or Tier 3).
+ * Creates an enemy combatant using core class archetypes (Novice, Tier 1, Tier 2, Tier 3, or Tier 4).
  */
 export function createEnemyUnit(
   id: string,
-  classId: 'novice' | EnemyTier1Class | EnemyTier2Class | EnemyTier3Class,
+  classId: 'novice' | EnemyTier1Class | EnemyTier2Class | EnemyTier3Class | EnemyTier4Class,
   rng?: () => number,
   customName?: string
 ): Unit {
@@ -158,13 +160,33 @@ export function assembleEnemySquad(
   const squad: Unit[] = [];
   let unitIndex = 1;
 
-  // For Stage 5+, allow Tier-3 enemies (Cavalier, Berserker, Highwayman, Warlock, Witch, Cat Burglar) if budget allows (55 threat)
+  // For Stage 5+, allow Tier-4 enemies (Shield-bearer, Dragoon) if budget allows (70 threat)
+  // Limit to at most 1 Tier-4 anchor unless budget is very large (>= 210) to preserve 4-5 unit squad pacing
+  const maxTier4 = budget >= 210 ? 2 : 1;
+  let tier4Count = 0;
   if (stage >= 5) {
-    while (remaining >= 55) {
-      if (squad.length === 0 || rng() < 0.75 || remaining === 55) {
+    while (remaining >= 70 && tier4Count < maxTier4) {
+      if (rng() < 0.5 || remaining === 70) {
+        const classPick = TIER4_CLASSES[Math.floor(rng() * TIER4_CLASSES.length)];
+        squad.push(createEnemyUnit(`enemy-${unitIndex++}`, classPick, rng));
+        remaining -= 70;
+        tier4Count++;
+      } else {
+        break;
+      }
+    }
+  }
+
+  // For Stage 5+, allow Tier-3 enemies (Cavalier, Berserker, Highwayman, Warlock, Witch, Cat Burglar) if budget allows (55 threat)
+  const maxTier3 = budget >= 160 ? 2 : 1;
+  let tier3Count = 0;
+  if (stage >= 5) {
+    while (remaining >= 55 && tier3Count < maxTier3) {
+      if (rng() < 0.6 || remaining === 55) {
         const classPick = TIER3_CLASSES[Math.floor(rng() * TIER3_CLASSES.length)];
         squad.push(createEnemyUnit(`enemy-${unitIndex++}`, classPick, rng));
         remaining -= 55;
+        tier3Count++;
       } else {
         break;
       }

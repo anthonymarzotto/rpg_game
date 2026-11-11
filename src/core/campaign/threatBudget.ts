@@ -46,14 +46,16 @@ export function getStageDeploymentBudget(stage: number): number {
  * - Stage 1: +0 pts (Parity 3v3 recruit trial, 30 pts)
  * - Stage 2: +25 pts (Tier 1 bonus, 105 pts)
  * - Stage 3-4: +40 pts (Tier 2 bonus, 160 / 200 pts)
- * - Stage 5+: +55 pts (Tier 3 bonus, 255+ pts)
+ * - Stage 5: +55 pts (Tier 3 bonus, 255 pts)
+ * - Stage 6+: +70 pts (Tier 4 bonus, 290+ pts)
  */
 export function getStageHostileBonusThreat(stage: number): number {
   const safeStage = Math.max(1, stage);
   if (safeStage === 1) return 0;
   if (safeStage === 2) return 25;
   if (safeStage <= 4) return 40;
-  return 55;
+  if (safeStage === 5) return 55;
+  return 70;
 }
 
 

@@ -25,6 +25,11 @@
   - OpenSpec change: `stage-anchored-threat-and-reroll`.
   - Fix trial threat runaway (475 pts vs 220 pt vanguard cap) by anchoring enemy encounter threat directly to stage deployment budget plus one highest-tier hostile bonus.
   - Add "Re-roll Trial" / "Astral Re-scry" control in Expedition War Room using `regenerateCurrentStageEncounter`.
+- [x] **B.18 / Balance: Normalized Combat Parity Benchmarking & Tier-4 Threat Encounters**:
+  - OpenSpec change: `normalized-balance-and-threat-playtests`.
+  - Architecture: Normalized Level-4 3v3 simulation harness with archetype-weighted attribute distribution to evaluate pure kit and action economy balance.
+  - Encounter Generation: Support Tier-4 adversaries (Shield-bearer, Dragoon, 70 threat) in `assembleEnemySquad()` for high-threat stages.
+  - Playtest: 150-threat trial playtest suite simulating 4-5 unit squads vs standard player vanguards.
 
 ---
 

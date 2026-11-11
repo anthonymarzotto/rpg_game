@@ -102,4 +102,5 @@ Broad mechanical concepts to prototype and evaluate after the core run loop is e
 * **Wayfarer Aging & Mortality**: Units aging after each skirmish, progressing through age brackets with changing stat modifiers, and eventually retiring into Constellation legends.
 * **Stat tracking**: Track stats per unit. Things like: total damage, damage per skill, hits, misses, grazes, crits, hexes moved, damage soaked, etc.
 * **Achievements per unit to unlock titles**: >100 kills, >x soaked damage, >x soaked damage on allies, >x damage done, >x times in battle with lower level allies, etc.
+* **Progression & Shard Balance Simulation**: Automated headless simulation harness testing Wayfarer stat progression curves across Levels 1–9, and systematically measuring how socketed Augment Shards (e.g. Bloodbound Shard, Kinetic Shards, Ward Batteries) scale ability damage, time-to-kill (TTK), and class balance across long campaign runs.
 

@@ -259,12 +259,16 @@ export function computeAbilityMetrics(
   const combatArc = getCombatArc(targetCu.facing, targetCoord, strikeOrigin);
   let isFlankAdvantage = false;
   let bonusDamageProfile = undefined;
+  let conditionalRollBonus = 0;
 
   const flankEffect = effectiveAbility.effects?.find((e) => e.condition === 'FLANK_OR_REAR');
   if (flankEffect) {
     // Check if attacker arc is Flank/Rear or if an allied pincer exists
     if (combatArc === 'FLANK' || combatArc === 'REAR' || isFlankOrRear(state, actorUnitId, targetCu.unit.id)) {
       isFlankAdvantage = Boolean(flankEffect.grantsAdvantage);
+      if (flankEffect.attackRollBonus) {
+        conditionalRollBonus += flankEffect.attackRollBonus;
+      }
       bonusDamageProfile = flankEffect.bonusDamage;
     }
   }
@@ -275,6 +279,9 @@ export function computeAbilityMetrics(
     const isTargetChallenged = targetCu.activeConditions?.some((c) => c.type === 'CHALLENGED');
     if (isTargetChallenged) {
       isChallengedAdvantage = Boolean(challengedEffect.grantsAdvantage);
+      if (challengedEffect.attackRollBonus) {
+        conditionalRollBonus += challengedEffect.attackRollBonus;
+      }
       bonusDamageProfile = challengedEffect.bonusDamage;
     }
   }
@@ -294,6 +301,7 @@ export function computeAbilityMetrics(
     originCoord: strikeOrigin,
     targetCoord,
     elevationDelta: strikeElevDelta,
+    rollBonus: conditionalRollBonus,
     advantage: hasTacticalAdvantage ? 'ADVANTAGE' : undefined
   });
 

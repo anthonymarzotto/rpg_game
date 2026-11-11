@@ -2,6 +2,14 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.16.0] - 2026-11-10
+
+### Tier 4 Adversaries in Late Campaign Trials
+- **High-Threat Adversaries**: Hostile enemy squads in mid-to-late campaign trials (Stage 5 and beyond) can now feature formidable Tier 4 adversaries, including soaring Dragoons and fortified Shield-bearers.
+- **Dynamic Encounter Pacing**: High-threat sector trials assemble diverse 4-to-5 unit hostile formations anchored by elite adversaries backed by nimble skirmishers and support units, providing dynamic tactical challenges without overwhelming swarm sizes.
+- **Combat Parity Tuning**: Rebalanced combat statistics and damage scaling across class tiers to ensure starter and mid-tier classes remain competitive and viable choices alongside advanced specializations throughout your expedition.
+- **Knight Tactical Duel Synergy**: The Knight's concussive *Pommel Strike* now gains a +2 attack roll bonus when striking Challenged targets, reliably punishing adversaries who answer the commander's taunt.
+
 ## [0.15.0] - 2026-11-10
 
 ### Tier 4 Dragoon & Aerial Vaulting

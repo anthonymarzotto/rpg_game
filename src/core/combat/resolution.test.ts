@@ -17,6 +17,7 @@ import {
   SNEAK_ATTACK,
   ARCANE_BLAST
 } from '../../data/abilities';
+import { POMMEL_STRIKE } from '../../data/packages/knight';
 import { CombatEvent } from './types';
 import { Ability } from '../types/ability';
 
@@ -865,6 +866,39 @@ describe('Attack & Ability Resolution Outcomes', () => {
         // 4 (1d6) + 3 (1d4) + 2 (force) - 0 (armor) = 9
         expect(result.details.damageDealt).toBe(9);
         expect(result.details.damageBreakdown).toContain('1d6+1d4');
+      }
+    });
+
+    it('applies +2 attack roll bonus and bonus damage for Pommel Strike when target is CHALLENGED', () => {
+      const arena = createRadialArena(3);
+      const knight = createRecruit('knight', 'Knight');
+      (knight as any).baseAttributes = { force: 3, finesse: 0, focus: 0 };
+      const enemy = createRecruit('enemy', 'Enemy');
+      (enemy as any).effectiveVitals = { ...enemy.effectiveVitals, evasion: 12 };
+
+      arena.setUnitPosition('knight', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [knight, enemy], 'knight');
+      const enemyCu = state.units.get('enemy')!;
+      enemyCu.activeConditions.push({
+        type: 'CHALLENGED',
+        durationTurns: 2,
+        sourceUnitId: 'knight'
+      });
+
+      // Target Evasion = 12.
+      // Knight has Finesse = 0.
+      // With +2 attackRollBonus vs Challenged: total score = d20 (10) + 0 (finesse) + 2 (bonus) = 12 (Solid Hit!).
+      // Without bonus: total score would be 10 -> Graze (since 10 < 12).
+      const dice = new MockDiceRoller({ d20Rolls: [10], damageRolls: [3, 2] });
+      const result = executeAbility(state, 'knight', POMMEL_STRIKE, { targetUnitId: 'enemy' }, dice);
+
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        expect(result.details.hitOutcome).toBe('SOLID_HIT');
+        // 3 (1d4 base) + 2 (1d4 challenged) + 3 (force) = 8 damage
+        expect(result.details.damageDealt).toBe(8);
       }
     });
   });

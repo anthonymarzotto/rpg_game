@@ -52,6 +52,7 @@ describe('Class Packages & Catalog Verification', () => {
     const challengeEffect = pommelStrike?.effects?.find((e) => e.condition === 'TARGET_CHALLENGED');
     expect(challengeEffect).toBeDefined();
     expect(challengeEffect?.bonusDamage).toEqual({ count: 1, sides: 4 });
+    expect(challengeEffect?.attackRollBonus).toBe(2);
     expect(KNIGHT_PACKAGE.passive.id).toBe('tactical_vanguard');
     expect(KNIGHT_PACKAGE.passive.hook).toBe('BATTLE_START');
   });

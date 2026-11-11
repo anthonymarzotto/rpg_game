@@ -915,12 +915,17 @@ export function executeAbility(
   let rollAdvantage: RollAdvantage = 'NORMAL';
   let bonusDamageProfile = undefined;
 
+  let conditionalRollBonus = 0;
+
   const flankEffect = effectiveAbility.effects?.find((e) => e.condition === 'FLANK_OR_REAR');
   if (flankEffect && targetCu) {
     const isFlanked = isFlankOrRear(state, actorUnitId, targetCu.unit.id);
     if (isFlanked) {
       if (Boolean(flankEffect.grantsAdvantage)) {
         rollAdvantage = 'ADVANTAGE';
+      }
+      if (flankEffect.attackRollBonus) {
+        conditionalRollBonus += flankEffect.attackRollBonus;
       }
       bonusDamageProfile = flankEffect.bonusDamage;
     }
@@ -932,6 +937,9 @@ export function executeAbility(
     if (isTargetChallenged) {
       if (Boolean(challengedEffect.grantsAdvantage)) {
         rollAdvantage = 'ADVANTAGE';
+      }
+      if (challengedEffect.attackRollBonus) {
+        conditionalRollBonus += challengedEffect.attackRollBonus;
       }
       bonusDamageProfile = challengedEffect.bonusDamage;
     }
@@ -965,6 +973,7 @@ export function executeAbility(
   if (targetCu) {
     rollResult = resolveAttackRoll(actorCu, targetCu, effectiveAbility, diceRoller, {
       advantage: rollAdvantage,
+      rollBonus: conditionalRollBonus,
       rollPenalty: auraEval.attackRollPenalty,
       elevationDelta
     });

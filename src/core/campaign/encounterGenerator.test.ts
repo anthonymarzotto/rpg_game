@@ -400,6 +400,32 @@ describe('Procedural Encounter Generator', () => {
         expect(enemiesStandard[i].unit.name).toBe(enemiesProjected[i].unit.name);
       }
     });
+
+    it('generates Tier-4 enemy units (shield-bearer, dragoon) with Level-4 progression and vitals', () => {
+      const shieldBearer = createEnemyUnit('sb-1', 'shield-bearer');
+      expect(shieldBearer.progression.currentLevel).toBe(4);
+      expect(shieldBearer.effectiveVitals.maxHp).toBe(32);
+      expect(shieldBearer.loadout?.activeClassId).toBe('shield-bearer');
+      expect(shieldBearer.progression.constellation).toContain('shield-bearer');
+
+      const dragoon = createEnemyUnit('dg-1', 'dragoon');
+      expect(dragoon.progression.currentLevel).toBe(4);
+      expect(dragoon.effectiveVitals.maxHp).toBe(32);
+      expect(dragoon.loadout?.activeClassId).toBe('dragoon');
+      expect(dragoon.progression.constellation).toContain('dragoon');
+    });
+
+    it('incorporates Tier-4 enemies in squad assembly when budget allows (70+ threat, stage 5+)', () => {
+      // 140 threat budget at stage 5: can draft 2x Tier 4 (70 + 70 = 140)
+      const rngDeterministic = () => 0.1; // favors drafting Tier 4
+      const squad = assembleEnemySquad(140, 5, rngDeterministic);
+
+      expect(squad.length).toBeGreaterThanOrEqual(2);
+      const hasTier4 = squad.some(
+        (u) => u.loadout?.activeClassId === 'shield-bearer' || u.loadout?.activeClassId === 'dragoon'
+      );
+      expect(hasTier4).toBe(true);
+    });
   });
 });
 

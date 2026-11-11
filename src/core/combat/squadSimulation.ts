@@ -168,6 +168,7 @@ export interface SquadSimulationOptions {
   readonly enableElevationTopography?: boolean;
   readonly enableResonantLoadouts?: boolean;
   readonly customResonantLoadouts?: Record<string, ResonantLoadoutConfig>;
+  readonly normalizedLevel?: number;
 }
 
 export interface SquadSimulationResult {
@@ -298,6 +299,8 @@ export function runSquadSimulation(options?: SquadSimulationOptions): SquadSimul
       const unit = createSimulatedCombatant(
         {
           classId,
+          normalizedLevel: options?.normalizedLevel,
+          rng: matchRng,
           wildcardAbilityIds: resConfig?.wildcardAbilityIds,
           wildcardPassiveIds: resConfig?.wildcardPassiveIds
         },
@@ -318,6 +321,8 @@ export function runSquadSimulation(options?: SquadSimulationOptions): SquadSimul
       const unit = createSimulatedCombatant(
         {
           classId,
+          normalizedLevel: options?.normalizedLevel,
+          rng: matchRng,
           wildcardAbilityIds: resConfig?.wildcardAbilityIds,
           wildcardPassiveIds: resConfig?.wildcardPassiveIds
         },
@@ -643,14 +648,18 @@ export function runSquadSimulation(options?: SquadSimulationOptions): SquadSimul
 /**
  * Formats full squad simulation telemetry into an informative ASCII / Markdown dashboard.
  */
-export function formatSquadSimulationReport(result: SquadSimulationResult): string {
+export function formatSquadSimulationReport(
+  result: SquadSimulationResult,
+  customTitle?: string
+): string {
   const ranked = Object.values(result.classTelemetry).sort(
     (a, b) => b.winRatePercent - a.winRatePercent
   );
 
+  const title = customTitle ?? 'SQUAD COMBAT SIMULATION REPORT (3v3 Mixed Tiers)';
   const lines: string[] = [
     '=========================================================================================================',
-    `SQUAD COMBAT SIMULATION REPORT (3v3 Mixed Tiers)`,
+    title,
     `Matches: ${result.totalMatches} | Team A Wins: ${result.teamAWins} | Team B Wins: ${result.teamBWins} | Timeouts: ${result.timeouts} | Avg Turns: ${result.avgTurnsPerMatch} | ZOC Halts: ${result.totalZocHalts ?? 0}`,
     '=========================================================================================================',
     'CLASS LEADERBOARD (Sorted by Win Contribution)',

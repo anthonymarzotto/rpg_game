@@ -26,6 +26,36 @@ describe('Combat Simulation Framework', () => {
       expect(customBerserker.effectiveVitals.maxHp).toBe(32); // Base 12 + Level 4 * 5 = 32
       expect(customBerserker.effectiveVitals.speed).toBe(11); // 10 + 1*1
     });
+
+    it('generates normalized combatants at Level 4 parity with archetype-weighted attributes', () => {
+      // Pure classes: all points reach 4 in their required domain
+      const warrior = createSimulatedCombatant({ classId: 'warrior', normalizedLevel: 4 });
+      expect(warrior.baseAttributes).toEqual({ force: 4, finesse: 0, focus: 0 });
+      expect(warrior.effectiveVitals.maxHp).toBe(32);
+      expect(warrior.effectiveVitals.armor).toBe(4);
+
+      const thief = createSimulatedCombatant({ classId: 'thief', normalizedLevel: 4 });
+      expect(thief.baseAttributes).toEqual({ force: 0, finesse: 4, focus: 0 });
+      expect(thief.effectiveVitals.maxHp).toBe(32);
+      expect(thief.effectiveVitals.speed).toBe(14);
+      expect(thief.effectiveVitals.evasion).toBe(14);
+
+      const wizard = createSimulatedCombatant({ classId: 'wizard', normalizedLevel: 4 });
+      expect(wizard.baseAttributes).toEqual({ force: 0, finesse: 0, focus: 4 });
+      expect(wizard.effectiveVitals.maxHp).toBe(32);
+      expect(wizard.effectiveVitals.ward).toBe(4);
+
+      // Hybrid class: Cavalier (2 Fighter, 1 Rogue) receives 4 points split between Force and Finesse
+      const rngForce = () => 0.1; // picks force (index 0)
+      const cavForce = createSimulatedCombatant({ classId: 'cavalier', normalizedLevel: 4, rng: rngForce });
+      expect(cavForce.baseAttributes).toEqual({ force: 3, finesse: 1, focus: 0 });
+      expect(cavForce.effectiveVitals.maxHp).toBe(32);
+
+      const rngFinesse = () => 0.9; // picks finesse (index 1)
+      const cavFinesse = createSimulatedCombatant({ classId: 'cavalier', normalizedLevel: 4, rng: rngFinesse });
+      expect(cavFinesse.baseAttributes).toEqual({ force: 2, finesse: 2, focus: 0 });
+      expect(cavFinesse.effectiveVitals.maxHp).toBe(32);
+    });
   });
 
   describe('runCombatSimulation & reporting', () => {

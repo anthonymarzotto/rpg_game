@@ -113,10 +113,11 @@ describe('Threat Budget & Challenge Rating', () => {
     // Stage 3-4: Tier 2 (+40 pts)
     expect(getStageHostileBonusThreat(3)).toBe(40);
     expect(getStageHostileBonusThreat(4)).toBe(40);
-    // Stage 5+: Tier 3 (+55 pts)
+    // Stage 5: Tier 3 (+55 pts)
     expect(getStageHostileBonusThreat(5)).toBe(55);
-    expect(getStageHostileBonusThreat(6)).toBe(55);
-    expect(getStageHostileBonusThreat(10)).toBe(55);
+    // Stage 6+: Tier 4 (+70 pts)
+    expect(getStageHostileBonusThreat(6)).toBe(70);
+    expect(getStageHostileBonusThreat(10)).toBe(70);
   });
 });
 

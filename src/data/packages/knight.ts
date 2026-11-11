@@ -53,7 +53,7 @@ export const CHALLENGING_SHOUT: Ability = {
 export const POMMEL_STRIKE: Ability = {
   id: 'pommel_strike',
   name: 'Pommel Strike',
-  description: 'A concussive melee blow dealing 1d4 + Force physical damage (plus 1d4 bonus damage against Challenged targets) and reducing the target initiative gauge by 20 points.',
+  description: 'A concussive melee blow dealing 1d4 + Force physical damage (plus +2 to attack roll and +1d4 bonus damage against Challenged targets) and reducing the target initiative gauge by 20 points.',
   archetypeTag: 'FIGHTER',
   apCost: 1,
   range: 1,
@@ -73,6 +73,7 @@ export const POMMEL_STRIKE: Ability = {
     {
       type: 'DAMAGE',
       condition: 'TARGET_CHALLENGED',
+      attackRollBonus: 2,
       bonusDamage: {
         count: 1,
         sides: 4
