@@ -3,7 +3,8 @@ import {
   CombatLogEntry,
   CombatUnit,
   HitOutcome,
-  AttackModifierComponent
+  AttackModifierComponent,
+  DamageBreakdownComponent
 } from './types';
 import { Faction } from '../types/unit';
 import { HexCoord } from '../grid/hex';
@@ -24,6 +25,7 @@ export interface LogAttackParams {
   };
   readonly damageTotal?: number | string;
   readonly damageBreakdown?: string;
+  readonly damageBreakdownComponents?: readonly DamageBreakdownComponent[];
   readonly secondaryDetail?: string;
   readonly isAreaTarget?: boolean;
   readonly affectedUnitIds?: readonly string[];
@@ -139,6 +141,7 @@ export const combatLogger = {
       rollResult,
       damageTotal = '0',
       damageBreakdown,
+      damageBreakdownComponents,
       secondaryDetail = '',
       isAreaTarget = false,
       affectedUnitIds = []
@@ -197,7 +200,8 @@ export const combatLogger = {
         secondaryDetail: secondaryDetail.trim() || undefined,
         isAreaTarget,
         totalScore: rollResult?.totalScore,
-        attackRollBreakdown: rollResult?.modifierBreakdown
+        attackRollBreakdown: rollResult?.modifierBreakdown,
+        damageBreakdownComponents
       }
     };
 

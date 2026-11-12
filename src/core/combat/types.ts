@@ -90,6 +90,27 @@ export interface AttackModifierComponent {
   readonly source: 'ATTRIBUTE' | 'ELEVATION' | 'AURA' | 'CONDITION' | 'MODIFIER';
 }
 
+export type DamageComponentSource =
+  | 'DICE'
+  | 'CRIT_MAX'
+  | 'BONUS_DICE'
+  | 'ATTRIBUTE'
+  | 'ABILITY_FLAT'
+  | 'PASSIVE'
+  | 'MITIGATION'
+  | 'MULTIPLIER'
+  | 'MIN_FLOOR';
+
+/**
+ * Individual component contributing to an attack's damage calculation.
+ */
+export interface DamageBreakdownComponent {
+  readonly label: string;
+  readonly value: number;
+  readonly displayValue?: string;
+  readonly source: DamageComponentSource;
+}
+
 /**
  * Structured breakdown of an attack check and damage roll sequence for visual presentation.
  */
@@ -105,7 +126,11 @@ export interface DiceRollBreakdown {
   readonly damageDice: readonly DamageDieRoll[];
   readonly damageModifier: number;
   readonly totalDamage: number;
+  readonly mitigation?: number;
+  readonly mitigationType?: 'Armor' | 'Ward';
+  readonly critMaxBonus?: number;
   readonly modifierBreakdown?: readonly AttackModifierComponent[];
+  readonly damageBreakdownComponents?: readonly DamageBreakdownComponent[];
 }
 
 /**
@@ -244,6 +269,7 @@ export type CombatLogMetadata =
       readonly isAreaTarget?: boolean;
       readonly totalScore?: number;
       readonly attackRollBreakdown?: readonly AttackModifierComponent[];
+      readonly damageBreakdownComponents?: readonly DamageBreakdownComponent[];
     }
   | {
       readonly type: 'MOVE';

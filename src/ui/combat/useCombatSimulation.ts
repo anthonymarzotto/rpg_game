@@ -25,12 +25,18 @@ import {
 
 export type ActionMode = 'IDLE' | 'MOVE' | 'ABILITY';
 export type CombatPhase = 'PLAYER_ACTION' | 'HOSTILE_TURN' | 'VICTORY' | 'DEFEAT';
+export type DiceTrayMode = 'ALL' | 'PLAYER_ONLY' | 'OFF';
 
 export interface ActiveDiceRollState {
   readonly attackerName: string;
   readonly targetName: string;
   readonly abilityName: string;
   readonly diceBreakdown: DiceRollBreakdown;
+  readonly attackerUnit?: Unit;
+  readonly targetUnit?: Unit;
+  readonly targetHpBefore?: number;
+  readonly targetHpAfter?: number;
+  readonly targetMaxHp?: number;
   readonly onComplete: () => void;
 }
 
@@ -91,30 +97,57 @@ export function useCombatSimulation({
   const [diceMode, setDiceMode] = useState<DiceMode>('NORMAL');
 
   const STORAGE_KEY_DICE_TRAY = 'astral_tactics_dice_tray_enabled';
-  const isDiceTrayEnabledRef = useRef<boolean>(true);
-  const [isDiceTrayEnabled, setIsDiceTrayEnabledState] = useState<boolean>(() => {
+  const STORAGE_KEY_DICE_TRAY_MODE = 'astral_tactics_dice_tray_mode';
+  const diceTrayModeRef = useRef<DiceTrayMode>('ALL');
+  const [diceTrayMode, setDiceTrayModeState] = useState<DiceTrayMode>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY_DICE_TRAY);
-      const initial = saved !== null ? saved === 'true' : true;
-      isDiceTrayEnabledRef.current = initial;
-      return initial;
+      const savedMode = localStorage.getItem(STORAGE_KEY_DICE_TRAY_MODE);
+      if (savedMode === 'ALL' || savedMode === 'PLAYER_ONLY' || savedMode === 'OFF') {
+        diceTrayModeRef.current = savedMode;
+        return savedMode;
+      }
+      const legacySaved = localStorage.getItem(STORAGE_KEY_DICE_TRAY);
+      if (legacySaved !== null) {
+        const migrated: DiceTrayMode = legacySaved === 'false' ? 'OFF' : 'ALL';
+        diceTrayModeRef.current = migrated;
+        return migrated;
+      }
+      diceTrayModeRef.current = 'ALL';
+      return 'ALL';
     } catch {
-      return true;
+      return 'ALL';
     }
   });
 
-  const setIsDiceTrayEnabled = useCallback(
-    (action: boolean | ((prev: boolean) => boolean)) => {
-      const next = typeof action === 'function' ? action(isDiceTrayEnabledRef.current) : action;
-      isDiceTrayEnabledRef.current = next;
+  const setDiceTrayMode = useCallback(
+    (action: DiceTrayMode | ((prev: DiceTrayMode) => DiceTrayMode)) => {
+      const next = typeof action === 'function' ? action(diceTrayModeRef.current) : action;
+      diceTrayModeRef.current = next;
       try {
-        localStorage.setItem(STORAGE_KEY_DICE_TRAY, String(next));
+        localStorage.setItem(STORAGE_KEY_DICE_TRAY_MODE, next);
+        localStorage.setItem(STORAGE_KEY_DICE_TRAY, String(next !== 'OFF'));
       } catch {
         // ignore storage error in restricted contexts
       }
-      setIsDiceTrayEnabledState(next);
+      setDiceTrayModeState(next);
     },
     []
+  );
+
+  const cycleDiceTrayMode = useCallback(() => {
+    setDiceTrayMode((prev) =>
+      prev === 'ALL' ? 'PLAYER_ONLY' : prev === 'PLAYER_ONLY' ? 'OFF' : 'ALL'
+    );
+  }, [setDiceTrayMode]);
+
+  const isDiceTrayEnabled = diceTrayMode !== 'OFF';
+  const setIsDiceTrayEnabled = useCallback(
+    (action: boolean | ((prev: boolean) => boolean)) => {
+      const prevBool = diceTrayModeRef.current !== 'OFF';
+      const nextBool = typeof action === 'function' ? action(prevBool) : action;
+      setDiceTrayMode(nextBool ? 'ALL' : 'OFF');
+    },
+    [setDiceTrayMode]
   );
 
   const activeDiceRollRef = useRef<ActiveDiceRollState | null>(null);
@@ -368,6 +401,9 @@ export function useCombatSimulation({
 
     const controller = new AbortController();
     const pacing = PACING_PRESETS[aiSpeed];
+    let preActionTargetId: string | undefined;
+    let preActionTargetCoord: HexCoord | undefined;
+    let preActionTargetHp: number | undefined;
 
     const observer: CombatExecutionObserver = {
       onTurnTransitionStart: () => {
@@ -376,17 +412,143 @@ export function useCombatSimulation({
       onClockAdvancing: () => {
         setHostileActionStatus('Advancing initiative...');
       },
-      onActionStart: (_actor, _action, description) => {
+      onActionStart: (_actor, action, description) => {
+        if (action.type === 'ABILITY' && action.target.targetUnitId) {
+          preActionTargetId = action.target.targetUnitId;
+          preActionTargetCoord = state.arena.getUnitPosition(preActionTargetId);
+          preActionTargetHp = state.units.get(preActionTargetId)?.currentHp;
+        } else {
+          preActionTargetId = undefined;
+          preActionTargetCoord = undefined;
+          preActionTargetHp = undefined;
+        }
         setHostileActionStatus(description);
       },
-      onActionResolved: (_actor, _action, result) => {
+      onActionResolved: (actor, _action, result) => {
         if (result.type === 'MOVE') {
           addFloatingText('Move', 'buff', result.destination);
-        } else if (result.type === 'ABILITY') {
-          const targetCoordBefore = result.target.targetUnitId
-            ? state.arena.getUnitPosition(result.target.targetUnitId)
-            : result.target.coord;
+          setState({
+            ...state,
+            combatLog: [...state.combatLog],
+            aiDecisionLog: state.aiDecisionLog ? [...state.aiDecisionLog] : []
+          });
+          checkEncounterProgression(state);
+          return;
+        }
+
+        if (result.type === 'ABILITY') {
+          const targetUnitId = result.target.targetUnitId;
+          const targetCoordBefore =
+            preActionTargetCoord ??
+            (targetUnitId ? state.arena.getUnitPosition(targetUnitId) : result.target.coord);
           const actorCoord = state.arena.getUnitPosition(state.activeUnitId);
+          const targetCu = targetUnitId ? state.units.get(targetUnitId) : undefined;
+          const targetHpBefore = preActionTargetHp ?? targetCu?.currentHp;
+          const targetHpAfter = targetCu?.currentHp;
+          const targetMaxHp = targetCu?.unit.effectiveVitals.maxHp;
+
+          const shouldShowHostileTray =
+            diceTrayModeRef.current === 'ALL' &&
+            aiSpeed !== 'INSTANT' &&
+            result.resolution.type === 'ATTACK' &&
+            Boolean(result.resolution.details.diceBreakdown);
+
+          if (shouldShowHostileTray && result.resolution.type === 'ATTACK' && result.resolution.details.diceBreakdown) {
+            const hostileDiceBreakdown = result.resolution.details.diceBreakdown;
+            const wasDefeated = Boolean(targetCu?.isDefeated);
+            const outcomeAfter = state.outcome;
+
+            // Preserve pre-attack target HP and hex presence on the board while the Clash Tray is open (UX.20)
+            if (targetCu && targetHpBefore !== undefined) {
+              targetCu.currentHp = targetHpBefore;
+              if (wasDefeated) {
+                targetCu.isDefeated = false;
+                if (targetCoordBefore && !state.arena.getUnitAt(targetCoordBefore)) {
+                  state.arena.setUnitPosition(targetCu.unit.id, targetCoordBefore);
+                }
+              }
+            }
+            if (outcomeAfter !== 'IN_PROGRESS') {
+              state.outcome = 'IN_PROGRESS';
+            }
+
+            return new Promise<void>((resolve) => {
+              let settled = false;
+              const finalizeHostileAttack = () => {
+                if (settled) return;
+                settled = true;
+                controller.signal.removeEventListener('abort', onAbort);
+
+                if (targetCu && targetHpAfter !== undefined) {
+                  targetCu.currentHp = targetHpAfter;
+                  if (wasDefeated) {
+                    targetCu.isDefeated = true;
+                    if (
+                      targetCoordBefore &&
+                      state.arena.getUnitAt(targetCoordBefore) === targetCu.unit.id
+                    ) {
+                      state.arena.removeUnit(targetCu.unit.id);
+                    }
+                  }
+                }
+                state.outcome = outcomeAfter;
+
+                dispatchResolutionFeedback(
+                  state,
+                  result.resolution,
+                  result.ability,
+                  targetCoordBefore,
+                  actorCoord,
+                  result.target.coord ?? targetCoordBefore ?? { q: 0, r: 0 },
+                  targetUnitId
+                );
+                setActiveDiceRoll(null);
+                setState({
+                  ...state,
+                  combatLog: [...state.combatLog],
+                  aiDecisionLog: state.aiDecisionLog ? [...state.aiDecisionLog] : []
+                });
+                checkEncounterProgression(state);
+                resolve();
+              };
+
+              const onAbort = () => {
+                if (settled) return;
+                settled = true;
+                if (targetCu && targetHpAfter !== undefined) {
+                  targetCu.currentHp = targetHpAfter;
+                  if (wasDefeated) {
+                    targetCu.isDefeated = true;
+                    if (
+                      targetCoordBefore &&
+                      state.arena.getUnitAt(targetCoordBefore) === targetCu.unit.id
+                    ) {
+                      state.arena.removeUnit(targetCu.unit.id);
+                    }
+                  }
+                }
+                state.outcome = outcomeAfter;
+                setActiveDiceRoll(null);
+                resolve();
+              };
+
+              controller.signal.addEventListener('abort', onAbort, { once: true });
+
+              setActiveDiceRoll({
+                attackerName: actor.unit.name,
+                targetName: targetCu?.unit.name ?? 'Target Hex',
+                abilityName: result.ability.name,
+                diceBreakdown: hostileDiceBreakdown,
+                attackerUnit: actor.unit,
+                targetUnit: targetCu?.unit,
+                targetHpBefore,
+                targetHpAfter,
+                targetMaxHp,
+                onComplete: finalizeHostileAttack
+              });
+            });
+          }
+
           dispatchResolutionFeedback(
             state,
             result.resolution,
@@ -394,9 +556,10 @@ export function useCombatSimulation({
             targetCoordBefore,
             actorCoord,
             result.target.coord ?? targetCoordBefore ?? { q: 0, r: 0 },
-            result.target.targetUnitId
+            targetUnitId
           );
         }
+
         setState({
           ...state,
           combatLog: [...state.combatLog],
@@ -527,6 +690,9 @@ export function useCombatSimulation({
         });
 
         if (validation.valid) {
+          const targetCu = targetUnitId ? state.units.get(targetUnitId) : undefined;
+          const targetHpBefore = targetCu?.currentHp;
+          const targetMaxHp = targetCu?.unit.effectiveVitals.maxHp;
           const targetCoordBefore = targetUnitId
             ? state.arena.getUnitPosition(targetUnitId)
             : coord;
@@ -541,7 +707,46 @@ export function useCombatSimulation({
             roller
           );
 
+          const targetHpAfter = targetCu?.currentHp;
+          const wasDefeated = Boolean(targetCu?.isDefeated);
+          const outcomeAfter = state.outcome;
+          const shouldShowPlayerTray =
+            diceTrayModeRef.current !== 'OFF' &&
+            resolution.type === 'ATTACK' &&
+            Boolean(resolution.details.diceBreakdown);
+
+          if (shouldShowPlayerTray) {
+            if (targetCu && targetHpBefore !== undefined) {
+              targetCu.currentHp = targetHpBefore;
+              if (wasDefeated) {
+                targetCu.isDefeated = false;
+                if (targetCoordBefore && !state.arena.getUnitAt(targetCoordBefore)) {
+                  state.arena.setUnitPosition(targetCu.unit.id, targetCoordBefore);
+                }
+              }
+            }
+            if (outcomeAfter !== 'IN_PROGRESS') {
+              state.outcome = 'IN_PROGRESS';
+            }
+          }
+
           const applyFeedbackAndProgress = () => {
+            if (shouldShowPlayerTray) {
+              if (targetCu && targetHpAfter !== undefined) {
+                targetCu.currentHp = targetHpAfter;
+                if (wasDefeated) {
+                  targetCu.isDefeated = true;
+                  if (
+                    targetCoordBefore &&
+                    state.arena.getUnitAt(targetCoordBefore) === targetCu.unit.id
+                  ) {
+                    state.arena.removeUnit(targetCu.unit.id);
+                  }
+                }
+              }
+              state.outcome = outcomeAfter;
+            }
+
             dispatchResolutionFeedback(
               state,
               resolution,
@@ -559,9 +764,8 @@ export function useCombatSimulation({
           setActionMode('IDLE');
           setSelectedAbility(null);
 
-          if (isDiceTrayEnabledRef.current && resolution.type === 'ATTACK' && resolution.details.diceBreakdown) {
+          if (shouldShowPlayerTray && resolution.type === 'ATTACK' && resolution.details.diceBreakdown) {
             const attackerName = activeCu.unit.name;
-            const targetCu = targetUnitId ? state.units.get(targetUnitId) : undefined;
             const targetName = targetCu?.unit.name ?? 'Target Hex';
 
             setActiveDiceRoll({
@@ -569,6 +773,11 @@ export function useCombatSimulation({
               targetName,
               abilityName: selectedAbility.name,
               diceBreakdown: resolution.details.diceBreakdown,
+              attackerUnit: activeCu.unit,
+              targetUnit: targetCu?.unit,
+              targetHpBefore,
+              targetHpAfter,
+              targetMaxHp,
               onComplete: applyFeedbackAndProgress
             });
           } else {
@@ -793,8 +1002,13 @@ export function useCombatSimulation({
     setPinnedUnitId,
     diceMode,
     setDiceMode,
+    get diceTrayMode() {
+      return diceTrayModeRef.current;
+    },
+    setDiceTrayMode,
+    cycleDiceTrayMode,
     get isDiceTrayEnabled() {
-      return isDiceTrayEnabledRef.current;
+      return diceTrayModeRef.current !== 'OFF';
     },
     setIsDiceTrayEnabled,
     get activeDiceRoll() {

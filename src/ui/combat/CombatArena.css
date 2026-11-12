@@ -1550,6 +1550,46 @@
   gap: 0.25rem;
 }
 
+.impact-damage.has-tooltip {
+  position: relative;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0.05rem 0.25rem;
+  margin-left: -0.25rem;
+  transition: background 0.15s ease;
+}
+
+.impact-damage.has-tooltip:hover {
+  background: rgba(249, 115, 22, 0.15);
+}
+
+.impact-damage .damage-roll-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.impact-damage:hover .damage-roll-tooltip {
+  display: flex;
+}
+
+.damage-roll-tooltip.portal-floating {
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.75), 0 0 15px rgba(249, 115, 22, 0.22);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+}
+
+.damage-roll-tooltip .rich-tooltip-net.damage-net {
+  color: #fb923c;
+}
+
+.attack-roll-component-row .comp-val.crit {
+  color: #fbbf24;
+}
+
 .damage-crit {
   color: #facc15;
   text-shadow: 0 0 6px rgba(250, 204, 21, 0.5);

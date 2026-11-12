@@ -301,6 +301,13 @@ describe('Attack & Ability Resolution Outcomes', () => {
       const dmgResult = resolveDamage(rollResult.hitOutcome, STRIKE, actorCu, targetCu, dice);
       expect(dmgResult.damageDealt).toBe(8);
       expect(dmgResult.damageBreakdown).toContain('1d6(3)+7 - 2 Armor -> 8');
+      expect(dmgResult.mitigation).toBe(2);
+      expect(dmgResult.mitigationType).toBe('Armor');
+      expect(dmgResult.damageBreakdownComponents).toEqual([
+        { label: 'Base Dice (1d6)', value: 3, source: 'DICE' },
+        { label: 'Force Bonus', value: 7, source: 'ATTRIBUTE' },
+        { label: 'Target Armor', value: -2, source: 'MITIGATION' }
+      ]);
     });
 
     it('verifies Rogue Quick Thrust uses Finesse to hit and Force for physical damage', () => {
@@ -327,6 +334,12 @@ describe('Attack & Ability Resolution Outcomes', () => {
       // Crit: max base (4) + rolled (3) + Force (2) - 0 Armor = 9
       const dmgResult = resolveDamage(rollResult.hitOutcome, QUICK_THRUST, actorCu, targetCu, dice);
       expect(dmgResult.damageDealt).toBe(9);
+      expect(dmgResult.critMaxBonus).toBe(4);
+      expect(dmgResult.damageBreakdownComponents).toEqual([
+        { label: 'Base Dice (1d4)', value: 3, source: 'DICE' },
+        { label: 'Critical Max (1d4)', value: 4, source: 'CRIT_MAX' },
+        { label: 'Force Bonus', value: 2, source: 'ATTRIBUTE' }
+      ]);
     });
 
     it('verifies Mage Spark uses Focus for both attack roll and damage', () => {
@@ -380,6 +393,15 @@ describe('Attack & Ability Resolution Outcomes', () => {
       if (result.type === 'ATTACK') {
         expect(result.details.hitOutcome).toBe('SOLID_HIT');
         expect(result.details.damageDealt).toBe(7);
+        expect(result.details.diceBreakdown?.mitigation).toBe(3);
+        expect(result.details.diceBreakdown?.mitigationType).toBe('Armor');
+        expect(result.details.diceBreakdown?.damageBreakdownComponents).toBeDefined();
+      }
+      const lastLog = state.combatLog[state.combatLog.length - 1];
+      expect(lastLog?.metadata?.type).toBe('ATTACK');
+      if (lastLog?.metadata?.type === 'ATTACK') {
+        expect(lastLog.metadata.damageBreakdownComponents).toBeDefined();
+        expect(lastLog.metadata.damageBreakdownComponents?.some((c) => c.source === 'MITIGATION' && c.value === -3)).toBe(true);
       }
       expect(targetCu.currentHp).toBe(target.effectiveVitals.maxHp - 7);
       expect(warriorCu.inBattleXp.fighter).toBe(2);

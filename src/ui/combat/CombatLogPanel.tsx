@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, Fragment } from 'react';
-import { CombatLogEntry, AttackModifierComponent } from '../../core/combat/types';
+import { CombatLogEntry, AttackModifierComponent, DamageBreakdownComponent } from '../../core/combat/types';
 import { Faction } from '../../core/types/unit';
 import { AttackRollTooltip } from './AttackRollTooltip';
+import { DamageRollTooltip, formatDamageBreakdown } from './DamageRollTooltip';
 
 export interface CombatLogPanelProps {
   readonly logEntries: readonly CombatLogEntry[];
@@ -34,6 +35,7 @@ export type ParsedLogEntry =
       isAreaTarget?: boolean;
       totalScore?: number;
       attackRollBreakdown?: readonly AttackModifierComponent[];
+      damageBreakdownComponents?: readonly DamageBreakdownComponent[];
       rawMessage: string;
     }
   | {
@@ -340,6 +342,7 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       isAreaTarget: Boolean(meta.isAreaTarget || (meta.target && meta.target.startsWith('hex '))),
       totalScore: meta.totalScore,
       attackRollBreakdown: meta.attackRollBreakdown,
+      damageBreakdownComponents: meta.damageBreakdownComponents,
       rawMessage: msg
     };
   }
@@ -841,13 +844,34 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                         {isMiss ? (
                           <span className="impact-miss">Missed</span>
                         ) : (
-                          <span className={`impact-damage ${isCrit ? 'damage-crit' : ''}`}>
+                          <span
+                            className={`impact-damage ${isCrit ? 'damage-crit' : ''} ${
+                              entry.damageBreakdownComponents && entry.damageBreakdownComponents.length > 0
+                                ? 'has-tooltip'
+                                : ''
+                            }`}
+                          >
                             💥 <strong>{entry.damageTotal}</strong> dmg
                             {entry.isAreaTarget && <span className="area-total-tag"> (Total)</span>}
                             {entry.damageBreakdown && (
-                              <span className="damage-formula" title="Damage Breakdown">
-                                ({entry.damageBreakdown})
+                              <span
+                                className="damage-formula"
+                                title={
+                                  entry.damageBreakdownComponents && entry.damageBreakdownComponents.length > 0
+                                    ? undefined
+                                    : 'Damage Breakdown'
+                                }
+                              >
+                                ({formatDamageBreakdown(entry.damageBreakdown)})
                               </span>
+                            )}
+                            {entry.damageBreakdownComponents && entry.damageBreakdownComponents.length > 0 && (
+                              <DamageRollTooltip
+                                breakdown={entry.damageBreakdownComponents}
+                                totalDamage={entry.damageTotal}
+                                formulaSummary={entry.damageBreakdown}
+                                placement="top"
+                              />
                             )}
                           </span>
                         )}

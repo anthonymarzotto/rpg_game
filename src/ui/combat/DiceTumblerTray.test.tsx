@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DiceTumblerTray, SvgD20, SvgDamageDie } from './DiceTumblerTray';
 import { DiceRollBreakdown } from '../../core/combat/types';
+import { createRecruit } from '../../core/units/unitFactory';
 
 describe('DiceTumblerTray Component', () => {
   const baseBreakdown: DiceRollBreakdown = {
@@ -15,27 +16,104 @@ describe('DiceTumblerTray Component', () => {
     hitOutcome: 'SOLID_HIT',
     damageDice: [{ sides: 8, roll: 5 }],
     damageModifier: 3,
-    totalDamage: 8
+    totalDamage: 6,
+    mitigation: 2,
+    mitigationType: 'Armor'
   };
 
-  it('renders attacker, target, ability name, and defense target', () => {
+  it('withholds resolved attack score during STAGE1_TUMBLE and reveals it on STAGE1_SETTLE (UX.11)', () => {
     const onComplete = vi.fn();
-    const html = renderToStaticMarkup(
+    const tumbleHtml = renderToStaticMarkup(
       <DiceTumblerTray
         attackerName="Garrick"
         targetName="Ash Infiltrator"
         abilityName="Lance Charge"
         diceBreakdown={baseBreakdown}
         onComplete={onComplete}
+        initialStage="STAGE1_TUMBLE"
       />
     );
 
-    expect(html).toContain('Garrick');
-    expect(html).toContain('Ash Infiltrator');
-    expect(html).toContain('Lance Charge');
-    expect(html).toContain('Evasion 12');
-    expect(html).toContain('18');
-    expect(html).toContain('vs 12');
+    expect(tumbleHtml).toContain('Garrick');
+    expect(tumbleHtml).toContain('Ash Infiltrator');
+    expect(tumbleHtml).toContain('Lance Charge');
+    expect(tumbleHtml).toContain('Evasion 12');
+    expect(tumbleHtml).toContain('Rolling vs Evasion 12...');
+    expect(tumbleHtml).not.toContain('score-val');
+
+    const settleHtml = renderToStaticMarkup(
+      <DiceTumblerTray
+        attackerName="Garrick"
+        targetName="Ash Infiltrator"
+        abilityName="Lance Charge"
+        diceBreakdown={baseBreakdown}
+        onComplete={onComplete}
+        initialStage="STAGE1_SETTLE"
+      />
+    );
+
+    expect(settleHtml).toContain('18');
+    expect(settleHtml).toContain('vs 12');
+    expect(settleHtml).toContain('SOLID HIT!');
+  });
+
+  it('withholds resolved damage equation during STAGE2_TUMBLE and reveals soak math on STAGE2_SETTLE (UX.11, B.14)', () => {
+    const stage2TumbleHtml = renderToStaticMarkup(
+      <DiceTumblerTray
+        attackerName="Warrior"
+        targetName="Target"
+        abilityName="Strike"
+        diceBreakdown={baseBreakdown}
+        onComplete={vi.fn()}
+        initialStage="STAGE2_TUMBLE"
+      />
+    );
+
+    expect(stage2TumbleHtml).toContain('Rolling Damage Dice...');
+    expect(stage2TumbleHtml).not.toContain('6 DMG');
+    expect(stage2TumbleHtml).not.toContain('- 2 Armor');
+
+    const stage2SettleHtml = renderToStaticMarkup(
+      <DiceTumblerTray
+        attackerName="Warrior"
+        targetName="Target"
+        abilityName="Strike"
+        diceBreakdown={baseBreakdown}
+        onComplete={vi.fn()}
+        initialStage="STAGE2_SETTLE"
+      />
+    );
+
+    expect(stage2SettleHtml).toContain('Damage Roll');
+    expect(stage2SettleHtml).toContain('d8');
+    expect(stage2SettleHtml).toContain('- 2 Armor');
+    expect(stage2SettleHtml).toContain('6 DMG');
+  });
+
+  it('renders concise MISS stamp on missed attack check settle (UX.6)', () => {
+    const missBreakdown: DiceRollBreakdown = {
+      ...baseBreakdown,
+      d20Rolls: [4],
+      keptD20: 4,
+      totalScore: 7,
+      hitOutcome: 'MISS',
+      totalDamage: 0
+    };
+
+    const html = renderToStaticMarkup(
+      <DiceTumblerTray
+        attackerName="Rogue"
+        targetName="Target"
+        abilityName="Strike"
+        diceBreakdown={missBreakdown}
+        onComplete={vi.fn()}
+        initialStage="STAGE1_SETTLE"
+      />
+    );
+
+    expect(html).toContain('stamp-miss');
+    expect(html).toContain('>MISS<');
+    expect(html).not.toContain('EVADED / MISS');
   });
 
   it('renders dual dice and advantage pill under ADVANTAGE', () => {
@@ -135,21 +213,51 @@ describe('DiceTumblerTray Component', () => {
     expect(html).toContain('CRITICAL HIT!');
   });
 
-  it('renders damage dice and damage equation on successful hit', () => {
-    const html = renderToStaticMarkup(
+  it('renders directional combatant tokens and transitions target HP / DEFEATED state on STAGE2_SETTLE (UX.20)', () => {
+    const attacker = createRecruit('att', 'Garrick');
+    const target = createRecruit('def', 'Goblin');
+
+    const rollingHtml = renderToStaticMarkup(
       <DiceTumblerTray
-        attackerName="Warrior"
-        targetName="Target"
+        attackerName="Garrick"
+        targetName="Goblin"
         abilityName="Strike"
         diceBreakdown={baseBreakdown}
+        attackerUnit={attacker}
+        targetUnit={target}
+        targetHpBefore={6}
+        targetHpAfter={0}
+        targetMaxHp={14}
+        onComplete={vi.fn()}
+        initialStage="STAGE2_TUMBLE"
+      />
+    );
+
+    expect(rollingHtml).toContain('south-east.png');
+    expect(rollingHtml).toContain('south-west.png');
+    expect(rollingHtml).toContain('6/14');
+    expect(rollingHtml).not.toContain('clash-defeated-skull-overlay');
+
+    const settledHtml = renderToStaticMarkup(
+      <DiceTumblerTray
+        attackerName="Garrick"
+        targetName="Goblin"
+        abilityName="Strike"
+        diceBreakdown={baseBreakdown}
+        attackerUnit={attacker}
+        targetUnit={target}
+        targetHpBefore={6}
+        targetHpAfter={0}
+        targetMaxHp={14}
         onComplete={vi.fn()}
         initialStage="STAGE2_SETTLE"
       />
     );
 
-    expect(html).toContain('Damage Roll');
-    expect(html).toContain('d8');
-    expect(html).toContain('8 DMG');
+    expect(settledHtml).toContain('0/14');
+    expect(settledHtml).toContain('clash-defeated-skull-overlay');
+    expect(settledHtml).toContain('💀');
+    expect(settledHtml).toContain('clash-defeated');
   });
 
   it('renders SvgD20 component correctly', () => {
@@ -201,6 +309,7 @@ describe('DiceTumblerTray Component', () => {
         abilityName="Shoot"
         diceBreakdown={breakdownWithMods}
         onComplete={vi.fn()}
+        initialStage="STAGE1_SETTLE"
       />
     );
 
@@ -211,5 +320,62 @@ describe('DiceTumblerTray Component', () => {
     expect(html).toContain('-2');
     expect(html).toContain('Finesse');
     expect(html).toContain('+2');
+  });
+
+  it('renders damage-roll-tooltip inside Stage 2 equation when damageBreakdownComponents is present (UX.14)', () => {
+    const breakdownWithDmgComponents: DiceRollBreakdown = {
+      ...baseBreakdown,
+      damageBreakdownComponents: [
+        { label: 'Base Dice (1d8)', value: 5, source: 'DICE' },
+        { label: 'Force Bonus', value: 3, source: 'ATTRIBUTE' },
+        { label: 'Target Armor', value: -2, source: 'MITIGATION' }
+      ]
+    };
+
+    const html = renderToStaticMarkup(
+      <DiceTumblerTray
+        attackerName="Warrior"
+        targetName="Sentry"
+        abilityName="Strike"
+        diceBreakdown={breakdownWithDmgComponents}
+        onComplete={vi.fn()}
+        initialStage="STAGE2_SETTLE"
+      />
+    );
+
+    expect(html).toContain('damage-roll-tooltip');
+    expect(html).toContain('Damage Breakdown');
+    expect(html).toContain('Base Dice (1d8)');
+    expect(html).toContain('Force Bonus');
+    expect(html).toContain('Target Armor');
+  });
+
+  it('places both unit tokens in the center around versus and applies faction border classes', () => {
+    const enemyAttacker = { ...createRecruit('enemy-1', 'Ash Bandit'), faction: 'ENEMY' as const };
+    const playerTarget = { ...createRecruit('player-1', 'Garrick'), faction: 'PLAYER' as const };
+
+    const html = renderToStaticMarkup(
+      <DiceTumblerTray
+        attackerName="Ash Bandit"
+        targetName="Garrick"
+        abilityName="Slash"
+        diceBreakdown={{ ...baseBreakdown, damageModifier: 0, mitigation: 0 }}
+        attackerUnit={enemyAttacker}
+        targetUnit={playerTarget}
+        onComplete={vi.fn()}
+        initialStage="STAGE2_SETTLE"
+      />
+    );
+
+    // Attacker meta appears before attacker token; target token appears before target meta
+    expect(html.indexOf('attacker-meta')).toBeLessThan(html.indexOf('attacker-token'));
+    expect(html.indexOf('target-token')).toBeLessThan(html.indexOf('target-meta'));
+
+    // Faction border classes match unit factions rather than left/right side
+    expect(html).toContain('attacker-token faction-enemy');
+    expect(html).toContain('target-token faction-player');
+
+    // Zero damage modifier (+0) is omitted from Stage 2 equation
+    expect(html).not.toContain('>+0<');
   });
 });

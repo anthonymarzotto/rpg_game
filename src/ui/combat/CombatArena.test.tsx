@@ -20,7 +20,7 @@ describe('CombatArena', () => {
     expect(html).toContain('Export Trial');
     expect(html).toContain('data-testid="btn-open-trial-export"');
     expect(html).toContain('data-testid="btn-toggle-dice-tray"');
-    expect(html).toContain('🎲 Tray: ON');
+    expect(html).toContain('🎲 Tray: ALL');
     expect(html).toContain('Reset Trial');
 
     // Arena container & canvas

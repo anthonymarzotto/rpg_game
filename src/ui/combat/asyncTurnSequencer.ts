@@ -63,7 +63,7 @@ export interface CombatExecutionObserver {
     actor: CombatUnit,
     action: AIAction,
     result: AIActionResult
-  ) => void;
+  ) => unknown | Promise<unknown>;
   readonly onActionFault?: (
     actor: CombatUnit,
     action: AIAction,
@@ -297,7 +297,8 @@ export async function executeHostileTurnAsync(
       }
 
 
-      observer?.onActionResolved?.(actor, action, result);
+      await observer?.onActionResolved?.(actor, action, result);
+      if (signal?.aborted) return;
 
       if (result.type === 'CONSERVE_AP' || state.outcome !== 'IN_PROGRESS') {
         break;

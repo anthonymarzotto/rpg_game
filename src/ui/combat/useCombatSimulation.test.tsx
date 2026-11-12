@@ -431,6 +431,72 @@ describe('useCombatSimulation movePreview & fall hazard detection', () => {
     // Toggle back on with updater fn
     capturedHook!.setIsDiceTrayEnabled((prev) => !prev);
     expect(capturedHook!.isDiceTrayEnabled).toBe(true);
+    expect(capturedHook!.diceTrayMode).toBe('ALL');
+
+    // Cycle tri-state mode: ALL -> PLAYER_ONLY -> OFF -> ALL
+    capturedHook!.cycleDiceTrayMode();
+    expect(capturedHook!.diceTrayMode).toBe('PLAYER_ONLY');
+    expect(capturedHook!.isDiceTrayEnabled).toBe(true);
+
+    capturedHook!.cycleDiceTrayMode();
+    expect(capturedHook!.diceTrayMode).toBe('OFF');
+    expect(capturedHook!.isDiceTrayEnabled).toBe(false);
+
+    capturedHook!.cycleDiceTrayMode();
+    expect(capturedHook!.diceTrayMode).toBe('ALL');
+    expect(capturedHook!.isDiceTrayEnabled).toBe(true);
+  });
+
+  it('defers target battlefield defeat removal while activeDiceRoll is open and applies defeat on completion (UX.20)', () => {
+    const player = createRecruit('p1', 'Hero', { faction: 'PLAYER' });
+    (player as any).baseAttributes = { force: 10, finesse: 10, focus: 0 };
+    const enemy = createRecruit('e1', 'Frail Goblin', { faction: 'ENEMY' });
+    (enemy as any).effectiveVitals = { ...enemy.effectiveVitals, maxHp: 2, evasion: 5, armor: 0 };
+
+    const encounter: EncounterDefinition = {
+      id: 'deferred-defeat-test',
+      name: 'Deferred Defeat Test',
+      arenaRadius: 3,
+      initialActiveUnitId: 'p1',
+      units: [
+        { unit: player, coord: { q: 0, r: 0 } },
+        { unit: enemy, coord: { q: 1, r: 0 } }
+      ]
+    };
+
+    let capturedHook: ReturnType<typeof useCombatSimulation> | null = null;
+    function Harness() {
+      capturedHook = useCombatSimulation({
+        encounter,
+        initialActionMode: 'ABILITY',
+        initialSelectedAbility: STRIKE
+      });
+      return null;
+    }
+
+    renderToStaticMarkup(<Harness />);
+    capturedHook!.state.units.get('p1')!.currentAp = 3;
+    const enemyCu = capturedHook!.state.units.get('e1')!;
+    enemyCu.currentHp = 2;
+
+    // Click on target tile (1, 0) to execute lethal STRIKE
+    capturedHook!.handleTileClick({ q: 1, r: 0 });
+
+    // While activeDiceRoll is open, the tray captures pre- and post-attack HP,
+    // and the battlefield unit remains visible with pre-attack HP!
+    expect(capturedHook!.activeDiceRoll).not.toBeNull();
+    expect(capturedHook!.activeDiceRoll!.targetHpBefore).toBe(2);
+    expect(capturedHook!.activeDiceRoll!.targetHpAfter).toBe(0);
+    expect(enemyCu.currentHp).toBe(2);
+    expect(enemyCu.isDefeated).toBe(false);
+    expect(capturedHook!.state.arena.getUnitAt({ q: 1, r: 0 })).toBe('e1');
+
+    // Completing the dice roll applies the defeat to the battlefield
+    capturedHook!.activeDiceRoll!.onComplete();
+    expect(capturedHook!.activeDiceRoll).toBeNull();
+    expect(enemyCu.currentHp).toBe(0);
+    expect(enemyCu.isDefeated).toBe(true);
+    expect(capturedHook!.state.arena.getUnitAt({ q: 1, r: 0 })).toBeUndefined();
   });
 
   it('triggers activeDiceRoll on player attack when tray is enabled and fast-forwards on tile click', () => {

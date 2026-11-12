@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { DiceRollBreakdown, DamageDieRoll } from '../../core/combat/types';
+import { Unit } from '../../core/types/unit';
+import { HEX_DIRECTIONS } from '../../core/grid/hex';
+import { resolveTokenAssetPath } from './tokenAssets';
 import { AttackRollTooltip } from './AttackRollTooltip';
+import { DamageRollTooltip } from './DamageRollTooltip';
 import './DiceTumblerTray.css';
 
 export interface DiceTumblerTrayProps {
@@ -9,6 +13,11 @@ export interface DiceTumblerTrayProps {
   readonly abilityName: string;
   readonly diceBreakdown: DiceRollBreakdown;
   readonly onComplete: () => void;
+  readonly attackerUnit?: Unit;
+  readonly targetUnit?: Unit;
+  readonly targetHpBefore?: number;
+  readonly targetHpAfter?: number;
+  readonly targetMaxHp?: number;
   /** Instant completion without animation for unit testing */
   readonly instant?: boolean;
   /** Initial stage override (useful for testing settle states) */
@@ -182,17 +191,17 @@ export const SvgDamageDie: React.FC<{
 };
 
 export const DICE_TRAY_TIMINGS = {
-  STAGE1_TUMBLE_MS: 800,   // D20 tumble duration (~0.8s)
-  STAGE1_SETTLE_MS: 1600,  // Pause on attack check vs defense & hit outcome (~1.6s)
-  STAGE1_MISS_MS: 2000,    // Pause on miss before dismissing (~2.0s)
-  STAGE2_TUMBLE_MS: 800,   // Damage dice tumble duration (~0.8s)
-  STAGE2_SETTLE_MS: 1800,  // Pause on damage dice & total damage before finishing (~1.8s)
-  NUMBER_CYCLE_MS: 50      // Dice face number cycling speed during tumble
+  STAGE1_TUMBLE_MS: 1000,  // D20 tumble duration (~1.0s)
+  STAGE1_SETTLE_MS: 1800,  // Pause on attack check vs defense & hit outcome (~1.8s)
+  STAGE1_MISS_MS: 2200,    // Pause on miss before dismissing (~2.2s)
+  STAGE2_TUMBLE_MS: 1000,  // Damage dice tumble duration (~1.0s)
+  STAGE2_SETTLE_MS: 2200,  // Pause on damage dice, impact & total damage before finishing (~2.2s)
+  NUMBER_CYCLE_MS: 55      // Dice face number cycling speed during tumble
 } as const;
 
 /**
  * Visual Dice Tumbler Tray: Top-center celestial clash banner providing
- * physical 2.5D tumbling dice for player combat actions.
+ * physical 2.5D tumbling dice and combatant token clash animations.
  */
 export const DiceTumblerTray: React.FC<DiceTumblerTrayProps> = ({
   attackerName,
@@ -200,6 +209,11 @@ export const DiceTumblerTray: React.FC<DiceTumblerTrayProps> = ({
   abilityName,
   diceBreakdown,
   onComplete,
+  attackerUnit,
+  targetUnit,
+  targetHpBefore,
+  targetHpAfter,
+  targetMaxHp,
   instant = false,
   initialStage
 }) => {
@@ -333,6 +347,44 @@ export const DiceTumblerTray: React.FC<DiceTumblerTrayProps> = ({
   const sign = diceBreakdown.netModifier >= 0 ? `+${diceBreakdown.netModifier}` : `${diceBreakdown.netModifier}`;
   const dmgModSign = diceBreakdown.damageModifier >= 0 ? `+${diceBreakdown.damageModifier}` : `${diceBreakdown.damageModifier}`;
 
+  const attackerTokenSrc = attackerUnit
+    ? resolveTokenAssetPath(attackerUnit, HEX_DIRECTIONS.SOUTHEAST)
+    : null;
+  const targetTokenSrc = targetUnit
+    ? resolveTokenAssetPath(targetUnit, HEX_DIRECTIONS.SOUTHWEST)
+    : null;
+  const attackerFaction = (attackerUnit?.faction ?? 'PLAYER').toLowerCase();
+  const targetFaction = (targetUnit?.faction ?? 'ENEMY').toLowerCase();
+
+  const isDamageSettled = stage === 'STAGE2_SETTLE';
+  const displayedTargetHp = isDamageSettled
+    ? (targetHpAfter ?? targetHpBefore)
+    : (targetHpBefore ?? targetHpAfter);
+  const isTargetDefeatedVisible =
+    isDamageSettled && targetHpAfter !== undefined && targetHpAfter <= 0;
+
+  const attackerAnimClass =
+    stage === 'STAGE1_TUMBLE'
+      ? 'clash-windup'
+      : stage === 'STAGE1_SETTLE'
+      ? 'clash-lunge'
+      : 'clash-followthrough';
+
+  const targetAnimClass =
+    stage === 'STAGE1_SETTLE' && isMiss
+      ? 'clash-evade'
+      : isDamageSettled && !isMiss
+      ? `${isCrit ? 'clash-crit-hit' : 'clash-hit'} ${isTargetDefeatedVisible ? 'clash-defeated' : ''}`.trim()
+      : '';
+
+  const rolledDiceSum = diceBreakdown.damageDice.reduce((sum, d) => sum + d.roll, 0);
+  const critMaxBonus = diceBreakdown.critMaxBonus ?? 0;
+  const mitigation = diceBreakdown.mitigation ?? 0;
+  const mitigationType = diceBreakdown.mitigationType ?? 'Armor';
+  const hasDamageTooltip = Boolean(
+    diceBreakdown.damageBreakdownComponents && diceBreakdown.damageBreakdownComponents.length > 0
+  );
+
   return (
     <div
       className="dice-tumbler-tray-overlay"
@@ -346,18 +398,75 @@ export const DiceTumblerTray: React.FC<DiceTumblerTrayProps> = ({
           finish();
         }}
       >
-        {/* Header Ribbon: Attacker -> Ability -> Target */}
-        <div className="tray-header-ribbon">
+        {/* Header Ribbon: Clash Duel Stage (Attacker -> Ability -> Target) */}
+        <div className="tray-header-ribbon clash-duel-stage">
           <div className="tray-combatant attacker">
-            <span className="unit-name">{attackerName}</span>
-            <span className="ability-badge">{abilityName}</span>
+            <div className="combatant-meta attacker-meta">
+              <span className="unit-name">{attackerName}</span>
+              <span className="ability-badge">{abilityName}</span>
+            </div>
+            <div
+              className={`clash-token-frame attacker-token faction-${attackerFaction} ${attackerAnimClass}`}
+              data-testid="clash-attacker-token"
+            >
+              {attackerTokenSrc ? (
+                <img
+                  src={attackerTokenSrc}
+                  alt={attackerName}
+                  className="clash-token-img pixel-art"
+                />
+              ) : (
+                <span className="clash-token-fallback" aria-hidden="true">⚔️</span>
+              )}
+            </div>
           </div>
-          <div className="tray-versus">⚔️</div>
+
+          <div className={`tray-versus ${stage !== 'STAGE1_TUMBLE' ? 'clash-active' : ''}`}>
+            ⚔️
+          </div>
+
           <div className="tray-combatant target">
-            <span className="unit-name">{targetName}</span>
-            <span className="defense-badge">
-              {diceBreakdown.defenseType} {diceBreakdown.targetDefense}
-            </span>
+            <div
+              className={`clash-token-frame target-token faction-${targetFaction} ${targetAnimClass}`}
+              data-testid="clash-target-token"
+            >
+              {targetTokenSrc ? (
+                <img
+                  src={targetTokenSrc}
+                  alt={targetName}
+                  className="clash-token-img pixel-art"
+                />
+              ) : (
+                <span className="clash-token-fallback" aria-hidden="true">🛡️</span>
+              )}
+              {isTargetDefeatedVisible && (
+                <span
+                  className="clash-defeated-skull-overlay"
+                  data-testid="clash-defeated-badge"
+                  aria-label="Defeated"
+                >
+                  💀
+                </span>
+              )}
+            </div>
+            <div className="combatant-meta target-meta">
+              <span className="unit-name">{targetName}</span>
+              <div className="target-badges-row">
+                <span className="defense-badge">
+                  {diceBreakdown.defenseType} {diceBreakdown.targetDefense}
+                </span>
+                {displayedTargetHp !== undefined && targetMaxHp !== undefined && (
+                  <span
+                    className={`target-hp-pill ${isDamageSettled && !isMiss ? 'hp-damaged' : ''} ${
+                      isTargetDefeatedVisible ? 'hp-zero' : ''
+                    }`}
+                    data-testid="clash-target-hp"
+                  >
+                    ❤️ {displayedTargetHp}/{targetMaxHp}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -393,34 +502,42 @@ export const DiceTumblerTray: React.FC<DiceTumblerTrayProps> = ({
               })}
             </div>
 
-            {/* Score Equation */}
+            {/* Score Equation (Spoiler-free during STAGE1_TUMBLE - UX.11) */}
             <div className="tray-equation">
-              <span className="die-val">{diceBreakdown.keptD20}</span>
-              <span
-                className={`mod-val ${
-                  diceBreakdown.modifierBreakdown && diceBreakdown.modifierBreakdown.length > 0
-                    ? 'has-tooltip'
-                    : ''
-                }`}
-              >
-                {sign}
-                {diceBreakdown.modifierBreakdown && diceBreakdown.modifierBreakdown.length > 0 && (
-                  <AttackRollTooltip
-                    breakdown={diceBreakdown.modifierBreakdown}
-                    d20={diceBreakdown.keptD20}
-                    netModifier={diceBreakdown.netModifier}
-                    totalScore={diceBreakdown.totalScore}
-                    targetDefense={diceBreakdown.targetDefense}
-                    defenseType={diceBreakdown.defenseType}
-                    placement="top"
-                  />
-                )}
-              </span>
-              <span className="equals">=</span>
-              <span className={`score-val ${isCrit ? 'crit' : ''}`}>
-                {diceBreakdown.totalScore}
-              </span>
-              <span className="vs-label">vs {diceBreakdown.targetDefense}</span>
+              {stage === 'STAGE1_TUMBLE' ? (
+                <span className="pending-text">
+                  Rolling vs {diceBreakdown.defenseType} {diceBreakdown.targetDefense}...
+                </span>
+              ) : (
+                <>
+                  <span className="die-val">{diceBreakdown.keptD20}</span>
+                  <span
+                    className={`mod-val ${
+                      diceBreakdown.modifierBreakdown && diceBreakdown.modifierBreakdown.length > 0
+                        ? 'has-tooltip'
+                        : ''
+                    }`}
+                  >
+                    {sign}
+                    {diceBreakdown.modifierBreakdown && diceBreakdown.modifierBreakdown.length > 0 && (
+                      <AttackRollTooltip
+                        breakdown={diceBreakdown.modifierBreakdown}
+                        d20={diceBreakdown.keptD20}
+                        netModifier={diceBreakdown.netModifier}
+                        totalScore={diceBreakdown.totalScore}
+                        targetDefense={diceBreakdown.targetDefense}
+                        defenseType={diceBreakdown.defenseType}
+                        placement="top"
+                      />
+                    )}
+                  </span>
+                  <span className="equals">=</span>
+                  <span className={`score-val ${isCrit ? 'crit' : ''}`}>
+                    {diceBreakdown.totalScore}
+                  </span>
+                  <span className="vs-label">vs {diceBreakdown.targetDefense}</span>
+                </>
+              )}
             </div>
 
             {/* Hit Outcome Stamp */}
@@ -439,7 +556,7 @@ export const DiceTumblerTray: React.FC<DiceTumblerTrayProps> = ({
                 {isCrit
                   ? 'CRITICAL HIT!'
                   : isMiss
-                  ? 'EVADED / MISS'
+                  ? 'MISS'
                   : isGraze
                   ? 'GRAZE (50%)'
                   : 'SOLID HIT!'}
@@ -476,22 +593,61 @@ export const DiceTumblerTray: React.FC<DiceTumblerTrayProps> = ({
                 })}
               </div>
 
-              {/* Damage Equation */}
+              {/* Damage Equation (Spoiler-free during STAGE2_TUMBLE, includes soak & tooltip - UX.11, B.14, UX.14) */}
               <div className="tray-equation damage-equation">
                 {stage === 'STAGE1_TUMBLE' ? (
                   <span className="pending-text">Awaiting Attack Check...</span>
                 ) : isMiss ? (
-                  <span className="missed-text">0 DMG (Attack Evaded)</span>
+                  <span className="missed-text">0 DMG (Missed)</span>
                 ) : stage === 'STAGE1_SETTLE' ? (
                   <span className="pending-text">Hit Confirmed! Rolling...</span>
+                ) : stage === 'STAGE2_TUMBLE' ? (
+                  <span className="pending-text">Rolling Damage Dice...</span>
                 ) : (
                   <>
-                    <span className="die-val">
-                      {diceBreakdown.damageDice.reduce((sum, d) => sum + d.roll, 0)}
-                    </span>
-                    <span className="mod-val">{dmgModSign}</span>
+                    <span className="die-val">{rolledDiceSum}</span>
+                    {critMaxBonus > 0 && (
+                      <span className="crit-max-val">+{critMaxBonus}</span>
+                    )}
+                    {diceBreakdown.damageModifier !== 0 && (
+                      <span className={`mod-val ${hasDamageTooltip ? 'has-tooltip' : ''}`}>
+                        {dmgModSign}
+                        {hasDamageTooltip && (
+                          <DamageRollTooltip
+                            breakdown={diceBreakdown.damageBreakdownComponents}
+                            totalDamage={diceBreakdown.totalDamage}
+                            placement="top"
+                          />
+                        )}
+                      </span>
+                    )}
+                    {mitigation > 0 && (
+                      <span
+                        className={`soak-val ${hasDamageTooltip ? 'has-tooltip' : ''}`}
+                        data-testid="tray-damage-soak"
+                      >
+                        - {mitigation} {mitigationType}
+                        {hasDamageTooltip && (
+                          <DamageRollTooltip
+                            breakdown={diceBreakdown.damageBreakdownComponents}
+                            totalDamage={diceBreakdown.totalDamage}
+                            placement="top"
+                          />
+                        )}
+                      </span>
+                    )}
+                    {isGraze && <span className="graze-mult-val">×0.5</span>}
                     <span className="equals">=</span>
-                    <span className="score-val dmg-val">{diceBreakdown.totalDamage} DMG</span>
+                    <span className={`score-val dmg-val ${hasDamageTooltip ? 'has-tooltip' : ''}`}>
+                      {diceBreakdown.totalDamage} DMG
+                      {hasDamageTooltip && (
+                        <DamageRollTooltip
+                          breakdown={diceBreakdown.damageBreakdownComponents}
+                          totalDamage={diceBreakdown.totalDamage}
+                          placement="top"
+                        />
+                      )}
+                    </span>
                   </>
                 )}
               </div>

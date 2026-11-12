@@ -187,6 +187,48 @@ describe('asyncTurnSequencer', () => {
       expect(state.activeUnitId).toBe(hero.id);
     });
 
+    it('awaits async onActionResolved promises before advancing to next step (UX.19)', async () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockCombatUnit('enemy', 'Orc', 'ENEMY', { speed: 8 });
+      const hero = createMockCombatUnit('hero', 'Alden', 'PLAYER', { maxHp: 40, speed: 12 });
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+      const state = createCombatState(arena, [enemy, hero], enemy.id);
+
+      let resolveGate: (() => void) | null = null;
+      let turnDone = false;
+
+      const observer: CombatExecutionObserver = {
+        onActionResolved: () => {
+          if (!resolveGate) {
+            return new Promise<void>((res) => {
+              resolveGate = res;
+            });
+          }
+        },
+        onTurnCompleted: () => {
+          turnDone = true;
+        }
+      };
+
+      const promise = executeHostileTurnAsync(
+        state,
+        enemy.id,
+        PACING_PRESETS.INSTANT,
+        observer,
+        undefined,
+        new SeededDiceRoller(42)
+      );
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(resolveGate).not.toBeNull();
+      expect(turnDone).toBe(false);
+
+      resolveGate!();
+      await promise;
+      expect(turnDone).toBe(true);
+    });
+
     it('observes timing pauses under NORMAL preset', async () => {
       const arena = createRadialArena(3);
       const enemy = createMockCombatUnit('enemy', 'Orc', 'ENEMY', { speed: 8 });

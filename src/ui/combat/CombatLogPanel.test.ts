@@ -896,6 +896,83 @@ describe('parseCombatLogMessage', () => {
       expect(html).toContain('Finesse');
       expect(html).toContain('+2');
     });
+
+    it('renders damage-roll-tooltip on impact-damage when damageBreakdownComponents is present (UX.14)', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 4,
+        actorUnitId: 'player-warrior',
+        actionId: 'power_strike',
+        message: 'Warrior used Power Strike on Sentry: [d20: 15 + 2 vs DC 12 -> SOLID_HIT] [Damage: 2d6(8)+2 - 3 Armor -> 7]',
+        metadata: {
+          type: 'ATTACK',
+          actor: 'Warrior',
+          ability: 'Power Strike',
+          target: 'Sentry',
+          d20: '15 + 2',
+          defenseTarget: 12,
+          hitOutcome: 'SOLID_HIT',
+          damageTotal: '7',
+          damageBreakdown: '2d6(8)+2 - 3 Armor -> 7',
+          damageBreakdownComponents: [
+            { label: 'Base Dice (2d6)', value: 8, source: 'DICE' },
+            { label: 'Force Bonus', value: 2, source: 'ATTRIBUTE' },
+            { label: 'Target Armor', value: -3, source: 'MITIGATION' }
+          ]
+        }
+      };
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 4
+        })
+      );
+
+      expect(html).toContain('damage-roll-tooltip');
+      expect(html).toContain('Damage Breakdown');
+      expect(html).toContain('Base Dice (2d6)');
+      expect(html).toContain('Force Bonus');
+      expect(html).toContain('Target Armor');
+      expect(html).toContain('-3');
+    });
+
+    it('omits zero-value components and zero formula terms in the damage chip and tooltip', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 5,
+        actorUnitId: 'player-rogue',
+        actionId: 'strike',
+        message: 'Rogue used Strike on Target: [d20: 15 + 2 vs DC 12 -> SOLID_HIT] [Damage: 1d6(4)+0 - 0 Armor -> 4]',
+        metadata: {
+          type: 'ATTACK',
+          actor: 'Rogue',
+          ability: 'Strike',
+          target: 'Target',
+          d20: '15 + 2',
+          defenseTarget: 12,
+          hitOutcome: 'SOLID_HIT',
+          damageTotal: '4',
+          damageBreakdown: '1d6(4)+0 - 0 Armor -> 4',
+          damageBreakdownComponents: [
+            { label: 'Base Dice (1d6)', value: 4, source: 'DICE' },
+            { label: 'Force Bonus', value: 0, source: 'ATTRIBUTE' },
+            { label: 'Target Armor', value: 0, source: 'MITIGATION' }
+          ]
+        }
+      };
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 5
+        })
+      );
+
+      expect(html).toContain('(1d6(4) -&gt; 4)');
+      expect(html).not.toContain('- 0 Armor');
+      expect(html).not.toContain('Force Bonus');
+      expect(html).not.toContain('Target Armor');
+      expect(html).toContain('Base Dice (1d6)');
+    });
   });
 
   describe('formatD20Roll', () => {

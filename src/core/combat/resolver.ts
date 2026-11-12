@@ -1308,6 +1308,7 @@ export function executeAbility(
     rollResult,
     damageTotal: String(totalDamageDealt),
     damageBreakdown: targetCu ? (damageResult.damageBreakdown || undefined) : undefined,
+    damageBreakdownComponents: targetCu ? damageResult.damageBreakdownComponents : undefined,
     secondaryDetail: [elevDetail, auraDetail, secondaryDetail].filter(Boolean).join('').trim(),
     isAreaTarget: !targetCu,
     affectedUnitIds: targetedUnitIds,
@@ -1349,7 +1350,11 @@ export function executeAbility(
     damageDice: damageResult.damageDice ?? [],
     damageModifier: damageResult.damageModifier ?? 0,
     totalDamage: totalDamageDealt,
-    modifierBreakdown: rollResult.modifierBreakdown
+    mitigation: damageResult.mitigation,
+    mitigationType: damageResult.mitigationType ?? (effectiveAbility.damageType === 'MAGICAL' ? 'Ward' : 'Armor'),
+    critMaxBonus: damageResult.critMaxBonus,
+    modifierBreakdown: rollResult.modifierBreakdown,
+    damageBreakdownComponents: damageResult.damageBreakdownComponents
   };
 
   const resolution: AbilityResolution = {

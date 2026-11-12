@@ -92,8 +92,9 @@ export function CombatArena({
     setPinnedUnitId,
     diceMode,
     setDiceMode,
+    diceTrayMode,
+    cycleDiceTrayMode,
     isDiceTrayEnabled,
-    setIsDiceTrayEnabled,
     activeDiceRoll,
     floatingTexts,
     reachableCoords,
@@ -409,11 +410,11 @@ export function CombatArena({
             <button
               type="button"
               className={`btn-dice-tray-toggle font-ui ${isDiceTrayEnabled ? 'active' : ''}`}
-              onClick={() => setIsDiceTrayEnabled((prev) => !prev)}
-              title="Toggle 2.5D visual dice tray animation for attack checks and damage"
+              onClick={cycleDiceTrayMode}
+              title="Cycle 2.5D visual dice tray mode: All Attacks, Player Only, or Off"
               data-testid="btn-toggle-dice-tray"
             >
-              🎲 Tray: {isDiceTrayEnabled ? 'ON' : 'OFF'}
+              🎲 Tray: {diceTrayMode === 'ALL' ? 'ALL' : diceTrayMode === 'PLAYER_ONLY' ? 'PLAYER' : 'OFF'}
             </button>
 
             {/* Dev Dice Roll Overrides (Localhost only) */}
@@ -535,6 +536,11 @@ export function CombatArena({
                 targetName={activeDiceRoll.targetName}
                 abilityName={activeDiceRoll.abilityName}
                 diceBreakdown={activeDiceRoll.diceBreakdown}
+                attackerUnit={activeDiceRoll.attackerUnit}
+                targetUnit={activeDiceRoll.targetUnit}
+                targetHpBefore={activeDiceRoll.targetHpBefore}
+                targetHpAfter={activeDiceRoll.targetHpAfter}
+                targetMaxHp={activeDiceRoll.targetMaxHp}
                 onComplete={activeDiceRoll.onComplete}
               />
             )}

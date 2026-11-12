@@ -5,31 +5,12 @@
 ---
 
 ## 🔨 In Progress
-- [x] **3.2: Dragoon Class Kit & Token Integration**:
-  - OpenSpec change: `tier-4-dragoon`.
-  - Class package: Signature `Dragon Dive`, domain abilities `Piercing Thrust` and `Wyrmflame Breath`, passive `Coiled Apex`.
-  - Visual identity: Badge palette (Deep Dragon Violet / Radiant Crimson) and token whitelist (`07_human_male`).
-  - AI heuristics: `BRAWLER` profile with high-offensive dive priority.
-- [x] **3.1: Shield-bearer Class Kit & Token Integration**:
-  - OpenSpec change: `tier-4-shield-bearer`.
-  - Class package: Signature `Bastion Plant`, domain abilities `Intercept Step` and `Concussive Slam`, passive `Unyielding Stance`.
-  - Visual identity: Badge palette (Slate Iron / Emerald Trim) and token whitelist (`05_human_male`).
-  - AI heuristics: `BRAWLER` profile prioritizing frontline body-blocking and slow/pinning.
-- [x] **UX.18 / UX.13 / UX.4**: **Combat Log Polish, Faction Theming & Unit Filtering**:
-  - OpenSpec change: `combat-log-polish-and-filtering`.
-  - Architecture: Strongly-typed logging pipeline (`combatLogger.ts`) with automatic `faction: Faction` resolution and affected unit attribution.
-  - Fix UX.18: Color combat log cards by faction (`.faction-player`, `.faction-enemy`, `.faction-neutral`) instead of binary `isPlayer` prefix check.
-  - Fix UX.13: Emit structured `⚡ PASSIVE` card for Feline Grace fall negation and `⚠️ ENVIRONMENT` card for ledge plunge.
-  - Feature UX.4: Unit filter control in Astral Chronicle header to filter events where selected unit was actor, target, or splash affected.
-- [x] **B.16**: **Trial Threat Re-calibration & War Room Reroll**:
-  - OpenSpec change: `stage-anchored-threat-and-reroll`.
-  - Fix trial threat runaway (475 pts vs 220 pt vanguard cap) by anchoring enemy encounter threat directly to stage deployment budget plus one highest-tier hostile bonus.
-  - Add "Re-roll Trial" / "Astral Re-scry" control in Expedition War Room using `regenerateCurrentStageEncounter`.
-- [x] **B.18 / Balance: Normalized Combat Parity Benchmarking & Tier-4 Threat Encounters**:
-  - OpenSpec change: `normalized-balance-and-threat-playtests`.
-  - Architecture: Normalized Level-4 3v3 simulation harness with archetype-weighted attribute distribution to evaluate pure kit and action economy balance.
-  - Encounter Generation: Support Tier-4 adversaries (Shield-bearer, Dragoon, 70 threat) in `assembleEnemySquad()` for high-threat stages.
-  - Playtest: 150-threat trial playtest suite simulating 4-5 unit squads vs standard player vanguards.
+- [x] **UX.6 / UX.11 / UX.14 / UX.19 / UX.20 / B.14**: **Clash Dice Tray Expansion, Damage Tooltip & Enemy Turn Tray Mode**:
+  - Tri-state Dice Tray toggle (`ALL` / `PLAYER_ONLY` / `OFF`) so enemy attacks can also present the Clash Dice Tray (`UX.19`, `UX.20`).
+  - Attacker & Defender directional tokens in the Dice Tray with attack lunge, hit shake/flash, miss sidestep, and defeat indicator (`UX.20`).
+  - Fix premature roll spoilers during Stage 1 and Stage 2 dice tumbles (`UX.11`) and slow down stage timings slightly.
+  - Simplify `"EVADED / MISS"` stamp to `"MISS"` (`UX.6`).
+  - Show Armor/Ward soak and full damage math in the Dice Tray (`B.14`) with a shared rich hover tooltip breakdown (`DamageRollTooltip`) in both the Dice Tray and Combat Log (`UX.14`).
 
 ---
 
@@ -49,14 +30,9 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 
 ## 🎨 UX Updates
 - [ ] **UX.5**: Let the User place their units at opening. Enemy team to also do better at starting positions.
-- [ ] **UX.6**: Dice Tray: Evade/Miss can just say Miss.
-- [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close.
-- [ ] **UX.11**: Dice Tray: The d20 roll is shown before the die stops rolling. Also the damage roll shows up before the die stops rolling.
-- [ ] **UX.14**: Nice tooltip popover for damage bonus calculation like we have for the to hit calculation.
+- [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close (re-assess after pacing & clash stage update).
 - [ ] **UX.15**: Make Vanguard Squad area in Post Trial XP distribution dialog scrollable.
 - [ ] **UX.16**: More interesting Vanguard area. Maybe some sort of campfire with the unit sprites randomly gathered around. Maybe animated milling about?
-- [ ] **UX.19**: Consecutive enemy turns happen too quickly, and each enemy action individually happens too quickly to process what has happened. I end up having to go back through the Combat Log to see what has occurred.
-- [ ] **UX.20**: When a unit is defeated they just pop out. This is tricky on multi-enemy turns when one or several of my units are defeated. After their turns, which go quickly (UX.19), I'm left to re-evaluate the battlefield.
 
 ---
 
@@ -64,7 +40,6 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **B.3**: Active turn halo is generally not clearing well. Hard to pinpoint exactly what's going on, but I'm on turn 7 and 4 units have a halo.
 - [ ] **B.4**: When an enemy uses Smoke Veil I can still see them.
 - [ ] **B.10**: Shard effects don't show well in the Trial on ability cards.
-- [ ] **B.14**: Dice Tray: Damage calculation doesn't show Armor/Ward soak value, though total damage is correctly calculated (e.g. unit with +2 armour. Shown is 3+2=3. The first 3 is the roll, the second 2 is the unit's bonus. This would be 5, but the enemy had +2 armour making it 3+2-2=3).
 - [ ] **B.15**: When a unit starts their turn Challenged and the challenging unit is dead, the Challenged status should clear.
 - [ ] **B.17**: I think I saw my Cavalier shout out "Knockback" when I used Ride Through. That's not a great description to shout.
 
@@ -80,7 +55,9 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
    * **1.2** *Observation*: Effects aren't cleanly described.
    * **1.3** *Possible path forward*: Effects have some way to resolve to text. Abilities get a normal text description for flavour, then a generated description that bundle effect descriptions plus the ability's values together for dynamically built descriptions.
 2. **Wildcard Loadout Impact on Combat Dynamics**:
-   * *Observation*: In campaign generation (`createEnemyUnit`), enemies receive `wildcardPassiveIds: ['momentum']` and up to 2 starter abilities. Pure-kit benchmarks without wildcards hide natural synergies—e.g. Force units getting Advantage from `Momentum` after moving, or Cavalier using `Shield Bash` (1-hex knockback) to re-enable `Lance Charge` in close melee. Consider benchmark profiles that include standard starter wildcards.
+   * *Observation*: In campaign generation (`createEnemyUnit`), enemies receive `wildcardPassiveIds: ['momentum']` and up to 2 starter abilities. Pure-kit benchmarks without wildcards hide natural synergies—e.g. Force units getting Advantage from `Momentum` after moving, or Cavalier using `Shield Bash` (1-hex knockback) to re-enable `Lance Charge` in close melee. Consider benchmark profiles that include standard starter wildcard3.
 4. **Varied Resonant Loadouts for Generated Enemies**:
-   * *Observation*: Generated enemies in encounters currently receive a static wildcard passive (Momentum) and starter abilities. Implement a "level up" generation system where enemies dynamically draw realistic resonant abilities and passives from their unlocked constellation path with randomized variation across encounters rather than a static list.
-5. **Cavalier**: What does he do after a Lance Charge? It's 2AP, so a move doesn't help. He ends up 1 space away from his target. If he doesn't start beside a target or have a ranged Resonant ability he is awkward, taking that last AP and saving it.
+   * *Observation*: Generated enemies in encounters currently receive a static wildcard passive (Momentum) and starter abilities. Implement a "level up" generation system where enemies dynamically draw realistic resonant abilities and passives from their unlocked constellation path with randomized variation across encounters rather than a static l4st.
+5. **Cavalier**:
+  - What does he do after a Lance Charge? It's 2AP, so a move doesn't help. He ends up 1 space away from his target. If he doesn't start beside a target or have a ranged Resonant ability he is awkward, taking that last AP and saving it.
+  - Maybe increase Ride-Through PENETRATING_STEP to 2. This gives separation to make a Lance Charge.

@@ -1,5 +1,5 @@
 import { Ability, AbilityEffect, DiceProfile } from '../types/ability';
-import { CombatUnit, HitOutcome, DamageDieRoll } from './types';
+import { CombatUnit, HitOutcome, DamageDieRoll, DamageBreakdownComponent } from './types';
 import { getEffectiveArmor, getEffectiveWard } from './effectiveVitals';
 import { DiceRoller } from './dice';
 import { getAbilityModifier } from './attackRoll';
@@ -8,10 +8,13 @@ import { COMBAT_RESOLUTION_CONFIG, DISPLACEMENT_CONFIG } from '../config/balance
 export interface DamageResult {
   readonly rawDamage: number;
   readonly mitigation: number;
+  readonly mitigationType?: 'Armor' | 'Ward';
+  readonly critMaxBonus?: number;
   readonly damageDealt: number;
   readonly damageBreakdown: string;
   readonly damageDice?: readonly DamageDieRoll[];
   readonly damageModifier?: number;
+  readonly damageBreakdownComponents?: readonly DamageBreakdownComponent[];
 }
 
 export interface DamageOptions {
@@ -36,7 +39,9 @@ export function resolveDamage(
 ): DamageResult {
   const eff = damageEffect ?? ability.effects?.find((e) => e.type === 'DAMAGE');
   const damageProfile = eff?.damageProfile;
-  let flatBonus = eff?.flatDamage ?? 0;
+  const baseFlatBonus = eff?.flatDamage ?? 0;
+  let flatBonus = baseFlatBonus;
+  const passiveComponents: DamageBreakdownComponent[] = [];
 
   // Check health threshold passives (e.g. Deathbound Fury +2 flat physical damage when <= 50% HP)
   const maxHp = actorCu.unit.effectiveVitals.maxHp;
@@ -50,6 +55,11 @@ export function resolveDamage(
             passive.healthThreshold.damageTypeFilter === ability.damageType
           ) {
             flatBonus += passive.healthThreshold.flatDamageBonus;
+            passiveComponents.push({
+              label: passive.name,
+              value: passive.healthThreshold.flatDamageBonus,
+              source: 'PASSIVE'
+            });
           }
         }
       }
@@ -70,6 +80,11 @@ export function resolveDamage(
             passive.targetArmorBonus.damageTypeFilter === ability.damageType
           ) {
             flatBonus += passive.targetArmorBonus.flatDamageBonus;
+            passiveComponents.push({
+              label: passive.name,
+              value: passive.targetArmorBonus.flatDamageBonus,
+              source: 'PASSIVE'
+            });
           }
         }
       }
@@ -85,12 +100,22 @@ export function resolveDamage(
             passive.targetForceBonus.damageTypeFilter === ability.damageType
           ) {
             flatBonus += passive.targetForceBonus.flatDamageBonus;
+            passiveComponents.push({
+              label: passive.name,
+              value: passive.targetForceBonus.flatDamageBonus,
+              source: 'PASSIVE'
+            });
           }
         }
       }
 
       if (passive.lowerElevationDamageBonus && options?.elevationDelta !== undefined && options.elevationDelta >= 1) {
         flatBonus += passive.lowerElevationDamageBonus;
+        passiveComponents.push({
+          label: passive.name,
+          value: passive.lowerElevationDamageBonus,
+          source: 'PASSIVE'
+        });
       }
     }
   }
@@ -104,6 +129,15 @@ export function resolveDamage(
     };
   }
 
+  const attrKey = damageProfile
+    ? damageProfile.modifierAttribute
+    : (ability.attackModifierAttribute ??
+        (ability.archetypeTag === 'MAGE'
+          ? 'focus'
+          : ability.archetypeTag === 'ROGUE'
+          ? 'finesse'
+          : 'force'));
+
   const modifier = damageProfile
     ? (damageProfile.modifierAttribute ? (actorCu.unit.baseAttributes[damageProfile.modifierAttribute] ?? 0) : 0)
     : getAbilityModifier(actorCu, ability);
@@ -111,70 +145,141 @@ export function resolveDamage(
   let maximizedVal = 0;
   let formulaPrefix = '';
 
+  const components: DamageBreakdownComponent[] = [];
   const damageDiceRolls: DamageDieRoll[] = [];
   if (damageProfile) {
     const { count, sides } = damageProfile;
+    let baseDiceSum = 0;
     if (diceRoller.rollIndividualDice) {
       const rolls = diceRoller.rollIndividualDice(count, sides);
-      rolledDice = rolls.reduce((sum, val) => sum + val, 0);
+      baseDiceSum = rolls.reduce((sum, val) => sum + val, 0);
       for (const r of rolls) {
         damageDiceRolls.push({ sides, roll: r });
       }
     } else {
-      rolledDice = diceRoller.rollDice(count, sides);
-      damageDiceRolls.push({ sides, roll: rolledDice });
+      baseDiceSum = diceRoller.rollDice(count, sides);
+      damageDiceRolls.push({ sides, roll: baseDiceSum });
     }
+    rolledDice += baseDiceSum;
     maximizedVal = count * sides;
     formulaPrefix = `${count}d${sides}`;
+    components.push({
+      label: `Base Dice (${count}d${sides})`,
+      value: baseDiceSum,
+      source: 'DICE'
+    });
   }
 
   if (bonusDamage && bonusDamage.count > 0 && bonusDamage.sides > 0) {
+    let bonusDiceSum = 0;
     if (diceRoller.rollIndividualDice) {
       const bonusRolls = diceRoller.rollIndividualDice(bonusDamage.count, bonusDamage.sides);
-      rolledDice += bonusRolls.reduce((sum, val) => sum + val, 0);
+      bonusDiceSum = bonusRolls.reduce((sum, val) => sum + val, 0);
       for (const r of bonusRolls) {
         damageDiceRolls.push({ sides: bonusDamage.sides, roll: r });
       }
     } else {
-      const bonusRoll = diceRoller.rollDice(bonusDamage.count, bonusDamage.sides);
-      rolledDice += bonusRoll;
-      damageDiceRolls.push({ sides: bonusDamage.sides, roll: bonusRoll });
+      bonusDiceSum = diceRoller.rollDice(bonusDamage.count, bonusDamage.sides);
+      damageDiceRolls.push({ sides: bonusDamage.sides, roll: bonusDiceSum });
     }
+    rolledDice += bonusDiceSum;
     maximizedVal += bonusDamage.count * bonusDamage.sides;
     formulaPrefix += `${formulaPrefix ? '+' : ''}${bonusDamage.count}d${bonusDamage.sides}`;
+    components.push({
+      label: `Bonus Dice (${bonusDamage.count}d${bonusDamage.sides})`,
+      value: bonusDiceSum,
+      source: 'BONUS_DICE'
+    });
   }
 
   const isCrit = hitOutcome === 'CRITICAL_HIT';
   const isGraze = hitOutcome === 'GRAZE';
+
+  if (isCrit && maximizedVal > 0) {
+    components.push({
+      label: `Critical Max (${formulaPrefix})`,
+      value: maximizedVal,
+      source: 'CRIT_MAX'
+    });
+  }
+
+  if (attrKey && modifier !== 0) {
+    const attrLabel =
+      attrKey === 'force' ? 'Force Bonus' : attrKey === 'finesse' ? 'Finesse Bonus' : 'Focus Bonus';
+    components.push({
+      label: attrLabel,
+      value: modifier,
+      source: 'ATTRIBUTE'
+    });
+  }
+
+  if (baseFlatBonus !== 0) {
+    components.push({
+      label: 'Ability / Shard Bonus',
+      value: baseFlatBonus,
+      source: 'ABILITY_FLAT'
+    });
+  }
+
+  components.push(...passiveComponents.filter((c) => c.value !== 0));
 
   // Maximized Crit: max base dice + rolled dice + modifier + flatBonus
   const rawDamage = isCrit
     ? maximizedVal + rolledDice + modifier + flatBonus
     : rolledDice + modifier + flatBonus;
 
-  const mitigationType = ability.damageType === 'PHYSICAL' ? 'Armor' : 'Ward';
+  const mitigationType: 'Armor' | 'Ward' = ability.damageType === 'PHYSICAL' ? 'Armor' : 'Ward';
   const mitigation =
     ability.damageType === 'PHYSICAL'
       ? getEffectiveArmor(targetCu)
       : getEffectiveWard(targetCu);
 
+  if (mitigation !== 0) {
+    components.push({
+      label: `Target ${mitigationType}`,
+      value: -mitigation,
+      source: 'MITIGATION'
+    });
+  }
+
   let subtotal = rawDamage - mitigation;
   let modifierSuffix = '';
 
   if (isGraze) {
+    const beforeGraze = subtotal;
     subtotal = Math.floor(subtotal * COMBAT_RESOLUTION_CONFIG.grazeDamageMultiplier);
     modifierSuffix = ' (x0.5 Graze)';
+    components.push({
+      label: 'Graze Penalty',
+      value: subtotal - beforeGraze,
+      displayValue: 'x0.5',
+      source: 'MULTIPLIER'
+    });
   }
 
   if (options?.hasRangedCover) {
+    const beforeCover = subtotal;
     subtotal = Math.floor(subtotal * 0.5);
     modifierSuffix += ' (x0.5 Bastion Cover)';
+    components.push({
+      label: 'Bastion Ranged Cover',
+      value: subtotal - beforeCover,
+      displayValue: 'x0.5',
+      source: 'MULTIPLIER'
+    });
   }
 
   let damageDealt = subtotal;
   if (damageDealt < COMBAT_RESOLUTION_CONFIG.minimumDamage) {
+    const beforeFloor = damageDealt;
     damageDealt = COMBAT_RESOLUTION_CONFIG.minimumDamage;
     modifierSuffix += ' (min 1)';
+    components.push({
+      label: 'Minimum Damage Floor',
+      value: damageDealt - beforeFloor,
+      displayValue: `Min ${damageDealt}`,
+      source: 'MIN_FLOOR'
+    });
   }
 
   // e.g. Normal: 1d6(4)+1 - 2 Armor -> 3 | Crit: 1d4+1d4 [Crit: 8 max + 6 roll] + 3 - 0 Armor -> 17
@@ -189,10 +294,13 @@ export function resolveDamage(
   return {
     rawDamage,
     mitigation,
+    mitigationType,
+    critMaxBonus: isCrit ? maximizedVal : 0,
     damageDealt,
     damageBreakdown,
     damageDice: damageDiceRolls,
-    damageModifier: totalMod
+    damageModifier: totalMod,
+    damageBreakdownComponents: components
   };
 }
 

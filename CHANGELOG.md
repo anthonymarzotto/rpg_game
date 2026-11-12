@@ -2,6 +2,14 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.17.0] - 2026-11-11
+
+### Clash Dice Tray Duel Stage & Damage Breakdown Tooltips
+- **Clash Duel Stage & Token Animations**: The dice tray header now showcases a head-to-head duel between the attacking and defending combatants with directional battle sprites, target health tracking, and synchronized clash reactions—including attack lunges, evasive sidesteps on misses, impact shakes on hits, and a clear Defeated state when a blow drops a combatant to zero health.
+- **Tri-State Dice Tray Mode for Enemy Turns**: The combat header Dice Tray toggle now cycles between *All*, *Player*, and *Off*. When set to *All*, enemy attacks also open the Clash Dice Tray so you can follow incoming enemy strikes and see exactly how frontline battles unfold without missing sudden unit defeats.
+- **Spoiler-Free Dice Rolls & Paced Reveals**: Attack scores and damage totals now wait until the tumbling dice land before revealing the final numbers, building tabletop suspense while still allowing you to click or press Space at any time to skip ahead.
+- **Complete Damage Math & Breakdown Tooltips**: The dice tray damage equation now explicitly displays target Armor and Ward soak alongside dice rolls and bonuses. Hovering the damage calculation in either the Dice Tray or the Astral Chronicle opens a detailed breakdown popover listing base dice, critical bonuses, attribute scaling, passive traits, and defensive soak.
+
 ## [0.16.0] - 2026-11-10
 
 ### Tier 4 Adversaries in Late Campaign Trials
