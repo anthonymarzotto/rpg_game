@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createRadialArena } from '../grid/templates';
 import { createCombatState } from './resolver';
+import { SeededDiceRoller } from './dice';
 import { Unit } from '../types/unit';
 import {
   serializeCombatState,
@@ -156,5 +157,20 @@ describe('stateSerializer', () => {
     expect(rehydratedDecision.trace.chosenAction).toEqual(originalDecision.trace.chosenAction);
     expect(rehydratedDecision.trace.topCandidates.length).toBe(originalDecision.trace.topCandidates.length);
     expect(rehydratedDecision.trace.topCandidates[0].score).toBe(originalDecision.trace.topCandidates[0].score);
+  });
+
+  it('records and round-trips PRNG seed on CombatState and SerializedCombatState', () => {
+    const arena = createRadialArena(2);
+    const hero = createMockUnit('hero', 'Player Hero', 'PLAYER');
+    arena.setUnitPosition(hero.id, { q: 0, r: 0 });
+    const roller = new SeededDiceRoller(987654);
+    const state = createCombatState(arena, [hero], undefined, undefined, undefined, roller);
+
+    expect(state.seed).toBe(987654);
+    const json = exportTrialJson(state);
+    expect(json).toContain('"seed": 987654');
+
+    const hydrated = importTrialJson(json);
+    expect(hydrated.seed).toBe(987654);
   });
 });

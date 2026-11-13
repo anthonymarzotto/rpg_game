@@ -18,11 +18,15 @@ The AI decision system SHALL collect structured candidate evaluation telemetry f
 - **THEN** the recorded trace includes the conservation threshold and the scores of rejected candidate actions.
 
 ### Requirement: Deterministic Trial State Serialization
-The combat system SHALL serialize the active `CombatState` (including `Arena` hex tiles, unit positions, unit vitals, modifiers, combat log, and AI decision traces) into a pure, JSON-compatible payload that unpacks internal `Map` structures.
+The combat system SHALL serialize the active `CombatState` (including optional PRNG `seed`, `Arena` hex tiles, unit positions, unit vitals, modifiers, combat log, and AI decision traces) into a pure, JSON-compatible payload that unpacks internal `Map` structures.
 
 #### Scenario: Serialization produces plain JSON data
 - **WHEN** `serializeCombatState` is invoked with an active combat encounter
-- **THEN** the returned object contains serializable representations of tiles, unit coordinates, units map, combat log, and decision traces without native `Map` instances.
+- **THEN** the returned object contains serializable representations of tiles, unit coordinates, units map, combat log, decision traces, and the recorded `seed` (when present) without native `Map` instances
+
+#### Scenario: Deserialization preserves recorded PRNG seed
+- **WHEN** a serialized trial snapshot containing a `seed` is passed to `deserializeCombatState`
+- **THEN** the resulting `CombatState` retains the identical `seed` value
 
 ### Requirement: Headless Combat State Re-simulation Hydration
 The combat system SHALL deserialize a serialized trial snapshot payload back into an operational `CombatState` with a functional `Arena` instance and unit maps, allowing headless execution of `decideNextAction` and combat actions.

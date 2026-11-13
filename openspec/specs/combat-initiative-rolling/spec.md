@@ -7,7 +7,7 @@ Provides dynamic combat encounter opening rounds by rolling randomized initial i
 ## Requirements
 
 ### Requirement: Combatants roll randomized initial initiative gauge on encounter initialization
-The system SHALL initialize each combat unit's `initiativeGauge` with an integer value rolled from a 1d20 die ($1\text{--}20$) when constructing a new combat state container.
+The system SHALL initialize each combat unit's `initiativeGauge` with an integer value rolled from a 1d20 die (1-20) when constructing a new combat state container. Interactive combat sessions SHALL share a single trial-scoped seeded dice roller across opening initiative, normal-mode player actions, and all hostile AI turns so the PRNG stream progresses continuously across the encounter and never resets between turns.
 
 #### Scenario: All combatants receive initial non-zero initiative gauge
 - **WHEN** a new combat encounter state is created via `createCombatState`
@@ -16,6 +16,10 @@ The system SHALL initialize each combat unit's `initiativeGauge` with an integer
 #### Scenario: Deterministic initiative rolls with seeded roller
 - **WHEN** `createCombatState` is invoked with a seeded dice roller
 - **THEN** the initial initiative rolls SHALL be completely deterministic and reproducible across retries with the same seed
+
+#### Scenario: Interactive combat shares a single seeded roller across turns
+- **WHEN** an interactive combat encounter initializes opening initiative, resolves normal player attacks, and sequences multiple hostile AI turns
+- **THEN** all non-overridden d20 and damage rolls SHALL draw sequentially from the same trial-scoped seeded dice roller without resetting the PRNG seed on consecutive enemy turns
 
 ### Requirement: Equal gauge and speed ties gracefully favor the player
 When two combatants simultaneously cross the CTB gauge turn threshold with identical gauge values and identical effective speed values, the clock tiebreaker SHALL award turn priority to the player combatant.

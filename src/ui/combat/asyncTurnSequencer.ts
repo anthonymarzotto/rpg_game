@@ -129,6 +129,8 @@ export function delayWithAbort(ms: number, signal?: AbortSignal): Promise<void> 
   });
 }
 
+const defaultSequencerDiceRoller = new SeededDiceRoller();
+
 /**
  * Headless asynchronous hostile turn sequencer.
  * Steps through AI decision evaluation, action resolution, and turn pacing.
@@ -139,7 +141,7 @@ export async function executeHostileTurnAsync(
   pacing: TurnPacingConfig = PACING_PRESETS.NORMAL,
   observer?: CombatExecutionObserver,
   signal?: AbortSignal,
-  diceRoller: DiceRoller = new SeededDiceRoller()
+  diceRoller: DiceRoller = defaultSequencerDiceRoller
 ): Promise<void> {
   if (signal?.aborted) return;
 

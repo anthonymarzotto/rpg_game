@@ -5,6 +5,7 @@ import { Ability } from '../types/ability';
 import { AIProfile, AIArchetypeWeights } from './types';
 import { getClassPackage } from '../../data/packages';
 import { getEffectiveMove } from '../combat/effectiveVitals';
+import { getEffectiveAbility } from '../combat/modifiers';
 import { isBastionStanceActive } from '../combat/bastionStance';
 
 export const DEFAULT_ARCHETYPE_WEIGHTS: Record<AIProfile, AIArchetypeWeights> = {
@@ -266,7 +267,8 @@ export function scorePrimerAbility(
     return { score: 0 };
   }
 
-  // Guard: if ability inflicts negative stat debuffs on target and all provided hostile units already have those debuffs active, do not re-prime
+  // Guard: if ability inflicts negative stat debuffs on target and all provided hostile units already have those debuffs active,
+  // or if another living hostile in primer reach already has the debuff active, do not re-prime
   const statMod = ability.effects?.find((e) => e.type === 'STAT_MODIFIER' && (!e.targetScope || e.targetScope === 'TARGET'));
   if (statMod?.statModifiers) {
     const unprimedHostiles = hostileUnits.filter((h) => {
@@ -277,7 +279,19 @@ export function scorePrimerAbility(
         return false;
       });
     });
-    if (unprimedHostiles.length === 0) {
+    const maxReach = ability.range + (ability.aoeRadius ?? 0);
+    const anyInReachAlreadyPrimed = Array.from(state.units.values()).some((u) => {
+      if (u.isDefeated || !u.faction || u.faction === actorCu.faction) return false;
+      const pos = state.arena.getUnitPosition(u.unit.id);
+      if (!pos || hexDistance(actorCoord, pos) > maxReach) return false;
+      return Object.entries(statMod.statModifiers!).some(
+        ([statKey, rawVal]) =>
+          typeof rawVal === 'number' &&
+          rawVal < 0 &&
+          u.activeModifiers.some((m) => m.stat === statKey && m.value < 0)
+      );
+    });
+    if (unprimedHostiles.length === 0 || anyInReachAlreadyPrimed) {
       return { score: 0 };
     }
   }
@@ -465,13 +479,31 @@ export function scoreBuffAbility(
     return { score: 0 };
   }
 
-  // Find distance to closest living hostile unit
+  // Find distance to closest living hostile unit from targetCoord
   let minHostileDist = Infinity;
   for (const h of hostileUnits) {
     const hPos = state.arena.getUnitPosition(h.unit.id);
     if (hPos) {
       const d = hexDistance(targetCoord, hPos);
       if (d < minHostileDist) minHostileDist = d;
+    }
+  }
+
+  // Gate POSITION_SWAP rescue abilities (e.g. Intercept Step) so actors only swap with
+  // threatened allies (dist <= 2) who are closer to hostiles than the actor
+  const isPositionSwap = Boolean(ability.effects?.some((e) => e.type === 'POSITION_SWAP'));
+  if (isPositionSwap) {
+    if (isSelf) return { score: 0 };
+    let actorMinHostileDist = Infinity;
+    for (const h of hostileUnits) {
+      const hPos = state.arena.getUnitPosition(h.unit.id);
+      if (hPos) {
+        const d = hexDistance(actorCoord, hPos);
+        if (d < actorMinHostileDist) actorMinHostileDist = d;
+      }
+    }
+    if (minHostileDist > 2 || actorMinHostileDist <= minHostileDist) {
+      return { score: 0 };
     }
   }
 
@@ -580,6 +612,41 @@ export function scoreBuffAbility(
     score += healthDeficitRatio * 3.0;
   }
 
+  // Position-swap rescue bonus for Intercept Step
+  if (isPositionSwap) {
+    score += 12.0;
+    reasons.push('Rescue threatened ally via position swap');
+  }
+
+  // AoE positive stat buff rally scaling (e.g. Lead the Charge)
+  if ((ability.aoeRadius ?? 0) > 0 && statModEffect?.statModifiers) {
+    const positiveStats = Object.entries(statModEffect.statModifiers)
+      .filter(([, val]) => typeof val === 'number' && val > 0)
+      .map(([statKey]) => statKey);
+
+    if (positiveStats.length > 0) {
+      let unbuffedAlliesInRadius = 0;
+      for (const u of state.units.values()) {
+        if (!u.isDefeated && u.faction === actorCu.faction && u.unit.id !== actorCu.unit.id) {
+          const uPos = state.arena.getUnitPosition(u.unit.id);
+          if (uPos && hexDistance(actorCoord, uPos) <= ability.aoeRadius!) {
+            const alreadyBuffed = positiveStats.some((statKey) =>
+              u.activeModifiers.some((m) => m.stat === statKey && m.value > 0)
+            );
+            if (!alreadyBuffed) {
+              unbuffedAlliesInRadius++;
+            }
+          }
+        }
+      }
+      if (unbuffedAlliesInRadius >= 1) {
+        const totalAffected = unbuffedAlliesInRadius + 1;
+        score += totalAffected * 5.0;
+        reasons.push(`Rally ${totalAffected} squad members in AoE`);
+      }
+    }
+  }
+
   // Archetype preference: dedicated SUPPORT units prioritize allied buffs
   if (profile === 'SUPPORT' && !isSelf) {
     score += 2.5;
@@ -590,6 +657,64 @@ export function scoreBuffAbility(
     score: Math.round(score * 10) / 10,
     reason: reasons.length > 0 ? reasons.join('; ') : `Defensive ${ability.name}`
   };
+}
+
+/**
+ * Checks whether the actor (using remaining AP) or at least one living allied teammate
+ * can reach and attack `targetCoord` before a 1-turn non-damaging setup debuff expires.
+ */
+export function canTeamCapitalizeOnSetup(
+  actorCu: CombatUnit,
+  ability: Ability,
+  actorCoord: HexCoord,
+  targetCoord: HexCoord,
+  state: CombatState
+): boolean {
+  const effectiveAbility = getEffectiveAbility(ability, actorCu.abilityModifiers);
+  const remainingAp = actorCu.currentAp - effectiveAbility.apCost;
+  const distToTarget = hexDistance(actorCoord, targetCoord);
+
+  // 1. Self follow-up check with remaining AP this turn
+  if (remainingAp >= 1) {
+    const actorDamagingAbilities = actorCu.abilities.filter(
+      (a) =>
+        a.id !== ability.id &&
+        (a.damageType !== 'NONE' || Boolean(a.effects?.some((e) => e.type === 'DAMAGE')))
+    );
+    for (const atk of actorDamagingAbilities) {
+      const atkCost = getEffectiveAbility(atk, actorCu.abilityModifiers).apCost;
+      if (atkCost <= remainingAp && distToTarget <= atk.range) {
+        return true;
+      }
+      if (
+        atkCost + 1 <= remainingAp &&
+        distToTarget <= getEffectiveMove(actorCu) + atk.range
+      ) {
+        return true;
+      }
+    }
+  }
+
+  // 2. Allied follow-up reach check (move + max attack range)
+  for (const allyCu of state.units.values()) {
+    if (allyCu.isDefeated || allyCu.faction !== actorCu.faction || allyCu.unit.id === actorCu.unit.id) {
+      continue;
+    }
+    const allyPos = state.arena.getUnitPosition(allyCu.unit.id);
+    if (!allyPos) continue;
+
+    const allyDamagingRanges = allyCu.abilities
+      .filter((a) => a.damageType !== 'NONE' || Boolean(a.effects?.some((e) => e.type === 'DAMAGE')))
+      .map((a) => a.range);
+    const maxAllyAttackRange = allyDamagingRanges.length > 0 ? Math.max(...allyDamagingRanges) : 1;
+    const allyReach = getEffectiveMove(allyCu) + maxAllyAttackRange;
+
+    if (hexDistance(allyPos, targetCoord) <= allyReach) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -624,10 +749,16 @@ export function scoreDebuffAndUtility(
   }
 
   // 2. Stat debuffs (Armor, Resolve, Attack Roll, Speed, etc.)
+  const isNonDamagingAbility =
+    ability.damageType === 'NONE' && !ability.effects?.some((e) => e.type === 'DAMAGE');
+  const teamCanFollowUp = canTeamCapitalizeOnSetup(actorCu, ability, actorCoord, targetCoord, state);
+
   const statMod = ability.effects?.find((e) => e.type === 'STAT_MODIFIER' && (!e.targetScope || e.targetScope === 'TARGET'));
+  let hasNonRedundantDebuff = false;
+  let hasNegativeStatMod = false;
+  let isShortSetupDebuff = false;
   if (statMod?.statModifiers) {
-    let hasApplicableDebuff = false;
-    let hasNegativeStatMod = false;
+    isShortSetupDebuff = isNonDamagingAbility && (statMod.durationTurns ?? 2) <= 1;
 
     for (const [statKey, rawVal] of Object.entries(statMod.statModifiers)) {
       if (typeof rawVal === 'number' && rawVal < 0) {
@@ -638,21 +769,23 @@ export function scoreDebuffAndUtility(
         );
 
         if (!hasExistingDebuff) {
-          hasApplicableDebuff = true;
-          if (statKey === 'armor') {
-            if (targetCu.unit.effectiveVitals.armor > 0) {
-              score += 8.0;
-              reasons.push(`Shred target Armor (-${mag})`);
+          hasNonRedundantDebuff = true;
+          if (!isShortSetupDebuff || teamCanFollowUp) {
+            if (statKey === 'armor') {
+              if (targetCu.unit.effectiveVitals.armor > 0) {
+                score += 8.0;
+                reasons.push(`Shred target Armor (-${mag})`);
+              }
+            } else if (statKey === 'resolve') {
+              score += 4.0;
+              reasons.push(`Shred target Resolve (-${mag})`);
+            } else if (statKey === 'attackRoll') {
+              score += 10.0;
+              reasons.push(`Debuff target Attack Roll (-${mag})`);
+            } else {
+              score += 6.0;
+              reasons.push(`Debuff target ${statKey} (-${mag})`);
             }
-          } else if (statKey === 'resolve') {
-            score += 4.0;
-            reasons.push(`Shred target Resolve (-${mag})`);
-          } else if (statKey === 'attackRoll') {
-            score += 10.0;
-            reasons.push(`Debuff target Attack Roll (-${mag})`);
-          } else {
-            score += 6.0;
-            reasons.push(`Debuff target ${statKey} (-${mag})`);
           }
         }
       }
@@ -662,7 +795,7 @@ export function scoreDebuffAndUtility(
     // If an ability applies negative stat debuffs, but all of them are already active on the target,
     // and the ability deals no damage, do not repeat/spam the debuff.
     // Secondary CTB_DELAY on non-damaging debuffs does NOT bypass this non-redundancy guard.
-    if (hasNegativeStatMod && !hasApplicableDebuff && ability.damageType === 'NONE' && !ability.effects?.some((e) => e.type === 'DAMAGE')) {
+    if (hasNegativeStatMod && !hasNonRedundantDebuff && ability.damageType === 'NONE' && !ability.effects?.some((e) => e.type === 'DAMAGE')) {
       const hasDisplacementUtility = ability.effects?.some(
         (e) => e.type === 'KNOCKBACK' || e.type === 'RUSH_CHARGE'
       );
@@ -720,7 +853,10 @@ export function scoreDebuffAndUtility(
   }
 
   // 3. Declarative primer evaluation (e.g. Flash Powder, Stand and Deliver!)
-  if (ability.aiHint?.primer) {
+  if (
+    ability.aiHint?.primer &&
+    (!statMod || !hasNegativeStatMod || hasNonRedundantDebuff)
+  ) {
     const primerResult = scorePrimerAbility(actorCu, ability, actorCoord, [targetCu], state, profile);
     if (primerResult.score > 0) {
       score += primerResult.score;
@@ -773,9 +909,6 @@ export function scoreDebuffAndUtility(
   // 4. FORCE_FACING_AWAY (e.g. Poppet Needle, Flash Powder)
   const forcesFacingAway = ability.effects?.some((e) => e.type === 'FORCE_FACING_AWAY');
   if (forcesFacingAway) {
-    score += profile === 'SKIRMISHER' ? 10.0 : 7.0;
-    reasons.push('Force target facing 180° away');
-
     // Check if target is adjacent to a friendly unit (threatening frontline)
     let threatensAlly = false;
     for (const u of state.units.values()) {
@@ -787,10 +920,21 @@ export function scoreDebuffAndUtility(
         }
       }
     }
+    if (!isNonDamagingAbility || teamCanFollowUp) {
+      score += profile === 'SKIRMISHER' ? 10.0 : 7.0;
+      reasons.push('Force target facing 180° away');
+    }
     if (threatensAlly) {
       score += profile === 'SUPPORT' ? 24.0 : 16.0;
       reasons.push('Neutralize frontline threat (turn away from engaged ally)');
     }
+  }
+
+  // 4b. TARGET_CHALLENGED combo synergy (e.g. Pommel Strike vs Challenged enemy)
+  const hasChallengedBonus = ability.effects?.some((e) => e.condition === 'TARGET_CHALLENGED');
+  if (hasChallengedBonus && targetCu.activeConditions?.some((c) => c.type === 'CHALLENGED')) {
+    score += 8.0;
+    reasons.push('Exploit Challenged target vulnerability');
   }
 
   // 5. CONDITION: CHALLENGED (e.g. Flamboyant Flourish)

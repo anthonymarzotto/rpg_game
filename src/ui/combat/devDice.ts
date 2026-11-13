@@ -6,7 +6,10 @@ export type DiceMode = 'NORMAL' | 'FORCE_CRIT' | 'FORCE_GRAZE' | 'FORCE_MISS';
  * Developer dice roller allowing deterministic roll overrides for visual testing.
  */
 export class DevDiceRoller implements DiceRoller {
-  constructor(private readonly mode: DiceMode) {}
+  constructor(
+    private readonly mode: DiceMode,
+    private readonly fallbackRoller?: DiceRoller
+  ) {}
 
   public rollD20(advantage: RollAdvantage = 'NORMAL'): number {
     return this.rollD20Detailed(advantage).kept;
@@ -16,6 +19,24 @@ export class DevDiceRoller implements DiceRoller {
     if (this.mode === 'FORCE_CRIT') return { rolls: [20], kept: 20 };
     if (this.mode === 'FORCE_MISS') return { rolls: [2], kept: 2 };
     if (this.mode === 'FORCE_GRAZE') return { rolls: [7], kept: 7 };
+
+    if (this.fallbackRoller) {
+      if (this.fallbackRoller.rollD20Detailed) {
+        return this.fallbackRoller.rollD20Detailed(advantage);
+      }
+      if (advantage === 'ADVANTAGE') {
+        const r1 = this.fallbackRoller.rollD20('NORMAL');
+        const r2 = this.fallbackRoller.rollD20('NORMAL');
+        return { rolls: [r1, r2], kept: Math.max(r1, r2) };
+      }
+      if (advantage === 'DISADVANTAGE') {
+        const r1 = this.fallbackRoller.rollD20('NORMAL');
+        const r2 = this.fallbackRoller.rollD20('NORMAL');
+        return { rolls: [r1, r2], kept: Math.min(r1, r2) };
+      }
+      const r = this.fallbackRoller.rollD20('NORMAL');
+      return { rolls: [r], kept: r };
+    }
 
     const single = () => Math.floor(Math.random() * 20) + 1;
     if (advantage === 'ADVANTAGE') {
@@ -38,6 +59,17 @@ export class DevDiceRoller implements DiceRoller {
   }
 
   public rollIndividualDice(count: number, sides: number): number[] {
+    if (this.fallbackRoller) {
+      if (this.fallbackRoller.rollIndividualDice) {
+        return this.fallbackRoller.rollIndividualDice(count, sides);
+      }
+      const rolls: number[] = [];
+      for (let i = 0; i < count; i++) {
+        rolls.push(this.fallbackRoller.rollDice(1, sides));
+      }
+      return rolls;
+    }
+
     const rolls: number[] = [];
     for (let i = 0; i < count; i++) {
       rolls.push(Math.floor(Math.random() * sides) + 1);

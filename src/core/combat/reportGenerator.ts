@@ -20,10 +20,11 @@ export function generateTrialMarkdownReport(
 
   const encounterTitle = options.encounterName ?? 'Astral Trial';
   const stageInfo = options.stage !== undefined ? ` | **Stage:** ${options.stage}` : '';
+  const seedInfo = state.seed !== undefined ? ` | **Seed:** \`${state.seed}\`` : '';
   const nowIso = new Date().toISOString();
 
   lines.push('# Astral Tactics — Trial Diagnostic Report');
-  lines.push(`**Encounter:** ${encounterTitle}${stageInfo} | **Turn:** ${state.turnNumber} | **Outcome:** ${state.outcome}`);
+  lines.push(`**Encounter:** ${encounterTitle}${stageInfo} | **Turn:** ${state.turnNumber} | **Outcome:** ${state.outcome}${seedInfo}`);
   lines.push(`**Exported At:** \`${nowIso}\``);
 
   const activeCu = state.units.get(state.activeUnitId);

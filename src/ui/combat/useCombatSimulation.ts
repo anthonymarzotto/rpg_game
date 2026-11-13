@@ -13,6 +13,7 @@ import {
   buildEncounterState
 } from '../../core/combat/encounter';
 import { TargetPreview, computeTargetPreview } from '../../core/combat/targetPreview';
+import { SeededDiceRoller } from '../../core/combat/dice';
 import { DiceMode, DevDiceRoller } from './devDice';
 import { useFloatingCombatText, collectInitiativeFloatingTexts, FloatingText } from './useFloatingCombatText';
 import {
@@ -75,8 +76,13 @@ export function useCombatSimulation({
   const [hostileActionStatus, setHostileActionStatus] = useState<string | null>(null);
   const [encounterSession, setEncounterSession] = useState(0);
 
+  const trialRollerRef = useRef<SeededDiceRoller | null>(null);
+  if (!trialRollerRef.current) {
+    trialRollerRef.current = new SeededDiceRoller(Date.now());
+  }
+
   const [state, setState] = useState<CombatState>(() =>
-    buildEncounterState(encounter)
+    buildEncounterState(encounter, trialRollerRef.current!)
   );
   const [actionMode, setActionMode] = useState<ActionMode>(initialActionMode ?? 'IDLE');
   const [selectedAbility, setSelectedAbility] = useState<Ability | null>(initialSelectedAbility ?? null);
@@ -609,7 +615,8 @@ export function useCombatSimulation({
       state.activeUnitId,
       pacing,
       observer,
-      controller.signal
+      controller.signal,
+      trialRollerRef.current ?? undefined
     ).catch((err: unknown) => {
       if (err instanceof Error && err.name !== 'AbortError') {
         console.error('Error executing hostile turn:', err);
@@ -698,7 +705,7 @@ export function useCombatSimulation({
             : coord;
 
           // Dev dice overrides apply only to player actions
-          const roller = new DevDiceRoller(diceMode);
+          const roller = new DevDiceRoller(diceMode, trialRollerRef.current ?? undefined);
           const resolution = executeAbility(
             state,
             state.activeUnitId,
@@ -925,7 +932,9 @@ export function useCombatSimulation({
       setHostileActionStatus(null);
       setEncounterSession((prev) => prev + 1);
 
-      const fresh = buildEncounterState(encounter);
+      const nextRoller = new SeededDiceRoller(Date.now());
+      trialRollerRef.current = nextRoller;
+      const fresh = buildEncounterState(encounter, nextRoller);
       setState(fresh);
       setActionMode('IDLE');
       setSelectedAbility(null);
@@ -952,7 +961,9 @@ export function useCombatSimulation({
     setHostileActionStatus(null);
     setEncounterSession((prev) => prev + 1);
 
-    const fresh = buildEncounterState(encounter);
+    const nextRoller = new SeededDiceRoller(Date.now());
+    trialRollerRef.current = nextRoller;
+    const fresh = buildEncounterState(encounter, nextRoller);
     setState(fresh);
     setActionMode('IDLE');
     setSelectedAbility(null);

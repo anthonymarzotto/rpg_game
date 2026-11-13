@@ -596,6 +596,33 @@ describe('asyncTurnSequencer', () => {
 
       decideSpy.mockRestore();
     });
+
+    it('advances default PRNG stream across consecutive hostile turns without resetting seed', async () => {
+      const arena = createRadialArena(3);
+      const enemy = createMockCombatUnit('enemy', 'Orc', 'ENEMY', { speed: 20 });
+      const hero = createMockCombatUnit('hero', 'Alden', 'PLAYER', { maxHp: 200, speed: 5 });
+      arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+      arena.setUnitPosition(hero.id, { q: 1, r: 0 });
+      const state = createCombatState(arena, [enemy, hero], enemy.id);
+
+      const turnFirstRolls: string[] = [];
+      for (let t = 0; t < 3; t++) {
+        const beforeCount = state.combatLog.filter((e) => e.metadata.type === 'ATTACK').length;
+        const enemyCu = state.units.get(enemy.id)!;
+        enemyCu.currentAp = 3;
+        state.activeUnitId = enemy.id;
+        await executeHostileTurnAsync(state, enemy.id, PACING_PRESETS.INSTANT);
+        const attackLogs = state.combatLog.filter((e) => e.metadata.type === 'ATTACK');
+        expect(attackLogs.length).toBeGreaterThan(beforeCount);
+        const firstNewMeta = attackLogs[beforeCount].metadata;
+        if (firstNewMeta.type === 'ATTACK' && firstNewMeta.d20 !== undefined) {
+          turnFirstRolls.push(firstNewMeta.d20);
+        }
+      }
+
+      expect(turnFirstRolls.length).toBe(3);
+      expect(new Set(turnFirstRolls).size).toBeGreaterThan(1);
+    });
   });
 });
 

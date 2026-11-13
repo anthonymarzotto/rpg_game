@@ -274,7 +274,8 @@ export function createCombatState(
     outcome: 'IN_PROGRESS',
     objectives,
     aiDecisionLog: [],
-    partyXpPool: { fighter: 0, rogue: 0, mage: 0 }
+    partyXpPool: { fighter: 0, rogue: 0, mage: 0 },
+    seed: diceRoller instanceof SeededDiceRoller ? diceRoller.seed : undefined
   };
 
   // Pre-encounter setup pass: seed initial state (e.g. +25 initiative for Tactical Vanguard)

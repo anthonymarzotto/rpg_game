@@ -45,6 +45,7 @@ export function serializeCombatState(state: CombatState): SerializedCombatState 
     objectives: state.objectives ? [...state.objectives] : undefined,
     aiDecisionLog: state.aiDecisionLog ? [...state.aiDecisionLog] : undefined,
     partyXpPool: state.partyXpPool ? { ...state.partyXpPool } : { fighter: 0, rogue: 0, mage: 0 },
+    seed: state.seed,
     exportedAt: Date.now()
   };
 }
@@ -79,7 +80,8 @@ export function deserializeCombatState(payload: SerializedCombatState): CombatSt
     outcome: payload.outcome ?? 'IN_PROGRESS',
     objectives: payload.objectives ? [...payload.objectives] : undefined,
     aiDecisionLog: payload.aiDecisionLog ? [...payload.aiDecisionLog] : undefined,
-    partyXpPool: payload.partyXpPool ? { ...payload.partyXpPool } : { fighter: 0, rogue: 0, mage: 0 }
+    partyXpPool: payload.partyXpPool ? { ...payload.partyXpPool } : { fighter: 0, rogue: 0, mage: 0 },
+    seed: payload.seed
   };
 }
 

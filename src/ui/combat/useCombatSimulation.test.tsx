@@ -367,6 +367,7 @@ describe('useCombatSimulation movePreview & fall hazard detection', () => {
       id: 'pin-test-encounter',
       name: 'Pin Test',
       arenaRadius: 3,
+      initialActiveUnitId: 'p1',
       units: [
         { unit: player, coord: { q: 0, r: 0 } },
         { unit: enemy, coord: { q: 2, r: 0 } }

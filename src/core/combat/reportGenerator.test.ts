@@ -3,6 +3,7 @@ import { createRadialArena } from '../grid/templates';
 import { createCombatState } from './resolver';
 import { Unit } from '../types/unit';
 import { generateTrialMarkdownReport } from './reportGenerator';
+import { SeededDiceRoller } from './dice';
 import { AIDecisionTrace } from '../ai/types';
 
 function createMockUnit(
@@ -171,5 +172,15 @@ describe('reportGenerator', () => {
     expect(report).toContain('**Winning Action:** `MOVE` (Score: 18.5)');
     expect(report).toContain('1. **[MOVE]** Score: 18.5 — Approaching Valen');
     expect(report).toContain('2. **[CONSERVE_AP]** Score: 0 — Conserve AP');
+  });
+
+  it('includes recorded trial seed in Markdown report header when present', () => {
+    const arena = createRadialArena(2);
+    const hero = createMockUnit('hero', 'Valen', 'PLAYER');
+    arena.setUnitPosition(hero.id, { q: 0, r: 0 });
+    const state = createCombatState(arena, [hero], undefined, undefined, undefined, new SeededDiceRoller(777888));
+
+    const report = generateTrialMarkdownReport(state);
+    expect(report).toContain('**Seed:** `777888`');
   });
 });

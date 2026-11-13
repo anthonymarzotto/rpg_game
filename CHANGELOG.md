@@ -2,6 +2,13 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.17.1] - 2026-11-13
+
+### Enemy Tactical Decision-Making & Battle Dice Variety
+- **True Encounter Dice Progression**: Fixed an issue where enemy turns could repeatedly draw from the same opening roll sequence instead of advancing through a continuous, battle-wide stream of rolls. Encounters now maintain one shared random seed throughout the full battle and record that seed in exported battle summaries.
+- **Smarter Opening Advances & Flanking**: Enemy squads now advance steadily from turn one instead of halting behind ridges or skipping early movement for minor buffs, and advancing fighters spread out into flanking lanes instead of bunching behind allies or charging solo into an entire defender line.
+- **Sharper Support & Skirmisher Coordination**: Shield-bearers now reserve swap maneuvers to rescue endangered teammates, Knights lead squads with stronger multi-ally rallies and close into melee range to press Challenged foes with *Pommel Strike*, Cat Burglars save *Flash Powder* and vaults for genuine ambush opportunities, and Dragoons more reliably conserve final momentum for *Coiled Apex* vantage strikes.
+
 ## [0.17.0] - 2026-11-11
 
 ### Clash Dice Tray Duel Stage & Damage Breakdown Tooltips

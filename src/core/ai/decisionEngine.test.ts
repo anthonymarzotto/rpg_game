@@ -16,6 +16,9 @@ import { SMOKE_VEIL } from '../../data/packages/infiltrator';
 import { ARCANE_BLAST } from '../../data/packages/wizard';
 import { ELDRITCH_BLAST } from '../../data/packages/warlock';
 import { BASTION_PLANT, CONCUSSIVE_SLAM } from '../../data/packages/shieldBearer';
+import { LEAD_THE_CHARGE, POMMEL_STRIKE, CHALLENGING_SHOUT } from '../../data/packages/knight';
+import { ROOFTOP_VAULT, FLASH_POWDER, PILFER } from '../../data/packages/catBurglar';
+import { COILED_APEX, PIERCING_THRUST } from '../../data/packages/dragoon';
 import { scoreTargetThreat, scoreDebuffAndUtility } from './heuristics';
 
 function createMockUnit(
@@ -1004,6 +1007,7 @@ describe('Headless AI Decision Engine', () => {
       const state = createCombatState(arena, [knight, hero], knight.id);
       const knightCu = state.units.get(knight.id)!;
       knightCu.currentAp = 1;
+      (knightCu as { abilities: typeof knightCu.abilities }).abilities = [CHALLENGING_SHOUT];
 
       // Hero already has CHALLENGED from this knight
       state.units.get(hero.id)!.activeConditions.push({
@@ -1644,6 +1648,221 @@ describe('Headless AI Decision Engine', () => {
           expect(action.ability.id).toBe('concussive_slam');
           expect(action.target?.targetUnitId).toBe(hero.id);
         }
+      });
+    });
+
+    describe('Opening Approach, Terrain Flanking & Isolation Regression Fixes', () => {
+      it('does not let low-value unengaged buff suppress MOVE approach into CONSERVE_AP', () => {
+        const arena = createRadialArena(6);
+        const knight = createMockUnit('knight-1', 'Enemy Knight', 'ENEMY', {
+          activeClassId: 'knight',
+          move: 3,
+          abilities: ['lead_the_charge', 'pommel_strike']
+        });
+        const ally = createMockUnit('ally-1', 'Ally Bruiser', 'ENEMY', { move: 3 });
+        const hero = createMockUnit('hero-1', 'Player Hero', 'PLAYER');
+
+        // Knight starts far from hero (dist 6) with Lead the Charge already active on ally so buff score is low/zero
+        arena.setUnitPosition(knight.id, { q: -3, r: 0 });
+        arena.setUnitPosition(ally.id, { q: -2, r: 0 });
+        arena.setUnitPosition(hero.id, { q: 3, r: 0 });
+
+        const state = createCombatState(arena, [knight, ally, hero], knight.id);
+        const knightCu = state.units.get(knight.id)!;
+        (knightCu as { abilities: typeof knightCu.abilities }).abilities = [LEAD_THE_CHARGE, POMMEL_STRIKE];
+        // Pre-apply speed modifier to ally with 1 turn remaining, or give a weak self-buff scenario
+        knightCu.currentAp = 2;
+
+        // With Lead the Charge scoring 4.0 solo -> moveNetScore 2.0 (< threshold 5.0), decoupled reposition wins so unit advances
+        arena.setUnitPosition(ally.id, { q: -6, r: 0 });
+        const action = decideNextAction(state, knight.id);
+        expect(action.type).toBe('MOVE');
+      });
+
+      it('advances terrain-blocked SNIPER beyond preferredStandoffRange + 1 even without immediate single-step LoS', () => {
+        const arena = createRadialArena(8);
+        // Place ridge/wall blocking LoS between sniper side (-6,0) and hero side (4,0)
+        for (const r of [-2, -1, 0, 1, 2]) {
+          arena.setTile({ coord: { q: 0, r }, elevation: 2, isWalkable: false });
+        }
+
+        const sniper = createMockUnit('sniper-1', 'Enemy Sniper', 'ENEMY', {
+          activeClassId: 'warlock',
+          move: 3
+        });
+        const hero = createMockUnit('hero-1', 'Player Hero', 'PLAYER');
+
+        arena.setUnitPosition(sniper.id, { q: -6, r: 0 });
+        arena.setUnitPosition(hero.id, { q: 4, r: 0 });
+
+        const state = createCombatState(arena, [sniper, hero], sniper.id);
+        const sniperCu = state.units.get(sniper.id)!;
+        (sniperCu as { abilities: typeof sniperCu.abilities }).abilities = [ELDRITCH_BLAST];
+        sniperCu.currentAp = 2;
+
+        const action = decideNextAction(state, sniper.id, { profileOverride: 'SNIPER' });
+        expect(action.type).toBe('MOVE');
+        if (action.type === 'MOVE') {
+          expect(hexDistance(action.destination, { q: 4, r: 0 })).toBeLessThan(hexDistance({ q: -6, r: 0 }, { q: 4, r: 0 }));
+        }
+      });
+
+      it('closes melee-only SUPPORT (Knight) from dist 2 to dist 1 instead of kiting to standoff range', () => {
+        const arena = createRadialArena(4);
+        const knight = createMockUnit('knight-1', 'Enemy Knight', 'ENEMY', {
+          activeClassId: 'knight',
+          move: 3,
+          abilities: ['pommel_strike', 'challenging_shout']
+        });
+        const hero = createMockUnit('hero-1', 'Player Hero', 'PLAYER', { maxHp: 40 });
+
+        arena.setUnitPosition(knight.id, { q: 0, r: 0 });
+        arena.setUnitPosition(hero.id, { q: 2, r: 0 });
+
+        const state = createCombatState(arena, [knight, hero], knight.id);
+        const knightCu = state.units.get(knight.id)!;
+        (knightCu as { abilities: typeof knightCu.abilities }).abilities = [POMMEL_STRIKE, CHALLENGING_SHOUT];
+        knightCu.currentAp = 2;
+
+        const action = decideNextAction(state, knight.id, { profileOverride: 'SUPPORT' });
+        expect(action.type).toBe('MOVE');
+        if (action.type === 'MOVE') {
+          expect(hexDistance(action.destination, { q: 2, r: 0 })).toBe(1);
+        }
+      });
+
+      it('suppresses flat unengaged Rooftop Vault when destination is walk-reachable', () => {
+        const arena = createRadialArena(6);
+        const thief = createMockUnit('burglar-1', 'Cat Burglar', 'ENEMY', {
+          activeClassId: 'cat-burglar',
+          move: 3,
+          abilities: ['rooftop_vault', 'strike']
+        });
+        const hero = createMockUnit('hero-1', 'Player Hero', 'PLAYER');
+
+        arena.setUnitPosition(thief.id, { q: -4, r: 0 });
+        arena.setUnitPosition(hero.id, { q: 4, r: 0 });
+
+        const state = createCombatState(arena, [thief, hero], thief.id);
+        const thiefCu = state.units.get(thief.id)!;
+        (thiefCu as { abilities: typeof thiefCu.abilities }).abilities = [ROOFTOP_VAULT, STRIKE];
+        thiefCu.currentAp = 2;
+
+        const action = decideNextAction(state, thief.id);
+        // Should walk toward enemy rather than spending Rooftop Vault on flat walk-reachable ground
+        expect(action.type).toBe('MOVE');
+      });
+
+      it('penalizes solo-diving into 3+ enemies with no allies nearby when no kill is secured', () => {
+        const arena = createRadialArena(5);
+        const striker = createMockUnit('striker-1', 'Reckless Striker', 'ENEMY', { move: 3 });
+        const hero1 = createMockUnit('hero-1', 'Hero 1', 'PLAYER', { maxHp: 50 });
+        const hero2 = createMockUnit('hero-2', 'Hero 2', 'PLAYER', { maxHp: 50 });
+        const hero3 = createMockUnit('hero-3', 'Hero 3', 'PLAYER', { maxHp: 50 });
+
+        // Cluster 3 healthy heroes around (2,0)-(3,0); striker at (-1,0) can reach (1,0) adjacent to all 3 with 0 allies
+        arena.setUnitPosition(striker.id, { q: -1, r: 0 });
+        arena.setUnitPosition(hero1.id, { q: 2, r: 0 });
+        arena.setUnitPosition(hero2.id, { q: 2, r: -1 });
+        arena.setUnitPosition(hero3.id, { q: 1, r: 1 });
+
+        const state = createCombatState(arena, [striker, hero1, hero2, hero3], striker.id);
+        const strikerCu = state.units.get(striker.id)!;
+        (strikerCu as { abilities: typeof strikerCu.abilities }).abilities = [STRIKE];
+        strikerCu.currentAp = 2;
+
+        const { action } = decideNextActionWithTrace(state, striker.id);
+        if (action.type === 'MOVE') {
+          // Should not pick a destination surrounded by all 3 enemies within distance 2
+          const dest = action.destination;
+          const nearby = [
+            { q: 2, r: 0 },
+            { q: 2, r: -1 },
+            { q: 1, r: 1 }
+          ].filter((p) => hexDistance(dest, p) <= 2).length;
+          expect(nearby).toBeLessThan(3);
+        }
+      });
+
+      it('applies crowding penalty at candDist >= 2 so advancing allies spread onto open flank hexes', () => {
+        const arena = createRadialArena(7);
+        const mover = createMockUnit('mover-1', 'Advancing Fighter', 'ENEMY', { move: 2 });
+        const blockerAlly1 = createMockUnit('ally-1', 'Ally East', 'ENEMY');
+        const blockerAlly2 = createMockUnit('ally-2', 'Ally Southeast', 'ENEMY');
+        const hero = createMockUnit('hero-1', 'Hero', 'PLAYER');
+
+        // Hero at (6,-3) facing West (3) -> dist 6 from (0,0). Both (2,0) and (2,-1) reduce distance to 4 (score 6 >= 5).
+        // Allies adjacent to (2,0) at (3,0) and (2,1) penalize (2,0) below 5 so mover chooses an uncrowded hex.
+        arena.setUnitPosition(mover.id, { q: 0, r: 0 });
+        arena.setUnitPosition(blockerAlly1.id, { q: 3, r: 0 });
+        arena.setUnitPosition(blockerAlly2.id, { q: 2, r: 1 });
+        arena.setUnitPosition(hero.id, { q: 6, r: -3 });
+
+        const state = createCombatState(arena, [mover, blockerAlly1, blockerAlly2, hero], mover.id);
+        const moverCu = state.units.get(mover.id)!;
+        state.units.get(hero.id)!.facing = 3;
+        moverCu.currentAp = 1; // Cannot attack after moving
+
+        const { trace } = decideNextActionWithTrace(state, mover.id);
+        expect(trace.chosenAction.type).toBe('MOVE');
+        if (trace.chosenAction.type === 'MOVE') {
+          expect(trace.chosenAction.destination).not.toEqual({ q: 2, r: 0 });
+        }
+      });
+
+      it('raises conservation threshold to 15.0 for unspentApVirtualHeight unit at 1 AP within 4 hexes of enemy', () => {
+        const arena = createRadialArena(5);
+        const dragoon = createMockUnit('dragoon-1', 'Enemy Dragoon', 'ENEMY', {
+          activeClassId: 'dragoon',
+          move: 3,
+          abilities: ['piercing_thrust']
+        });
+        const hero = createMockUnit('hero-1', 'Player Hero', 'PLAYER');
+
+        arena.setUnitPosition(dragoon.id, { q: 0, r: 0 });
+        arena.setUnitPosition(hero.id, { q: 3, r: 0 });
+
+        const state = createCombatState(arena, [dragoon, hero], dragoon.id);
+        const dragoonCu = state.units.get(dragoon.id)!;
+        (dragoonCu as { passives: typeof dragoonCu.passives }).passives = [COILED_APEX];
+        (dragoonCu as { abilities: typeof dragoonCu.abilities }).abilities = [PIERCING_THRUST];
+        dragoonCu.currentAp = 1;
+        dragoonCu.virtualElevation = 0;
+
+        // Only low-value 1-AP move (score ~6 < 15) is available -> conserves AP for Coiled Apex virtual height!
+        const { trace } = decideNextActionWithTrace(state, dragoon.id);
+        expect(trace.apConservationThreshold).toBe(15.0);
+        expect(trace.chosenAction.type).toBe('CONSERVE_AP');
+      });
+
+      it('does not cast multi-target Flash Powder when all caught targets yield 0 utility (already debuffed or 1 AP with no ally in range)', () => {
+        const arena = createRadialArena(4);
+        const catBurglar = createMockUnit('cat-1', 'Cat Burglar', 'ENEMY', {
+          activeClassId: 'cat-burglar',
+          abilities: ['flash_powder', 'pilfer']
+        });
+        const hero1 = createMockUnit('hero-1', 'Hero 1', 'PLAYER');
+        const hero2 = createMockUnit('hero-2', 'Hero 2', 'PLAYER');
+
+        arena.setUnitPosition(catBurglar.id, { q: 0, r: 0 });
+        arena.setUnitPosition(hero1.id, { q: 2, r: 0 });
+        arena.setUnitPosition(hero2.id, { q: 2, r: -1 });
+
+        const state = createCombatState(arena, [catBurglar, hero1, hero2], catBurglar.id);
+        const catCu = state.units.get(catBurglar.id)!;
+        (catCu as { abilities: typeof catCu.abilities }).abilities = [FLASH_POWDER, PILFER];
+
+        // Case 1: 1 AP left, no allies in range -> teamCanFollowUp is false -> Flash Powder must not get blast-count inflation
+        catCu.currentAp = 1;
+        const action1Ap = decideNextAction(state, catBurglar.id);
+        expect(action1Ap.type === 'ABILITY' && action1Ap.ability.id === 'flash_powder').toBe(false);
+
+        // Case 2: 2 AP left, but caught targets already have -2 attackRoll -> Flash Powder must not repeat
+        catCu.currentAp = 2;
+        state.units.get(hero1.id)!.activeModifiers.push({ stat: 'attackRoll', value: -2, durationTurns: 1 });
+        state.units.get(hero2.id)!.activeModifiers.push({ stat: 'attackRoll', value: -2, durationTurns: 1 });
+        const actionDebuffed = decideNextAction(state, catBurglar.id);
+        expect(actionDebuffed.type === 'ABILITY' && actionDebuffed.ability.id === 'flash_powder').toBe(false);
       });
     });
   });

@@ -33,6 +33,40 @@ import {
 const defaultDiceRoller = new SeededDiceRoller();
 
 /**
+ * Penalizes ending an action isolated within melee range (<= 2 hexes) of 3+ enemies with no allies within 3 hexes,
+ * unless the action secures a finishing blow.
+ */
+function computeIsolationPenalty(
+  state: CombatState,
+  actorCu: CombatUnit,
+  destCoord: HexCoord,
+  hasKill: boolean
+): number {
+  if (hasKill) return 0;
+
+  let nearbyEnemies = 0;
+  let nearbyAllies = 0;
+  const actorFaction = actorCu.faction ?? actorCu.unit.faction;
+
+  for (const unit of state.units.values()) {
+    if (unit.isDefeated || unit.unit.id === actorCu.unit.id) continue;
+    const pos = state.arena.getUnitPosition(unit.unit.id);
+    if (!pos) continue;
+
+    const unitFaction = unit.faction ?? unit.unit.faction;
+    if (unitFaction !== actorFaction) {
+      if (hexDistance(destCoord, pos) <= 2) {
+        nearbyEnemies++;
+      }
+    } else if (hexDistance(destCoord, pos) <= 3) {
+      nearbyAllies++;
+    }
+  }
+
+  return nearbyEnemies >= 3 && nearbyAllies === 0 ? 15.0 * (nearbyEnemies - 1) : 0;
+}
+
+/**
  * Decides the single next highest-utility action along with diagnostic candidate evaluation telemetry.
  */
 export function decideNextActionWithTrace(
@@ -294,6 +328,7 @@ export function decideNextActionWithTrace(
             if (affectedHostiles.length === 0) continue;
 
             let totalScore = 0;
+            let effectiveHostiles = 0;
             const reasons: string[] = [];
 
             for (const { cu: targetCu, pos: targetPos } of affectedHostiles) {
@@ -308,13 +343,14 @@ export function decideNextActionWithTrace(
               );
               if (utility.score > 0) {
                 totalScore += utility.score;
+                effectiveHostiles++;
                 if (utility.reason) reasons.push(utility.reason);
               }
             }
 
-            if (affectedHostiles.length > 1) {
-              totalScore += (affectedHostiles.length - 1) * 8.0;
-              reasons.push(`Catch ${affectedHostiles.length} targets in blast`);
+            if (effectiveHostiles > 1) {
+              totalScore += (effectiveHostiles - 1) * 8.0;
+              reasons.push(`Catch ${effectiveHostiles} targets in blast`);
             }
 
             if (totalScore > 0) {
@@ -397,6 +433,7 @@ export function decideNextActionWithTrace(
                 );
                 const threat = scoreTargetThreat(targetCu, weights.threatWeight ?? 1.0);
                 const defiance = scoreChallengeDefiancePenalty(cu, targetCu, kill.score > 0);
+                const isolationPenalty = computeIsolationPenalty(state, cu, candHex, kill.score > 0);
 
                 let leapTacticalBonus = 0;
                 const reasons: string[] = [];
@@ -427,6 +464,7 @@ export function decideNextActionWithTrace(
                 if (utility.reason) reasons.push(utility.reason);
                 if (flank.reason) reasons.push(flank.reason);
                 if (defiance.penalty > 0 && defiance.reason) reasons.push(defiance.reason);
+                if (isolationPenalty > 0) reasons.push(`Isolation risk (-${isolationPenalty})`);
                 reasons.push(`Enables ${atk.name} on ${targetCu.unit.name}`);
 
                 const netScore =
@@ -439,7 +477,8 @@ export function decideNextActionWithTrace(
                   threat.score +
                   leapTacticalBonus +
                   selfBuffScore -
-                  defiance.penalty;
+                  defiance.penalty -
+                  isolationPenalty;
 
                 if (!bestAttackFromCand || netScore > bestAttackFromCand.score) {
                   bestAttackFromCand = {
@@ -460,7 +499,12 @@ export function decideNextActionWithTrace(
               reason: `Vault to (${candHex.q}, ${candHex.r}) — ${bestAttackFromCand.reason}`
             });
           } else {
+            if (isReachableByWalk && candElevation <= currentElevation) {
+              continue;
+            }
+
             // Repositioning / High Ground leaping when no attack is immediately followable
+            const isolationPenalty = computeIsolationPenalty(state, cu, candHex, false);
             let bestLeapRepositionScore = -Infinity;
             let leapRepositionReason = '';
 
@@ -487,6 +531,11 @@ export function decideNextActionWithTrace(
               score += selfBuffScore;
               if (selfBuff) {
                 reasons.push('Defensive evasion boost on landing');
+              }
+
+              score -= isolationPenalty;
+              if (isolationPenalty > 0) {
+                reasons.push(`Isolation risk (-${isolationPenalty})`);
               }
 
               if (score > bestLeapRepositionScore) {
@@ -620,12 +669,13 @@ export function decideNextActionWithTrace(
             const effectiveFocus = hasPrimaryValue ? focusScore : 0;
             const effectiveStandoff = hasPrimaryValue ? standoff : 0;
             const effectiveThreat = hasPrimaryValue ? threat.score : 0;
+            const isolationPenalty = computeIsolationPenalty(state, cu, candCoord, kill.score > 0);
 
             const moveNetScore = hasPrimaryValue
-              ? Math.max(0, effectiveDamage + effectiveFlank + effectiveFocus + effectiveStandoff + utility.score + effectiveThreat - defiance.penalty - 2)
+              ? Math.max(0, effectiveDamage + effectiveFlank + effectiveFocus + effectiveStandoff + utility.score + effectiveThreat - defiance.penalty - 2) - isolationPenalty
               : 0;
 
-            if (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score) {
+            if (moveNetScore > 0 && (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score)) {
               const reasons: string[] = [];
               if (effectiveThreat > 0 && threat.reason) reasons.push(threat.reason);
               if (utility.reason) reasons.push(utility.reason);
@@ -670,7 +720,8 @@ export function decideNextActionWithTrace(
               const damageScore = metrics.expectedDamage * weights.expectedDamageWeight;
               const kill = scoreFinishingBlow(targetCu, metrics.expectedDamage, weights.killBonus);
               const focusScore = scoreFocusFire(targetCu, weights.focusFireWeight);
-              const moveNetScore = damageScore + kill.score + focusScore - friendlyFirePenalty - 2;
+              const isolationPenalty = computeIsolationPenalty(state, cu, candCoord, kill.score > 0);
+              const moveNetScore = damageScore + kill.score + focusScore - friendlyFirePenalty - isolationPenalty - 2;
 
               if (moveNetScore > 0 && (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score)) {
                 bestAttackFromCand = {
@@ -703,8 +754,9 @@ export function decideNextActionWithTrace(
               );
               if (utility.score <= 0) continue;
 
-              const moveNetScore = utility.score - 2;
-              if (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score) {
+              const isolationPenalty = computeIsolationPenalty(state, cu, candCoord, false);
+              const moveNetScore = utility.score - isolationPenalty - 2;
+              if (moveNetScore > 0 && (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score)) {
                 bestAttackFromCand = {
                   score: moveNetScore,
                   ability,
@@ -754,9 +806,10 @@ export function decideNextActionWithTrace(
           if (buff.score <= 0) continue;
 
           // Deduct 1 AP movement cost from utility
-          const moveNetScore = buff.score - 2;
+          const isolationPenalty = computeIsolationPenalty(state, cu, candCoord, false);
+          const moveNetScore = buff.score - isolationPenalty - 2;
 
-          if (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score) {
+          if (moveNetScore > 0 && (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score)) {
             bestAttackFromCand = {
               score: moveNetScore,
               ability,
@@ -767,65 +820,98 @@ export function decideNextActionWithTrace(
         }
       }
 
-      if (bestAttackFromCand) {
+      // Compute closing / standoff repositioning utility unconditionally so low-value buffs do not suppress advancing.
+      let bestRepositionScore = -Infinity;
+      let repositionReason = '';
+
+      const hasRangedAttack = cu.abilities.some(
+        (a) =>
+          (a.damageType !== 'NONE' || Boolean(a.effects?.some((e) => e.type === 'DAMAGE'))) &&
+          getEffectiveAbility(a, cu.abilityModifiers).range >= 2
+      );
+      const hasMeleeAttack = cu.abilities.some(
+        (a) =>
+          (a.damageType !== 'NONE' || Boolean(a.effects?.some((e) => e.type === 'DAMAGE'))) &&
+          getEffectiveAbility(a, cu.abilityModifiers).range === 1
+      );
+      let adjacentAllies = 0;
+      for (const allyCu of alliedUnits) {
+        if (allyCu.unit.id === actorUnitId) continue;
+        const allyPos = state.arena.getUnitPosition(allyCu.unit.id);
+        if (allyPos && hexDistance(candCoord, allyPos) === 1) {
+          adjacentAllies++;
+        }
+      }
+      const repositionIsolationPenalty = computeIsolationPenalty(state, cu, candCoord, false);
+
+      for (const targetCu of hostileUnits) {
+        const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);
+        if (!targetCoord) continue;
+
+        const currentDist = hexDistance(currentCoord, targetCoord);
+        const candDist = hexDistance(candCoord, targetCoord);
+        const crowdingPenalty = candDist >= 2 ? adjacentAllies * 2.5 : 0;
+
+        if (profile === 'SNIPER' || (profile === 'SUPPORT' && (hasRangedAttack || !hasMeleeAttack))) {
+          // Ranged Sniper/Support evaluates how close candCoord is to preferredStandoffRange
+          const currentDev = Math.abs(currentDist - weights.preferredStandoffRange);
+          const candDev = Math.abs(candDist - weights.preferredStandoffRange);
+          const hasLoS = state.arena.hasLineOfSight(candCoord, targetCoord, {
+            isUnitScreening: (unitId) =>
+              !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
+          });
+          if (candDev < currentDev) {
+            let rawScore = 0;
+            let candidateReason = '';
+            if (hasLoS) {
+              rawScore = (currentDev - candDev) * 5;
+              candidateReason = `Repositioning to standoff distance ${weights.preferredStandoffRange} with LoS to ${targetCu.unit.name}`;
+            } else if (currentDist > weights.preferredStandoffRange + 1) {
+              rawScore = (currentDev - candDev) * 3.5;
+              candidateReason = `Advancing toward standoff distance ${weights.preferredStandoffRange} around terrain blocker toward ${targetCu.unit.name}`;
+            }
+            if (rawScore > 0) {
+              const adjusted = candDist < currentDist
+                ? Math.max(0.5, rawScore - crowdingPenalty)
+                : rawScore - crowdingPenalty;
+              const score = adjusted - repositionIsolationPenalty;
+              if (score > bestRepositionScore) {
+                bestRepositionScore = score;
+                repositionReason = candidateReason;
+              }
+            }
+          }
+        } else {
+          // Melee/Skirmisher/melee-only Support evaluates closing distance and moving toward flank/rear
+          if (candDist < currentDist) {
+            const targetFacing = targetCu.facing;
+            const arc = getCombatArc(targetFacing, targetCoord, candCoord);
+            const flankBonus = arc === 'REAR' ? 6 : arc === 'FLANK' ? 3 : 0;
+            const rawScore = (currentDist - candDist) * 3 + flankBonus;
+            const score = Math.max(0.5, rawScore - crowdingPenalty) - repositionIsolationPenalty;
+
+            if (score > bestRepositionScore) {
+              bestRepositionScore = score;
+              repositionReason = `Approaching ${targetCu.unit.name} (dist ${currentDist} -> ${candDist})${flankBonus > 0 ? ` [${arc} angle]` : ''}`;
+            }
+          }
+        }
+      }
+
+      if (bestAttackFromCand && bestAttackFromCand.score >= bestRepositionScore) {
         candidateActions.push({
           type: 'MOVE',
           destination: candCoord,
           score: Math.round(bestAttackFromCand.score * 10) / 10,
           reason: `Move to (${candCoord.q}, ${candCoord.r}) — ${bestAttackFromCand.reason}`
         });
-      } else {
-        // No immediate follow-up attack possible with remaining AP.
-        // Evaluate closing distance or repositioning toward preferred standoff distance.
-        let bestRepositionScore = -Infinity;
-        let repositionReason = '';
-
-        for (const targetCu of hostileUnits) {
-          const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);
-          if (!targetCoord) continue;
-
-          const currentDist = hexDistance(currentCoord, targetCoord);
-          const candDist = hexDistance(candCoord, targetCoord);
-
-          if (profile === 'SNIPER' || profile === 'SUPPORT') {
-            // Sniper/Support evaluates how close candCoord is to preferredStandoffRange
-            const currentDev = Math.abs(currentDist - weights.preferredStandoffRange);
-            const candDev = Math.abs(candDist - weights.preferredStandoffRange);
-            const hasLoS = state.arena.hasLineOfSight(candCoord, targetCoord, {
-              isUnitScreening: (unitId) =>
-                !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
-            });
-            if (candDev < currentDev && hasLoS) {
-              const score = (currentDev - candDev) * 5;
-              if (score > bestRepositionScore) {
-                bestRepositionScore = score;
-                repositionReason = `Repositioning to standoff distance ${weights.preferredStandoffRange} with LoS to ${targetCu.unit.name}`;
-              }
-            }
-          } else {
-            // Melee/Skirmisher evaluates closing distance and moving toward flank/rear
-            if (candDist < currentDist) {
-              const targetFacing = targetCu.facing;
-              const arc = getCombatArc(targetFacing, targetCoord, candCoord);
-              const flankBonus = arc === 'REAR' ? 6 : arc === 'FLANK' ? 3 : 0;
-              const score = (currentDist - candDist) * 3 + flankBonus;
-
-              if (score > bestRepositionScore) {
-                bestRepositionScore = score;
-                repositionReason = `Approaching ${targetCu.unit.name} (dist ${currentDist} -> ${candDist})${flankBonus > 0 ? ` [${arc} angle]` : ''}`;
-              }
-            }
-          }
-        }
-
-        if (bestRepositionScore > 0) {
-          candidateActions.push({
-            type: 'MOVE',
-            destination: candCoord,
-            score: Math.round(bestRepositionScore * 10) / 10,
-            reason: `Move to (${candCoord.q}, ${candCoord.r}) — ${repositionReason}`
-          });
-        }
+      } else if (bestRepositionScore > 0) {
+        candidateActions.push({
+          type: 'MOVE',
+          destination: candCoord,
+          score: Math.round(bestRepositionScore * 10) / 10,
+          reason: `Move to (${candCoord.q}, ${candCoord.r}) — ${repositionReason}`
+        });
       }
     }
   }
@@ -841,6 +927,21 @@ export function decideNextActionWithTrace(
     rank: idx + 1
   }));
 
+  let effectiveConservationThreshold = weights.apConservationThreshold;
+  if (
+    cu.currentAp === 1 &&
+    (cu.virtualElevation ?? 0) === 0 &&
+    cu.passives?.some((p) => p.unspentApVirtualHeight)
+  ) {
+    const hasCloseThreat = hostileUnits.some((h) => {
+      const hCoord = state.arena.getUnitPosition(h.unit.id);
+      return hCoord ? hexDistance(currentCoord, hCoord) <= 4 : false;
+    });
+    if (hasCloseThreat) {
+      effectiveConservationThreshold = Math.max(effectiveConservationThreshold, 15.0);
+    }
+  }
+
   let chosenAction: AIAction;
 
   if (candidateActions.length === 0) {
@@ -853,12 +954,12 @@ export function decideNextActionWithTrace(
   } else {
     const bestCandidate = candidateActions[0];
 
-    if (bestCandidate.score < weights.apConservationThreshold) {
+    if (bestCandidate.score < effectiveConservationThreshold) {
       chosenAction = {
         type: 'CONSERVE_AP',
         unspentAp: cu.currentAp,
         score: 0,
-        reason: `Conserving ${cu.currentAp} AP for +${cu.currentAp * 20} CTB gauge (best action score ${bestCandidate.score} < threshold ${weights.apConservationThreshold})`
+        reason: `Conserving ${cu.currentAp} AP for +${cu.currentAp * 20} CTB gauge (best action score ${bestCandidate.score} < threshold ${effectiveConservationThreshold})`
       };
     } else {
       // 4. Seeded dice tie-breaking among candidates with identical top scores (within 0.01)
@@ -885,7 +986,7 @@ export function decideNextActionWithTrace(
     chosenAction,
     topCandidates,
     totalCandidatesEvaluated: candidateActions.length,
-    apConservationThreshold: weights.apConservationThreshold,
+    apConservationThreshold: effectiveConservationThreshold,
     timestamp: Date.now()
   };
 

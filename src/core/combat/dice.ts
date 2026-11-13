@@ -25,9 +25,11 @@ export interface DiceRoller {
  * Deterministic dice roller powered by Mulberry32 PRNG.
  */
 export class SeededDiceRoller implements DiceRoller {
+  public readonly seed: number;
   private rng: () => number;
 
   constructor(seed = 1337) {
+    this.seed = seed;
     this.rng = createRng(seed);
   }
 
