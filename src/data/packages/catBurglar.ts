@@ -14,7 +14,8 @@ export const ROOFTOP_VAULT: Ability = {
   damageType: 'NONE',
   effects: [
     {
-      type: 'TELEPORT'
+      type: 'TELEPORT',
+      shout: 'VAULT!'
     },
     {
       type: 'STAT_MODIFIER',
@@ -51,7 +52,8 @@ export const PILFER: Ability = {
     },
     {
       type: 'CTB_DELAY',
-      magnitude: 20
+      magnitude: 20,
+      shout: null
     },
     {
       type: 'INITIATIVE_BOOST',

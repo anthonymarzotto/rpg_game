@@ -55,7 +55,8 @@ export const INTERCEPT_STEP: Ability = {
   effects: [
     {
       type: 'POSITION_SWAP',
-      applyOn: 'ALWAYS'
+      applyOn: 'ALWAYS',
+      shout: { actor: 'INTERCEPT!', target: null }
     },
     {
       type: 'ARMOR_BUFF',

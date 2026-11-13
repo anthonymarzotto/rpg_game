@@ -1,10 +1,10 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
-import { AbilityEffect } from '../../types/ability';
+import { AbilityEffect, resolveEffectShout } from '../../types/ability';
 import { hexSubtract, hexAdd, getDirectionBetween } from '../../grid/hex';
 import { CombatEvent } from '../types';
 
 export const penetrateHandler: EffectHandler = {
-  apply(_effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
+  apply(effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
     const { state, actorCu, targetCu } = ctx;
     const actorCoord = state.arena.getUnitPosition(actorCu.unit.id);
     const targetCoord = targetCu ? state.arena.getUnitPosition(targetCu.unit.id) : ctx.targetCoord;
@@ -22,12 +22,14 @@ export const penetrateHandler: EffectHandler = {
       actorCu.facing = getDirectionBetween(targetCoord, penetrateDest);
       actorCu.hexesMovedThisTurn = (actorCu.hexesMovedThisTurn ?? 0) + 2;
 
+      const label = resolveEffectShout(effect.shout, 'actor');
       const event: CombatEvent = {
         type: 'DISPLACEMENT',
         unitId: actorCu.unit.id,
         fromCoord: actorCoord,
         toCoord: penetrateDest,
-        kind: 'CHARGE'
+        kind: 'CHARGE',
+        ...(label !== undefined ? { label } : {})
       };
 
       return {

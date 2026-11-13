@@ -81,7 +81,8 @@ export const POMMEL_STRIKE: Ability = {
     },
     {
       type: 'CTB_DELAY',
-      magnitude: 20
+      magnitude: 20,
+      shout: null
     }
   ]
 };

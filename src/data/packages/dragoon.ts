@@ -29,7 +29,8 @@ export const DRAGON_DIVE: Ability = {
       }
     },
     {
-      type: 'AERIAL_VAULT'
+      type: 'AERIAL_VAULT',
+      shout: null
     }
   ],
   aiHint: {

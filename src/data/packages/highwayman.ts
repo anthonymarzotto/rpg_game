@@ -43,7 +43,8 @@ export const STAND_AND_DELIVER: Ability = {
   effects: [
     {
       type: 'CTB_DELAY',
-      magnitude: 20
+      magnitude: 20,
+      shout: null
     },
     {
       type: 'STAT_MODIFIER',

@@ -630,6 +630,31 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
         expect(state.combatLog[0].message).toContain('Plunged from ledge: Fall Damage Negated!');
       }
     });
+
+    it('propagates effect shout overrides and null suppression onto DISPLACEMENT events', () => {
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Alden');
+      const dummy = createRecruit('dummy', 'Dummy');
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('dummy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [hero, dummy], 'hero');
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [4] });
+
+      const customRetreat = {
+        ...SKIRMISH,
+        effects: [
+          SKIRMISH.effects[0],
+          { ...SKIRMISH.effects[1], shout: 'DISENGAGE!' }
+        ]
+      };
+      const result = executeAbility(state, 'hero', customRetreat, { targetUnitId: 'dummy' }, dice);
+      expect(result.type).toBe('ATTACK');
+      if (result.type === 'ATTACK') {
+        const displacement = result.details.events.find((e) => e.type === 'DISPLACEMENT');
+        expect(displacement).toMatchObject({ kind: 'RETREAT', label: 'DISENGAGE!' });
+      }
+    });
   });
 });
 

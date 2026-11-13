@@ -1,5 +1,5 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
-import { AbilityEffect } from '../../types/ability';
+import { AbilityEffect, resolveEffectShout } from '../../types/ability';
 import { CombatEvent } from '../types';
 import { resolveCollisionDamage, resolveFallDamage } from '../damageEngine';
 import { DISPLACEMENT_CONFIG } from '../../config/balance';
@@ -33,6 +33,7 @@ export const knockbackHandler: EffectHandler = {
       { canVaultOnKnockback: canVault }
     );
 
+    const label = resolveEffectShout(effect.shout, 'target');
     const events: CombatEvent[] = [];
     let logDetail = '';
     let wallSlamDamage: number | undefined;
@@ -47,7 +48,8 @@ export const knockbackHandler: EffectHandler = {
           unitId: targetCu.unit.id,
           fromCoord: targetCoord,
           toCoord: knockbackResult.finalCoord,
-          kind: 'KNOCKBACK'
+          kind: 'KNOCKBACK',
+          ...(label !== undefined ? { label } : {})
         });
       }
 
@@ -109,7 +111,8 @@ export const knockbackHandler: EffectHandler = {
         unitId: targetCu.unit.id,
         fromCoord: targetCoord,
         toCoord: knockbackResult.finalCoord,
-        kind: 'KNOCKBACK'
+        kind: 'KNOCKBACK',
+        ...(label !== undefined ? { label } : {})
       });
 
       logDetail = ` 💨 [Knockback: Pushed to (${knockbackResult.finalCoord.q}, ${knockbackResult.finalCoord.r})]`;

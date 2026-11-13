@@ -1,10 +1,10 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
-import { AbilityEffect } from '../../types/ability';
+import { AbilityEffect, resolveEffectShout } from '../../types/ability';
 import { CombatEvent } from '../types';
 import { isDisplacementImmune } from '../displacementImmunity';
 
 export const positionSwapHandler: EffectHandler = {
-  apply(_effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
+  apply(effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
     const { state, actorCu, targetCu } = ctx;
     if (!targetCu || targetCu.unit.id === actorCu.unit.id) {
       return { events: [] };
@@ -20,20 +20,28 @@ export const positionSwapHandler: EffectHandler = {
       return { events: [] };
     }
 
+    const actorLabel = resolveEffectShout(effect.shout, 'actor');
+    const targetLabel =
+      typeof effect.shout === 'string'
+        ? null
+        : (resolveEffectShout(effect.shout, 'target') ?? null);
+
     const events: CombatEvent[] = [
       {
         type: 'DISPLACEMENT',
         unitId: actorCu.unit.id,
         fromCoord: actorCoord,
         toCoord: targetCoord,
-        kind: 'SWAP'
+        kind: 'SWAP',
+        ...(actorLabel !== undefined ? { label: actorLabel } : {})
       },
       {
         type: 'DISPLACEMENT',
         unitId: targetCu.unit.id,
         fromCoord: targetCoord,
         toCoord: actorCoord,
-        kind: 'SWAP'
+        kind: 'SWAP',
+        label: targetLabel
       }
     ];
 

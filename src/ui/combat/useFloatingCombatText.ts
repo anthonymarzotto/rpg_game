@@ -1,9 +1,22 @@
 import { useState, useCallback, useRef } from 'react';
 import { HexCoord } from '../../core/grid/hex';
-import { CombatState, AbilityResolution, CombatEvent, HitOutcome } from '../../core/combat/types';
+import { CombatState, AbilityResolution, CombatEvent, DisplacementKind, HitOutcome } from '../../core/combat/types';
 import { Ability } from '../../core/types/ability';
 import { predictTurnOrder } from '../../core/combat/turnClock';
 import { formatDisciplineName } from './combatXpUtils';
+
+/**
+ * Exhaustive default floating combat text labels per displacement kind.
+ * `null` indicates a visually self-evident movement that stays silent unless explicitly overridden.
+ */
+export const DISPLACEMENT_DEFAULT_SHOUT: Record<DisplacementKind, string | null> = {
+  KNOCKBACK: 'KNOCKBACK!',
+  RETREAT: 'RETREAT!',
+  TELEPORT: 'TELEPORT!',
+  PULL: 'PULL!',
+  CHARGE: null,
+  SWAP: 'SWAP!'
+};
 
 export type FloatingTextTier = 'impact' | 'standard' | 'utility';
 
@@ -175,13 +188,24 @@ export function collectResolutionFloatingTexts(
       }
     } else if (event.type === 'DISPLACEMENT') {
       const text =
-        event.kind === 'TELEPORT'
-          ? 'TELEPORT!'
-          : event.kind === 'RETREAT'
-            ? 'RETREAT!'
-            : 'KNOCKBACK!';
-      const tier: FloatingTextTier = event.kind === 'KNOCKBACK' ? 'impact' : 'standard';
-      result.push({ text, type: 'buff', tier, coord: event.toCoord, delay: 250 });
+        event.label === null
+          ? null
+          : event.label !== undefined
+            ? event.label
+            : DISPLACEMENT_DEFAULT_SHOUT[event.kind];
+      if (text) {
+        const tier: FloatingTextTier = event.kind === 'KNOCKBACK' ? 'impact' : 'standard';
+        result.push({ text, type: 'buff', tier, coord: event.toCoord, delay: 250 });
+      }
+    } else if (event.type === 'CTB_DELAY' && typeof event.label === 'string' && event.label.length > 0) {
+      const unitPos = state.arena.getUnitPosition(event.targetUnitId) ?? clickedCoord;
+      result.push({
+        text: event.label,
+        type: 'buff',
+        tier: 'utility',
+        coord: unitPos,
+        delay: 200
+      });
     } else if (event.type === 'STATUS_APPLIED') {
       const unitPos = state.arena.getUnitPosition(event.targetUnitId) ?? clickedCoord;
       if (event.modifier) {

@@ -205,8 +205,12 @@ The combat system SHALL render high-contrast, scalable floating combat text over
 #### Scenario: Tiered event sizing hierarchy
 - **WHEN** floating combat text renders in the combat arena
 - **THEN** major impact events (`CRITICAL!`, `SLAM!`, `BLAST!`, `COLLISION!`, `KNOCKBACK!`, `FALL!`) SHALL render at large emphasis size (26px–28px in SVG space)
-- **AND** standard attack damage numbers, `MISS`, `RESIST!`, `RETREAT!`, `TELEPORT!`, and `🎲 <initiative>` SHALL render at medium size (20px–22px)
-- **AND** secondary utility notifications (`+N XP`, `+N STAT`, `POISON`, `BURN`) SHALL render at compact size (16px–18px)
+- **AND** standard attack damage numbers, `MISS`, `RESIST!`, `RETREAT!`, `TELEPORT!`, custom non-knockback displacement shouts (such as `INTERCEPT!` or `VAULT!`), and `🎲 <initiative>` SHALL render at medium size (20px–22px)
+- **AND** secondary utility notifications (`+N XP`, `+N STAT`, `POISON`, `BURN`, and custom `CTB_DELAY` shouts) SHALL render at compact size (16px–18px)
+
+#### Scenario: Suppressed effect events produce no floating text
+- **WHEN** a `DISPLACEMENT` or utility `CombatEvent` carries `label: null` (or resolves via `DisplacementKind` default to `null`, such as `'CHARGE'`)
+- **THEN** the floating combat text system SHALL emit no floater for that event
 
 #### Scenario: Anti-collision vertical stacking for concurrent floaters
 - **WHEN** multiple floating combat text items are active on the same battlefield coordinate at the same time

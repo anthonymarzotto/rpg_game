@@ -47,6 +47,39 @@ export type EffectTargetScope = 'TARGET' | 'SELF' | 'ALLIES';
 export type EffectApplyCondition = 'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY';
 export type AbilityCondition = 'FLANK_OR_REAR' | 'TARGET_CHALLENGED';
 
+/**
+ * Per-unit floating shout overrides for multi-unit effects such as POSITION_SWAP.
+ * Pass `null` to explicitly suppress the floater for that participant.
+ */
+export interface EffectShoutTargetConfig {
+  readonly actor?: string | null;
+  readonly target?: string | null;
+}
+
+/**
+ * Declarative battlefield floating text ("shout") override for an AbilityEffect:
+ * - `string`: custom shout text (e.g. `'INTERCEPT!'`, `'VAULT!'`)
+ * - `null`: explicitly silent (suppresses any default floater for this effect)
+ * - `{ actor?, target? }`: separate labels/suppressions for two-unit effects
+ * - `undefined`: inherit the effect/displacement kind's default
+ */
+export type EffectShoutConfig = string | null | EffectShoutTargetConfig;
+
+/**
+ * Resolves the optional floating combat text label for an AbilityEffect and participant role.
+ * Returns `undefined` when no override is configured, `null` when explicitly suppressed,
+ * or the configured shout string.
+ */
+export function resolveEffectShout(
+  shout: EffectShoutConfig | undefined,
+  role: 'actor' | 'target' = 'actor'
+): string | null | undefined {
+  if (shout === undefined || shout === null || typeof shout === 'string') {
+    return shout;
+  }
+  return role === 'actor' ? shout.actor : shout.target;
+}
+
 export interface AbilityEffect {
   readonly type: AbilityEffectType;
   /** Delivery target for this individual effect (defaults to TARGET) */
@@ -54,6 +87,11 @@ export interface AbilityEffect {
   /** Trigger condition determining when effect executes (defaults to HIT_OR_CRIT for attacks/secondary, ALWAYS for self-buffs) */
   readonly applyOn?: EffectApplyCondition;
   readonly magnitude?: number;
+  /**
+   * Optional floating combat text override (`string`), suppression (`null`), or `{ actor?, target? }` split.
+   * Convention: keep visually obvious self-movement silent (`null`) and shout only for non-obvious extra effects.
+   */
+  readonly shout?: EffectShoutConfig;
   /** Optional dice profile for damage or variable effects */
   readonly damageProfile?: DiceProfile;
   /** Optional flat damage component added to attack rolls */

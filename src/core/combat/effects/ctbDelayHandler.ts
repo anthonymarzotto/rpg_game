@@ -1,5 +1,5 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
-import { AbilityEffect } from '../../types/ability';
+import { AbilityEffect, resolveEffectShout } from '../../types/ability';
 import { CombatEvent } from '../types';
 
 export const ctbDelayHandler: EffectHandler = {
@@ -12,10 +12,12 @@ export const ctbDelayHandler: EffectHandler = {
     const delayAmount = effect.magnitude ?? 0;
     targetCu.initiativeGauge = Math.max(0, targetCu.initiativeGauge - delayAmount);
 
+    const label = resolveEffectShout(effect.shout, 'target');
     const event: CombatEvent = {
       type: 'CTB_DELAY',
       targetUnitId: targetCu.unit.id,
-      amount: delayAmount
+      amount: delayAmount,
+      ...(label !== undefined ? { label } : {})
     };
 
     return {

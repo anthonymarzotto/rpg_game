@@ -96,6 +96,14 @@ describe('Shield-bearer Mechanics — Intercept Step', () => {
     const mageCu = state.units.get('mage-1')!;
     expect(getEffectiveArmor(mageCu)).toBe(2);
     expect(mageCu.activeModifiers.some((m) => m.stat === 'armor' && m.value === 2)).toBe(true);
+
+    // Verify DISPLACEMENT labels: INTERCEPT! on Shield-bearer only, null on ally
+    if (resolution.type === 'BUFF') {
+      const displacements = (resolution.events ?? []).filter((e) => e.type === 'DISPLACEMENT');
+      expect(displacements).toHaveLength(2);
+      expect(displacements[0]).toMatchObject({ unitId: 'sb-1', kind: 'SWAP', label: 'INTERCEPT!' });
+      expect(displacements[1]).toMatchObject({ unitId: 'mage-1', kind: 'SWAP', label: null });
+    }
   });
 
   it('rejects swapping with self', () => {

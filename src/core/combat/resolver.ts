@@ -11,7 +11,7 @@ import {
   getForwardConeHexes
 } from '../grid/hex';
 import { Arena, calculateRawFallDamage } from '../grid/arena';
-import { Ability, AbilityEffect, ConditionType } from '../types/ability';
+import { Ability, AbilityEffect, ConditionType, resolveEffectShout } from '../types/ability';
 import {
   CombatState,
   CombatUnit,
@@ -877,12 +877,14 @@ export function executeAbility(
         const chargeDist = hexDistance(actorPos, destHex);
         actorCu.hexesMovedThisTurn = (actorCu.hexesMovedThisTurn ?? 0) + chargeDist;
         actorCu.facing = getDirectionBetween(destHex, targetPos);
+        const rushLabel = resolveEffectShout(rushEffect.shout, 'actor');
         events.push({
           type: 'DISPLACEMENT',
           unitId: actorUnitId,
           fromCoord: actorPos,
           toCoord: destHex,
-          kind: 'CHARGE'
+          kind: 'CHARGE',
+          ...(rushLabel !== undefined ? { label: rushLabel } : {})
         });
       }
     }
@@ -901,12 +903,14 @@ export function executeAbility(
         const vaultDist = hexDistance(actorPos, landingHex);
         actorCu.hexesMovedThisTurn = (actorCu.hexesMovedThisTurn ?? 0) + vaultDist;
         actorCu.facing = getDirectionBetween(landingHex, targetPos);
+        const vaultLabel = resolveEffectShout(vaultEffect.shout, 'actor');
         events.push({
           type: 'DISPLACEMENT',
           unitId: actorUnitId,
           fromCoord: actorPos,
           toCoord: landingHex,
-          kind: 'CHARGE'
+          kind: 'CHARGE',
+          ...(vaultLabel !== undefined ? { label: vaultLabel } : {})
         });
       }
     }

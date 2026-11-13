@@ -16,7 +16,8 @@ export const LANCE_CHARGE: Ability = {
   effects: [
     {
       type: 'RUSH_CHARGE',
-      magnitude: 3
+      magnitude: 3,
+      shout: null
     },
     {
       type: 'DAMAGE',
@@ -55,7 +56,8 @@ export const RIDE_THROUGH: Ability = {
     },
     {
       type: 'PENETRATE_STEP',
-      magnitude: 1
+      magnitude: 1,
+      shout: null
     }
   ]
 };

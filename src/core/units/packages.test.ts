@@ -14,6 +14,7 @@ import {
   CAT_BURGLAR_PACKAGE,
   SHIELD_BEARER_PACKAGE,
   DRAGOON_PACKAGE,
+  CLASS_PACKAGES,
   MOMENTUM,
   getClassPackage,
   getAbilityById,
@@ -290,5 +291,38 @@ describe('Class Packages & Catalog Verification', () => {
     expect(getAbilityById('wyrmflame_breath')).toBeDefined();
     expect(getPassiveById('coiled_apex')).toBeDefined();
     expect(getClassPackage('dragoon')).toBe(DRAGOON_PACKAGE);
+  });
+
+  it('requires explicit shout configuration on customizable displacement and tempo effects across all registered abilities', () => {
+    const guardedEffectTypes = new Set([
+      'POSITION_SWAP',
+      'PENETRATE_STEP',
+      'AERIAL_VAULT',
+      'RUSH_CHARGE',
+      'TELEPORT',
+      'CTB_DELAY'
+    ]);
+
+    const allAbilities = [
+      ...ALL_NOVICE_ABILITIES,
+      ...Object.values(CLASS_PACKAGES).flatMap((pkg) => [
+        pkg.signatureAbility,
+        ...pkg.domainAbilities
+      ])
+    ];
+
+    const missing: string[] = [];
+    for (const ability of allAbilities) {
+      for (const effect of ability.effects) {
+        if (guardedEffectTypes.has(effect.type) && effect.shout === undefined) {
+          missing.push(`${ability.id} (${ability.name}) -> ${effect.type}`);
+        }
+      }
+    }
+
+    expect(
+      missing,
+      `Every ability using ${Array.from(guardedEffectTypes).join(', ')} must declare an explicit \`shout\` (custom string, { actor, target }, or \`null\` for silent)`
+    ).toEqual([]);
   });
 });

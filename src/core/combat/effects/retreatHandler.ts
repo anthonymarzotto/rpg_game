@@ -1,5 +1,5 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
-import { AbilityEffect } from '../../types/ability';
+import { AbilityEffect, resolveEffectShout } from '../../types/ability';
 import { hexSubtract, hexAdd } from '../../grid/hex';
 import { CombatEvent } from '../types';
 import { calculateRawFallDamage } from '../../grid/arena';
@@ -7,7 +7,7 @@ import { resolveFallDamage } from '../damageEngine';
 import { DISPLACEMENT_CONFIG } from '../../config/balance';
 
 export const retreatHandler: EffectHandler = {
-  apply(_effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
+  apply(effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
     const { state, actorCu, targetCu } = ctx;
     const actorCoord = state.arena.getUnitPosition(actorCu.unit.id);
     const targetCoord = targetCu ? state.arena.getUnitPosition(targetCu.unit.id) : ctx.targetCoord;
@@ -49,13 +49,15 @@ export const retreatHandler: EffectHandler = {
       return { events: [] };
     }
 
+    const label = resolveEffectShout(effect.shout, 'actor');
     const events: CombatEvent[] = [
       {
         type: 'DISPLACEMENT',
         unitId: actorCu.unit.id,
         fromCoord: actorCoord,
         toCoord: retreatDest,
-        kind: 'RETREAT'
+        kind: 'RETREAT',
+        ...(label !== undefined ? { label } : {})
       }
     ];
 

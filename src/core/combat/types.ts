@@ -42,6 +42,7 @@ export type CombatEvent =
       readonly fromCoord: HexCoord;
       readonly toCoord: HexCoord;
       readonly kind: DisplacementKind;
+      readonly label?: string | null;
     }
   | {
       readonly type: 'COLLISION';
@@ -64,6 +65,7 @@ export type CombatEvent =
       readonly type: 'CTB_DELAY';
       readonly targetUnitId: string;
       readonly amount: number;
+      readonly label?: string | null;
     }
   | {
       readonly type: 'MISS';

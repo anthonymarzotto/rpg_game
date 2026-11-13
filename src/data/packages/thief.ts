@@ -46,7 +46,8 @@ export const SHADOW_STEP: Ability = {
   effects: [
     {
       type: 'TELEPORT',
-      magnitude: 2
+      magnitude: 2,
+      shout: 'TELEPORT!'
     }
   ]
 };

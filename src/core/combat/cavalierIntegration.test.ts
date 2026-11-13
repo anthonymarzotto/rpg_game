@@ -298,6 +298,11 @@ describe('Tier 3 Cavalier Class Package Integration', () => {
       // Enemy turned to face the attack origin (0, 0) -> facing WEST
       // Consequently, Cav at (2, 0) is now positioned directly in the enemy's rear!
       expect(enemyCu.facing).toBe(HEX_DIRECTIONS.WEST);
+
+      if (result.type === 'ATTACK') {
+        const displacement = result.details.events.find((e) => e.type === 'DISPLACEMENT');
+        expect(displacement).toMatchObject({ unitId: 'cav', kind: 'CHARGE', label: null });
+      }
     });
 
     it('resolves attack but keeps actor stationary when rear exit hex is blocked', () => {

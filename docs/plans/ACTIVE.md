@@ -5,6 +5,7 @@
 ---
 
 ## 🔨 In Progress
+- [x] **B.17 / B.18 (`effect-shout-labels`)**: Declarative effect shout labels (`AbilityEffect.shout`, `CombatEvent.label`, exhaustive `DisplacementKind` floater defaults, silent `Ride-Through`, `"INTERCEPT!"` on Shield-bearer only for `Intercept Step`, and catalog shout guardrails).
 - [x] **UX.6 / UX.11 / UX.14 / UX.19 / UX.20 / B.14**: **Clash Dice Tray Expansion, Damage Tooltip & Enemy Turn Tray Mode**:
   - Tri-state Dice Tray toggle (`ALL` / `PLAYER_ONLY` / `OFF`) so enemy attacks can also present the Clash Dice Tray (`UX.19`, `UX.20`).
   - Attacker & Defender directional tokens in the Dice Tray with attack lunge, hit shake/flash, miss sidestep, and defeat indicator (`UX.20`).
@@ -46,8 +47,6 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **B.4**: When an enemy uses Smoke Veil I can still see them.
 - [ ] **B.10**: Shard effects don't show well in the Trial on ability cards.
 - [ ] **B.15**: When a unit starts their turn Challenged and the challenging unit is dead, the Challenged status should clear.
-- [ ] **B.17**: I think I saw my Cavalier shout out "Knockback" when I used Ride Through. That's not a great description to shout.
-- [ ] **B.18**: Intercept Step shouts "Knockback" on both the target and the Shield Bearer. Can we make the shout text a property to the ability so that we don't always have this fallback?
 
 ---
 

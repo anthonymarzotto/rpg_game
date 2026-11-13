@@ -443,6 +443,240 @@ describe('useFloatingCombatText: collectResolutionFloatingTexts', () => {
     expect(resistMiss).toBeDefined();
     expect(resistMiss?.text).toBe('RESIST!');
   });
+
+  it('keeps Ride-Through (CHARGE) silent instead of shouting KNOCKBACK! (B.17)', async () => {
+    const { collectResolutionFloatingTexts } = await import('./useFloatingCombatText');
+    const { createRadialArena } = await import('../../core/grid/templates');
+    const { createRecruit } = await import('../../core/units/unitFactory');
+    const { createCombatState } = await import('../../core/combat/resolver');
+    const { RIDE_THROUGH } = await import('../../data/packages/cavalier');
+
+    const arena = createRadialArena(3);
+    const cav = createRecruit('cav', 'Cavalier');
+    const enemy = createRecruit('enemy', 'Enemy');
+    arena.setUnitPosition('cav', { q: 2, r: 0 });
+    arena.setUnitPosition('enemy', { q: 1, r: 0 });
+    const state = createCombatState(arena, [cav, enemy], 'cav');
+
+    const resolution = {
+      type: 'ATTACK' as const,
+      details: {
+        hitOutcome: 'SOLID_HIT' as const,
+        d20Roll: 15,
+        modifier: 2,
+        totalAttackScore: 17,
+        defenseTargetScore: 11,
+        rawDamage: 4,
+        mitigation: 0,
+        damageDealt: 4,
+        damageBreakdown: '1d4(4)',
+        effectsApplied: [],
+        events: [
+          {
+            type: 'DAMAGE' as const,
+            targetUnitId: 'enemy',
+            amount: 4,
+            damageType: 'PHYSICAL' as const,
+            reason: 'ATTACK' as const
+          },
+          {
+            type: 'DISPLACEMENT' as const,
+            unitId: 'cav',
+            fromCoord: { q: 0, r: 0 },
+            toCoord: { q: 2, r: 0 },
+            kind: 'CHARGE' as const,
+            label: null
+          }
+        ]
+      }
+    };
+
+    const items = collectResolutionFloatingTexts(
+      state,
+      resolution,
+      RIDE_THROUGH,
+      { q: 1, r: 0 },
+      { q: 0, r: 0 },
+      { q: 1, r: 0 },
+      'enemy'
+    );
+
+    expect(items.some((i) => i.text === 'KNOCKBACK!')).toBe(false);
+    expect(items.some((i) => i.coord.q === 2 && i.coord.r === 0 && i.type === 'buff')).toBe(false);
+    expect(items.find((i) => i.text === '-4')).toBeDefined();
+  });
+
+  it('shouts INTERCEPT! on the Shield-bearer only for Intercept Step and keeps rescued ally silent on displacement (B.18)', async () => {
+    const { collectResolutionFloatingTexts } = await import('./useFloatingCombatText');
+    const { createRadialArena } = await import('../../core/grid/templates');
+    const { createRecruit } = await import('../../core/units/unitFactory');
+    const { createCombatState } = await import('../../core/combat/resolver');
+    const { INTERCEPT_STEP } = await import('../../data/packages/shieldBearer');
+
+    const arena = createRadialArena(3);
+    const sb = createRecruit('sb', 'Shield-bearer');
+    const ally = createRecruit('ally', 'Ally');
+    // Post-swap coordinates
+    arena.setUnitPosition('sb', { q: 2, r: 0 });
+    arena.setUnitPosition('ally', { q: 0, r: 0 });
+    const state = createCombatState(arena, [sb, ally], 'sb');
+
+    const resolution = {
+      type: 'BUFF' as const,
+      targetUnitId: 'ally',
+      modifierApplied: { stat: 'armor' as const, value: 2, durationTurns: 1 },
+      events: [
+        {
+          type: 'DISPLACEMENT' as const,
+          unitId: 'sb',
+          fromCoord: { q: 0, r: 0 },
+          toCoord: { q: 2, r: 0 },
+          kind: 'SWAP' as const,
+          label: 'INTERCEPT!'
+        },
+        {
+          type: 'DISPLACEMENT' as const,
+          unitId: 'ally',
+          fromCoord: { q: 2, r: 0 },
+          toCoord: { q: 0, r: 0 },
+          kind: 'SWAP' as const,
+          label: null
+        },
+        {
+          type: 'STATUS_APPLIED' as const,
+          targetUnitId: 'ally',
+          modifier: { stat: 'armor' as const, value: 2, durationTurns: 1 }
+        }
+      ]
+    };
+
+    const items = collectResolutionFloatingTexts(
+      state,
+      resolution,
+      INTERCEPT_STEP,
+      { q: 2, r: 0 },
+      { q: 0, r: 0 },
+      { q: 2, r: 0 },
+      'ally'
+    );
+
+    const interceptFloat = items.find((i) => i.text === 'INTERCEPT!');
+    expect(interceptFloat).toBeDefined();
+    expect(interceptFloat?.coord).toEqual({ q: 2, r: 0 });
+    expect(interceptFloat?.tier).toBe('standard');
+    expect(items.some((i) => i.text === 'KNOCKBACK!')).toBe(false);
+    expect(items.some((i) => i.text === 'SWAP!')).toBe(false);
+    expect(items.find((i) => i.text === '+2 ARMOR')?.coord).toEqual({ q: 0, r: 0 });
+  });
+
+  it('keeps Lance Charge actor rush silent while showing KNOCKBACK! on target, and supports custom TELEPORT & CTB_DELAY shouts', async () => {
+    const { collectResolutionFloatingTexts } = await import('./useFloatingCombatText');
+    const { createRadialArena } = await import('../../core/grid/templates');
+    const { createRecruit } = await import('../../core/units/unitFactory');
+    const { createCombatState } = await import('../../core/combat/resolver');
+    const { LANCE_CHARGE } = await import('../../data/packages/cavalier');
+    const { ROOFTOP_VAULT } = await import('../../data/packages/catBurglar');
+
+    const arena = createRadialArena(4);
+    const cav = createRecruit('cav', 'Cavalier');
+    const enemy = createRecruit('enemy', 'Enemy');
+    arena.setUnitPosition('cav', { q: 2, r: 0 });
+    arena.setUnitPosition('enemy', { q: 4, r: 0 });
+    const state = createCombatState(arena, [cav, enemy], 'cav');
+
+    const lanceResolution = {
+      type: 'ATTACK' as const,
+      details: {
+        hitOutcome: 'SOLID_HIT' as const,
+        d20Roll: 15,
+        modifier: 2,
+        totalAttackScore: 17,
+        defenseTargetScore: 11,
+        rawDamage: 6,
+        mitigation: 0,
+        damageDealt: 6,
+        damageBreakdown: '1d8(6)',
+        effectsApplied: [],
+        events: [
+          {
+            type: 'DISPLACEMENT' as const,
+            unitId: 'cav',
+            fromCoord: { q: 0, r: 0 },
+            toCoord: { q: 2, r: 0 },
+            kind: 'CHARGE' as const
+          },
+          {
+            type: 'DAMAGE' as const,
+            targetUnitId: 'enemy',
+            amount: 6,
+            damageType: 'PHYSICAL' as const,
+            reason: 'ATTACK' as const
+          },
+          {
+            type: 'DISPLACEMENT' as const,
+            unitId: 'enemy',
+            fromCoord: { q: 3, r: 0 },
+            toCoord: { q: 4, r: 0 },
+            kind: 'KNOCKBACK' as const
+          }
+        ]
+      }
+    };
+
+    const lanceItems = collectResolutionFloatingTexts(
+      state,
+      lanceResolution,
+      LANCE_CHARGE,
+      { q: 3, r: 0 },
+      { q: 0, r: 0 },
+      { q: 3, r: 0 },
+      'enemy'
+    );
+
+    const knockbacks = lanceItems.filter((i) => i.text === 'KNOCKBACK!');
+    expect(knockbacks).toHaveLength(1);
+    expect(knockbacks[0].coord).toEqual({ q: 4, r: 0 });
+    expect(knockbacks[0].tier).toBe('impact');
+
+    const customVaultAndDelay = {
+      type: 'BUFF' as const,
+      targetUnitId: 'cav',
+      modifierApplied: { stat: 'armor' as const, value: 0, durationTurns: 0 },
+      events: [
+        {
+          type: 'DISPLACEMENT' as const,
+          unitId: 'cav',
+          fromCoord: { q: 0, r: 0 },
+          toCoord: { q: 2, r: 0 },
+          kind: 'TELEPORT' as const,
+          label: 'VAULT!'
+        },
+        {
+          type: 'CTB_DELAY' as const,
+          targetUnitId: 'enemy',
+          amount: 20,
+          label: 'STAGGERED!'
+        }
+      ]
+    };
+
+    const customItems = collectResolutionFloatingTexts(
+      state,
+      customVaultAndDelay,
+      ROOFTOP_VAULT,
+      undefined,
+      { q: 0, r: 0 },
+      { q: 2, r: 0 },
+      undefined
+    );
+
+    expect(customItems.find((i) => i.text === 'VAULT!')?.tier).toBe('standard');
+    expect(customItems.some((i) => i.text === 'TELEPORT!')).toBe(false);
+    const delayItem = customItems.find((i) => i.text === 'STAGGERED!');
+    expect(delayItem).toBeDefined();
+    expect(delayItem?.tier).toBe('utility');
+    expect(delayItem?.coord).toEqual({ q: 4, r: 0 });
+  });
 });
 
 describe('useFloatingCombatText: collectInitiativeFloatingTexts', () => {

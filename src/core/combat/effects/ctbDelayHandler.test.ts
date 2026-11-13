@@ -102,4 +102,35 @@ describe('ctbDelayHandler', () => {
 
     expect(result.events).toEqual([]);
   });
+
+  it('forwards custom shout label onto the emitted CTB_DELAY event', () => {
+    const arena = createRadialArena(3);
+    const hero = createRecruit('hero', 'Hero');
+    const enemy = createRecruit('enemy', 'Enemy');
+    arena.setUnitPosition('hero', { q: 0, r: 0 });
+    arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+    const state = createCombatState(arena, [hero, enemy], 'hero');
+    const targetCu = state.units.get('enemy')!;
+    targetCu.initiativeGauge = 60;
+
+    const result = ctbDelayHandler.apply(
+      { type: 'CTB_DELAY', magnitude: 25, shout: 'STAGGERED!' },
+      {
+        state,
+        actorCu: state.units.get('hero')!,
+        targetCu,
+        ability: dummyAbility,
+        hitOutcome: 'SOLID_HIT',
+        diceRoller: new MockDiceRoller()
+      }
+    );
+
+    expect(result.events[0]).toEqual({
+      type: 'CTB_DELAY',
+      targetUnitId: 'enemy',
+      amount: 25,
+      label: 'STAGGERED!'
+    });
+  });
 });

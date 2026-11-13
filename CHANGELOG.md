@@ -2,6 +2,13 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.17.2] - 2026-11-13
+
+### Cleaner Battlefield Callouts & Ability Shout Polish
+- **Accurate Movement & Swap Callouts**: Fixed an issue where several movement and positioning abilities mistakenly displayed "KNOCKBACK!" floating text over the acting unit. *Ride-Through*, *Lance Charge*, and *Dragon Dive* now keep the attacker's self-movement quiet (while *Lance Charge* continues to call out "KNOCKBACK!" on the pushed enemy).
+- **Shield-bearer Intercept Callout**: *Intercept Step* now displays "INTERCEPT!" cleanly over the Shield-bearer alone instead of shouting "KNOCKBACK!" over both units, leaving the rescued ally's floating text focused on their gained Armor bonus.
+- **Acrobatic Vault Callout**: *Rooftop Vault* now calls out "VAULT!" instead of "TELEPORT!" when leaping across obstacles and cliffs.
+
 ## [0.17.1] - 2026-11-13
 
 ### Enemy Tactical Decision-Making & Battle Dice Variety

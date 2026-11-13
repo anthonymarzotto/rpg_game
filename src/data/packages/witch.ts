@@ -22,7 +22,8 @@ export const BALEFUL_HEX: Ability = {
     },
     {
       type: 'CTB_DELAY',
-      magnitude: 20
+      magnitude: 20,
+      shout: null
     }
   ]
 };
