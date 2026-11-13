@@ -33,6 +33,11 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close (re-assess after pacing & clash stage update).
 - [ ] **UX.15**: Make Vanguard Squad area in Post Trial XP distribution dialog scrollable.
 - [ ] **UX.16**: More interesting Vanguard area. Maybe some sort of campfire with the unit sprites randomly gathered around. Maybe animated milling about?
+- [ ] **UX.21**: Combat Log: Damage and Attack roll chips can just show the final result, hover can handle all the details. (e.g. just "9 damage" or "21 vs DC 11")
+- [ ] **UX.22**: Combat Log: Flip damage and attack roll chips.
+- [ ] **UX.23**: Combat Log: Wyrmflame Breath gets a "Spellcast Roll & Score" chip instead of the standard attack roll. What is this? Why is it different? If it can just be the standard attack roll chip let's use that. If this serves a real purpose, other Focus abilities should use it and it should get a nice tooltip like the attack roll chip.
+- [ ] **UX.24**: Combat Log: A Burn Tick killed my unit and an unformatted card was generated about "Cinder Novice was defeated by status condition damage!". I thought all Combat Log chips would now be at least nicely formatted with some default. We need to check that and then also fix up this message generally.
+- [ ] **UX.25**: Zone of Control also makes a default unformatted Combat Log card when it triggers.
 
 ---
 
@@ -42,10 +47,14 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **B.10**: Shard effects don't show well in the Trial on ability cards.
 - [ ] **B.15**: When a unit starts their turn Challenged and the challenging unit is dead, the Challenged status should clear.
 - [ ] **B.17**: I think I saw my Cavalier shout out "Knockback" when I used Ride Through. That's not a great description to shout.
+- [ ] **B.18**: Intercept Step shouts "Knockback" on both the target and the Shield Bearer. Can we make the shout text a property to the ability so that we don't always have this fallback?
+
+---
 
 ## 💡 Ideas
 - [ ] **I.1**: Persist the last trial's combat log. Can help with identifying all kinds of things like AI behaviour enhancements.
 - [ ] **I.2**: Extend `EffectHandler` & `EffectExecutionResult`: return structured effect metadata (e.g. condition badges, displacement chips, damage tags) rather than plain text strings in `logDetail`, enabling rich visual secondary effect badges in the Combat Log.
+
 ---
 
 ## 📝 Playtest Scratchpad
@@ -61,3 +70,4 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 5. **Cavalier**:
   - What does he do after a Lance Charge? It's 2AP, so a move doesn't help. He ends up 1 space away from his target. If he doesn't start beside a target or have a ranged Resonant ability he is awkward, taking that last AP and saving it.
   - Maybe increase Ride-Through PENETRATING_STEP to 2. This gives separation to make a Lance Charge.
+6. Hellfire Brand and Ignite seem to stack. Intended?
