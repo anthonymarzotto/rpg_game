@@ -12,7 +12,7 @@
   - Fix premature roll spoilers during Stage 1 and Stage 2 dice tumbles (`UX.11`) and slow down stage timings slightly.
   - Simplify `"EVADED / MISS"` stamp to `"MISS"` (`UX.6`).
   - Show Armor/Ward soak and full damage math in the Dice Tray (`B.14`) with a shared rich hover tooltip breakdown (`DamageRollTooltip`) in both the Dice Tray and Combat Log (`UX.14`).
-- [ ] **UX.21 / UX.22 / UX.23 / UX.24 / UX.25 (`combat-log-polish`)**:
+- [x] **UX.21 / UX.22 / UX.23 / UX.24 / UX.25 (`combat-log-polish`)**:
   - Simplify Combat Log attack roll & damage chips to final results (`🎲 21 vs DC 11` / `🎲 15`, `💥 9 dmg`) with hover tooltips handling full breakdowns, and flip their order (`UX.21`, `UX.22`).
   - Populate `attackRollBreakdown` on ground-targeted `HEX` rolls (`Wyrmflame Breath`, empty-hex `Arcane Blast`) so they get `AttackRollTooltip`, remove `"Spellcast Roll & Score"`, and include `BURN` application in `Wyrmflame Breath` cone splash details (`UX.23`).
   - Emit dedicated `DEFEATED` card (naming lethal condition) and `ZONE_OF_CONTROL` card (with `faction` and `affectedUnitIds` for both units), and add faction/header styling to the `GENERIC` fallback card (`UX.24`, `UX.25`).
