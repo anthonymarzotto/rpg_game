@@ -203,7 +203,8 @@ describe('parseCombatLogMessage', () => {
     expect(html).toContain('hex (2, 0)');
     expect(html).toContain('4');
     expect(html).toContain('(Total)');
-    expect(html).toContain('🎲 14 + 2 (Score 16)');
+    expect(html).toContain('🎲 16');
+    expect(html).not.toContain('Spellcast Roll &amp; Score');
     expect(html).toContain('Blast hit Bandit Brute');
   });
 
@@ -967,11 +968,92 @@ describe('parseCombatLogMessage', () => {
         })
       );
 
-      expect(html).toContain('(1d6(4) -&gt; 4)');
+      expect(html).toContain('1d6(4) -&gt; 4');
+      expect(html).not.toContain('(1d6(4) -&gt; 4)');
       expect(html).not.toContain('- 0 Armor');
       expect(html).not.toContain('Force Bonus');
       expect(html).not.toContain('Target Armor');
       expect(html).toContain('Base Dice (1d6)');
+    });
+
+    it('renders roll chip before damage chip with concise final results when breakdowns are present (UX.21, UX.22)', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 6,
+        actorUnitId: 'player-fighter',
+        faction: 'PLAYER',
+        actionId: 'power_strike',
+        message: 'Alden used Power Strike on Goblin: [d20: 17 + 4 vs DC 11 -> SOLID_HIT] [Damage: 1d6(5)+4 -> 9]',
+        metadata: {
+          type: 'ATTACK',
+          actor: 'Alden',
+          ability: 'Power Strike',
+          target: 'Goblin',
+          d20: '17 + 4',
+          defenseTarget: 11,
+          totalScore: 21,
+          hitOutcome: 'SOLID_HIT',
+          damageTotal: '9',
+          damageBreakdown: '1d6(5)+4 -> 9',
+          attackRollBreakdown: [
+            { label: 'Force', value: 4, source: 'ATTRIBUTE' }
+          ],
+          damageBreakdownComponents: [
+            { label: 'Base Dice (1d6)', value: 5, source: 'DICE' },
+            { label: 'Force Bonus', value: 4, source: 'ATTRIBUTE' }
+          ]
+        }
+      };
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 6
+        })
+      );
+
+      expect(html).toContain('🎲 21 vs DC 11');
+      expect(html).not.toContain('17 + 4 vs DC 11');
+      expect(html).toContain('💥 <strong>9</strong> dmg');
+      expect(html.indexOf('log-roll-chip')).toBeLessThan(html.indexOf('impact-damage'));
+    });
+
+    it('renders AttackRollTooltip and concise roll chip on ground-targeted HEX spells without Spellcast Roll & Score (UX.23)', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 7,
+        actorUnitId: 'player-dragoon',
+        faction: 'PLAYER',
+        actionId: 'wyrmflame_breath',
+        message: 'Kael cast Wyrmflame Breath at hex (1, 0): [Spellcast roll: 13 + 2 -> score 15]',
+        metadata: {
+          type: 'ATTACK',
+          actor: 'Kael',
+          ability: 'Wyrmflame Breath',
+          target: 'hex (1, 0)',
+          d20: '13 + 2',
+          totalScore: 15,
+          isAreaTarget: true,
+          hitOutcome: 'SOLID_HIT',
+          damageTotal: '6',
+          attackRollBreakdown: [
+            { label: 'Focus', value: 2, source: 'ATTRIBUTE' }
+          ],
+          secondaryDetail: '💥 [Breath hit Goblin for 6 magical damage [vs DC 10] (HP: 4/10) + 🔥 Burn (1 dmg/turn, 2t)]'
+        }
+      };
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 7
+        })
+      );
+
+      expect(html).toContain('🎲 15');
+      expect(html).not.toContain('Score 15');
+      expect(html).not.toContain('Spellcast Roll');
+      expect(html).toContain('attack-roll-tooltip');
+      expect(html).toContain('Focus');
+      expect(html).toContain('Burn (1 dmg/turn, 2t)');
     });
   });
 
@@ -1334,6 +1416,103 @@ describe('parseCombatLogMessage', () => {
       expect(html).toContain('No actions logged for Spectator yet.');
       expect(html).not.toContain('Slash');
       expect(html).not.toContain('Rally');
+    });
+  });
+
+  describe('Structured DEFEATED, ZONE_OF_CONTROL, and Faction-Themed Fallback Cards (UX.24, UX.25)', () => {
+    it('renders structured DEFEATED card naming the lethal status condition', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 4,
+        actorUnitId: 'player-novice',
+        faction: 'PLAYER',
+        actionId: 'defeat',
+        message: 'Cinder Novice was defeated by Burn!',
+        metadata: {
+          type: 'DEFEATED',
+          actor: 'Cinder Novice',
+          condition: 'BURN',
+          cause: 'Defeated by Burn'
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.type).toBe('DEFEATED');
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 4
+        })
+      );
+
+      expect(html).toContain('log-defeated-card');
+      expect(html).toContain('faction-player');
+      expect(html).toContain('💀 DEFEATED');
+      expect(html).toContain('Cinder Novice');
+      expect(html).toContain('Defeated by Burn');
+    });
+
+    it('renders structured ZONE_OF_CONTROL card and supports filtering by either halted unit or guardian', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 5,
+        actorUnitId: 'enemy-skirmisher',
+        faction: 'ENEMY',
+        affectedUnitIds: ['enemy-skirmisher', 'player-shieldbearer'],
+        actionId: 'zone_of_control_halted',
+        message: "🛡️ [Zone of Control] Ash Stalker's advance was halted by Bastion's Phalanx Front!",
+        metadata: {
+          type: 'ZONE_OF_CONTROL',
+          actor: 'Ash Stalker',
+          guardian: 'Bastion',
+          ability: 'Phalanx Front'
+        }
+      };
+
+      const parsed = parseCombatLogMessage(entry);
+      expect(parsed.type).toBe('ZONE_OF_CONTROL');
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 5,
+          initialUnitFilter: 'player-shieldbearer'
+        })
+      );
+
+      expect(html).toContain('log-zoc-card');
+      expect(html).toContain('faction-enemy');
+      expect(html).toContain('🛡️ ZONE OF CONTROL');
+      expect(html).toContain('Ash Stalker');
+      expect(html).toContain('Bastion');
+      expect(html).toContain('Phalanx Front');
+    });
+
+    it('applies faction theming and header framing to GENERIC fallback cards', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 6,
+        actorUnitId: 'player-hero',
+        faction: 'PLAYER',
+        actionId: 'custom_event',
+        message: 'Alden inspected the astral beacon.',
+        metadata: {
+          type: 'GENERIC',
+          actor: 'Alden',
+          text: 'Alden inspected the astral beacon.'
+        }
+      };
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 6
+        })
+      );
+
+      expect(html).toContain('log-generic-card');
+      expect(html).toContain('faction-player');
+      expect(html).toContain('📜 EVENT');
+      expect(html).toContain('Alden');
+      expect(html).toContain('Alden inspected the astral beacon.');
     });
   });
 });

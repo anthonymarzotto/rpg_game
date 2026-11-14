@@ -167,4 +167,40 @@ describe('combatLogger', () => {
     expect(entry.affectedUnitIds).toContain('campaign-101-hero-1');
     expect(entry.affectedUnitIds).toContain('stage-1-enemy-1');
   });
+
+  it('logDefeat records structured DEFEATED card with faction and lethal condition', () => {
+    const entry = combatLogger.logDefeat(state, {
+      cu: enemyNovice,
+      condition: 'BURN'
+    });
+
+    expect(entry.faction).toBe('ENEMY');
+    expect(entry.actionId).toBe('defeat');
+    expect(entry.affectedUnitIds).toEqual(['stage-1-enemy-1']);
+    expect(entry.message).toBe('Ash Thief was defeated by Burn!');
+    expect(entry.metadata).toEqual({
+      type: 'DEFEATED',
+      actor: 'Ash Thief',
+      condition: 'BURN',
+      cause: 'Defeated by Burn'
+    });
+  });
+
+  it('logZoneOfControl records structured ZONE_OF_CONTROL card indexing both halted and guardian units', () => {
+    const entry = combatLogger.logZoneOfControl(state, {
+      haltedCu: enemyNovice,
+      guardianCu: playerHero
+    });
+
+    expect(entry.faction).toBe('ENEMY');
+    expect(entry.actorUnitId).toBe('stage-1-enemy-1');
+    expect(entry.actionId).toBe('zone_of_control_halted');
+    expect(entry.affectedUnitIds).toEqual(['stage-1-enemy-1', 'campaign-101-hero-1']);
+    expect(entry.metadata).toEqual({
+      type: 'ZONE_OF_CONTROL',
+      actor: 'Ash Thief',
+      guardian: 'Garrick the Bold',
+      ability: 'Phalanx Front'
+    });
+  });
 });

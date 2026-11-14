@@ -118,6 +118,7 @@ export function advanceTurnClock(state: CombatState): string {
 
     // Resolve turn-start damage-over-time via declarative condition lifecycle hooks before AP grant
     let dotDamageTotal = 0;
+    let lethalCondition: string | undefined;
     for (const cond of nextActive.activeConditions) {
       const def = getConditionDefinition(cond.type);
       const turnStartResult = def?.onTurnStart?.(cond, nextActive, state);
@@ -125,6 +126,9 @@ export function advanceTurnClock(state: CombatState): string {
         const dmg = turnStartResult.damage;
         const updatedHp = Math.max(0, nextActive.currentHp - (dotDamageTotal + dmg));
         dotDamageTotal += dmg;
+        if (updatedHp <= 0 && !lethalCondition) {
+          lethalCondition = cond.type;
+        }
         combatLogger.logDot(state, {
           cu: nextActive,
           condition: cond.type,
@@ -155,13 +159,9 @@ export function advanceTurnClock(state: CombatState): string {
       nextActive.isDefeated = true;
       nextActive.currentAp = 0;
       state.arena.removeUnit(nextActive.unit.id);
-      combatLogger.logGeneric(state, {
-        actorUnitId: nextActive.unit.id,
-        actorName: nextActive.unit.name,
-        faction: nextActive.unit.faction,
-        actionId: 'defeat',
-        text: `${nextActive.unit.name} was defeated by status condition damage`,
-        message: `${nextActive.unit.name} was defeated by status condition damage!`
+      combatLogger.logDefeat(state, {
+        cu: nextActive,
+        condition: lethalCondition
       });
       state.outcome = evaluateEncounterOutcome(state.objectives, state);
 

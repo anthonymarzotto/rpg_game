@@ -148,14 +148,31 @@ When an active player unit is in `MOVE` action mode, the combat arena SHALL rend
 - **AND** a hazard warning badge (`⚠️` + step number) SHALL be displayed on that step
 
 ### Requirement: Combat Log Attack and Damage Presentation
-The combat chronicle SHALL format attack check rolls with single spaced operators and present critical hit damage breakdowns with explicit labels distinguishing the maximized base value from the rolled dice.
+The combat chronicle SHALL format attack check rolls with single spaced operators in roll logs and tooltips, present critical hit damage breakdowns with explicit labels distinguishing the maximized base value from the rolled dice, order the attack roll chip ahead of the damage outcome chip on attack cards, and keep attack-card chips concise with full breakdowns revealed on hover.
 
 The combat log attack cards and the visual dice tumbler tray SHALL render interactive, in-engine glassmorphic hover tooltips on both:
-1. The attack roll chip (`🎲 d20 + mod vs DC`) and tray attack modifier element, displaying the itemized breakdown of the net attack modifier (contributing base attribute, elevation high/low ground modifiers, aura penalties, and active conditions) together with the resolved equation.
+1. The attack roll chip (`🎲 <totalScore> vs DC <dc>` for targeted attacks, or `🎲 <totalScore>` for area/hex rolls without a single defender DC) and tray attack modifier element, displaying the itemized breakdown of the net attack modifier (contributing base attribute, elevation high/low ground modifiers, aura penalties, and active conditions) together with the resolved equation.
 2. The damage impact chip (`💥 N dmg`) and tray damage equation modifier/soak elements, displaying the itemized breakdown of the damage calculation (rolled dice, critical maximized dice, bonus dice, base attribute bonus, flat/shard bonus, triggered passive bonuses, Armor/Ward mitigation soak, and Graze/Cover multipliers or minimum damage floor) together with the resolved damage formula.
 
+#### Scenario: Attack card impact line orders roll chip before damage chip
+- **WHEN** the combat log renders an attack card with an attack roll and impact outcome
+- **THEN** the attack roll chip (`🎲 ...`) SHALL appear before the damage chip (`💥 N dmg`) or `Missed` indicator within the impact line
+
+#### Scenario: Attack roll and damage chips display final resolved results when hover breakdowns exist
+- **WHEN** an attack log entry includes structured breakdown components (`attackRollBreakdown` / `damageBreakdownComponents`)
+- **THEN** the attack roll chip SHALL display the concise final result (`🎲 <totalScore> vs DC <dc>` for targeted attacks, or `🎲 <totalScore>` when targeting an unoccupied hex for an area attack) without inline `d20 + mod` or `(Score N)` labels
+- **AND** the damage chip SHALL display the concise final damage (`💥 <damageTotal> dmg`, plus `(Total)` for area attacks) without an inline formula summary string
+- **WHEN** an attack log entry lacks structured breakdown components (fallback/legacy entry)
+- **THEN** the chips SHALL retain inline roll/formula text so calculation details remain inspectable
+
+#### Scenario: Ground-targeted HEX abilities render AttackRollTooltip and cone Burn details
+- **WHEN** a combatant executes a ground-targeted `HEX` attack or cone ability (such as `Wyrmflame Breath` or empty-hex `Arcane Blast`) with no unit on the targeted hex
+- **THEN** the combat log entry SHALL populate `attackRollBreakdown` with the actor's Focus/attribute and contextual modifiers
+- **AND** the attack roll chip SHALL render `🎲 <totalScore>` with the in-engine `AttackRollTooltip` on hover instead of a `"Spellcast Roll & Score"` fallback title
+- **AND** when a cone ability with a secondary condition (such as `Wyrmflame Breath` inflicting `BURN`) hits targets in the cone, the secondary target log details SHALL record both the damage/DC contest and the applied condition
+
 #### Scenario: Attack roll d20 modifier formatting
-- **WHEN** an attack check roll is recorded in the combat log or displayed in the attack card roll chip
+- **WHEN** an attack check roll is recorded in the combat log message or displayed in roll breakdowns
 - **THEN** both positive and negative modifiers SHALL use single spaced operators (e.g. `16 + 1` or `20 - 2`)
 - **AND** double sign notations such as `20+-2` SHALL NOT be displayed
 
@@ -313,3 +330,21 @@ The combat log panel SHALL provide an interactive unit filter selector in the ch
 #### Scenario: Empty state for filtered unit with no events
 - **WHEN** a unit is selected that has participated in zero actions matching the current filter criteria
 - **THEN** the combat log SHALL display an empty state hint confirming no actions have been logged for that unit yet
+
+### Requirement: Structured Status Defeat, Zone of Control, and Fallback Cards
+The combat logging pipeline SHALL emit dedicated structured log cards for status-condition defeats and Zone of Control movement halts, and SHALL apply faction theming and structured card layout to any `GENERIC` fallback entry.
+
+#### Scenario: Status condition defeat renders a dedicated DEFEATED card naming the lethal condition
+- **WHEN** a combatant is reduced to `0` HP by turn-start damage-over-time status ticks (such as `BURN` or `POISON`)
+- **THEN** the combat log SHALL emit a structured `DEFEATED` card themed to the defeated unit's faction
+- **AND** the card SHALL display a `💀 DEFEATED` badge, the unit's name, and the specific lethal status condition (e.g., `Defeated by Burn` rather than generic status condition text)
+
+#### Scenario: Zone of Control movement halt renders a dedicated ZONE_OF_CONTROL card
+- **WHEN** a moving unit's advance is interrupted by an enemy's Phalanx Front Zone of Control
+- **THEN** the combat log SHALL emit a structured `ZONE_OF_CONTROL` card themed to the moving unit's faction
+- **AND** the entry's `affectedUnitIds` SHALL include both the halted unit and the Zone of Control guardian so unit filtering displays the event for either combatant
+- **AND** the card SHALL display a `🛡️ ZONE OF CONTROL` badge and identify both the halted unit and the blocking guardian's Phalanx Front
+
+#### Scenario: Generic fallback log cards inherit faction styling and header framing
+- **WHEN** a combat log entry falls through to the `GENERIC` card renderer
+- **THEN** the card SHALL apply the entry's faction card class (`.faction-player`, `.faction-enemy`, or `.faction-neutral`), turn pill, and structured message presentation rather than unstyled plain text

@@ -173,6 +173,30 @@ export type ParsedLogEntry =
       rawMessage: string;
     }
   | {
+      type: 'DEFEATED';
+      turn: number;
+      actor: string;
+      faction: Faction;
+      isPlayer: boolean;
+      actorUnitId?: string;
+      affectedUnitIds?: readonly string[];
+      condition?: string;
+      cause: string;
+      rawMessage: string;
+    }
+  | {
+      type: 'ZONE_OF_CONTROL';
+      turn: number;
+      actor: string;
+      faction: Faction;
+      isPlayer: boolean;
+      actorUnitId?: string;
+      affectedUnitIds?: readonly string[];
+      guardian: string;
+      ability: string;
+      rawMessage: string;
+    }
+  | {
       type: 'GENERIC';
       turn: number;
       actor: string;
@@ -423,6 +447,72 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       damage: typeof meta.damage === 'number' ? meta.damage : parseInt(String(meta.damage || '0'), 10),
       targetHp: meta.targetHp,
       targetMaxHp: meta.targetMaxHp,
+      rawMessage: msg
+    };
+  }
+
+  if (meta?.type === 'DEFEATED') {
+    return {
+      type: 'DEFEATED',
+      turn,
+      actor: meta.actor || actorUnitId,
+      faction,
+      isPlayer,
+      actorUnitId,
+      affectedUnitIds,
+      condition: meta.condition,
+      cause: meta.cause,
+      rawMessage: msg
+    };
+  }
+
+  if (meta?.type === 'ZONE_OF_CONTROL') {
+    return {
+      type: 'ZONE_OF_CONTROL',
+      turn,
+      actor: meta.actor || actorUnitId,
+      faction,
+      isPlayer,
+      actorUnitId,
+      affectedUnitIds,
+      guardian: meta.guardian,
+      ability: meta.ability,
+      rawMessage: msg
+    };
+  }
+
+  if (entry.actionId === 'defeat' || /was defeated by/i.test(msg)) {
+    const match = msg.match(/^(.+?)\s+was defeated by\s+(.+?)!?$/i);
+    const actor = match ? match[1].trim() : meta?.actor || actorUnitId;
+    const rawCause = match ? match[2].trim() : 'status condition damage';
+    return {
+      type: 'DEFEATED',
+      turn,
+      actor,
+      faction,
+      isPlayer,
+      actorUnitId,
+      affectedUnitIds,
+      cause: `Defeated by ${rawCause}`,
+      rawMessage: msg
+    };
+  }
+
+  if (entry.actionId === 'zone_of_control_halted' || msg.includes('[Zone of Control]')) {
+    const match = msg.match(/\[Zone of Control\]\s+(.+?)'s advance was halted by\s+(.+?)'s\s+(.+?)!?$/i);
+    const actor = match ? match[1].trim() : meta?.actor || actorUnitId;
+    const guardian = match ? match[2].trim() : 'Guardian';
+    const ability = match ? match[3].trim() : 'Phalanx Front';
+    return {
+      type: 'ZONE_OF_CONTROL',
+      turn,
+      actor,
+      faction,
+      isPlayer,
+      actorUnitId,
+      affectedUnitIds,
+      guardian,
+      ability,
       rawMessage: msg
     };
   }
@@ -841,6 +931,36 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                       </div>
 
                       <div className="log-impact-line">
+                        {entry.d20 && (
+                          <span
+                            className="log-roll-chip"
+                            title={
+                              entry.attackRollBreakdown && entry.attackRollBreakdown.length > 0
+                                ? undefined
+                                : entry.isAreaTarget
+                                ? 'Area Attack Roll'
+                                : 'Attack Roll vs Defense DC'
+                            }
+                          >
+                            🎲{' '}
+                            {entry.totalScore !== undefined
+                              ? entry.totalScore
+                              : formatD20Roll(entry.d20)}
+                            {entry.defenseTarget !== undefined
+                              ? ` vs DC ${entry.defenseTarget}`
+                              : ''}
+                            {entry.attackRollBreakdown && entry.attackRollBreakdown.length > 0 && (
+                              <AttackRollTooltip
+                                breakdown={entry.attackRollBreakdown}
+                                d20={entry.d20.split(' ')[0]}
+                                totalScore={entry.totalScore}
+                                targetDefense={entry.defenseTarget}
+                                placement="left"
+                              />
+                            )}
+                          </span>
+                        )}
+
                         {isMiss ? (
                           <span className="impact-miss">Missed</span>
                         ) : (
@@ -853,53 +973,18 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                           >
                             💥 <strong>{entry.damageTotal}</strong> dmg
                             {entry.isAreaTarget && <span className="area-total-tag"> (Total)</span>}
-                            {entry.damageBreakdown && (
-                              <span
-                                className="damage-formula"
-                                title={
-                                  entry.damageBreakdownComponents && entry.damageBreakdownComponents.length > 0
-                                    ? undefined
-                                    : 'Damage Breakdown'
-                                }
-                              >
-                                ({formatDamageBreakdown(entry.damageBreakdown)})
-                              </span>
-                            )}
+                            {entry.damageBreakdown &&
+                              !(entry.damageBreakdownComponents && entry.damageBreakdownComponents.length > 0) && (
+                                <span className="damage-formula" title="Damage Breakdown">
+                                  ({formatDamageBreakdown(entry.damageBreakdown)})
+                                </span>
+                              )}
                             {entry.damageBreakdownComponents && entry.damageBreakdownComponents.length > 0 && (
                               <DamageRollTooltip
                                 breakdown={entry.damageBreakdownComponents}
                                 totalDamage={entry.damageTotal}
                                 formulaSummary={entry.damageBreakdown}
                                 placement="top"
-                              />
-                            )}
-                          </span>
-                        )}
-
-                        {entry.d20 && (
-                          <span
-                            className="log-roll-chip"
-                            title={
-                              entry.attackRollBreakdown && entry.attackRollBreakdown.length > 0
-                                ? undefined
-                                : entry.isAreaTarget
-                                ? 'Spellcast Roll & Score'
-                                : 'Attack Roll vs Defense DC'
-                            }
-                          >
-                            🎲 {formatD20Roll(entry.d20)}
-                            {entry.defenseTarget !== undefined
-                              ? ` vs DC ${entry.defenseTarget}`
-                              : entry.totalScore !== undefined
-                              ? ` (Score ${entry.totalScore})`
-                              : ''}
-                            {entry.attackRollBreakdown && entry.attackRollBreakdown.length > 0 && (
-                              <AttackRollTooltip
-                                breakdown={entry.attackRollBreakdown}
-                                d20={entry.d20.split(' ')[0]}
-                                totalScore={entry.totalScore}
-                                targetDefense={entry.defenseTarget}
-                                placement="left"
                               />
                             )}
                           </span>
@@ -1254,11 +1339,76 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                 );
               }
 
+              if (entry.type === 'DEFEATED') {
+                return (
+                  <div
+                    key={idx}
+                    className={`log-card log-defeated-card ${factionCardClass} ${
+                      isNewest ? 'entry-fresh' : ''
+                    }`}
+                  >
+                    <div className="log-card-header">
+                      <span className="log-turn-pill">T{entry.turn}</span>
+                      <span className="log-defeated-badge">💀 DEFEATED</span>
+                      <span className={`log-actor-name ${factionActorClass}`}>
+                        {entry.actor}
+                      </span>
+                    </div>
+
+                    <div className="log-card-secondary log-defeated-footer">
+                      <span className="secondary-icon">☠️</span>
+                      <span className="secondary-text">{entry.cause}</span>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (entry.type === 'ZONE_OF_CONTROL') {
+                return (
+                  <div
+                    key={idx}
+                    className={`log-card log-zoc-card ${factionCardClass} ${
+                      isNewest ? 'entry-fresh' : ''
+                    }`}
+                  >
+                    <div className="log-card-header">
+                      <span className="log-turn-pill">T{entry.turn}</span>
+                      <span className="log-zoc-badge">🛡️ ZONE OF CONTROL</span>
+                      <span className={`log-actor-name ${factionActorClass}`}>
+                        {entry.actor}
+                      </span>
+                    </div>
+
+                    <div className="log-card-secondary log-zoc-footer">
+                      <span className="secondary-icon">🚧</span>
+                      <span className="secondary-text">
+                        Advance halted by <strong>{entry.guardian}</strong>&apos;s {entry.ability}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+
               // Fallback Generic
               return (
-                <div key={idx} className={`log-card log-generic-card ${isNewest ? 'entry-fresh' : ''}`}>
-                  <span className="log-turn-pill">T{entry.turn}</span>
-                  <span className="generic-msg">{entry.rawMessage}</span>
+                <div
+                  key={idx}
+                  className={`log-card log-generic-card ${factionCardClass} ${
+                    isNewest ? 'entry-fresh' : ''
+                  }`}
+                >
+                  <div className="log-card-header">
+                    <span className="log-turn-pill">T{entry.turn}</span>
+                    <span className="log-generic-badge">📜 EVENT</span>
+                    {entry.actor && (
+                      <span className={`log-actor-name ${factionActorClass}`}>
+                        {entry.actor}
+                      </span>
+                    )}
+                  </div>
+                  <div className="log-card-body">
+                    <span className="generic-msg">{entry.rawMessage}</span>
+                  </div>
                 </div>
               );
             })();

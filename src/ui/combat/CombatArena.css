@@ -2075,12 +2075,116 @@
 
 /* Generic Fallback */
 .log-generic-card {
-  padding: 0.4rem 0.6rem;
+  padding: 0.45rem 0.65rem;
+  border-left: 3px solid #94a3b8;
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.08) 0%, rgba(15, 23, 42, 0.65) 100%);
+}
+
+.log-generic-card.player-card {
+  border-left-color: #38bdf8;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, rgba(15, 23, 42, 0.65) 100%);
+}
+
+.log-generic-card.enemy-card {
+  border-left-color: #ef4444;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(15, 23, 42, 0.65) 100%);
+}
+
+.log-generic-card.neutral-card {
+  border-left-color: #f59e0b;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.65) 100%);
+}
+
+.log-generic-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #cbd5e1;
+  background: rgba(100, 116, 139, 0.25);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  padding: 0.08rem 0.35rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .generic-msg {
   color: #cbd5e1;
   font-size: 0.74rem;
+}
+
+/* Status Defeat Card */
+.log-defeated-card {
+  padding: 0.45rem 0.65rem;
+  border-left: 3px solid #ef4444;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(15, 23, 42, 0.7) 100%);
+}
+
+.log-defeated-card.player-card {
+  border-left-color: #38bdf8;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(15, 23, 42, 0.7) 100%);
+}
+
+.log-defeated-card.enemy-card {
+  border-left-color: #ef4444;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(15, 23, 42, 0.7) 100%);
+}
+
+.log-defeated-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fecaca;
+  background: rgba(185, 28, 28, 0.35);
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  padding: 0.08rem 0.35rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.log-defeated-footer {
+  border-left-color: #ef4444;
+  background: rgba(0, 0, 0, 0.3);
+  font-size: 0.67rem;
+  color: #cbd5e1;
+}
+
+/* Zone of Control Interception Card */
+.log-zoc-card {
+  padding: 0.45rem 0.65rem;
+  border-left: 3px solid #f59e0b;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(15, 23, 42, 0.65) 100%);
+}
+
+.log-zoc-card.player-card {
+  border-left-color: #38bdf8;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, rgba(15, 23, 42, 0.65) 100%);
+}
+
+.log-zoc-card.enemy-card {
+  border-left-color: #ef4444;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(15, 23, 42, 0.65) 100%);
+}
+
+.log-zoc-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fde68a;
+  background: rgba(217, 119, 6, 0.25);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  padding: 0.08rem 0.35rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.log-zoc-footer {
+  border-left-color: #f59e0b;
+  background: rgba(0, 0, 0, 0.3);
+  font-size: 0.67rem;
+  color: #cbd5e1;
 }
 
 /* Condition Broken Card (e.g. Stealth Broken by Damage) */

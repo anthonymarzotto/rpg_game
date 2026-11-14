@@ -122,17 +122,25 @@ export function getAttackRollModifier(actorCu: CombatUnit, ability: Ability): nu
   return baseAttr + attackRollBonus + activeAttackMod;
 }
 
+interface ActorRollModifierSummary {
+  readonly baseModifier: number;
+  readonly totalBonus: number;
+  readonly totalPenalty: number;
+  readonly advantageSources: string[];
+  readonly disadvantageSources: string[];
+  readonly modifierBreakdown: AttackModifierComponent[];
+}
+
 /**
- * Centrally evaluates the attack roll context, aggregating base modifiers, ability effects,
- * conditions via the declarative registry, elevation difference (including spatial lookahead),
- * protective auras, advantage/disadvantage determination, and exact d20 hit probability.
+ * Evaluates actor-side attack roll modifiers (base attribute, ability bonuses/penalties,
+ * active stat modifiers, explicit roll bonuses/penalties, and elevation modifiers).
  */
-export function evaluateAttackRollContext(
+function evaluateActorRollModifiers(
   actorCu: CombatUnit,
-  targetCu: CombatUnit,
   ability: Ability,
+  elevationDelta: number | undefined,
   options?: AttackRollEvaluationOptions
-): AttackRollContext {
+): ActorRollModifierSummary {
   const baseModifier = getAttackRollModifier(actorCu, ability);
   let totalBonus = options?.rollBonus ?? 0;
   let totalPenalty = options?.rollPenalty ?? 0;
@@ -140,7 +148,6 @@ export function evaluateAttackRollContext(
   const disadvantageSources: string[] = [];
   const modifierBreakdown: AttackModifierComponent[] = [];
 
-  // Base attribute modifier
   const attr = ability.attackModifierAttribute;
   const baseAttr = attr ? actorCu.unit.baseAttributes[attr] : 0;
   if (attr) {
@@ -189,14 +196,12 @@ export function evaluateAttackRollContext(
     });
   }
 
-  // 1. Explicit advantage/disadvantage in options
   if (options?.advantage === 'ADVANTAGE') {
     advantageSources.push('Context (Advantage)');
   } else if (options?.advantage === 'DISADVANTAGE') {
     disadvantageSources.push('Context (Disadvantage)');
   }
 
-  // 2. Ability effect modifiers
   const effect = options?.effect ?? ability.effects?.find((e) => e.type === 'DAMAGE');
   if (effect) {
     if (effect.grantsAdvantage) {
@@ -221,24 +226,6 @@ export function evaluateAttackRollContext(
         source: 'MODIFIER'
       });
     }
-  }
-
-  // 3. Elevation modifier (computed from coordinates or explicit elevationDelta, factored with virtual elevation)
-  const actorVirtual = actorCu.virtualElevation ?? 0;
-  const targetVirtual = targetCu.virtualElevation ?? 0;
-  let elevationDelta = options?.elevationDelta;
-  if (elevationDelta === undefined && options?.state) {
-    const effectiveOrigin = options.originCoord ?? options.state.arena.getUnitPosition(actorCu.unit.id);
-    const effectiveTarget = options.targetCoord ?? options.state.arena.getUnitPosition(targetCu.unit.id);
-    if (effectiveOrigin && effectiveTarget) {
-      const actorElevation = options.state.arena.getElevation(effectiveOrigin) + actorVirtual;
-      const targetElevation = options.state.arena.getElevation(effectiveTarget) + targetVirtual;
-      elevationDelta = actorElevation - targetElevation;
-    }
-  } else if (elevationDelta !== undefined) {
-    elevationDelta += (actorVirtual - targetVirtual);
-  } else if (actorVirtual !== 0 || targetVirtual !== 0) {
-    elevationDelta = actorVirtual - targetVirtual;
   }
 
   if (elevationDelta !== undefined && elevationDelta !== 0) {
@@ -266,6 +253,48 @@ export function evaluateAttackRollContext(
       disadvantageSources.push(elevMod.description ?? 'Elevation Disadvantage');
     }
   }
+
+  return {
+    baseModifier,
+    totalBonus,
+    totalPenalty,
+    advantageSources,
+    disadvantageSources,
+    modifierBreakdown
+  };
+}
+
+/**
+ * Centrally evaluates the attack roll context, aggregating base modifiers, ability effects,
+ * conditions via the declarative registry, elevation difference (including spatial lookahead),
+ * protective auras, advantage/disadvantage determination, and exact d20 hit probability.
+ */
+export function evaluateAttackRollContext(
+  actorCu: CombatUnit,
+  targetCu: CombatUnit,
+  ability: Ability,
+  options?: AttackRollEvaluationOptions
+): AttackRollContext {
+  const actorVirtual = actorCu.virtualElevation ?? 0;
+  const targetVirtual = targetCu.virtualElevation ?? 0;
+  let elevationDelta = options?.elevationDelta;
+  if (elevationDelta === undefined && options?.state) {
+    const effectiveOrigin = options.originCoord ?? options.state.arena.getUnitPosition(actorCu.unit.id);
+    const effectiveTarget = options.targetCoord ?? options.state.arena.getUnitPosition(targetCu.unit.id);
+    if (effectiveOrigin && effectiveTarget) {
+      const actorElevation = options.state.arena.getElevation(effectiveOrigin) + actorVirtual;
+      const targetElevation = options.state.arena.getElevation(effectiveTarget) + targetVirtual;
+      elevationDelta = actorElevation - targetElevation;
+    }
+  } else if (elevationDelta !== undefined) {
+    elevationDelta += (actorVirtual - targetVirtual);
+  } else if (actorVirtual !== 0 || targetVirtual !== 0) {
+    elevationDelta = actorVirtual - targetVirtual;
+  }
+
+  const summary = evaluateActorRollModifiers(actorCu, ability, elevationDelta, options);
+  const { baseModifier, advantageSources, disadvantageSources, modifierBreakdown } = summary;
+  let { totalBonus, totalPenalty } = summary;
 
   // 4. Target protective auras (if state is present and rollPenalty wasn't already passed)
   if (options?.rollPenalty === undefined && options?.state) {
@@ -388,36 +417,27 @@ export function evaluateAttackRollContext(
   };
 }
 
-/**
- * Resolves an attack roll comparing d20 + modifier against the target defense score,
- * supporting first-class Advantage/Disadvantage, elevation modifiers, conditions, and custom critical thresholds.
- */
-export function resolveAttackRoll(
+function rollD20ForAbility(
   actorCu: CombatUnit,
-  targetCu: CombatUnit,
   ability: Ability,
   diceRoller: DiceRoller,
-  options?: AttackRollOptions
-): AttackRollResult {
-  const context = evaluateAttackRollContext(actorCu, targetCu, ability, options);
+  finalAdvantage: RollAdvantage
+): { d20: number; rawD20Rolls: number[]; naturalCritThreshold: number } {
   let d20: number;
   let rawD20Rolls: number[];
 
   if (diceRoller.rollD20Detailed) {
-    const detailed = diceRoller.rollD20Detailed(context.finalAdvantage);
+    const detailed = diceRoller.rollD20Detailed(finalAdvantage);
     d20 = detailed.kept;
     rawD20Rolls = [...detailed.rolls];
   } else {
-    d20 = diceRoller.rollD20(context.finalAdvantage);
+    d20 = diceRoller.rollD20(finalAdvantage);
     rawD20Rolls = [d20];
   }
-
-  const totalScore = d20 + context.netModifier;
 
   const isCritBoosted = ability.effects?.some((e) => e.type === 'CRIT_BOOST');
   let naturalCritThreshold = isCritBoosted ? 19 : 20;
 
-  // Check health threshold passives (e.g. Deathbound Fury expanding natural crit to 19-20)
   const maxHp = actorCu.unit.effectiveVitals.maxHp;
   if (actorCu.passives && maxHp > 0) {
     for (const passive of actorCu.passives) {
@@ -434,6 +454,30 @@ export function resolveAttackRoll(
       }
     }
   }
+
+  return { d20, rawD20Rolls, naturalCritThreshold };
+}
+
+/**
+ * Resolves an attack roll comparing d20 + modifier against the target defense score,
+ * supporting first-class Advantage/Disadvantage, elevation modifiers, conditions, and custom critical thresholds.
+ */
+export function resolveAttackRoll(
+  actorCu: CombatUnit,
+  targetCu: CombatUnit,
+  ability: Ability,
+  diceRoller: DiceRoller,
+  options?: AttackRollOptions
+): AttackRollResult {
+  const context = evaluateAttackRollContext(actorCu, targetCu, ability, options);
+  const { d20, rawD20Rolls, naturalCritThreshold } = rollD20ForAbility(
+    actorCu,
+    ability,
+    diceRoller,
+    context.finalAdvantage
+  );
+
+  const totalScore = d20 + context.netModifier;
 
   let hitOutcome: HitOutcome = 'MISS';
   if (d20 >= naturalCritThreshold) {
@@ -456,5 +500,44 @@ export function resolveAttackRoll(
     advantage: context.finalAdvantage,
     defenseType: context.defenseType,
     modifierBreakdown: context.modifierBreakdown
+  };
+}
+
+/**
+ * Resolves a unified ground-targeted HEX / AoE attack roll with full structured modifier breakdown
+ * when no single defending unit occupies the targeted hex.
+ */
+export function resolveGroundAttackRoll(
+  actorCu: CombatUnit,
+  ability: Ability,
+  diceRoller: DiceRoller,
+  options?: AttackRollOptions
+): AttackRollResult {
+  const summary = evaluateActorRollModifiers(actorCu, ability, options?.elevationDelta, options);
+  const hasAdvantage = summary.advantageSources.length > 0;
+  const hasDisadvantage = summary.disadvantageSources.length > 0;
+  const finalAdvantage: RollAdvantage =
+    hasAdvantage === hasDisadvantage ? 'NORMAL' : hasAdvantage ? 'ADVANTAGE' : 'DISADVANTAGE';
+  const netModifier = summary.baseModifier + summary.totalBonus - summary.totalPenalty;
+
+  const { d20, rawD20Rolls, naturalCritThreshold } = rollD20ForAbility(
+    actorCu,
+    ability,
+    diceRoller,
+    finalAdvantage
+  );
+  const totalScore = d20 + netModifier;
+  const hitOutcome: HitOutcome = d20 >= naturalCritThreshold ? 'CRITICAL_HIT' : 'SOLID_HIT';
+
+  return {
+    hitOutcome,
+    d20,
+    modifier: netModifier,
+    totalScore,
+    targetDefense: 0,
+    rawD20Rolls,
+    advantage: finalAdvantage,
+    defenseType: ability.defenseTarget === 'EVASION' ? 'Evasion' : 'Resolve',
+    modifierBreakdown: summary.modifierBreakdown
   };
 }

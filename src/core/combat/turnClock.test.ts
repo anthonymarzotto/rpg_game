@@ -220,5 +220,43 @@ describe('CTB Turn Clock Advancement & Unspent AP Recovery', () => {
       // Enemy was in Hero's REAR arc (blind spot) -> STEALTH preserved!
       expect(enemyCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
     });
+
+    it('emits a structured DEFEATED log entry naming the lethal condition when DoT kills a unit', () => {
+      const arena = createRadialArena(2);
+      const hero = createRecruit('hero', 'Cinder Novice', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Ash Stalker', { faction: 'ENEMY' });
+      const ally = createRecruit('ally', 'Backup Vanguard', { faction: 'PLAYER' });
+
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+      arena.setUnitPosition('ally', { q: -1, r: 0 });
+
+      const state = createCombatState(arena, [hero, enemy, ally], 'enemy');
+      const heroCu = state.units.get('hero')!;
+      const enemyCu = state.units.get('enemy')!;
+
+      heroCu.currentHp = 1;
+      heroCu.activeConditions.push({
+        type: 'BURN',
+        durationTurns: 2,
+        damagePerTurn: 1,
+        sourceUnitId: 'enemy'
+      });
+      heroCu.initiativeGauge = 100;
+      enemyCu.initiativeGauge = 0;
+
+      endActiveTurn(state, 0);
+
+      expect(heroCu.isDefeated).toBe(true);
+      const defeatLog = state.combatLog.find((l) => l.actionId === 'defeat');
+      expect(defeatLog).toBeDefined();
+      expect(defeatLog?.faction).toBe('PLAYER');
+      expect(defeatLog?.metadata).toEqual({
+        type: 'DEFEATED',
+        actor: 'Cinder Novice',
+        condition: 'BURN',
+        cause: 'Defeated by Burn'
+      });
+    });
   });
 });

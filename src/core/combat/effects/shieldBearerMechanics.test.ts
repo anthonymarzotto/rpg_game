@@ -267,7 +267,17 @@ describe('Shield-bearer Mechanics — Bastion Plant (ZOC & Rear Cover)', () => {
     // Executing move to (1, 0) enters ZOC and completes
     executeMove(state, 'enemy-1', { q: 1, r: 0 });
     expect(arena.getUnitPosition('enemy-1')).toEqual({ q: 1, r: 0 });
-    expect(state.combatLog.some((l) => l.actionId === 'zone_of_control_halted')).toBe(true);
+    const zocLog = state.combatLog.find((l) => l.actionId === 'zone_of_control_halted');
+    expect(zocLog).toBeDefined();
+    expect(zocLog?.faction).toBe('ENEMY');
+    expect(zocLog?.affectedUnitIds).toContain('enemy-1');
+    expect(zocLog?.affectedUnitIds).toContain('sb-1');
+    expect(zocLog?.metadata).toEqual({
+      type: 'ZONE_OF_CONTROL',
+      actor: state.units.get('enemy-1')!.unit.name,
+      guardian: state.units.get('sb-1')!.unit.name,
+      ability: 'Phalanx Front'
+    });
   });
 
   it('reduces incoming ranged attack damage by 50% for an ally in the rear hex', async () => {

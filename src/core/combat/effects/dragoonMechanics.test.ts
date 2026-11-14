@@ -321,6 +321,44 @@ describe('Tier 4 Dragoon Core Mechanics', () => {
       // Both in cone should have BURN condition
       expect(enemyACu.activeConditions.some((c) => c.type === 'BURN')).toBe(true);
       expect(enemyBCu.activeConditions.some((c) => c.type === 'BURN')).toBe(true);
+
+      // Log entry for cone hit should include Burn detail on cone target
+      const log = state.combatLog.find((l) => l.actionId === 'wyrmflame_breath')!;
+      expect(log.metadata.type).toBe('ATTACK');
+      if (log.metadata.type === 'ATTACK') {
+        expect(log.metadata.secondaryDetail).toContain('Burn');
+      }
+    });
+
+    it('populates attackRollBreakdown and cone Burn details when Wyrmflame Breath targets an empty apex hex', () => {
+      const arena = createRadialArena(3);
+      const dragoon = createRecruit('dragoon', 'Dragoon', { faction: 'PLAYER' });
+      (dragoon.baseAttributes as any).focus = 2;
+      const enemyB = createRecruit('enemyB', 'Enemy B (Fan)', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('dragoon', { q: 0, r: 0 });
+      // (1, 0) apex hex is empty; fan hex (2, 0) holds enemyB
+      arena.setUnitPosition('enemyB', { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [dragoon, enemyB], 'dragoon');
+      const dragoonCu = state.units.get('dragoon')!;
+      dragoonCu.currentAp = 1;
+
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3] });
+      executeAbility(state, 'dragoon', WYRMFLAME_BREATH, { coord: { q: 1, r: 0 } }, dice);
+
+      const log = state.combatLog.find((l) => l.actionId === 'wyrmflame_breath')!;
+      expect(log).toBeDefined();
+      expect(log.metadata.type).toBe('ATTACK');
+      if (log.metadata.type === 'ATTACK') {
+        expect(log.metadata.isAreaTarget).toBe(true);
+        expect(log.metadata.totalScore).toBe(17);
+        expect(log.metadata.attackRollBreakdown).toEqual([
+          { label: 'Focus', value: 2, source: 'ATTRIBUTE' }
+        ]);
+        expect(log.metadata.secondaryDetail).toContain('Enemy B (Fan)');
+        expect(log.metadata.secondaryDetail).toContain('Burn (1 dmg/turn, 2t)');
+      }
     });
   });
 

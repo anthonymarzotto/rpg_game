@@ -12,6 +12,10 @@
   - Fix premature roll spoilers during Stage 1 and Stage 2 dice tumbles (`UX.11`) and slow down stage timings slightly.
   - Simplify `"EVADED / MISS"` stamp to `"MISS"` (`UX.6`).
   - Show Armor/Ward soak and full damage math in the Dice Tray (`B.14`) with a shared rich hover tooltip breakdown (`DamageRollTooltip`) in both the Dice Tray and Combat Log (`UX.14`).
+- [ ] **UX.21 / UX.22 / UX.23 / UX.24 / UX.25 (`combat-log-polish`)**:
+  - Simplify Combat Log attack roll & damage chips to final results (`🎲 21 vs DC 11` / `🎲 15`, `💥 9 dmg`) with hover tooltips handling full breakdowns, and flip their order (`UX.21`, `UX.22`).
+  - Populate `attackRollBreakdown` on ground-targeted `HEX` rolls (`Wyrmflame Breath`, empty-hex `Arcane Blast`) so they get `AttackRollTooltip`, remove `"Spellcast Roll & Score"`, and include `BURN` application in `Wyrmflame Breath` cone splash details (`UX.23`).
+  - Emit dedicated `DEFEATED` card (naming lethal condition) and `ZONE_OF_CONTROL` card (with `faction` and `affectedUnitIds` for both units), and add faction/header styling to the `GENERIC` fallback card (`UX.24`, `UX.25`).
 
 ---
 
@@ -34,11 +38,6 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close (re-assess after pacing & clash stage update).
 - [ ] **UX.15**: Make Vanguard Squad area in Post Trial XP distribution dialog scrollable.
 - [ ] **UX.16**: More interesting Vanguard area. Maybe some sort of campfire with the unit sprites randomly gathered around. Maybe animated milling about?
-- [ ] **UX.21**: Combat Log: Damage and Attack roll chips can just show the final result, hover can handle all the details. (e.g. just "9 damage" or "21 vs DC 11")
-- [ ] **UX.22**: Combat Log: Flip damage and attack roll chips.
-- [ ] **UX.23**: Combat Log: Wyrmflame Breath gets a "Spellcast Roll & Score" chip instead of the standard attack roll. What is this? Why is it different? If it can just be the standard attack roll chip let's use that. If this serves a real purpose, other Focus abilities should use it and it should get a nice tooltip like the attack roll chip.
-- [ ] **UX.24**: Combat Log: A Burn Tick killed my unit and an unformatted card was generated about "Cinder Novice was defeated by status condition damage!". I thought all Combat Log chips would now be at least nicely formatted with some default. We need to check that and then also fix up this message generally.
-- [ ] **UX.25**: Zone of Control also makes a default unformatted Combat Log card when it triggers.
 
 ---
 

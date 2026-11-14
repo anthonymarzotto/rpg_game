@@ -259,6 +259,37 @@ describe('applyCombatEvents Fallback Logging', () => {
     const envLog = state.combatLog.find((l) => l.metadata.type === 'ENVIRONMENT');
     expect(envLog).toBeUndefined();
   });
+
+  it('populates attackRollBreakdown on ground-targeted HEX spells like Arcane Blast', async () => {
+    const { ARCANE_BLAST } = await import('../../data/packages/wizard');
+    const arena = createRadialArena(3);
+    const wizard = createRecruit('wizard', 'Vael', { faction: 'PLAYER' });
+    (wizard as any).baseAttributes = { force: 0, finesse: 0, focus: 3 };
+    const goblin = createRecruit('goblin', 'Goblin', { faction: 'ENEMY' });
+
+    arena.setTile({ coord: { q: 0, r: 0 }, elevation: 1, isWalkable: true });
+    arena.setTile({ coord: { q: 2, r: 0 }, elevation: 0, isWalkable: true });
+
+    arena.setUnitPosition('wizard', { q: 0, r: 0 });
+    arena.setUnitPosition('goblin', { q: 2, r: 1 }); // Adjacent to empty target (2, 0)
+
+    const state = createCombatState(arena, [wizard, goblin], 'wizard');
+    const dice = new MockDiceRoller({ d20Rolls: [12], damageRolls: [3] });
+    const result = executeAbility(state, 'wizard', ARCANE_BLAST, { coord: { q: 2, r: 0 } }, dice);
+
+    expect(result.type).toBe('ATTACK');
+    const log = state.combatLog.find((l) => l.actionId === 'arcane_blast')!;
+    expect(log).toBeDefined();
+    expect(log.metadata.type).toBe('ATTACK');
+    if (log.metadata.type === 'ATTACK') {
+      expect(log.metadata.isAreaTarget).toBe(true);
+      expect(log.metadata.attackRollBreakdown).toEqual([
+        { label: 'Focus', value: 3, source: 'ATTRIBUTE' },
+        { label: 'High Ground', value: 2, source: 'ELEVATION' }
+      ]);
+      expect(log.metadata.totalScore).toBe(17);
+    }
+  });
 });
 
 

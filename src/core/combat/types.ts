@@ -345,6 +345,18 @@ export type CombatLogMetadata =
       readonly text?: string;
     }
   | {
+      readonly type: 'DEFEATED';
+      readonly actor: string;
+      readonly condition?: string;
+      readonly cause: string;
+    }
+  | {
+      readonly type: 'ZONE_OF_CONTROL';
+      readonly actor: string;
+      readonly guardian: string;
+      readonly ability: string;
+    }
+  | {
       readonly type: 'GENERIC';
       readonly actor?: string;
       readonly text?: string;

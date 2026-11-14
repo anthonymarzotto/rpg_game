@@ -29,7 +29,12 @@ import { isFlankOrRear } from './flanking';
 import { DiceRoller, SeededDiceRoller, RollAdvantage } from './dice';
 import { ACTION_ECONOMY_CONFIG, COMBAT_RESOLUTION_CONFIG } from '../config/balance';
 import { advanceTurnClock, predictTurnOrder } from './turnClock';
-import { resolveAttackRoll, calculateElevationAttackModifier, getAttackRollModifier, AttackRollResult } from './attackRoll';
+import {
+  resolveAttackRoll,
+  resolveGroundAttackRoll,
+  calculateElevationAttackModifier,
+  AttackRollResult
+} from './attackRoll';
 import { resolveDamage, resolveFallDamage, DamageResult } from './damageEngine';
 import { executeAbilityEffects, defaultEffectRegistry, EffectContext } from './effects';
 import { evaluateRollPassives, onTurnStartPassives } from './passives';
@@ -369,16 +374,9 @@ export function executeMove(
     const zocInterrupt = evaluateZoneOfControl(state, actorUnitId, currentCoord);
     if (zocInterrupt) {
       interrupted = true;
-      state.combatLog.push({
-        turnNumber: state.turnNumber,
-        actorUnitId,
-        actionId: 'zone_of_control_halted',
-        message: `🛡️ [Zone of Control] ${cu.unit.name}'s advance was halted by ${zocInterrupt.unit.name}'s Phalanx Front!`,
-        metadata: {
-          type: 'GENERIC',
-          actor: cu.unit.name,
-          text: `🛡️ [Zone of Control] ${cu.unit.name}'s advance was halted by ${zocInterrupt.unit.name}'s Phalanx Front!`
-        }
+      combatLogger.logZoneOfControl(state, {
+        haltedCu: cu,
+        guardianCu: zocInterrupt
       });
       break;
     }
@@ -996,38 +994,13 @@ export function executeAbility(
       });
     }
   } else {
-    // Ground targeting on an unoccupied hex: roll unified spellcast attack roll
-    const baseMod = getAttackRollModifier(actorCu, effectiveAbility);
-    const totalBonus = elevMod.rollBonus;
-    const totalPenalty = elevMod.rollPenalty + auraEval.attackRollPenalty;
-    const netModifier = baseMod + totalBonus - totalPenalty;
-    let groundAdv: RollAdvantage = rollAdvantage;
-    if (elevMod.grantsAdvantage) groundAdv = 'ADVANTAGE';
-    if (elevMod.grantsDisadvantage) groundAdv = groundAdv === 'ADVANTAGE' ? 'NORMAL' : 'DISADVANTAGE';
-    let d20: number;
-    let rawD20Rolls: number[];
-    if (diceRoller.rollD20Detailed) {
-      const detailed = diceRoller.rollD20Detailed(groundAdv);
-      d20 = detailed.kept;
-      rawD20Rolls = [...detailed.rolls];
-    } else {
-      d20 = diceRoller.rollD20(groundAdv);
-      rawD20Rolls = [d20];
-    }
-    const totalScore = d20 + netModifier;
-    const isCritBoosted = effectiveAbility.effects?.some((e) => e.type === 'CRIT_BOOST');
-    const naturalCritThreshold = isCritBoosted ? 19 : 20;
-    const hitOutcome: HitOutcome = d20 >= naturalCritThreshold ? 'CRITICAL_HIT' : 'SOLID_HIT';
-    rollResult = {
-      hitOutcome,
-      d20,
-      modifier: netModifier,
-      totalScore,
-      targetDefense: 0,
-      rawD20Rolls,
-      advantage: groundAdv,
-      defenseType: 'Evasion'
-    };
+    // Ground targeting on an unoccupied hex: roll unified attack roll with modifier breakdown
+    rollResult = resolveGroundAttackRoll(actorCu, effectiveAbility, diceRoller, {
+      advantage: rollAdvantage,
+      rollBonus: conditionalRollBonus,
+      rollPenalty: auraEval.attackRollPenalty,
+      elevationDelta
+    });
   }
 
   // Primary Damage Event on center target (if targetCu exists)
@@ -1122,6 +1095,32 @@ export function executeAbility(
               splashEffect,
               { hasRangedCover: splashHasCover }
             );
+            const coneConditionNotes: string[] = [];
+            if (isCone) {
+              for (const eff of effectiveAbility.effects ?? []) {
+                if (eff.type === 'CONDITION' && eff.conditionType) {
+                  const condRes = applyConditionToUnit(
+                    splashCu,
+                    eff.conditionType,
+                    eff.durationTurns ?? 2,
+                    actorCu.unit.id,
+                    eff.magnitude
+                  );
+                  events.push(condRes.event);
+                  const condName =
+                    eff.conditionType.charAt(0).toUpperCase() + eff.conditionType.slice(1).toLowerCase();
+                  if (eff.conditionType === 'BURN' || eff.conditionType === 'POISON') {
+                    const dmgPerTurn = eff.magnitude !== undefined && eff.magnitude > 0 ? eff.magnitude : 2;
+                    const dur = eff.durationTurns ?? 2;
+                    coneConditionNotes.push(`🔥 ${condName} (${dmgPerTurn} dmg/turn, ${dur}t)`);
+                  } else {
+                    coneConditionNotes.push(`${condName} (${eff.durationTurns ?? 2}t)`);
+                  }
+                }
+              }
+            }
+
+            const condSuffix = coneConditionNotes.length > 0 ? ` + ${coneConditionNotes.join(', ')}` : '';
             if (splashDmg.damageDealt > 0) {
               const damageType = effectiveAbility.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL';
               events.push({
@@ -1136,23 +1135,12 @@ export function executeAbility(
               });
               const remainingHp = Math.max(0, splashCu.currentHp - splashDmg.damageDealt);
               splashLogDetails.push(
-                `${splashCu.unit.name} for ${splashDmg.damageDealt} ${damageType.toLowerCase()} damage [${splashOutcome === 'GRAZE' ? 'Graze ' : ''}vs DC ${splashDefense}] (HP: ${remainingHp}/${splashCu.unit.effectiveVitals.maxHp})`
+                `${splashCu.unit.name} for ${splashDmg.damageDealt} ${damageType.toLowerCase()} damage [${splashOutcome === 'GRAZE' ? 'Graze ' : ''}vs DC ${splashDefense}] (HP: ${remainingHp}/${splashCu.unit.effectiveVitals.maxHp})${condSuffix}`
               );
-            }
-
-            if (isCone) {
-              for (const eff of effectiveAbility.effects ?? []) {
-                if (eff.type === 'CONDITION' && eff.conditionType) {
-                  const condRes = applyConditionToUnit(
-                    splashCu,
-                    eff.conditionType,
-                    eff.durationTurns ?? 2,
-                    actorCu.unit.id,
-                    eff.magnitude
-                  );
-                  events.push(condRes.event);
-                }
-              }
+            } else if (coneConditionNotes.length > 0) {
+              splashLogDetails.push(
+                `${splashCu.unit.name} afflicted with ${coneConditionNotes.join(', ')} [${splashOutcome === 'GRAZE' ? 'Graze ' : ''}vs DC ${splashDefense}]`
+              );
             }
           } else {
             splashLogDetails.push(`${splashCu.unit.name} resisted [Miss vs DC ${splashDefense}]`);

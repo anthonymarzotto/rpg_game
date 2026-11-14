@@ -2,6 +2,13 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.17.3] - 2026-11-13
+
+### Astral Chronicle Readability & Event Card Polish
+- **Cleaner Attack & Damage Summary**: Combat Log entries now place the attack roll ahead of the resulting damage and display concise final results at a glance, while hovering over either number reveals the full dice and modifier breakdown.
+- **Cone & Area Spell Hover Breakdowns**: Ground-targeted area and cone spells such as *Wyrmflame Breath* and *Arcane Blast* now display the same interactive attack roll breakdown tooltip on hover, and *Wyrmflame Breath* entries clearly note applied Burn effects on each enemy caught in the flames.
+- **Formatted Status Defeat & Zone of Control Cards**: Combatants defeated by Burn or Poison ticks now receive a dedicated Defeated card naming the condition that felled them, and movements halted by a Shield-bearer's Phalanx Front now appear as styled Zone of Control cards visible when filtering by either combatant.
+
 ## [0.17.2] - 2026-11-13
 
 ### Cleaner Battlefield Callouts & Ability Shout Polish

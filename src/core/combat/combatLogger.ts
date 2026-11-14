@@ -109,6 +109,22 @@ export interface LogInitiativeParams {
   readonly message?: string;
 }
 
+export interface LogDefeatParams {
+  readonly cu: CombatUnit;
+  readonly condition?: string;
+  readonly cause?: string;
+  readonly actionId?: string;
+  readonly message?: string;
+}
+
+export interface LogZoneOfControlParams {
+  readonly haltedCu: CombatUnit;
+  readonly guardianCu: CombatUnit;
+  readonly abilityName?: string;
+  readonly actionId?: string;
+  readonly message?: string;
+}
+
 export interface LogGenericParams {
   readonly actorUnitId?: string;
   readonly faction?: Faction;
@@ -433,6 +449,67 @@ export const combatLogger = {
           roll: r.roll,
           isPlayer: r.isPlayer
         }))
+      }
+    };
+
+    return pushLogEntry(state, entry);
+  },
+
+  logDefeat(state: CombatState, params: LogDefeatParams): CombatLogEntry {
+    const { cu, condition } = params;
+    const faction = cu.unit.faction ?? 'PLAYER';
+    const formattedCondition = condition
+      ? condition.charAt(0).toUpperCase() + condition.slice(1).toLowerCase()
+      : undefined;
+    const cause =
+      params.cause ??
+      (formattedCondition
+        ? `Defeated by ${formattedCondition}`
+        : 'Defeated by status condition damage');
+    const message =
+      params.message ??
+      (formattedCondition
+        ? `${cu.unit.name} was defeated by ${formattedCondition}!`
+        : `${cu.unit.name} was defeated by status condition damage!`);
+
+    const entry: CombatLogEntry = {
+      turnNumber: state.turnNumber,
+      actorUnitId: cu.unit.id,
+      faction,
+      affectedUnitIds: [cu.unit.id],
+      actionId: params.actionId ?? 'defeat',
+      message,
+      metadata: {
+        type: 'DEFEATED',
+        actor: cu.unit.name,
+        condition,
+        cause
+      }
+    };
+
+    return pushLogEntry(state, entry);
+  },
+
+  logZoneOfControl(state: CombatState, params: LogZoneOfControlParams): CombatLogEntry {
+    const { haltedCu, guardianCu, abilityName = 'Phalanx Front' } = params;
+    const faction = haltedCu.unit.faction ?? 'PLAYER';
+    const allAffected = Array.from(new Set([haltedCu.unit.id, guardianCu.unit.id]));
+    const message =
+      params.message ??
+      `🛡️ [Zone of Control] ${haltedCu.unit.name}'s advance was halted by ${guardianCu.unit.name}'s ${abilityName}!`;
+
+    const entry: CombatLogEntry = {
+      turnNumber: state.turnNumber,
+      actorUnitId: haltedCu.unit.id,
+      faction,
+      affectedUnitIds: allAffected,
+      actionId: params.actionId ?? 'zone_of_control_halted',
+      message,
+      metadata: {
+        type: 'ZONE_OF_CONTROL',
+        actor: haltedCu.unit.name,
+        guardian: guardianCu.unit.name,
+        ability: abilityName
       }
     };
 
