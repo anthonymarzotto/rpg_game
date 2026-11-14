@@ -322,11 +322,20 @@ describe('Tier 4 Dragoon Core Mechanics', () => {
       expect(enemyACu.activeConditions.some((c) => c.type === 'BURN')).toBe(true);
       expect(enemyBCu.activeConditions.some((c) => c.type === 'BURN')).toBe(true);
 
-      // Log entry for cone hit should include Burn detail on cone target
+      // Log entry for cone hit should include Burn condition in structured effects
       const log = state.combatLog.find((l) => l.actionId === 'wyrmflame_breath')!;
       expect(log.metadata.type).toBe('ATTACK');
       if (log.metadata.type === 'ATTACK') {
-        expect(log.metadata.secondaryDetail).toContain('Burn');
+        expect(log.metadata.effects).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              kind: 'COLLATERAL_HIT',
+              conditions: expect.arrayContaining([
+                expect.objectContaining({ condition: 'BURN' })
+              ])
+            })
+          ])
+        );
       }
     });
 
@@ -356,8 +365,21 @@ describe('Tier 4 Dragoon Core Mechanics', () => {
         expect(log.metadata.attackRollBreakdown).toEqual([
           { label: 'Focus', value: 2, source: 'ATTRIBUTE' }
         ]);
-        expect(log.metadata.secondaryDetail).toContain('Enemy B (Fan)');
-        expect(log.metadata.secondaryDetail).toContain('Burn (1 dmg/turn, 2t)');
+        expect(log.metadata.effects).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              kind: 'COLLATERAL_HIT',
+              targetName: 'Enemy B (Fan)',
+              conditions: expect.arrayContaining([
+                expect.objectContaining({
+                  condition: 'BURN',
+                  damagePerTurn: 1,
+                  durationTurns: 2
+                })
+              ])
+            })
+          ])
+        );
       }
     });
   });

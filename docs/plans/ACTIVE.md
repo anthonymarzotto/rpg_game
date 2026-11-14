@@ -16,6 +16,7 @@
   - Simplify Combat Log attack roll & damage chips to final results (`🎲 21 vs DC 11` / `🎲 15`, `💥 9 dmg`) with hover tooltips handling full breakdowns, and flip their order (`UX.21`, `UX.22`).
   - Populate `attackRollBreakdown` on ground-targeted `HEX` rolls (`Wyrmflame Breath`, empty-hex `Arcane Blast`) so they get `AttackRollTooltip`, remove `"Spellcast Roll & Score"`, and include `BURN` application in `Wyrmflame Breath` cone splash details (`UX.23`).
   - Emit dedicated `DEFEATED` card (naming lethal condition) and `ZONE_OF_CONTROL` card (with `faction` and `affectedUnitIds` for both units), and add faction/header styling to the `GENERIC` fallback card (`UX.24`, `UX.25`).
+- [x] **I.2 (`structured-effect-badges`)**: Extend `EffectHandler` & `EffectExecutionResult` to return structured `EffectOutcome` metadata (and unify `resolver.ts` splash/context outcomes) rather than plain text strings (`logDetail` / `secondaryDetail` / `effectDetail`), enabling compact color-coded effect pills and portal hover tooltips (`EffectBadgeTooltip`) in the Combat Log.
 
 ---
 
@@ -51,7 +52,6 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 
 ## 💡 Ideas
 - [ ] **I.1**: Persist the last trial's combat log. Can help with identifying all kinds of things like AI behaviour enhancements.
-- [ ] **I.2**: Extend `EffectHandler` & `EffectExecutionResult`: return structured effect metadata (e.g. condition badges, displacement chips, damage tags) rather than plain text strings in `logDetail`, enabling rich visual secondary effect badges in the Combat Log.
 
 ---
 

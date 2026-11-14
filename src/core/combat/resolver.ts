@@ -20,7 +20,8 @@ import {
   CombatEvent,
   EncounterObjective,
   HitOutcome,
-  DiceRollBreakdown
+  DiceRollBreakdown,
+  EffectOutcome
 } from './types';
 import { canMove, canExecuteAbility } from './validator';
 import { getEffectiveMove, getEffectiveSpeed, getEffectiveEvasion, getEffectiveResolve } from './effectiveVitals';
@@ -47,7 +48,7 @@ import { getConditionDefinition, evaluateFrontArcDetection } from './conditions'
 import { getBastionZocHexKeys, evaluateZoneOfControl, hasBastionRangedCover } from './bastionStance';
 import { resolveAerialVaultLandingHex } from './aerialVault';
 import { applyConditionToUnit } from './effects/conditionHandler';
-import { combatLogger } from './combatLogger';
+import { combatLogger, formatEffectOutcomes } from './combatLogger';
 
 const defaultDiceRoller = new SeededDiceRoller();
 
@@ -143,13 +144,12 @@ export function triggerPassiveHook(
         if (result.events && result.events.length > 0) {
           events.push(...result.events);
         }
-        if (result.logDetail) {
-          const detail = result.logDetail.trim();
+        if (result.effects && result.effects.length > 0) {
           combatLogger.logPassive(state, {
             cu: actorCu,
             passiveName: passive.name,
             passiveId: passive.id,
-            effectDetail: detail
+            effects: result.effects
           });
         }
       }
@@ -409,7 +409,7 @@ export function executeMove(
         cu,
         hazardName: 'Ledge Plunge',
         damage: actualFallDamage,
-        effectDetail: 'Direct Fall Impact Damage',
+        detail: 'Direct Fall Impact Damage',
         message: `💥 ${cu.unit.name} plunged from a ledge and suffered ${actualFallDamage} direct Fall Impact Damage! (HP: ${cu.currentHp}/${cu.unit.effectiveVitals.maxHp})`
       });
     } else {
@@ -419,7 +419,7 @@ export function executeMove(
         cu,
         passiveName,
         passiveId: immunityPassive?.id ?? 'feline_grace',
-        effectDetail: 'Negated Fall Impact Damage from plunging ledge',
+        effects: [{ kind: 'FALL', damage: 0, negated: true }],
         message: `🐾 ${cu.unit.name} plunged from a ledge safely with Fall Damage Immunity!`
       });
     }
@@ -525,14 +525,14 @@ export function applyCombatEvents(
               cu,
               hazardName: 'Ledge Plunge',
               damage: event.amount,
-              effectDetail: 'Direct Fall Impact Damage'
+              detail: 'Direct Fall Impact Damage'
             });
           } else if (event.reason === 'COLLISION') {
             combatLogger.logEnvironment(state, {
               cu,
               hazardName: 'Collision',
               damage: event.amount,
-              effectDetail: event.label ?? 'Collision Impact Damage'
+              detail: event.label ?? 'Collision Impact Damage'
             });
           } else if (event.reason === 'ENVIRONMENT') {
             combatLogger.logEnvironment(state, {
@@ -720,7 +720,8 @@ export function executeAbility(
       }
 
       const allEvents: CombatEvent[] = [];
-      let combinedLog = '';
+      const combinedEffects: EffectOutcome[] = [];
+      const seenEffectKeys = new Set<string>();
       for (const tCu of targetCus) {
         const effResult = executeAbilityEffects(effectiveAbility, {
           state,
@@ -732,8 +733,12 @@ export function executeAbility(
           diceRoller
         });
         allEvents.push(...effResult.events);
-        if (effResult.logDetail && !combinedLog.includes(effResult.logDetail)) {
-          combinedLog += effResult.logDetail;
+        for (const outcome of effResult.effects ?? []) {
+          const key = JSON.stringify(outcome);
+          if (!seenEffectKeys.has(key)) {
+            seenEffectKeys.add(key);
+            combinedEffects.push(outcome);
+          }
         }
       }
 
@@ -751,23 +756,23 @@ export function executeAbility(
       );
       const totalAoeDamage = aoeDamageEvents.reduce((acc, d) => acc + d.amount, 0);
       const isAoeHostile = !isFriendlyTargeting || totalAoeDamage > 0;
+      const combinedEffectsText = formatEffectOutcomes(combinedEffects);
 
       if (isAoeHostile) {
         combatLogger.logUtility(state, {
           actorCu,
           ability: effectiveAbility,
-          effectDetail: totalAoeDamage === 0 ? combinedLog.trim() || undefined : undefined,
           damageTotal: totalAoeDamage > 0 ? String(totalAoeDamage) : undefined,
-          secondaryDetail: combinedLog.trim() || undefined,
+          effects: combinedEffects.length > 0 ? combinedEffects : undefined,
           affectedUnitIds: targetCus.map((c) => c.unit.id),
-          message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${combinedLog}`
+          message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${combinedEffectsText ? ` ${combinedEffectsText}` : ''}`
         });
       } else {
         combatLogger.logBuff(state, {
           actorCu,
           ability: effectiveAbility,
-          effectDetail: combinedLog.trim(),
-          message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${combinedLog}`
+          effects: combinedEffects.length > 0 ? combinedEffects : undefined,
+          message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${combinedEffectsText ? ` ${combinedEffectsText}` : ''}`
         });
       }
 
@@ -815,7 +820,7 @@ export function executeAbility(
     );
     const totalDamage = damageEvents.reduce((acc, d) => acc + d.amount, 0);
     const isHostile = !isFriendlyTargeting || totalDamage > 0;
-    const collisionDetail = effectResult.logDetail?.trim() || undefined;
+    const effectSummaryText = formatEffectOutcomes(effectResult.effects);
 
     const targetClause = isSelfTarget ? '' : ` on ${targetCu.unit.name}`;
     if (isHostile) {
@@ -823,21 +828,20 @@ export function executeAbility(
         actorCu,
         ability: effectiveAbility,
         targetCu: isSelfTarget ? undefined : targetCu,
-        effectDetail: totalDamage === 0 ? collisionDetail : undefined,
         damageTotal: totalDamage > 0 ? String(totalDamage) : undefined,
         targetHp: totalDamage > 0 ? targetCu.currentHp : undefined,
         targetMaxHp: totalDamage > 0 ? targetCu.unit.effectiveVitals.maxHp : undefined,
-        secondaryDetail: collisionDetail,
+        effects: effectResult.effects,
         affectedUnitIds: isSelfTarget ? [actorCu.unit.id] : [actorCu.unit.id, targetCu.unit.id],
-        message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${effectResult.logDetail ?? ''}`
+        message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${effectSummaryText ? ` ${effectSummaryText}` : ''}`
       });
     } else {
       combatLogger.logBuff(state, {
         actorCu,
         ability: effectiveAbility,
         targetCu: isSelfTarget ? undefined : targetCu,
-        effectDetail: effectResult.logDetail?.trim() ?? '',
-        message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${effectResult.logDetail ?? ''}`
+        effects: effectResult.effects,
+        message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${effectSummaryText ? ` ${effectSummaryText}` : ''}`
       });
     }
 
@@ -1041,14 +1045,15 @@ export function executeAbility(
 
   // Secondary AoE Splash / Cone Resolution
   const isCone = Boolean(effectiveAbility.coneTemplate);
-  const splashLogDetails: string[] = [];
+  const splashOutcomes: EffectOutcome[] = [];
   const splashLabel = effectiveAbility.splashLabel ?? (isCone ? 'BREATH' : 'SPLASH');
+  const splashTitle = splashLabel.charAt(0).toUpperCase() + splashLabel.slice(1).toLowerCase();
   const splashOrigin = vaultEffect ? attackOriginCoord : targetCoord;
   const aoeHexes = isCone && actorCoord && actorCu.facing !== undefined
     ? getForwardConeHexes(actorCoord, actorCu.facing)
     : (effectiveAbility.aoeRadius && effectiveAbility.aoeRadius > 0 && splashOrigin
-        ? getHexesInRange(splashOrigin, effectiveAbility.aoeRadius)
-        : []);
+      ? getHexesInRange(splashOrigin, effectiveAbility.aoeRadius)
+      : []);
 
   if (aoeHexes.length > 0) {
     for (const hex of aoeHexes) {
@@ -1095,7 +1100,11 @@ export function executeAbility(
               splashEffect,
               { hasRangedCover: splashHasCover }
             );
-            const coneConditionNotes: string[] = [];
+            const coneConditions: {
+              readonly condition: ConditionType;
+              readonly durationTurns: number;
+              readonly damagePerTurn?: number;
+            }[] = [];
             if (isCone) {
               for (const eff of effectiveAbility.effects ?? []) {
                 if (eff.type === 'CONDITION' && eff.conditionType) {
@@ -1107,22 +1116,22 @@ export function executeAbility(
                     eff.magnitude
                   );
                   events.push(condRes.event);
-                  const condName =
-                    eff.conditionType.charAt(0).toUpperCase() + eff.conditionType.slice(1).toLowerCase();
-                  if (eff.conditionType === 'BURN' || eff.conditionType === 'POISON') {
-                    const dmgPerTurn = eff.magnitude !== undefined && eff.magnitude > 0 ? eff.magnitude : 2;
-                    const dur = eff.durationTurns ?? 2;
-                    coneConditionNotes.push(`🔥 ${condName} (${dmgPerTurn} dmg/turn, ${dur}t)`);
-                  } else {
-                    coneConditionNotes.push(`${condName} (${eff.durationTurns ?? 2}t)`);
-                  }
+                  const isDot = eff.conditionType === 'BURN' || eff.conditionType === 'POISON';
+                  const dmgPerTurn = isDot
+                    ? (condRes.condition.damagePerTurn ??
+                      (eff.magnitude !== undefined && eff.magnitude > 0 ? eff.magnitude : 2))
+                    : undefined;
+                  coneConditions.push({
+                    condition: eff.conditionType,
+                    durationTurns: condRes.condition.durationTurns,
+                    ...(dmgPerTurn !== undefined ? { damagePerTurn: dmgPerTurn } : {})
+                  });
                 }
               }
             }
 
-            const condSuffix = coneConditionNotes.length > 0 ? ` + ${coneConditionNotes.join(', ')}` : '';
+            const damageType = effectiveAbility.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL';
             if (splashDmg.damageDealt > 0) {
-              const damageType = effectiveAbility.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL';
               events.push({
                 type: 'DAMAGE',
                 targetUnitId: splashCu.unit.id,
@@ -1133,17 +1142,30 @@ export function executeAbility(
                 sourceUnitId: actorCu.unit.id,
                 isCrit: false
               });
-              const remainingHp = Math.max(0, splashCu.currentHp - splashDmg.damageDealt);
-              splashLogDetails.push(
-                `${splashCu.unit.name} for ${splashDmg.damageDealt} ${damageType.toLowerCase()} damage [${splashOutcome === 'GRAZE' ? 'Graze ' : ''}vs DC ${splashDefense}] (HP: ${remainingHp}/${splashCu.unit.effectiveVitals.maxHp})${condSuffix}`
-              );
-            } else if (coneConditionNotes.length > 0) {
-              splashLogDetails.push(
-                `${splashCu.unit.name} afflicted with ${coneConditionNotes.join(', ')} [${splashOutcome === 'GRAZE' ? 'Graze ' : ''}vs DC ${splashDefense}]`
-              );
+            }
+            if (splashDmg.damageDealt > 0 || coneConditions.length > 0) {
+              splashOutcomes.push({
+                kind: 'COLLATERAL_HIT',
+                sourceLabel: splashTitle,
+                targetName: splashCu.unit.name,
+                damage: splashDmg.damageDealt,
+                damageType,
+                hitOutcome: splashOutcome,
+                defenseTarget: splashDefense,
+                targetHp: Math.max(0, splashCu.currentHp - splashDmg.damageDealt),
+                targetMaxHp: splashCu.unit.effectiveVitals.maxHp,
+                ...(coneConditions.length > 0 ? { conditions: coneConditions } : {})
+              });
             }
           } else {
-            splashLogDetails.push(`${splashCu.unit.name} resisted [Miss vs DC ${splashDefense}]`);
+            splashOutcomes.push({
+              kind: 'COLLATERAL_HIT',
+              sourceLabel: splashTitle,
+              targetName: splashCu.unit.name,
+              damage: 0,
+              hitOutcome: 'MISS',
+              defenseTarget: splashDefense
+            });
             events.push({
               type: 'MISS',
               targetUnitId: splashCu.unit.id,
@@ -1269,10 +1291,34 @@ export function executeAbility(
   state.outcome = evaluateEncounterOutcome(state.objectives, state);
 
   // Combat Log
-  const splashDetail = splashLogDetails.length > 0
-    ? ` 💥 [${splashLabel.charAt(0).toUpperCase() + splashLabel.slice(1).toLowerCase()} hit ${splashLogDetails.join(', ')}]`
-    : '';
-  const secondaryDetail = [effectResult.logDetail ?? '', splashDetail].filter(Boolean).join('');
+  const contextOutcomes: EffectOutcome[] = [];
+  if (elevMod.description) {
+    const netElev = elevMod.rollBonus - elevMod.rollPenalty;
+    const isHighGround = netElev > 0 || elevMod.grantsAdvantage;
+    contextOutcomes.push({
+      kind: 'CONTEXT',
+      context: 'ELEVATION',
+      label: isHighGround
+        ? `High Ground${elevMod.rollBonus > 0 ? ` +${elevMod.rollBonus}` : ''}`
+        : `Low Ground${elevMod.rollPenalty > 0 ? ` -${elevMod.rollPenalty}` : ''}`,
+      detail: elevMod.description
+    });
+  }
+  if (auraEval.attackRollPenalty > 0) {
+    contextOutcomes.push({
+      kind: 'CONTEXT',
+      context: 'AURA_PENALTY',
+      label: `Aura -${auraEval.attackRollPenalty}`,
+      detail: auraEval.sourceAuraNames.join(', ')
+    });
+  }
+
+  const secondaryOutcomes: EffectOutcome[] = [
+    ...(effectResult.effects ?? []),
+    ...splashOutcomes
+  ];
+  const attackEffects: EffectOutcome[] = [...contextOutcomes, ...secondaryOutcomes];
+  const secondaryText = formatEffectOutcomes(secondaryOutcomes);
   const auraDetail = auraEval.attackRollPenalty > 0 ? ` [Aura Penalty: -${auraEval.attackRollPenalty} (${auraEval.sourceAuraNames.join(', ')})]` : '';
   const elevDetail = elevMod.description ? ` [Elevation: ${elevMod.description}]` : '';
   const damageDetail = targetCu && effectiveAbility.damageType !== 'NONE' ? ` [Damage: ${damageResult.damageBreakdown}]` : '';
@@ -1290,8 +1336,8 @@ export function executeAbility(
   const d20Formatted = `${rollResult.d20} ${d20ModFormatted}`;
 
   const logMessage = targetCu
-    ? `${actorCu.unit.name} used ${ability.name} on ${targetDesc}: [d20: ${d20Formatted}${dcClause}]${elevDetail}${auraDetail}${damageDetail}${hpClause}${secondaryDetail}`
-    : `${actorCu.unit.name} cast ${ability.name} at ${targetDesc}: [Spellcast roll: ${d20Formatted}${dcClause}]${elevDetail}${auraDetail}${secondaryDetail}`;
+    ? `${actorCu.unit.name} used ${ability.name} on ${targetDesc}: [d20: ${d20Formatted}${dcClause}]${elevDetail}${auraDetail}${damageDetail}${hpClause}${secondaryText ? ` ${secondaryText}` : ''}`
+    : `${actorCu.unit.name} cast ${ability.name} at ${targetDesc}: [Spellcast roll: ${d20Formatted}${dcClause}]${elevDetail}${auraDetail}${secondaryText ? ` ${secondaryText}` : ''}`;
 
   combatLogger.logAttack(state, {
     actorCu,
@@ -1302,7 +1348,7 @@ export function executeAbility(
     damageTotal: String(totalDamageDealt),
     damageBreakdown: targetCu ? (damageResult.damageBreakdown || undefined) : undefined,
     damageBreakdownComponents: targetCu ? damageResult.damageBreakdownComponents : undefined,
-    secondaryDetail: [elevDetail, auraDetail, secondaryDetail].filter(Boolean).join('').trim(),
+    effects: attackEffects.length > 0 ? attackEffects : undefined,
     isAreaTarget: !targetCu,
     affectedUnitIds: targetedUnitIds,
     message: logMessage

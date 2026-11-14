@@ -64,8 +64,7 @@ export const damageHandler: EffectHandler = {
     }
 
     return {
-      events,
-      logDetail: ` [${damageResult.damageBreakdown}]`
+      events
     };
   }
 };

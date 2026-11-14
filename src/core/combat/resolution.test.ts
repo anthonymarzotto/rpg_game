@@ -445,10 +445,22 @@ describe('Attack & Ability Resolution Outcomes', () => {
       expect(dummyACu.currentHp).toBe(dummyA.effectiveVitals.maxHp - 3);
       expect(dummyBCu.currentHp).toBe(dummyB.effectiveVitals.maxHp - 2);
 
-      // Verify combat log records secondary splash damage in secondaryDetail
-      expect((state.combatLog[0].metadata as any)?.secondaryDetail).toContain(
-        'Blast hit Dummy B (Adjacent) for 2 magical damage [vs DC 10] (HP: 10/12)'
-      );
+      // Verify combat log records secondary splash damage as structured COLLATERAL_HIT effect
+      expect(state.combatLog[0].metadata.type).toBe('ATTACK');
+      if (state.combatLog[0].metadata.type === 'ATTACK') {
+        expect(state.combatLog[0].metadata.effects).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              kind: 'COLLATERAL_HIT',
+              sourceLabel: 'Blast',
+              targetName: 'Dummy B (Adjacent)',
+              damage: 2,
+              targetHp: 10,
+              targetMaxHp: 12
+            })
+          ])
+        );
+      }
       expect(state.combatLog[0].message).toContain(
         'Blast hit Dummy B (Adjacent) for 2 magical damage [vs DC 10] (HP: 10/12)'
       );
@@ -592,9 +604,19 @@ describe('Attack & Ability Resolution Outcomes', () => {
         expect(splashEvent?.label).toBe('SPLASH');
       }
 
-      expect((state.combatLog[0].metadata as any)?.secondaryDetail).toContain(
-        'Splash hit Dummy B (Adjacent) for 2 magical damage'
-      );
+      expect(state.combatLog[0].metadata.type).toBe('ATTACK');
+      if (state.combatLog[0].metadata.type === 'ATTACK') {
+        expect(state.combatLog[0].metadata.effects).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              kind: 'COLLATERAL_HIT',
+              sourceLabel: 'Splash',
+              targetName: 'Dummy B (Adjacent)',
+              damage: 2
+            })
+          ])
+        );
+      }
     });
 
     it('executes Thief Sneak Attack with Advantage and bonus precision dice when target is flanked or struck from rear', () => {

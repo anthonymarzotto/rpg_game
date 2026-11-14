@@ -114,14 +114,15 @@ describe('combatLogger', () => {
       cu: playerHero,
       passiveName: 'Feline Grace',
       passiveId: 'feline_grace',
-      effectDetail: 'Negated 8 Fall Impact Damage from plunging ledge'
+      effects: [{ kind: 'FALL', damage: 0, negated: true }]
     });
 
     expect(entry.faction).toBe('PLAYER');
+    expect(entry.message).toContain('Fall Damage Negated');
     expect(entry.metadata.type).toBe('PASSIVE');
     if (entry.metadata.type === 'PASSIVE') {
       expect(entry.metadata.passiveName).toBe('Feline Grace');
-      expect(entry.metadata.effectDetail).toBe('Negated 8 Fall Impact Damage from plunging ledge');
+      expect(entry.metadata.effects).toEqual([{ kind: 'FALL', damage: 0, negated: true }]);
     }
   });
 
@@ -131,28 +132,40 @@ describe('combatLogger', () => {
       cu: playerHero,
       hazardName: 'Ledge Plunge',
       damage: 8,
-      effectDetail: 'Delta h = -2 cliff drop'
+      detail: 'Delta h = -2 cliff drop'
     });
 
     expect(entry.faction).toBe('PLAYER');
     expect(entry.metadata.type).toBe('ENVIRONMENT');
     if (entry.metadata.type === 'ENVIRONMENT') {
       expect(entry.metadata.hazardName).toBe('Ledge Plunge');
+      expect(entry.metadata.detail).toBe('Delta h = -2 cliff drop');
       expect(entry.metadata.damage).toBe(8);
       expect(entry.metadata.targetHp).toBe(12);
     }
   });
 
-  it('logBuff records buff card with affected units', () => {
+  it('logBuff records buff card with affected units and formatted effects', () => {
     const entry = combatLogger.logBuff(state, {
       actorCu: playerHero,
       ability: { id: 'bolster', name: 'Bolster' },
       targetCu: playerHero,
-      effectDetail: '+2 Armor for 2 turns'
+      effects: [
+        {
+          kind: 'MODIFIER',
+          label: 'Armor Buff',
+          entries: [{ stat: 'Armor', value: 2 }],
+          durationTurns: 2
+        }
+      ]
     });
 
     expect(entry.faction).toBe('PLAYER');
+    expect(entry.message).toContain('+2 Armor');
     expect(entry.metadata.type).toBe('BUFF');
+    if (entry.metadata.type === 'BUFF') {
+      expect(entry.metadata.effects).toHaveLength(1);
+    }
   });
 
   it('logInitiative records all participating units in affectedUnitIds', () => {

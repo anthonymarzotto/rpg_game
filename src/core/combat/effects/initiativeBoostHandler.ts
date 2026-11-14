@@ -16,7 +16,13 @@ export const initiativeBoostHandler: EffectHandler = {
 
     return {
       events: [],
-      logDetail: ` ⏩ [Initiative Boost: +${boost} CTB Gauge]`
+      effects: [
+        {
+          kind: 'INITIATIVE',
+          direction: 'BOOST',
+          amount: boost
+        }
+      ]
     };
   }
 };

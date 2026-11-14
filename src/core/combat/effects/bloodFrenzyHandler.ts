@@ -21,7 +21,17 @@ export const bloodFrenzyHandler: EffectHandler = {
 
     return {
       events: [],
-      logDetail: ` 🩸 [Blood Frenzy: +1 Die Step & +2 Attack Roll on next physical attack]`
+      effects: [
+        {
+          kind: 'MODIFIER',
+          label: 'Blood Frenzy',
+          entries: [
+            { stat: 'Die Step', value: 1 },
+            { stat: 'Attack Roll', value: 2 }
+          ],
+          note: 'Next physical attack'
+        }
+      ]
     };
   }
 };

@@ -1,7 +1,7 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
 import { AbilityEffect, resolveEffectShout } from '../../types/ability';
 import { hexSubtract, hexAdd } from '../../grid/hex';
-import { CombatEvent } from '../types';
+import { CombatEvent, EffectOutcome } from '../types';
 import { calculateRawFallDamage } from '../../grid/arena';
 import { resolveFallDamage } from '../damageEngine';
 import { DISPLACEMENT_CONFIG } from '../../config/balance';
@@ -61,7 +61,13 @@ export const retreatHandler: EffectHandler = {
       }
     ];
 
-    let logDetail = ` 🏃 [Retreat Step to (${retreatDest.q}, ${retreatDest.r})]`;
+    const effects: EffectOutcome[] = [
+      {
+        kind: 'DISPLACEMENT',
+        displacement: 'RETREAT',
+        toCoord: retreatDest
+      }
+    ];
 
     // Process plunging fall impact damage if retreat stepped off a ledge (dh <= -2)
     let fallDamage: number | undefined;
@@ -77,15 +83,22 @@ export const retreatHandler: EffectHandler = {
           reason: 'FALL',
           sourceUnitId: actorCu.unit.id
         });
-        logDetail += ` 💥 [Plunged from ledge: Took +${fallDamage} Fall Impact Damage!]`;
+        effects.push({
+          kind: 'FALL',
+          damage: fallDamage
+        });
       } else {
-        logDetail += ` 🐾 [Plunged from ledge: Fall Damage Negated!]`;
+        effects.push({
+          kind: 'FALL',
+          damage: 0,
+          negated: true
+        });
       }
     }
 
     return {
       events,
-      logDetail,
+      effects,
       fallDamage
     };
   }

@@ -1,6 +1,6 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
 import { AbilityEffect, ConditionType } from '../../types/ability';
-import { ActiveCondition, CombatEvent, CombatUnit } from '../types';
+import { ActiveCondition, CombatEvent, CombatUnit, EffectOutcome } from '../types';
 import { getConditionDefinition } from '../conditions';
 import { getDirectionBetween, hexEquals } from '../../grid/hex';
 
@@ -83,7 +83,7 @@ export const conditionHandler: EffectHandler = {
     const conditionType: ConditionType | undefined = effect.conditionType;
 
     const events: CombatEvent[] = [];
-    let logDetail = '';
+    const effects: EffectOutcome[] = [];
 
     // If conditionType is present, apply ActiveCondition using its stacking policy
     if (conditionType) {
@@ -102,23 +102,15 @@ export const conditionHandler: EffectHandler = {
       );
       events.push(event);
 
-      switch (conditionType) {
-        case 'POISON':
-          logDetail += ` 🧪 [Poisoned: ${conditionToEmit.damagePerTurn ?? damagePerTurn} dmg/turn for ${conditionToEmit.durationTurns} turns]`;
-          break;
-        case 'BURN':
-          logDetail += ` 🔥 [Burned: ${conditionToEmit.damagePerTurn ?? damagePerTurn} dmg/turn for ${conditionToEmit.durationTurns} turns]`;
-          break;
-        case 'CHALLENGED':
-          logDetail += ` ⚔️ [Challenged by ${actorCu.unit.name} for ${conditionToEmit.durationTurns} turns]`;
-          break;
-        case 'STEALTH':
-          logDetail += ` 👤 [Stealthed for ${conditionToEmit.durationTurns} turn(s)]`;
-          break;
-        case 'EXPOSED':
-          logDetail += ` 🎯 [Exposed for ${conditionToEmit.durationTurns} turn(s)]`;
-          break;
-      }
+      const resolvedDpt = conditionToEmit.damagePerTurn ?? damagePerTurn;
+      effects.push({
+        kind: 'CONDITION',
+        condition: conditionType,
+        durationTurns: conditionToEmit.durationTurns,
+        ...(resolvedDpt !== undefined ? { damagePerTurn: resolvedDpt } : {}),
+        ...(conditionType === 'CHALLENGED' ? { sourceName: actorCu.unit.name } : {}),
+        ...(targetUnit.unit.id !== actorCu.unit.id ? { targetName: targetUnit.unit.name } : {})
+      });
     }
 
     // Force facing: if explicit FORCE_FACING, turn target to face actor
@@ -127,7 +119,11 @@ export const conditionHandler: EffectHandler = {
       const targetPos = state.arena.getUnitPosition(targetUnit.unit.id);
       if (actorPos && targetPos && targetUnit.unit.id !== actorCu.unit.id) {
         targetUnit.facing = getDirectionBetween(targetPos, actorPos);
-        logDetail += ` 🔄 [Forced facing towards ${actorCu.unit.name}]`;
+        effects.push({
+          kind: 'FORCED_FACING',
+          direction: 'TOWARDS',
+          originName: actorCu.unit.name
+        });
       }
     } else if (effect.type === 'FORCE_FACING_AWAY') {
       const actorPos = state.arena.getUnitPosition(actorCu.unit.id);
@@ -140,14 +136,18 @@ export const conditionHandler: EffectHandler = {
         if (originPos && !hexEquals(targetPos, originPos)) {
           const dirToOrigin = getDirectionBetween(targetPos, originPos);
           targetUnit.facing = ((dirToOrigin + 3) % 6) as any;
-          logDetail += ` 🔄 [Forced facing away from ${originPos === ctx.targetCoord ? 'blast center' : actorCu.unit.name}]`;
+          effects.push({
+            kind: 'FORCED_FACING',
+            direction: 'AWAY',
+            originName: originPos === ctx.targetCoord ? 'blast center' : actorCu.unit.name
+          });
         }
       }
     }
 
     return {
       events,
-      logDetail
+      ...(effects.length > 0 ? { effects } : {})
     };
   }
 };

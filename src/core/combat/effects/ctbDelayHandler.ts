@@ -22,7 +22,13 @@ export const ctbDelayHandler: EffectHandler = {
 
     return {
       events: [event],
-      logDetail: ` ⏳ [CTB Delay: -${delayAmount} Initiative]`
+      effects: [
+        {
+          kind: 'INITIATIVE',
+          direction: 'DELAY',
+          amount: delayAmount
+        }
+      ]
     };
   }
 };

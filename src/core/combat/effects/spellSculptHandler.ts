@@ -20,7 +20,17 @@ export const spellSculptHandler: EffectHandler = {
 
     return {
       events: [],
-      logDetail: ` ✨ [Spell Sculpt: +${bonusRange} Range & +1 AoE Radius on next Focus spell]`
+      effects: [
+        {
+          kind: 'MODIFIER',
+          label: 'Spell Sculpt',
+          entries: [
+            { stat: 'Range', value: bonusRange },
+            { stat: 'AoE Radius', value: 1 }
+          ],
+          note: 'Next Focus spell'
+        }
+      ]
     };
   }
 };

@@ -70,7 +70,17 @@ export const linePierceHandler: EffectHandler = {
 
     return {
       events,
-      logDetail: ` 🗡️ [Piercing Thrust hit ${secondaryTarget.unit.name} for ${damageResult.damageDealt} collateral damage]`
+      effects: [
+        {
+          kind: 'COLLATERAL_HIT',
+          sourceLabel: 'Piercing Thrust',
+          targetName: secondaryTarget.unit.name,
+          damage: damageResult.damageDealt,
+          damageType: 'PHYSICAL',
+          targetHp: Math.max(0, secondaryTarget.currentHp - damageResult.damageDealt),
+          targetMaxHp: secondaryTarget.unit.effectiveVitals.maxHp
+        }
+      ]
     };
   }
 };

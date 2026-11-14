@@ -70,6 +70,15 @@ describe('conditionHandler', () => {
         damagePerTurn: 2
       }
     });
+    expect(result.effects).toEqual([
+      {
+        kind: 'CONDITION',
+        condition: 'POISON',
+        durationTurns: 3,
+        damagePerTurn: 2,
+        targetName: 'Enemy'
+      }
+    ]);
   });
 
   it('applies STEALTH to self when conditionType is STEALTH', () => {

@@ -260,7 +260,14 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
               modifier: { stat: 'speed', value: 5, durationTurns: 1 }
             }
           ],
-          logDetail: ' ⚡ [Custom Speed Surge!]'
+          effects: [
+            {
+              kind: 'MODIFIER',
+              label: 'Speed Surge',
+              entries: [{ stat: 'speed', value: 5 }],
+              durationTurns: 1
+            }
+          ]
         })
       });
 
@@ -296,7 +303,7 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
 
       expect(result.type).toBe('ATTACK');
       if (result.type === 'ATTACK') {
-        expect(state.combatLog[0].message).toContain('⚡ [Custom Speed Surge!]');
+        expect(state.combatLog[0].message).toContain('[Speed Surge: +5 speed for 1 turn(s)]');
         expect(state.units.get('hero')!.activeModifiers).toContainEqual({
           stat: 'speed',
           value: 5,
@@ -434,7 +441,14 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
         expect(logEntry.metadata.target).toBe('Goblin');
         expect(Number(logEntry.metadata.damageTotal)).toBeGreaterThan(0);
         expect(logEntry.metadata.targetHp).toBe(goblinInitialHp - Number(logEntry.metadata.damageTotal));
-        expect(logEntry.metadata.secondaryDetail).toContain('Slammed into Map Boundary');
+        expect(logEntry.metadata.effects).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              kind: 'COLLISION',
+              collisionType: 'BOUNDARY'
+            })
+          ])
+        );
       }
     });
 
@@ -457,7 +471,15 @@ describe('Displacement, Knockback & Secondary Effect Pipeline', () => {
       expect(logEntry.metadata?.type).toBe('UTILITY');
       if (logEntry.metadata?.type === 'UTILITY') {
         expect(logEntry.metadata.damageTotal).toBeUndefined();
-        expect(logEntry.metadata.secondaryDetail).toContain('Pushed to (2, 0)');
+        expect(logEntry.metadata.effects).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              kind: 'DISPLACEMENT',
+              displacement: 'KNOCKBACK',
+              toCoord: { q: 2, r: 0 }
+            })
+          ])
+        );
       }
     });
   });

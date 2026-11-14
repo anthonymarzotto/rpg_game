@@ -1,6 +1,6 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
 import { AbilityEffect, resolveEffectShout } from '../../types/ability';
-import { CombatEvent } from '../types';
+import { CombatEvent, EffectOutcome } from '../types';
 import { resolveCollisionDamage, resolveFallDamage } from '../damageEngine';
 import { DISPLACEMENT_CONFIG } from '../../config/balance';
 import { hexEquals } from '../../grid/hex';
@@ -21,7 +21,10 @@ export const knockbackHandler: EffectHandler = {
 
     const isImmune = isDisplacementImmune(targetCu);
     if (isImmune) {
-      return { events: [], logDetail: ' 🛡️ [Resisted Knockback]' };
+      return {
+        events: [],
+        effects: [{ kind: 'DISPLACEMENT', displacement: 'KNOCKBACK', resisted: true }]
+      };
     }
 
     const canVault = targetCu.passives?.some((p) => p.canVaultOnKnockback);
@@ -35,7 +38,7 @@ export const knockbackHandler: EffectHandler = {
 
     const label = resolveEffectShout(effect.shout, 'target');
     const events: CombatEvent[] = [];
-    let logDetail = '';
+    const effects: EffectOutcome[] = [];
     let wallSlamDamage: number | undefined;
 
     if (knockbackResult.isCollided) {
@@ -92,18 +95,28 @@ export const knockbackHandler: EffectHandler = {
           : 0;
         const bystanderMaxHp = bystander?.unit.effectiveVitals.maxHp ?? 0;
 
-        logDetail = ` 💥 [Knockback Collision: Slammed into ${bystanderName}! Target took +${wallSlamDamage} collision damage. ${bystanderName} took +${collateralDmg} collateral damage (HP: ${bystanderRemainingHp}/${bystanderMaxHp}).]`;
+        effects.push({
+          kind: 'COLLISION',
+          collisionType: 'UNIT',
+          damage: wallSlamDamage,
+          bystanderName,
+          collateralDamage: collateralDmg,
+          bystanderHp: bystanderRemainingHp,
+          bystanderMaxHp
+        });
       } else {
-        const obsType =
+        const collisionType =
           knockbackResult.collisionType === 'WALL'
-            ? 'Obstacle'
+            ? 'WALL'
             : knockbackResult.collisionType === 'CLIFF'
-            ? 'Cliff'
-            : 'Map Boundary';
-        logDetail =
-          wallSlamDamage && wallSlamDamage > 0
-            ? ` 💥 [Knockback Collision: Slammed into ${obsType}! Took +${wallSlamDamage} collision damage.]`
-            : ` 🐾 [Knockback Collision: Stopped against ${obsType}! Collision Damage Negated.]`;
+            ? 'CLIFF'
+            : 'BOUNDARY';
+        effects.push({
+          kind: 'COLLISION',
+          collisionType,
+          damage: wallSlamDamage ?? 0,
+          negated: !(wallSlamDamage && wallSlamDamage > 0)
+        });
       }
     } else {
       events.push({
@@ -115,7 +128,11 @@ export const knockbackHandler: EffectHandler = {
         ...(label !== undefined ? { label } : {})
       });
 
-      logDetail = ` 💨 [Knockback: Pushed to (${knockbackResult.finalCoord.q}, ${knockbackResult.finalCoord.r})]`;
+      effects.push({
+        kind: 'DISPLACEMENT',
+        displacement: 'KNOCKBACK',
+        toCoord: knockbackResult.finalCoord
+      });
     }
 
     // Process plunging fall impact damage if knockback plunged down a ledge (dh <= -2)
@@ -131,15 +148,22 @@ export const knockbackHandler: EffectHandler = {
           reason: 'FALL',
           sourceUnitId: actorCu.unit.id
         });
-        logDetail += ` 💥 [Plunged from ledge: Took +${fallImpactDamage} Fall Impact Damage!]`;
+        effects.push({
+          kind: 'FALL',
+          damage: fallImpactDamage
+        });
       } else {
-        logDetail += ` 🐾 [Plunged from ledge: Fall Damage Negated!]`;
+        effects.push({
+          kind: 'FALL',
+          damage: 0,
+          negated: true
+        });
       }
     }
 
     return {
       events,
-      logDetail,
+      ...(effects.length > 0 ? { effects } : {}),
       knockbackResult,
       wallSlamDamage,
       fallDamage: fallImpactDamage

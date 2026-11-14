@@ -37,7 +37,14 @@ export function handleWildSurge(ctx: CriticalHitContext): CombatEvent[] {
         type: 'BUFF',
         actor: actorCu.unit.name,
         ability: 'Wild Surge: Chrono-Resonance',
-        effectDetail: `Restores +1 AP (Current AP: ${actorCu.currentAp})`
+        effects: [
+          {
+            kind: 'MODIFIER',
+            label: 'Chrono-Resonance',
+            entries: [{ stat: 'AP', value: 1 }],
+            note: `Current AP: ${actorCu.currentAp}`
+          }
+        ]
       }
     });
   } else if (roll === 2) {
@@ -51,7 +58,13 @@ export function handleWildSurge(ctx: CriticalHitContext): CombatEvent[] {
         type: 'BUFF',
         actor: actorCu.unit.name,
         ability: 'Wild Surge: Aetherial Surge',
-        effectDetail: `Grants +25 CTB Gauge (Current Gauge: ${actorCu.initiativeGauge})`
+        effects: [
+          {
+            kind: 'INITIATIVE',
+            direction: 'BOOST',
+            amount: 25
+          }
+        ]
       }
     });
   } else {

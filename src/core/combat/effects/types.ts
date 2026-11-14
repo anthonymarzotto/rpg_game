@@ -1,4 +1,4 @@
-import { CombatState, CombatUnit, HitOutcome, CombatEvent } from '../types';
+import { CombatState, CombatUnit, HitOutcome, CombatEvent, EffectOutcome } from '../types';
 import { Ability, AbilityEffect } from '../../types/ability';
 import { HexCoord } from '../../grid/hex';
 import { DiceRoller } from '../dice';
@@ -16,7 +16,7 @@ export interface EffectContext {
 
 export interface EffectExecutionResult {
   readonly events: readonly CombatEvent[];
-  readonly logDetail?: string;
+  readonly effects?: readonly EffectOutcome[];
   readonly knockbackResult?: KnockbackResult;
   readonly wallSlamDamage?: number;
   readonly fallDamage?: number;

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { parseCombatLogMessage, CombatLogPanel, formatPassiveDetail, formatD20Roll } from './CombatLogPanel';
+import { parseCombatLogMessage, CombatLogPanel, presentEffectOutcome, formatD20Roll } from './CombatLogPanel';
 import { CombatLogEntry } from '../../core/combat/types';
 
 describe('parseCombatLogMessage', () => {
@@ -151,14 +151,14 @@ describe('parseCombatLogMessage', () => {
         damageBreakdown: '1d6(5)+1 - 1 Armor',
         targetHp: 15,
         targetMaxHp: 20,
-        secondaryDetail: 'Knockback Collision: Slammed into Map Boundary!'
+        effects: [{ kind: 'COLLISION', collisionType: 'BOUNDARY', damage: 0 }]
       }
     };
 
     const parsed = parseCombatLogMessage(entry);
     expect(parsed.type).toBe('ATTACK');
     if (parsed.type === 'ATTACK') {
-      expect(parsed.secondaryDetail).toContain('Knockback Collision: Slammed into Map Boundary');
+      expect(parsed.effects).toEqual([{ kind: 'COLLISION', collisionType: 'BOUNDARY', damage: 0 }]);
     }
   });
 
@@ -168,7 +168,7 @@ describe('parseCombatLogMessage', () => {
       actorUnitId: 'player-wizard',
       actionId: 'arcane_blast',
       message:
-        'Vael (Wizard) cast Arcane Blast at hex (2, 0): [Spellcast roll: 14+2 -> score 16] 💥 [Blast hit Bandit Brute for 4 magical damage [vs DC 11] (HP: 16/20)]',
+        'Vael (Wizard) cast Arcane Blast at hex (2, 0): [Spellcast roll: 14+2 -> score 16] 💥 [Blast: Bandit Brute -4 (16/20 HP)]',
       metadata: {
         type: 'ATTACK',
         actor: 'Vael (Wizard)',
@@ -179,7 +179,19 @@ describe('parseCombatLogMessage', () => {
         isAreaTarget: true,
         hitOutcome: 'SOLID_HIT',
         damageTotal: '4',
-        secondaryDetail: '💥 [Blast hit Bandit Brute for 4 magical damage [vs DC 11] (HP: 16/20)]'
+        effects: [
+          {
+            kind: 'COLLATERAL_HIT',
+            sourceLabel: 'Blast',
+            targetName: 'Bandit Brute',
+            damage: 4,
+            damageType: 'MAGICAL',
+            hitOutcome: 'SOLID_HIT',
+            defenseTarget: 11,
+            targetHp: 16,
+            targetMaxHp: 20
+          }
+        ]
       }
     };
 
@@ -205,7 +217,8 @@ describe('parseCombatLogMessage', () => {
     expect(html).toContain('(Total)');
     expect(html).toContain('🎲 16');
     expect(html).not.toContain('Spellcast Roll &amp; Score');
-    expect(html).toContain('Blast hit Bandit Brute');
+    expect(html).toContain('Blast: Bandit Brute -4');
+    expect(html).toContain('effect-badge-tooltip');
   });
 
   it('parses buff/ward ability entry with status tag', () => {
@@ -213,12 +226,19 @@ describe('parseCombatLogMessage', () => {
       turnNumber: 1,
       actorUnitId: 'player-wizard',
       actionId: 'minor_ward',
-      message: 'Vael (Wizard) used Minor Ward. 🛡️ [Armor Buff: +2 Armor for 2 turn(s)]',
+      message: 'Vael (Wizard) used Minor Ward. +2 Armor (2t)',
       metadata: {
         type: 'BUFF',
         actor: 'Vael (Wizard)',
         ability: 'Minor Ward',
-        effectDetail: '+2 Armor for 2 turn(s)'
+        effects: [
+          {
+            kind: 'MODIFIER',
+            label: 'Armor Buff',
+            entries: [{ stat: 'Armor', value: 2 }],
+            durationTurns: 2
+          }
+        ]
       }
     };
 
@@ -228,7 +248,7 @@ describe('parseCombatLogMessage', () => {
       expect(parsed.actor).toBe('Vael (Wizard)');
       expect(parsed.ability).toBe('Minor Ward');
       expect(parsed.target).toBeUndefined();
-      expect(parsed.effectDetail).toContain('+2 Armor for 2 turn(s)');
+      expect(parsed.effects).toHaveLength(1);
     }
   });
 
@@ -237,13 +257,20 @@ describe('parseCombatLogMessage', () => {
       turnNumber: 2,
       actorUnitId: 'player-witch',
       actionId: 'witchs_talisman',
-      message: "Morrigan (Witch) used Witch's Talisman on Alden (Warrior). ⚡ [Speed Buff: +2 Initiative for 2 turn(s)]",
+      message: "Morrigan (Witch) used Witch's Talisman on Alden (Warrior). +2 Initiative (2t)",
       metadata: {
         type: 'BUFF',
         actor: 'Morrigan (Witch)',
         ability: "Witch's Talisman",
         target: 'Alden (Warrior)',
-        effectDetail: '+2 Initiative for 2 turn(s)'
+        effects: [
+          {
+            kind: 'MODIFIER',
+            label: 'Speed Buff',
+            entries: [{ stat: 'Initiative', value: 2 }],
+            durationTurns: 2
+          }
+        ]
       }
     };
 
@@ -253,7 +280,7 @@ describe('parseCombatLogMessage', () => {
       expect(parsed.actor).toBe('Morrigan (Witch)');
       expect(parsed.ability).toBe("Witch's Talisman");
       expect(parsed.target).toBe('Alden (Warrior)');
-      expect(parsed.effectDetail).toContain('+2 Initiative for 2 turn(s)');
+      expect(parsed.effects).toHaveLength(1);
     }
   });
 
@@ -317,7 +344,10 @@ describe('parseCombatLogMessage', () => {
         damageTotal: '2',
         targetHp: 8,
         targetMaxHp: 10,
-        secondaryDetail: '💥 [Knockback Collision: Slammed into Obstacle! Took +2 collision damage.]'
+        effects: [
+          { kind: 'DISPLACEMENT', displacement: 'KNOCKBACK', toCoord: { q: 1, r: 0 } },
+          { kind: 'COLLISION', collisionType: 'WALL', damage: 2 }
+        ]
       }
     };
 
@@ -331,8 +361,19 @@ describe('parseCombatLogMessage', () => {
       expect(parsed.damageTotal).toBe('2');
       expect(parsed.targetHp).toBe(8);
       expect(parsed.targetMaxHp).toBe(10);
-      expect(parsed.secondaryDetail).toContain('Slammed into Obstacle');
+      expect(parsed.effects).toHaveLength(2);
     }
+
+    const html = renderToStaticMarkup(
+      React.createElement(CombatLogPanel, {
+        logEntries: [entry],
+        turnNumber: 3
+      })
+    );
+    expect(html).toContain('Knockback (1, 0)');
+    expect(html).toContain('Wall Slam -2');
+    expect(html).toContain('effect-pill-displacement');
+    expect(html).toContain('effect-pill-damage');
   });
 
   it('parses UTILITY entry for open displacement without damage', () => {
@@ -340,14 +381,13 @@ describe('parseCombatLogMessage', () => {
       turnNumber: 3,
       actorUnitId: 'player-sorcerer',
       actionId: 'gust',
-      message: 'Sorcerer used Gust on Goblin. 💨 [Knockback: Pushed to (2, 0)]',
+      message: 'Sorcerer used Gust on Goblin. Knockback to (2, 0)',
       metadata: {
         type: 'UTILITY',
         actor: 'Sorcerer',
         ability: 'Gust',
         target: 'Goblin',
-        effectDetail: '💨 [Knockback: Pushed to (2, 0)]',
-        secondaryDetail: '💨 [Knockback: Pushed to (2, 0)]'
+        effects: [{ kind: 'DISPLACEMENT', displacement: 'KNOCKBACK', toCoord: { q: 2, r: 0 } }]
       }
     };
 
@@ -356,7 +396,9 @@ describe('parseCombatLogMessage', () => {
     if (parsed.type === 'UTILITY') {
       expect(parsed.damageTotal).toBeUndefined();
       expect(parsed.targetHp).toBeUndefined();
-      expect(parsed.secondaryDetail).toContain('Pushed to (2, 0)');
+      expect(parsed.effects).toEqual([
+        { kind: 'DISPLACEMENT', displacement: 'KNOCKBACK', toCoord: { q: 2, r: 0 } }
+      ]);
     }
   });
 
@@ -471,30 +513,54 @@ describe('parseCombatLogMessage', () => {
   });
 
   describe('PASSIVE cards (Elusive Stride and other innate traits)', () => {
-    it('formats bracketed passive details cleanly', () => {
-      expect(formatPassiveDetail(' 📊 [Stat Modifier: +2 EVASION for 1 turn(s)]')).toBe(
-        '📊 +2 EVASION for 1 turn(s)'
-      );
-      expect(formatPassiveDetail(' ⏩ [Initiative Boost: +15 CTB Gauge]')).toBe(
-        '⏩ +15 CTB Gauge'
-      );
-      expect(formatPassiveDetail(' 🛡️ [Armor Buff: +2 Armor for 1 turn(s)]')).toBe(
-        '🛡️ +2 Armor for 1 turn(s)'
-      );
-      expect(formatPassiveDetail('+2 Evasion')).toBe('+2 Evasion');
+    it('maps structured passive and effect outcomes to compact pill presentations', () => {
+      const evasion = presentEffectOutcome({
+        kind: 'MODIFIER',
+        label: 'Elusive Stride',
+        entries: [{ stat: 'Evasion', value: 2 }],
+        durationTurns: 1
+      });
+      expect(evasion.pillText).toBe('+2 Evasion 1t');
+      expect(evasion.tone).toBe('buff');
+      expect(evasion.tooltipRows).toEqual([{ label: 'Evasion', value: '+2', tone: 'positive' }]);
+
+      const ctb = presentEffectOutcome({
+        kind: 'INITIATIVE',
+        direction: 'BOOST',
+        amount: 15
+      });
+      expect(ctb.icon).toBe('⏩');
+      expect(ctb.pillText).toBe('+15 CTB');
+      expect(ctb.tone).toBe('buff');
+
+      const armor = presentEffectOutcome({
+        kind: 'MODIFIER',
+        label: 'Armor Buff',
+        entries: [{ stat: 'Armor', value: 2 }],
+        durationTurns: 1
+      });
+      expect(armor.pillText).toBe('+2 Armor 1t');
+      expect(armor.tone).toBe('buff');
     });
 
-    it('parses typed PASSIVE metadata and renders a dedicated passive card', () => {
+    it('parses typed PASSIVE metadata and renders structured effect pills', () => {
       const entry: CombatLogEntry = {
         turnNumber: 2,
         actorUnitId: 'player-infiltrator',
         actionId: 'elusive_stride',
-        message: "Lyra (Infiltrator)'s Elusive Stride triggered: 📊 [Stat Modifier: +2 EVASION for 1 turn(s)]",
+        message: "Lyra (Infiltrator)'s Elusive Stride triggered: +2 Evasion (1t)",
         metadata: {
           type: 'PASSIVE',
           actor: 'Lyra (Infiltrator)',
           passiveName: 'Elusive Stride',
-          effectDetail: '📊 [Stat Modifier: +2 EVASION for 1 turn(s)]'
+          effects: [
+            {
+              kind: 'MODIFIER',
+              label: 'Elusive Stride',
+              entries: [{ stat: 'Evasion', value: 2 }],
+              durationTurns: 1
+            }
+          ]
         }
       };
 
@@ -504,7 +570,7 @@ describe('parseCombatLogMessage', () => {
         expect(parsed.actor).toBe('Lyra (Infiltrator)');
         expect(parsed.isPlayer).toBe(true);
         expect(parsed.passiveName).toBe('Elusive Stride');
-        expect(parsed.effectDetail).toContain('+2 EVASION');
+        expect(parsed.effects).toHaveLength(1);
       }
 
       const html = renderToStaticMarkup(
@@ -519,8 +585,11 @@ describe('parseCombatLogMessage', () => {
       expect(html).toContain('⚡ PASSIVE');
       expect(html).toContain('Lyra (Infiltrator)');
       expect(html).toContain('Elusive Stride');
-      expect(html).toContain('passive-effect-chip');
-      expect(html).toContain('📊 +2 EVASION for 1 turn(s)');
+      expect(html).toContain('log-effect-pills');
+      expect(html).toContain('log-effect-pill');
+      expect(html).toContain('effect-pill-buff');
+      expect(html).toContain('+2 Evasion 1t');
+      expect(html).toContain('effect-badge-tooltip');
     });
 
     it('parses unstructured passive trigger message fallback into PASSIVE card', () => {
@@ -1037,7 +1106,20 @@ describe('parseCombatLogMessage', () => {
           attackRollBreakdown: [
             { label: 'Focus', value: 2, source: 'ATTRIBUTE' }
           ],
-          secondaryDetail: '💥 [Breath hit Goblin for 6 magical damage [vs DC 10] (HP: 4/10) + 🔥 Burn (1 dmg/turn, 2t)]'
+          effects: [
+            {
+              kind: 'COLLATERAL_HIT',
+              sourceLabel: 'Breath',
+              targetName: 'Goblin',
+              damage: 6,
+              damageType: 'MAGICAL',
+              hitOutcome: 'SOLID_HIT',
+              defenseTarget: 10,
+              targetHp: 4,
+              targetMaxHp: 10,
+              conditions: [{ condition: 'BURN', durationTurns: 2, damagePerTurn: 1 }]
+            }
+          ]
         }
       };
 
@@ -1053,7 +1135,72 @@ describe('parseCombatLogMessage', () => {
       expect(html).not.toContain('Spellcast Roll');
       expect(html).toContain('attack-roll-tooltip');
       expect(html).toContain('Focus');
-      expect(html).toContain('Burn (1 dmg/turn, 2t)');
+      expect(html).toContain('Breath: Goblin -6 (Burn)');
+      expect(html).toContain('effect-badge-tooltip');
+      expect(html).toContain('Defense DC');
+      expect(html).toContain('1 dmg/turn');
+    });
+
+    it('renders wrapped compact effect pills with tone styling and hover tooltips for multi-effect attacks', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 4,
+        actorUnitId: 'player-vanguard',
+        actionId: 'shield_slam',
+        message: 'Alden (Vanguard) attacked Goblin!',
+        metadata: {
+          type: 'ATTACK',
+          actor: 'Alden (Vanguard)',
+          ability: 'Shield Slam',
+          target: 'Goblin',
+          d20: '12+2',
+          defenseTarget: 12,
+          hitOutcome: 'GRAZE',
+          damageTotal: '3',
+          targetHp: 7,
+          targetMaxHp: 10,
+          effects: [
+            {
+              kind: 'CONTEXT',
+              context: 'ELEVATION',
+              label: 'High Ground +2',
+              detail: '+2 Attack Roll from height advantage'
+            },
+            {
+              kind: 'CONTEXT',
+              context: 'GRAZE_NEGATED',
+              label: 'Graze: 2nd Negated',
+              detail: 'Graze hit prevented secondary effect(s).'
+            },
+            {
+              kind: 'CONDITION',
+              condition: 'BURN',
+              durationTurns: 2,
+              damagePerTurn: 1
+            },
+            {
+              kind: 'DISPLACEMENT',
+              displacement: 'KNOCKBACK',
+              toCoord: { q: 2, r: 0 }
+            }
+          ]
+        }
+      };
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 4
+        })
+      );
+
+      expect(html).toContain('log-effect-pills');
+      expect(html).toContain('effect-pill-context');
+      expect(html).toContain('High Ground +2');
+      expect(html).toContain('Graze: 2nd Negated');
+      expect(html).toContain('effect-pill-debuff');
+      expect(html).toContain('Burn 2t');
+      expect(html).toContain('effect-pill-displacement');
+      expect(html).toContain('Knockback (2, 0)');
     });
   });
 
@@ -1246,7 +1393,7 @@ describe('parseCombatLogMessage', () => {
           type: 'PASSIVE',
           actor: 'Lyra',
           passiveName: 'Feline Grace',
-          effectDetail: 'Negated Fall Impact Damage from plunging ledge'
+          effects: [{ kind: 'FALL', damage: 0, negated: true }]
         }
       };
 
@@ -1264,7 +1411,7 @@ describe('parseCombatLogMessage', () => {
       expect(html).toContain('⚡ PASSIVE');
       expect(html).toContain('Feline Grace');
       expect(html).toContain('Lyra');
-      expect(html).toContain('Negated Fall Impact Damage from plunging ledge');
+      expect(html).toContain('Fall Negated');
     });
 
     it('renders direct ledge plunge fall damage into a styled ENVIRONMENT card', () => {
@@ -1281,7 +1428,7 @@ describe('parseCombatLogMessage', () => {
           damage: 4,
           targetHp: 6,
           targetMaxHp: 10,
-          effectDetail: 'Direct Fall Impact Damage'
+          detail: 'Direct Fall Impact Damage'
         }
       };
 
@@ -1335,7 +1482,9 @@ describe('parseCombatLogMessage', () => {
         actor: 'Boss',
         ability: 'Rally',
         target: 'Minion',
-        effectDetail: 'Attack +1'
+        effects: [
+          { kind: 'MODIFIER', label: 'Rally', entries: [{ stat: 'Attack', value: 1 }] }
+        ]
       }
     };
 

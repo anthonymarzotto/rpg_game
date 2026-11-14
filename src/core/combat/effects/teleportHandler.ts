@@ -21,9 +21,19 @@ export const teleportHandler: EffectHandler = {
       ...(label !== undefined ? { label } : {})
     };
 
+    const displayLabel =
+      typeof label === 'string' ? label.replace(/!+$/, '') : ctx.ability.name;
+
     return {
       events: [event],
-      logDetail: ` 🌀 [Shadow Step to (${targetCoord.q}, ${targetCoord.r})]`
+      effects: [
+        {
+          kind: 'DISPLACEMENT',
+          displacement: 'TELEPORT',
+          toCoord: targetCoord,
+          label: displayLabel
+        }
+      ]
     };
   }
 };

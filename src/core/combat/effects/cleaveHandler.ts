@@ -2,7 +2,7 @@ import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
 import { AbilityEffect } from '../../types/ability';
 import { getHexNeighbors, hexEquals } from '../../grid/hex';
 import { resolveDamage } from '../damageEngine';
-import { CombatEvent, CombatUnit } from '../types';
+import { CombatEvent, CombatUnit, EffectOutcome } from '../types';
 
 export const cleaveHandler: EffectHandler = {
   apply(effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
@@ -46,7 +46,9 @@ export const cleaveHandler: EffectHandler = {
     const secondaryTargets = candidates.slice(0, maxTargets);
 
     const events: CombatEvent[] = [];
-    const logDetails: string[] = [];
+    const effects: EffectOutcome[] = [];
+    const damageType: 'PHYSICAL' | 'MAGICAL' =
+      ability.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL';
 
     for (const secondaryTarget of secondaryTargets) {
       // Resolve collateral damage against the secondary target
@@ -63,19 +65,27 @@ export const cleaveHandler: EffectHandler = {
           type: 'DAMAGE',
           targetUnitId: secondaryTarget.unit.id,
           amount: damageResult.damageDealt,
-          damageType: ability.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL',
+          damageType,
           reason: 'COLLATERAL',
           label: 'CLEAVE',
           sourceUnitId: actorCu.unit.id,
           isCrit: false
         });
       }
-      logDetails.push(`${secondaryTarget.unit.name} for ${damageResult.damageDealt}`);
+      effects.push({
+        kind: 'COLLATERAL_HIT',
+        sourceLabel: 'Cleave',
+        targetName: secondaryTarget.unit.name,
+        damage: damageResult.damageDealt,
+        damageType,
+        targetHp: Math.max(0, secondaryTarget.currentHp - damageResult.damageDealt),
+        targetMaxHp: secondaryTarget.unit.effectiveVitals.maxHp
+      });
     }
 
     return {
       events,
-      logDetail: ` 🪓 [Cleave hit ${logDetails.join(', ')} collateral damage]`
+      effects
     };
   }
 };

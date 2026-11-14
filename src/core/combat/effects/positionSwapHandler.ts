@@ -11,7 +11,17 @@ export const positionSwapHandler: EffectHandler = {
     }
 
     if (actorCu.faction && targetCu.faction && actorCu.faction !== targetCu.faction && isDisplacementImmune(targetCu)) {
-      return { events: [], logDetail: ` 🛡️ [${targetCu.unit.name} is immune to displacement!]` };
+      return {
+        events: [],
+        effects: [
+          {
+            kind: 'DISPLACEMENT',
+            displacement: 'SWAP',
+            targetName: targetCu.unit.name,
+            resisted: true
+          }
+        ]
+      };
     }
 
     const actorCoord = state.arena.getUnitPosition(actorCu.unit.id);
@@ -47,7 +57,14 @@ export const positionSwapHandler: EffectHandler = {
 
     return {
       events,
-      logDetail: `${actorCu.unit.name} swapped positions with ${targetCu.unit.name}`
+      effects: [
+        {
+          kind: 'DISPLACEMENT',
+          displacement: 'SWAP',
+          targetName: targetCu.unit.name,
+          ...(typeof actorLabel === 'string' ? { label: actorLabel.replace(/!+$/, '') } : {})
+        }
+      ]
     };
   }
 };

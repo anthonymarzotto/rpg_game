@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, Fragment } from 'react';
-import { CombatLogEntry, AttackModifierComponent, DamageBreakdownComponent } from '../../core/combat/types';
+import { CombatLogEntry, AttackModifierComponent, DamageBreakdownComponent, EffectOutcome } from '../../core/combat/types';
+import { ConditionType } from '../../core/types/ability';
 import { Faction } from '../../core/types/unit';
 import { AttackRollTooltip } from './AttackRollTooltip';
 import { DamageRollTooltip, formatDamageBreakdown } from './DamageRollTooltip';
+import { EffectBadgeTooltip, EffectTooltipRow } from './EffectBadgeTooltip';
 
 export interface CombatLogPanelProps {
   readonly logEntries: readonly CombatLogEntry[];
@@ -15,197 +17,196 @@ type LogFilter = 'ALL' | 'COMBAT' | 'MOVE';
 
 export type ParsedLogEntry =
   | {
-      type: 'ATTACK';
-      turn: number;
-      actor: string;
-      faction: Faction;
-      isPlayer: boolean;
-      actorUnitId?: string;
-      affectedUnitIds?: readonly string[];
-      ability: string;
-      target?: string;
-      d20?: string;
-      defenseTarget?: number;
-      hitOutcome: string;
-      damageTotal: string;
-      damageBreakdown?: string;
-      targetHp?: number;
-      targetMaxHp?: number;
-      secondaryDetail: string;
-      isAreaTarget?: boolean;
-      totalScore?: number;
-      attackRollBreakdown?: readonly AttackModifierComponent[];
-      damageBreakdownComponents?: readonly DamageBreakdownComponent[];
-      rawMessage: string;
-    }
+    type: 'ATTACK';
+    turn: number;
+    actor: string;
+    faction: Faction;
+    isPlayer: boolean;
+    actorUnitId?: string;
+    affectedUnitIds?: readonly string[];
+    ability: string;
+    target?: string;
+    d20?: string;
+    defenseTarget?: number;
+    hitOutcome: string;
+    damageTotal: string;
+    damageBreakdown?: string;
+    targetHp?: number;
+    targetMaxHp?: number;
+    effects?: readonly EffectOutcome[];
+    isAreaTarget?: boolean;
+    totalScore?: number;
+    attackRollBreakdown?: readonly AttackModifierComponent[];
+    damageBreakdownComponents?: readonly DamageBreakdownComponent[];
+    rawMessage: string;
+  }
   | {
-      type: 'MOVE';
-      turn: number;
-      actor: string;
-      faction: Faction;
-      isPlayer: boolean;
-      actorUnitId?: string;
-      affectedUnitIds?: readonly string[];
-      coord: { q: number; r: number };
-      remainingAp: number;
-      rawMessage: string;
-    }
+    type: 'MOVE';
+    turn: number;
+    actor: string;
+    faction: Faction;
+    isPlayer: boolean;
+    actorUnitId?: string;
+    affectedUnitIds?: readonly string[];
+    coord: { q: number; r: number };
+    remainingAp: number;
+    rawMessage: string;
+  }
   | {
-      type: 'BUFF';
-      turn: number;
-      actor: string;
-      faction: Faction;
-      isPlayer: boolean;
-      actorUnitId?: string;
-      affectedUnitIds?: readonly string[];
-      ability: string;
-      target?: string;
-      effectDetail: string;
-      rawMessage: string;
-    }
+    type: 'BUFF';
+    turn: number;
+    actor: string;
+    faction: Faction;
+    isPlayer: boolean;
+    actorUnitId?: string;
+    affectedUnitIds?: readonly string[];
+    ability: string;
+    target?: string;
+    effects?: readonly EffectOutcome[];
+    rawMessage: string;
+  }
   | {
-      type: 'UTILITY';
-      turn: number;
-      actor: string;
-      faction: Faction;
-      isPlayer: boolean;
-      actorUnitId?: string;
-      affectedUnitIds?: readonly string[];
-      ability: string;
-      target?: string;
-      effectDetail: string;
-      damageTotal?: string;
-      targetHp?: number;
-      targetMaxHp?: number;
-      secondaryDetail?: string;
-      rawMessage: string;
-    }
+    type: 'UTILITY';
+    turn: number;
+    actor: string;
+    faction: Faction;
+    isPlayer: boolean;
+    actorUnitId?: string;
+    affectedUnitIds?: readonly string[];
+    ability: string;
+    target?: string;
+    effects?: readonly EffectOutcome[];
+    damageTotal?: string;
+    targetHp?: number;
+    targetMaxHp?: number;
+    rawMessage: string;
+  }
   | {
-      type: 'ENVIRONMENT';
-      turn: number;
-      actor: string;
-      faction: Faction;
-      isPlayer: boolean;
-      actorUnitId?: string;
-      affectedUnitIds?: readonly string[];
-      hazardName: string;
-      damage?: number;
-      targetHp?: number;
-      targetMaxHp?: number;
-      effectDetail?: string;
-      rawMessage: string;
-    }
+    type: 'ENVIRONMENT';
+    turn: number;
+    actor: string;
+    faction: Faction;
+    isPlayer: boolean;
+    actorUnitId?: string;
+    affectedUnitIds?: readonly string[];
+    hazardName: string;
+    damage?: number;
+    targetHp?: number;
+    targetMaxHp?: number;
+    detail?: string;
+    rawMessage: string;
+  }
   | {
-      type: 'INITIATIVE';
-      turn: number;
-      faction: Faction;
-      isPlayer: boolean;
-      actorUnitId?: string;
-      affectedUnitIds?: readonly string[];
-      rolls: readonly {
-        readonly unitName: string;
-        readonly roll: number;
-        readonly isPlayer: boolean;
-      }[];
-      rawMessage: string;
-    }
+    type: 'INITIATIVE';
+    turn: number;
+    faction: Faction;
+    isPlayer: boolean;
+    actorUnitId?: string;
+    affectedUnitIds?: readonly string[];
+    rolls: readonly {
+      readonly unitName: string;
+      readonly roll: number;
+      readonly isPlayer: boolean;
+    }[];
+    rawMessage: string;
+  }
   | {
-      type: 'FAULT';
-      turn: number;
-      actor: string;
-      faction: Faction;
-      isPlayer: boolean;
-      actorUnitId?: string;
-      affectedUnitIds?: readonly string[];
-      actionName: string;
-      reason: string;
-      rawMessage: string;
-    }
+    type: 'FAULT';
+    turn: number;
+    actor: string;
+    faction: Faction;
+    isPlayer: boolean;
+    actorUnitId?: string;
+    affectedUnitIds?: readonly string[];
+    actionName: string;
+    reason: string;
+    rawMessage: string;
+  }
   | {
-      type: 'PASSIVE';
-      turn: number;
-      actor: string;
-      faction: Faction;
-      isPlayer: boolean;
-      actorUnitId?: string;
-      affectedUnitIds?: readonly string[];
-      passiveName: string;
-      effectDetail: string;
-      rawMessage: string;
-    }
+    type: 'PASSIVE';
+    turn: number;
+    actor: string;
+    faction: Faction;
+    isPlayer: boolean;
+    actorUnitId?: string;
+    affectedUnitIds?: readonly string[];
+    passiveName: string;
+    effects?: readonly EffectOutcome[];
+    rawMessage: string;
+  }
   | {
-      type: 'DETECTION';
-      turn: number;
-      actor: string;
-      faction: Faction;
-      isPlayer: boolean;
-      actorUnitId?: string;
-      affectedUnitIds?: readonly string[];
-      target: string;
-      isTargetPlayer: boolean;
-      isTurnStart: boolean;
-      rawMessage: string;
-    }
+    type: 'DETECTION';
+    turn: number;
+    actor: string;
+    faction: Faction;
+    isPlayer: boolean;
+    actorUnitId?: string;
+    affectedUnitIds?: readonly string[];
+    target: string;
+    isTargetPlayer: boolean;
+    isTurnStart: boolean;
+    rawMessage: string;
+  }
   | {
-      type: 'CONDITION_BROKEN';
-      turn: number;
-      actor: string;
-      faction: Faction;
-      isPlayer: boolean;
-      actorUnitId?: string;
-      affectedUnitIds?: readonly string[];
-      condition: string;
-      reason?: string;
-      rawMessage: string;
-    }
+    type: 'CONDITION_BROKEN';
+    turn: number;
+    actor: string;
+    faction: Faction;
+    isPlayer: boolean;
+    actorUnitId?: string;
+    affectedUnitIds?: readonly string[];
+    condition: string;
+    reason?: string;
+    rawMessage: string;
+  }
   | {
-      type: 'DOT_DAMAGE';
-      turn: number;
-      actor: string;
-      faction: Faction;
-      isPlayer: boolean;
-      actorUnitId?: string;
-      affectedUnitIds?: readonly string[];
-      condition: string;
-      damage: number;
-      targetHp?: number;
-      targetMaxHp?: number;
-      rawMessage: string;
-    }
+    type: 'DOT_DAMAGE';
+    turn: number;
+    actor: string;
+    faction: Faction;
+    isPlayer: boolean;
+    actorUnitId?: string;
+    affectedUnitIds?: readonly string[];
+    condition: string;
+    damage: number;
+    targetHp?: number;
+    targetMaxHp?: number;
+    rawMessage: string;
+  }
   | {
-      type: 'DEFEATED';
-      turn: number;
-      actor: string;
-      faction: Faction;
-      isPlayer: boolean;
-      actorUnitId?: string;
-      affectedUnitIds?: readonly string[];
-      condition?: string;
-      cause: string;
-      rawMessage: string;
-    }
+    type: 'DEFEATED';
+    turn: number;
+    actor: string;
+    faction: Faction;
+    isPlayer: boolean;
+    actorUnitId?: string;
+    affectedUnitIds?: readonly string[];
+    condition?: string;
+    cause: string;
+    rawMessage: string;
+  }
   | {
-      type: 'ZONE_OF_CONTROL';
-      turn: number;
-      actor: string;
-      faction: Faction;
-      isPlayer: boolean;
-      actorUnitId?: string;
-      affectedUnitIds?: readonly string[];
-      guardian: string;
-      ability: string;
-      rawMessage: string;
-    }
+    type: 'ZONE_OF_CONTROL';
+    turn: number;
+    actor: string;
+    faction: Faction;
+    isPlayer: boolean;
+    actorUnitId?: string;
+    affectedUnitIds?: readonly string[];
+    guardian: string;
+    ability: string;
+    rawMessage: string;
+  }
   | {
-      type: 'GENERIC';
-      turn: number;
-      actor: string;
-      faction: Faction;
-      isPlayer: boolean;
-      actorUnitId?: string;
-      affectedUnitIds?: readonly string[];
-      rawMessage: string;
-    };
+    type: 'GENERIC';
+    turn: number;
+    actor: string;
+    faction: Faction;
+    isPlayer: boolean;
+    actorUnitId?: string;
+    affectedUnitIds?: readonly string[];
+    rawMessage: string;
+  };
 
 export function formatD20Roll(d20?: string): string {
   if (!d20) return '';
@@ -215,15 +216,371 @@ export function formatD20Roll(d20?: string): string {
     .replace(/(\d+)\s*-\s*(\d+)/g, '$1 - $2');
 }
 
-export function formatPassiveDetail(detail: string): string {
-  if (!detail) return '';
-  const match = detail.match(/^(.*?)\s*\[(?:Stat Modifier:\s*|.*?:\s*)?(.*?)\]\s*$/);
-  if (match) {
-    const icon = match[1]?.trim() || '✨';
-    const content = match[2]?.trim();
-    return `${icon} ${content}`.trim();
+export type EffectPillTone = 'buff' | 'debuff' | 'damage' | 'displacement' | 'context' | 'neutral';
+
+export interface EffectOutcomePresentation {
+  readonly icon: string;
+  readonly pillText: string;
+  readonly tone: EffectPillTone;
+  readonly tooltipTitle: string;
+  readonly tooltipBadge?: string;
+  readonly tooltipRows: readonly EffectTooltipRow[];
+  readonly tooltipSummary?: string;
+}
+
+const CONDITION_PRESENTATION: Readonly<
+  Record<ConditionType, { readonly icon: string; readonly label: string; readonly tone: EffectPillTone; readonly summary: string }>
+> = {
+  BURN: {
+    icon: '🔥',
+    label: 'Burn',
+    tone: 'debuff',
+    summary: 'Deals magical burn damage at the start of each turn.'
+  },
+  POISON: {
+    icon: '🧪',
+    label: 'Poison',
+    tone: 'debuff',
+    summary: 'Deals poison damage at the start of each turn.'
+  },
+  CHALLENGED: {
+    icon: '⚔️',
+    label: 'Challenged',
+    tone: 'debuff',
+    summary: 'Imposes disadvantage when attacking targets other than the challenger.'
+  },
+  STEALTH: {
+    icon: '👤',
+    label: 'Stealth',
+    tone: 'buff',
+    summary: 'Conceals the unit from enemy targeting until broken or detected.'
+  },
+  EXPOSED: {
+    icon: '🎯',
+    label: 'Exposed',
+    tone: 'debuff',
+    summary: 'Lowers defenses against incoming attacks.'
   }
-  return detail.trim();
+};
+
+const DISPLACEMENT_LABELS: Readonly<Record<'KNOCKBACK' | 'RETREAT' | 'CHARGE' | 'SWAP' | 'TELEPORT', string>> = {
+  KNOCKBACK: 'Knockback',
+  RETREAT: 'Retreat',
+  CHARGE: 'Charge',
+  SWAP: 'Swap',
+  TELEPORT: 'Teleport'
+};
+
+const COLLISION_LABELS: Readonly<Record<'WALL' | 'CLIFF' | 'BOUNDARY' | 'UNIT', string>> = {
+  WALL: 'Wall Slam',
+  CLIFF: 'Cliff Drop',
+  BOUNDARY: 'Edge Impact',
+  UNIT: 'Unit Collision'
+};
+
+function formatSignedValue(value: number | string): string {
+  return typeof value === 'number' && value > 0 ? `+${value}` : String(value);
+}
+
+function isNegativeEntryValue(value: number | string): boolean {
+  if (typeof value === 'number') return value < 0;
+  return value.trim().startsWith('-');
+}
+
+/**
+ * Maps a structured EffectOutcome into compact pill and tooltip view-model fields.
+ */
+export function presentEffectOutcome(outcome: EffectOutcome): EffectOutcomePresentation {
+  switch (outcome.kind) {
+    case 'CONDITION': {
+      const meta = CONDITION_PRESENTATION[outcome.condition];
+      const rows: EffectTooltipRow[] = [
+        {
+          label: 'Duration',
+          value: `${outcome.durationTurns} turn${outcome.durationTurns === 1 ? '' : 's'}`,
+          tone: 'neutral'
+        }
+      ];
+      if (outcome.damagePerTurn !== undefined) {
+        rows.push({
+          label: 'Damage / Turn',
+          value: `${outcome.damagePerTurn}`,
+          tone: 'negative'
+        });
+      }
+      if (outcome.targetName) {
+        rows.push({ label: 'Target', value: outcome.targetName, tone: 'neutral' });
+      }
+      if (outcome.sourceName) {
+        rows.push({ label: 'Source', value: outcome.sourceName, tone: 'neutral' });
+      }
+      return {
+        icon: meta.icon,
+        pillText: `${meta.label} ${outcome.durationTurns}t`,
+        tone: meta.tone,
+        tooltipTitle: meta.label,
+        tooltipBadge: meta.tone === 'buff' ? 'BUFF' : 'CONDITION',
+        tooltipRows: rows,
+        tooltipSummary: meta.summary
+      };
+    }
+
+    case 'FORCED_FACING':
+      return {
+        icon: '↪️',
+        pillText: outcome.direction === 'TOWARDS' ? 'Face Attacker' : 'Turned Away',
+        tone: 'debuff',
+        tooltipTitle: 'Forced Facing',
+        tooltipRows: [
+          {
+            label: 'Orientation',
+            value:
+              outcome.direction === 'TOWARDS'
+                ? `Forced to face ${outcome.originName}`
+                : `Turned away from ${outcome.originName}`,
+            tone: 'neutral'
+          }
+        ]
+      };
+
+    case 'DISPLACEMENT': {
+      if (outcome.resisted) {
+        const pillText = outcome.displacement === 'TELEPORT' ? 'Teleport Blocked' : 'Resisted Knockback';
+        return {
+          icon: '🛡️',
+          pillText,
+          tone: 'context',
+          tooltipTitle: pillText,
+          tooltipRows: outcome.targetName ? [{ label: 'Target', value: outcome.targetName, tone: 'neutral' }] : [],
+          tooltipSummary: 'Target immunity or obstacle prevented forced movement.'
+        };
+      }
+      const label = outcome.label ?? DISPLACEMENT_LABELS[outcome.displacement];
+      const icon = outcome.displacement === 'SWAP' || outcome.displacement === 'TELEPORT' ? '⚡' : '💨';
+      const coordText = outcome.toCoord ? ` (${outcome.toCoord.q}, ${outcome.toCoord.r})` : '';
+      const rows: EffectTooltipRow[] = [];
+      if (outcome.targetName) {
+        rows.push({ label: 'Target', value: outcome.targetName, tone: 'neutral' });
+      }
+      if (outcome.toCoord) {
+        rows.push({ label: 'Destination', value: `(${outcome.toCoord.q}, ${outcome.toCoord.r})`, tone: 'neutral' });
+      }
+      return {
+        icon,
+        pillText: `${label}${coordText}`,
+        tone: 'displacement',
+        tooltipTitle: label,
+        tooltipRows: rows
+      };
+    }
+
+    case 'COLLISION': {
+      const label = COLLISION_LABELS[outcome.collisionType];
+      if (outcome.negated) {
+        return {
+          icon: '🛡️',
+          pillText: `${label} Negated`,
+          tone: 'context',
+          tooltipTitle: `${label} Negated`,
+          tooltipRows: [{ label: 'Impact Damage', value: '0 (Negated)', tone: 'positive' }]
+        };
+      }
+      const rows: EffectTooltipRow[] = [
+        {
+          label: 'Impact Damage',
+          value: `${outcome.damage}`,
+          tone: outcome.damage > 0 ? 'negative' : 'neutral'
+        }
+      ];
+      if (outcome.bystanderName) {
+        rows.push({ label: 'Bystander', value: outcome.bystanderName, tone: 'neutral' });
+      }
+      if (outcome.collateralDamage !== undefined) {
+        rows.push({ label: 'Bystander Damage', value: `${outcome.collateralDamage}`, tone: 'negative' });
+      }
+      if (outcome.bystanderHp !== undefined && outcome.bystanderMaxHp !== undefined) {
+        rows.push({
+          label: 'Bystander HP',
+          value: `${outcome.bystanderHp}/${outcome.bystanderMaxHp}`,
+          tone: 'neutral'
+        });
+      }
+      return {
+        icon: '💥',
+        pillText: `${label}${outcome.damage > 0 ? ` -${outcome.damage}` : ''}`,
+        tone: 'damage',
+        tooltipTitle: label,
+        tooltipRows: rows
+      };
+    }
+
+    case 'FALL':
+      if (outcome.negated) {
+        return {
+          icon: '🐾',
+          pillText: 'Fall Negated',
+          tone: 'buff',
+          tooltipTitle: 'Fall Damage Negated',
+          tooltipRows: [{ label: 'Fall Damage', value: '0 (Negated)', tone: 'positive' }]
+        };
+      }
+      return {
+        icon: '💥',
+        pillText: `Fall -${outcome.damage}`,
+        tone: 'damage',
+        tooltipTitle: 'Fall Impact',
+        tooltipRows: [{ label: 'Fall Damage', value: `-${outcome.damage}`, tone: 'negative' }]
+      };
+
+    case 'MODIFIER': {
+      const allNegative =
+        outcome.entries.length > 0 && outcome.entries.every((e) => isNegativeEntryValue(e.value));
+      const tone: EffectPillTone = allNegative ? 'debuff' : 'buff';
+      const icon = allNegative ? '⬇️' : outcome.label.toLowerCase().includes('frenzy') ? '🩸' : '✨';
+      const durationSuffix = outcome.durationTurns !== undefined ? ` ${outcome.durationTurns}t` : '';
+      let pillText: string;
+      if (outcome.entries.length === 1) {
+        const entry = outcome.entries[0];
+        const formattedVal = formatSignedValue(entry.value);
+        pillText =
+          typeof entry.value === 'number'
+            ? `${formattedVal} ${entry.stat}${durationSuffix}`
+            : `${entry.stat} ${formattedVal}${durationSuffix}`;
+      } else {
+        pillText = `${outcome.label}${durationSuffix}`;
+      }
+      return {
+        icon,
+        pillText,
+        tone,
+        tooltipTitle: outcome.label,
+        tooltipBadge: outcome.durationTurns !== undefined ? `${outcome.durationTurns}t` : undefined,
+        tooltipRows: outcome.entries.map((e) => ({
+          label: e.stat,
+          value: formatSignedValue(e.value),
+          tone: isNegativeEntryValue(e.value) ? 'negative' : 'positive'
+        })),
+        tooltipSummary: outcome.note
+      };
+    }
+
+    case 'INITIATIVE': {
+      const isBoost = outcome.direction === 'BOOST';
+      const signed = isBoost ? `+${outcome.amount}` : `-${outcome.amount}`;
+      return {
+        icon: isBoost ? '⏩' : '⏳',
+        pillText: `${signed} CTB`,
+        tone: isBoost ? 'buff' : 'debuff',
+        tooltipTitle: isBoost ? 'Initiative Boost' : 'CTB Delay',
+        tooltipRows: [
+          {
+            label: 'CTB Gauge',
+            value: signed,
+            tone: isBoost ? 'positive' : 'negative'
+          }
+        ]
+      };
+    }
+
+    case 'COLLATERAL_HIT': {
+      const isMiss = outcome.hitOutcome === 'MISS';
+      const lowerSource = outcome.sourceLabel.toLowerCase();
+      const icon = isMiss
+        ? '💨'
+        : lowerSource.includes('cleave')
+          ? '🪓'
+          : lowerSource.includes('pierce')
+            ? '🗡️'
+            : '💥';
+      const condSuffix =
+        !isMiss && outcome.conditions && outcome.conditions.length > 0
+          ? ` (${outcome.conditions.map((c) => CONDITION_PRESENTATION[c.condition].label).join(', ')})`
+          : '';
+      const resultText = isMiss
+        ? 'Miss'
+        : `-${outcome.damage}${outcome.hitOutcome === 'CRITICAL_HIT' ? '!' : ''}${condSuffix}`;
+      const rows: EffectTooltipRow[] = [
+        {
+          label: 'Damage',
+          value: isMiss
+            ? '0 (Missed)'
+            : `${outcome.damage}${outcome.damageType ? ` ${outcome.damageType.toLowerCase()}` : ''}`,
+          tone: isMiss ? 'neutral' : 'negative'
+        }
+      ];
+      if (outcome.defenseTarget !== undefined) {
+        rows.push({ label: 'Defense DC', value: `${outcome.defenseTarget}`, tone: 'neutral' });
+      }
+      if (outcome.targetHp !== undefined && outcome.targetMaxHp !== undefined) {
+        rows.push({ label: 'Target HP', value: `${outcome.targetHp}/${outcome.targetMaxHp}`, tone: 'neutral' });
+      }
+      if (outcome.conditions) {
+        for (const c of outcome.conditions) {
+          const condMeta = CONDITION_PRESENTATION[c.condition];
+          rows.push({
+            label: condMeta.label,
+            value: `${c.durationTurns}t${c.damagePerTurn !== undefined ? ` (${c.damagePerTurn} dmg/turn)` : ''}`,
+            tone: 'negative'
+          });
+        }
+      }
+      return {
+        icon,
+        pillText: `${outcome.sourceLabel}: ${outcome.targetName} ${resultText}`,
+        tone: isMiss ? 'neutral' : 'damage',
+        tooltipTitle: `${outcome.sourceLabel} → ${outcome.targetName}`,
+        tooltipBadge: outcome.hitOutcome,
+        tooltipRows: rows
+      };
+    }
+
+    case 'CONTEXT': {
+      const icon =
+        outcome.context === 'ELEVATION' ? '⛰️' : outcome.context === 'AURA_PENALTY' ? '🌑' : '🛡️';
+      const title =
+        outcome.context === 'ELEVATION'
+          ? 'Elevation Context'
+          : outcome.context === 'AURA_PENALTY'
+            ? 'Aura Penalty'
+            : 'Graze Mitigation';
+      return {
+        icon,
+        pillText: outcome.label,
+        tone: 'context',
+        tooltipTitle: title,
+        tooltipRows: outcome.detail ? [{ label: 'Effect', value: outcome.detail, tone: 'neutral' }] : []
+      };
+    }
+  }
+}
+
+function renderEffectPills(effects?: readonly EffectOutcome[]) {
+  if (!effects || effects.length === 0) return null;
+  return (
+    <div className="log-effect-pills">
+      {effects.map((effect, i) => {
+        const pres = presentEffectOutcome(effect);
+        const hasTooltip = pres.tooltipRows.length > 0 || Boolean(pres.tooltipSummary);
+        return (
+          <span
+            key={i}
+            className={`log-effect-pill effect-pill-${pres.tone}${hasTooltip ? ' has-tooltip' : ''}`}
+          >
+            <span className="effect-pill-icon">{pres.icon}</span>
+            <span className="effect-pill-text">{pres.pillText}</span>
+            {hasTooltip && (
+              <EffectBadgeTooltip
+                title={pres.tooltipTitle}
+                badge={pres.tooltipBadge}
+                rows={pres.tooltipRows}
+                summary={pres.tooltipSummary}
+              />
+            )}
+          </span>
+        );
+      })}
+    </div>
+  );
 }
 
 export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
@@ -260,7 +617,7 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       damage: meta.damage,
       targetHp: meta.targetHp,
       targetMaxHp: meta.targetMaxHp,
-      effectDetail: meta.effectDetail,
+      detail: meta.detail,
       rawMessage: msg
     };
   }
@@ -288,7 +645,7 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       damage,
       targetHp,
       targetMaxHp,
-      effectDetail: 'Direct Fall Impact Damage',
+      detail: 'Direct Fall Impact Damage',
       rawMessage: msg
     };
   }
@@ -319,7 +676,7 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       affectedUnitIds,
       ability: meta.ability,
       target: meta.target,
-      effectDetail: meta.effectDetail ?? '',
+      effects: meta.effects,
       rawMessage: msg
     };
   }
@@ -335,11 +692,10 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       affectedUnitIds,
       ability: meta.ability,
       target: meta.target,
-      effectDetail: meta.effectDetail ?? '',
+      effects: meta.effects,
       damageTotal: meta.damageTotal,
       targetHp: meta.targetHp,
       targetMaxHp: meta.targetMaxHp,
-      secondaryDetail: meta.secondaryDetail ?? '',
       rawMessage: msg
     };
   }
@@ -362,7 +718,7 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       damageBreakdown: meta.damageBreakdown,
       targetHp: meta.targetHp,
       targetMaxHp: meta.targetMaxHp,
-      secondaryDetail: meta.secondaryDetail ?? '',
+      effects: meta.effects,
       isAreaTarget: Boolean(meta.isAreaTarget || (meta.target && meta.target.startsWith('hex '))),
       totalScore: meta.totalScore,
       attackRollBreakdown: meta.attackRollBreakdown,
@@ -394,7 +750,7 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       actorUnitId,
       affectedUnitIds,
       passiveName: meta.passiveName,
-      effectDetail: meta.effectDetail ?? '',
+      effects: meta.effects,
       rawMessage: msg
     };
   }
@@ -593,7 +949,7 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
     const rawPassiveName = passiveMatch
       ? passiveMatch[2].trim()
       : meta?.text?.split('triggered:')[0]?.trim() || 'Passive';
-    const effectDetail = passiveMatch
+    const fallbackDetail = passiveMatch
       ? passiveMatch[3].trim()
       : meta?.text?.split('triggered:')[1]?.trim() || '';
 
@@ -606,7 +962,7 @@ export function parseCombatLogMessage(entry: CombatLogEntry): ParsedLogEntry {
       actorUnitId,
       affectedUnitIds,
       passiveName: rawPassiveName,
-      effectDetail,
+      effects: fallbackDetail ? [{ kind: 'MODIFIER', label: fallbackDetail, entries: [] }] : undefined,
       rawMessage: msg
     };
   }
@@ -865,14 +1221,13 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
         {displayedEntries.length === 0 ? (
           <div className="log-empty-hint">
             {selectedUnitId !== 'ALL'
-              ? `No actions logged for ${
-                  unitOptions.find((u) => u.id === selectedUnitId)?.name ?? 'this unit'
-                } yet.`
+              ? `No actions logged for ${unitOptions.find((u) => u.id === selectedUnitId)?.name ?? 'this unit'
+              } yet.`
               : filter === 'ALL'
-              ? '⚔️ Trial started. Nothing logged yet.'
-              : filter === 'COMBAT'
-              ? 'No combat logged yet.'
-              : 'No moves logged yet.'}
+                ? '⚔️ Trial started. Nothing logged yet.'
+                : filter === 'COMBAT'
+                  ? 'No combat logged yet.'
+                  : 'No moves logged yet.'}
           </div>
         ) : (
           displayedEntries.map((entry, idx) => {
@@ -904,9 +1259,8 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                 return (
                   <div
                     key={idx}
-                    className={`log-card log-attack-card ${factionCardClass} ${
-                      isNewest ? 'entry-fresh' : ''
-                    }`}
+                    className={`log-card log-attack-card ${factionCardClass} ${isNewest ? 'entry-fresh' : ''
+                      }`}
                   >
                     {/* Card Header Row */}
                     <div className="log-card-header">
@@ -938,8 +1292,8 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                               entry.attackRollBreakdown && entry.attackRollBreakdown.length > 0
                                 ? undefined
                                 : entry.isAreaTarget
-                                ? 'Area Attack Roll'
-                                : 'Attack Roll vs Defense DC'
+                                  ? 'Area Attack Roll'
+                                  : 'Attack Roll vs Defense DC'
                             }
                           >
                             🎲{' '}
@@ -965,11 +1319,10 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                           <span className="impact-miss">Missed</span>
                         ) : (
                           <span
-                            className={`impact-damage ${isCrit ? 'damage-crit' : ''} ${
-                              entry.damageBreakdownComponents && entry.damageBreakdownComponents.length > 0
-                                ? 'has-tooltip'
-                                : ''
-                            }`}
+                            className={`impact-damage ${isCrit ? 'damage-crit' : ''} ${entry.damageBreakdownComponents && entry.damageBreakdownComponents.length > 0
+                              ? 'has-tooltip'
+                              : ''
+                              }`}
                           >
                             💥 <strong>{entry.damageTotal}</strong> dmg
                             {entry.isAreaTarget && <span className="area-total-tag"> (Total)</span>}
@@ -992,13 +1345,8 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                       </div>
                     </div>
 
-                    {/* Secondary Effects (Knockback, Collisions) */}
-                    {entry.secondaryDetail && (
-                      <div className="log-card-secondary">
-                        <span className="secondary-icon">⚡</span>
-                        <span className="secondary-text">{entry.secondaryDetail}</span>
-                      </div>
-                    )}
+                    {/* Secondary Effects (Conditions, Knockback, Collisions, Splash, Context) */}
+                    {renderEffectPills(entry.effects)}
                   </div>
                 );
               }
@@ -1007,9 +1355,8 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                 return (
                   <div
                     key={idx}
-                    className={`log-card log-environment-card ${factionCardClass} ${
-                      isNewest ? 'entry-fresh' : ''
-                    }`}
+                    className={`log-card log-environment-card ${factionCardClass} ${isNewest ? 'entry-fresh' : ''
+                      }`}
                   >
                     <div className="log-card-header">
                       <span className="log-turn-pill">T{entry.turn}</span>
@@ -1033,9 +1380,9 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                           )}
                         </div>
                       )}
-                      {entry.effectDetail && (
+                      {entry.detail && (
                         <div className="log-hazard-detail">
-                          <span>{entry.effectDetail}</span>
+                          <span>{entry.detail}</span>
                         </div>
                       )}
                     </div>
@@ -1047,9 +1394,8 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                 return (
                   <div
                     key={idx}
-                    className={`log-card log-move-card ${factionCardClass} ${
-                      isNewest ? 'entry-fresh' : ''
-                    }`}
+                    className={`log-card log-move-card ${factionCardClass} ${isNewest ? 'entry-fresh' : ''
+                      }`}
                   >
                     <span className="log-turn-pill">T{entry.turn}</span>
                     <span className="move-icon">🏃</span>
@@ -1068,9 +1414,8 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                 return (
                   <div
                     key={idx}
-                    className={`log-card log-buff-card ${factionCardClass} ${
-                      isNewest ? 'entry-fresh' : ''
-                    }`}
+                    className={`log-card log-buff-card ${factionCardClass} ${isNewest ? 'entry-fresh' : ''
+                      }`}
                   >
                     <div className="log-card-header">
                       <span className="log-turn-pill">T{entry.turn}</span>
@@ -1087,11 +1432,7 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                         </div>
                       </div>
                     )}
-                    {entry.effectDetail && (
-                      <div className="log-buff-detail">
-                        <span>✨ {entry.effectDetail}</span>
-                      </div>
-                    )}
+                    {renderEffectPills(entry.effects)}
                   </div>
                 );
               }
@@ -1101,9 +1442,8 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                 return (
                   <div
                     key={idx}
-                    className={`log-card log-utility-card ${factionCardClass} ${
-                      isNewest ? 'entry-fresh' : ''
-                    }`}
+                    className={`log-card log-utility-card ${factionCardClass} ${isNewest ? 'entry-fresh' : ''
+                      }`}
                   >
                     <div className="log-card-header">
                       <span className="log-turn-pill">T{entry.turn}</span>
@@ -1133,17 +1473,7 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                         )}
                       </div>
                     )}
-                    {entry.secondaryDetail && (
-                      <div className="log-card-secondary">
-                        <span className="secondary-icon">⚡</span>
-                        <span className="secondary-text">{entry.secondaryDetail}</span>
-                      </div>
-                    )}
-                    {entry.effectDetail && !entry.damageTotal && (
-                      <div className="log-buff-detail">
-                        <span>✨ {entry.effectDetail}</span>
-                      </div>
-                    )}
+                    {renderEffectPills(entry.effects)}
                   </div>
                 );
               }
@@ -1203,9 +1533,8 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                 return (
                   <div
                     key={idx}
-                    className={`log-card log-detection-card ${factionCardClass} ${
-                      isNewest ? 'entry-fresh' : ''
-                    }`}
+                    className={`log-card log-detection-card ${factionCardClass} ${isNewest ? 'entry-fresh' : ''
+                      }`}
                   >
                     <div className="log-card-header">
                       <span className="log-turn-pill">T{entry.turn}</span>
@@ -1238,13 +1567,11 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
               }
 
               if (entry.type === 'PASSIVE') {
-                const displayDetail = formatPassiveDetail(entry.effectDetail);
                 return (
                   <div
                     key={idx}
-                    className={`log-card log-passive-card ${factionCardClass} ${
-                      isNewest ? 'entry-fresh' : ''
-                    }`}
+                    className={`log-card log-passive-card ${factionCardClass} ${isNewest ? 'entry-fresh' : ''
+                      }`}
                   >
                     <div className="log-card-header">
                       <span className="log-turn-pill">T{entry.turn}</span>
@@ -1255,11 +1582,9 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                       <span className="log-ability-name">✨ {entry.passiveName}</span>
                     </div>
 
-                    {displayDetail && (
+                    {entry.effects && entry.effects.length > 0 && (
                       <div className="log-card-body">
-                        <div className="log-passive-detail">
-                          <span className="passive-effect-chip">{displayDetail}</span>
-                        </div>
+                        {renderEffectPills(entry.effects)}
                       </div>
                     )}
                   </div>
@@ -1272,20 +1597,19 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                 const badgeText = isStealth
                   ? '👤 STEALTH BROKEN'
                   : isChallenged
-                  ? '⚔️ CHALLENGE DEFIED'
-                  : `⚡ ${entry.condition} BROKEN`;
+                    ? '⚔️ CHALLENGE DEFIED'
+                    : `⚡ ${entry.condition} BROKEN`;
                 const contextNote = isStealth
                   ? 'Concealment lost due to taking damage!'
                   : isChallenged
-                  ? 'Defied the challenge and became EXPOSED!'
-                  : `${entry.condition} effect removed.`;
+                    ? 'Defied the challenge and became EXPOSED!'
+                    : `${entry.condition} effect removed.`;
 
                 return (
                   <div
                     key={idx}
-                    className={`log-card log-condition-broken-card ${factionCardClass} ${
-                      isNewest ? 'entry-fresh' : ''
-                    }`}
+                    className={`log-card log-condition-broken-card ${factionCardClass} ${isNewest ? 'entry-fresh' : ''
+                      }`}
                   >
                     <div className="log-card-header">
                       <span className="log-turn-pill">T{entry.turn}</span>
@@ -1311,9 +1635,8 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                 return (
                   <div
                     key={idx}
-                    className={`log-card log-dot-card ${factionCardClass} ${
-                      isNewest ? 'entry-fresh' : ''
-                    }`}
+                    className={`log-card log-dot-card ${factionCardClass} ${isNewest ? 'entry-fresh' : ''
+                      }`}
                   >
                     <div className="log-card-header">
                       <span className="log-turn-pill">T{entry.turn}</span>
@@ -1343,9 +1666,8 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                 return (
                   <div
                     key={idx}
-                    className={`log-card log-defeated-card ${factionCardClass} ${
-                      isNewest ? 'entry-fresh' : ''
-                    }`}
+                    className={`log-card log-defeated-card ${factionCardClass} ${isNewest ? 'entry-fresh' : ''
+                      }`}
                   >
                     <div className="log-card-header">
                       <span className="log-turn-pill">T{entry.turn}</span>
@@ -1367,9 +1689,8 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                 return (
                   <div
                     key={idx}
-                    className={`log-card log-zoc-card ${factionCardClass} ${
-                      isNewest ? 'entry-fresh' : ''
-                    }`}
+                    className={`log-card log-zoc-card ${factionCardClass} ${isNewest ? 'entry-fresh' : ''
+                      }`}
                   >
                     <div className="log-card-header">
                       <span className="log-turn-pill">T{entry.turn}</span>
@@ -1393,9 +1714,8 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
               return (
                 <div
                   key={idx}
-                  className={`log-card log-generic-card ${factionCardClass} ${
-                    isNewest ? 'entry-fresh' : ''
-                  }`}
+                  className={`log-card log-generic-card ${factionCardClass} ${isNewest ? 'entry-fresh' : ''
+                    }`}
                 >
                   <div className="log-card-header">
                     <span className="log-turn-pill">T{entry.turn}</span>
@@ -1419,15 +1739,14 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
               <Fragment key={idx}>
                 {showTurnDivider && (
                   <div
-                    className={`log-turn-divider ${
-                      entry.turn === 0
-                        ? 'init-turn'
-                        : entry.faction === 'PLAYER'
+                    className={`log-turn-divider ${entry.turn === 0
+                      ? 'init-turn'
+                      : entry.faction === 'PLAYER'
                         ? 'player-turn'
                         : entry.faction === 'ENEMY'
-                        ? 'enemy-turn'
-                        : 'neutral-turn'
-                    }`}
+                          ? 'enemy-turn'
+                          : 'neutral-turn'
+                      }`}
                     data-testid={`log-turn-divider-${entry.turn}`}
                   >
                     <div className="log-turn-divider-title">

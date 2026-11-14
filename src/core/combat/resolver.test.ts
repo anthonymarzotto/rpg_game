@@ -237,7 +237,7 @@ describe('applyCombatEvents Fallback Logging', () => {
     if (envLog?.metadata.type === 'ENVIRONMENT') {
       expect(envLog.metadata.hazardName).toBe('Collision');
       expect(envLog.metadata.damage).toBe(4);
-      expect(envLog.metadata.effectDetail).toBe('Wall Slam');
+      expect(envLog.metadata.detail).toBe('Wall Slam');
     }
   });
 

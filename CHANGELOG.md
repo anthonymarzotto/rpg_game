@@ -2,6 +2,12 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.18.0] - 2026-11-13
+
+### Compact Effect Pills & Hover Breakdowns
+- **Color-Coded Effect Badges**: Combat Log entries now summarize conditions, knockbacks, wall slams, falls, stat buffs, turn-gauge shifts, area splash hits, and roll context modifiers as compact, color-coded pills instead of long bracketed text strings.
+- **Instant Effect Details on Hover**: Hovering over any effect pill in the Combat Log reveals a floating tooltip with the full mechanical breakdown, including damage-over-time rates, durations, defense targets, remaining HP, and multi-stat modifiers.
+
 ## [0.17.3] - 2026-11-13
 
 ### Astral Chronicle Readability & Event Card Polish

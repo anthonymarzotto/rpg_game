@@ -166,7 +166,14 @@ describe('Atomic Damage Effect Handler & Composable Effects Pipeline', () => {
     expect(dmgEvent).toBeDefined();
     // Knockback secondary effect is negated on graze
     expect(result.events.some((e) => e.type === 'DISPLACEMENT')).toBe(false);
-    expect(result.logDetail).toContain('Secondary effect negated on Graze');
+    expect(result.effects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'CONTEXT',
+          context: 'GRAZE_NEGATED'
+        })
+      ])
+    );
   });
 
   it('deals maximized damage on CRITICAL_HIT', () => {

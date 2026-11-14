@@ -252,6 +252,81 @@ export interface CombatUnit {
 
 
 /**
+ * Structured semantic outcome emitted by effect handlers, passives, and splash/context resolution.
+ */
+export type EffectOutcome =
+  | {
+      readonly kind: 'CONDITION';
+      readonly condition: ConditionType;
+      readonly durationTurns: number;
+      readonly damagePerTurn?: number;
+      readonly sourceName?: string;
+      readonly targetName?: string;
+    }
+  | {
+      readonly kind: 'FORCED_FACING';
+      readonly direction: 'TOWARDS' | 'AWAY';
+      readonly originName: string;
+    }
+  | {
+      readonly kind: 'DISPLACEMENT';
+      readonly displacement: 'KNOCKBACK' | 'RETREAT' | 'CHARGE' | 'SWAP' | 'TELEPORT';
+      readonly toCoord?: { readonly q: number; readonly r: number };
+      readonly targetName?: string;
+      readonly resisted?: boolean;
+      readonly label?: string;
+    }
+  | {
+      readonly kind: 'COLLISION';
+      readonly collisionType: 'WALL' | 'CLIFF' | 'BOUNDARY' | 'UNIT';
+      readonly damage: number;
+      readonly negated?: boolean;
+      readonly bystanderName?: string;
+      readonly collateralDamage?: number;
+      readonly bystanderHp?: number;
+      readonly bystanderMaxHp?: number;
+    }
+  | {
+      readonly kind: 'FALL';
+      readonly damage: number;
+      readonly negated?: boolean;
+    }
+  | {
+      readonly kind: 'MODIFIER';
+      readonly label: string;
+      readonly entries: readonly { readonly stat: string; readonly value: number | string }[];
+      readonly durationTurns?: number;
+      readonly note?: string;
+    }
+  | {
+      readonly kind: 'INITIATIVE';
+      readonly direction: 'BOOST' | 'DELAY';
+      readonly amount: number;
+    }
+  | {
+      readonly kind: 'COLLATERAL_HIT';
+      readonly sourceLabel: string;
+      readonly targetName: string;
+      readonly damage: number;
+      readonly damageType?: 'PHYSICAL' | 'MAGICAL';
+      readonly hitOutcome?: HitOutcome;
+      readonly defenseTarget?: number;
+      readonly targetHp?: number;
+      readonly targetMaxHp?: number;
+      readonly conditions?: readonly {
+        readonly condition: ConditionType;
+        readonly durationTurns: number;
+        readonly damagePerTurn?: number;
+      }[];
+    }
+  | {
+      readonly kind: 'CONTEXT';
+      readonly context: 'ELEVATION' | 'AURA_PENALTY' | 'GRAZE_NEGATED';
+      readonly label: string;
+      readonly detail?: string;
+    };
+
+/**
  * Optional structured metadata for a combat log entry, avoiding UI string regex parsing.
  */
 export type CombatLogMetadata =
@@ -267,7 +342,7 @@ export type CombatLogMetadata =
       readonly damageBreakdown?: string;
       readonly targetHp?: number;
       readonly targetMaxHp?: number;
-      readonly secondaryDetail?: string;
+      readonly effects?: readonly EffectOutcome[];
       readonly isAreaTarget?: boolean;
       readonly totalScore?: number;
       readonly attackRollBreakdown?: readonly AttackModifierComponent[];
@@ -284,18 +359,17 @@ export type CombatLogMetadata =
       readonly actor: string;
       readonly ability: string;
       readonly target?: string;
-      readonly effectDetail?: string;
+      readonly effects?: readonly EffectOutcome[];
     }
   | {
       readonly type: 'UTILITY';
       readonly actor: string;
       readonly ability: string;
       readonly target?: string;
-      readonly effectDetail?: string;
       readonly damageTotal?: string;
       readonly targetHp?: number;
       readonly targetMaxHp?: number;
-      readonly secondaryDetail?: string;
+      readonly effects?: readonly EffectOutcome[];
     }
   | {
       readonly type: 'INITIATIVE';
@@ -309,7 +383,7 @@ export type CombatLogMetadata =
       readonly type: 'PASSIVE';
       readonly actor: string;
       readonly passiveName: string;
-      readonly effectDetail?: string;
+      readonly effects?: readonly EffectOutcome[];
     }
   | {
       readonly type: 'DETECTION';
@@ -338,7 +412,7 @@ export type CombatLogMetadata =
       readonly type: 'ENVIRONMENT';
       readonly actor: string;
       readonly hazardName: string;
-      readonly effectDetail?: string;
+      readonly detail?: string;
       readonly damage?: number;
       readonly targetHp?: number;
       readonly targetMaxHp?: number;

@@ -15,7 +15,7 @@ import { penetrateHandler } from './penetrateHandler';
 import { bloodFrenzyHandler } from './bloodFrenzyHandler';
 import { positionSwapHandler } from './positionSwapHandler';
 import { linePierceHandler } from './linePierceHandler';
-import { CombatEvent } from '../types';
+import { CombatEvent, EffectOutcome } from '../types';
 
 export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
   DAMAGE: damageHandler,
@@ -66,7 +66,8 @@ export function executeAbilityEffects(
   }
 
   const allEvents: CombatEvent[] = [];
-  const logDetails: string[] = [];
+  const effects: EffectOutcome[] = [];
+  let grazeNegatedRecorded = false;
   let knockbackResult: any = undefined;
   let wallSlamDamage: number | undefined = undefined;
   let fallDamage: number | undefined = undefined;
@@ -89,7 +90,15 @@ export function executeAbilityEffects(
     }
     // Graze rule: damage resolves with x0.5; secondary non-damage effects are negated on Graze
     if (ctx.hitOutcome === 'GRAZE' && effect.type !== 'DAMAGE' && applyOn !== 'ALWAYS') {
-      logDetails.push(' (Secondary effect negated on Graze)');
+      if (!grazeNegatedRecorded) {
+        effects.push({
+          kind: 'CONTEXT',
+          context: 'GRAZE_NEGATED',
+          label: 'Graze: Secondary Negated',
+          detail: 'Secondary effect(s) negated due to Graze hit outcome'
+        });
+        grazeNegatedRecorded = true;
+      }
       continue;
     }
 
@@ -113,8 +122,8 @@ export function executeAbilityEffects(
     if (res.events && res.events.length > 0) {
       allEvents.push(...res.events);
     }
-    if (res.logDetail) {
-      logDetails.push(res.logDetail);
+    if (res.effects && res.effects.length > 0) {
+      effects.push(...res.effects);
     }
     if (res.knockbackResult) {
       knockbackResult = res.knockbackResult;
@@ -129,7 +138,7 @@ export function executeAbilityEffects(
 
   return {
     events: allEvents,
-    logDetail: logDetails.join(''),
+    ...(effects.length > 0 ? { effects } : {}),
     knockbackResult,
     wallSlamDamage,
     fallDamage

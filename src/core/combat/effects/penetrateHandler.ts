@@ -34,7 +34,14 @@ export const penetrateHandler: EffectHandler = {
 
       return {
         events: [event],
-        logDetail: ` 🏇 [Ride-Through to (${penetrateDest.q}, ${penetrateDest.r})]`
+        effects: [
+          {
+            kind: 'DISPLACEMENT',
+            displacement: 'CHARGE',
+            toCoord: penetrateDest,
+            label: 'Ride-Through'
+          }
+        ]
       };
     }
 
