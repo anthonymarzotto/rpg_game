@@ -70,12 +70,11 @@ describe('ActionBar Augment Indicators & Attributions', () => {
     // Standard button checks
     expect(html).toContain('Ignite');
     expect(html).toContain('2 AP');
-    expect(html).toContain('tooltip-tag">Focus</span>');
-    expect(html).not.toContain('tooltip-tag">MAGE</span>');
+    expect(html).toContain('tooltip-tag">Focus');
+    expect(html).not.toContain('tooltip-tag">MAGE');
     expect(html).not.toContain('cost-discounted');
     expect(html).not.toContain('augment-indicator');
     expect(html).not.toContain('augmented');
-    expect(html).not.toContain('inline-attribution-badge');
     expect(html).not.toContain('Active Augments');
   });
 
@@ -115,16 +114,18 @@ describe('ActionBar Augment Indicators & Attributions', () => {
     expect(html).toContain('cost-discounted');
     expect(html).toContain('1 AP');
 
-    // Inline tooltip attribution badges
-    expect(html).toContain('inline-attribution-badge');
-    expect(html).toContain('[✦ +1 Range from Spell Sculpt]');
-    expect(html).toContain('[✦ +1 AoE Radius from Spell Sculpt]');
-    expect(html).toContain('[✦ -1 AP from Spell Sculpt]');
+    // Hybrid Stat Strip pills with In-Trial tier highlights
+    expect(html).toContain('ability-stat-pill tier-trial');
+    expect(html).toContain('Range 4');
+    expect(html).toContain('Blast 1');
 
     // Active augments footer summary
     expect(html).toContain('tooltip-augments-footer');
     expect(html).toContain('Active Augments');
     expect(html).toContain('Spell Sculpt');
+    expect(html).toContain('+1 Range');
+    expect(html).toContain('+1 AoE Radius');
+    expect(html).toContain('-1 AP');
   });
 
   it('renders die step upgrade attribution for damage effects', () => {
@@ -152,9 +153,10 @@ describe('ActionBar Augment Indicators & Attributions', () => {
       />
     );
 
-    // Die upgraded from 1d6 to 1d8
-    expect(html).toContain('1d8 + focus');
-    expect(html).toContain('[✦ 1d6 -&gt; 1d8 from Bear Strength]');
+    // Die upgraded from 1d6 to 1d8 with Shard tier highlight
+    expect(html).toContain('1d8 + FOC Magical');
+    expect(html).toContain('ability-stat-pill tier-shard');
+    expect(html).toContain('1d6 -&gt; 1d8');
     expect(html).toContain('Bear Strength');
   });
 });

@@ -1,5 +1,12 @@
 import { Ability } from '../types/ability';
-import { AbilityModifier, EffectiveAbility, PropertyAttribution } from '../types/modifier';
+import {
+  AbilityModifier,
+  ActiveModifierTier,
+  EffectiveAbility,
+  ModifiableAbilityProperty,
+  ModifierProvenanceTier,
+  PropertyAttribution
+} from '../types/modifier';
 
 /**
  * Standard polyhedral die progression ladder for die-tier stepped modifiers.
@@ -50,8 +57,47 @@ export function isModifierApplicable(modifier: AbilityModifier, ability: Ability
 }
 
 /**
+ * Resolves the provenance tier of an AbilityModifier.
+ */
+export function resolveModifierTier(mod: AbilityModifier): ActiveModifierTier {
+  return mod.tier ?? (mod.isPermanent ? 'SHARD' : 'TRIAL');
+}
+
+/**
+ * Picks the higher-precedence provenance tier according to Normal -> Shard -> In-Trial.
+ */
+export function maxProvenanceTier(
+  a: ModifierProvenanceTier,
+  b: ModifierProvenanceTier
+): ModifierProvenanceTier {
+  if (a === 'TRIAL' || b === 'TRIAL') return 'TRIAL';
+  if (a === 'SHARD' || b === 'SHARD') return 'SHARD';
+  return 'NORMAL';
+}
+
+/**
+ * Resolves the highest provenance tier affecting any of the specified properties.
+ */
+export function resolvePropertyTier(
+  attributions: readonly PropertyAttribution[] | undefined,
+  ...properties: ModifiableAbilityProperty[]
+): ModifierProvenanceTier {
+  if (!attributions || attributions.length === 0) return 'NORMAL';
+  let highest: ModifierProvenanceTier = 'NORMAL';
+  for (const attr of attributions) {
+    if (properties.length === 0 || properties.includes(attr.property)) {
+      const tier = attr.tier ?? 'TRIAL';
+      highest = maxProvenanceTier(highest, tier);
+      if (highest === 'TRIAL') return 'TRIAL';
+    }
+  }
+  return highest;
+}
+
+/**
  * Pure evaluation function that calculates effective ability stats and generates
  * structured provenance attributions for all altered properties.
+ * Preserves existing attributions/modifiers when chaining on top of an EffectiveAbility.
  *
  * Evaluation order:
  * 1. Overrides
@@ -59,15 +105,27 @@ export function isModifierApplicable(modifier: AbilityModifier, ability: Ability
  * 3. Effect Patches & Injections
  */
 export function getEffectiveAbility(
-  baseAbility: Ability,
+  baseAbility: Ability | EffectiveAbility,
   modifiers?: readonly AbilityModifier[]
 ): EffectiveAbility {
+  const existingAttributions: readonly PropertyAttribution[] =
+    'attributions' in baseAbility && Array.isArray(baseAbility.attributions)
+      ? baseAbility.attributions
+      : [];
+  const existingAppliedIds: readonly string[] =
+    'appliedModifierIds' in baseAbility && Array.isArray(baseAbility.appliedModifierIds)
+      ? baseAbility.appliedModifierIds
+      : [];
+  const existingAttackRollBonus: number | undefined =
+    'attackRollBonus' in baseAbility ? baseAbility.attackRollBonus : undefined;
+
   const applicable = modifiers?.filter((m) => isModifierApplicable(m, baseAbility)) ?? [];
   if (applicable.length === 0) {
     return {
       ...baseAbility,
-      attributions: [],
-      appliedModifierIds: []
+      attributions: [...existingAttributions],
+      appliedModifierIds: [...existingAppliedIds],
+      ...(existingAttackRollBonus !== undefined ? { attackRollBonus: existingAttackRollBonus } : {})
     };
   }
 
@@ -81,13 +139,14 @@ export function getEffectiveAbility(
   let targetType = baseAbility.targetType;
   let damageType = baseAbility.damageType;
   let effects = [...baseAbility.effects];
-  let attackRollBonus = 0;
+  let attackRollBonus = existingAttackRollBonus ?? 0;
 
-  const attributions: PropertyAttribution[] = [];
-  const appliedModifierIds: string[] = [];
+  const attributions: PropertyAttribution[] = [...existingAttributions];
+  const appliedModifierIds: string[] = [...existingAppliedIds];
 
   for (const mod of applicable) {
     appliedModifierIds.push(mod.id);
+    const tier = resolveModifierTier(mod);
 
     // 1. Overrides
     if (mod.overrides) {
@@ -97,7 +156,8 @@ export function getEffectiveAbility(
           property: 'archetypeTag',
           sourceName: mod.name,
           sourceId: mod.id,
-          changeLabel: `Archetype: ${archetypeTag}`
+          changeLabel: `Archetype: ${archetypeTag}`,
+          tier
         });
       }
 
@@ -107,7 +167,8 @@ export function getEffectiveAbility(
           property: 'defenseTarget',
           sourceName: mod.name,
           sourceId: mod.id,
-          changeLabel: `Target: ${defenseTarget}`
+          changeLabel: `Target: ${defenseTarget}`,
+          tier
         });
       }
 
@@ -120,7 +181,8 @@ export function getEffectiveAbility(
           property: 'attackModifierAttribute',
           sourceName: mod.name,
           sourceId: mod.id,
-          changeLabel: `Attack Attr: ${attackModifierAttribute}`
+          changeLabel: `Attack Attr: ${attackModifierAttribute}`,
+          tier
         });
       }
 
@@ -130,7 +192,8 @@ export function getEffectiveAbility(
           property: 'targetType',
           sourceName: mod.name,
           sourceId: mod.id,
-          changeLabel: `Target Type: ${targetType}`
+          changeLabel: `Target Type: ${targetType}`,
+          tier
         });
       }
 
@@ -140,7 +203,8 @@ export function getEffectiveAbility(
           property: 'damageType',
           sourceName: mod.name,
           sourceId: mod.id,
-          changeLabel: `Damage Type: ${damageType}`
+          changeLabel: `Damage Type: ${damageType}`,
+          tier
         });
       }
     }
@@ -155,7 +219,8 @@ export function getEffectiveAbility(
           property: 'apCost',
           sourceName: mod.name,
           sourceId: mod.id,
-          changeLabel: `${sign} AP`
+          changeLabel: `${sign} AP`,
+          tier
         });
       }
 
@@ -167,7 +232,8 @@ export function getEffectiveAbility(
           property: 'hpCost',
           sourceName: mod.name,
           sourceId: mod.id,
-          changeLabel: `${sign} HP Cost`
+          changeLabel: `${sign} HP Cost`,
+          tier
         });
       }
 
@@ -179,7 +245,8 @@ export function getEffectiveAbility(
           property: 'range',
           sourceName: mod.name,
           sourceId: mod.id,
-          changeLabel: `${sign} Range`
+          changeLabel: `${sign} Range`,
+          tier
         });
       }
 
@@ -191,7 +258,8 @@ export function getEffectiveAbility(
           property: 'aoeRadius',
           sourceName: mod.name,
           sourceId: mod.id,
-          changeLabel: `${sign} AoE Radius`
+          changeLabel: `${sign} AoE Radius`,
+          tier
         });
       }
 
@@ -203,7 +271,8 @@ export function getEffectiveAbility(
           property: 'attackRoll',
           sourceName: mod.name,
           sourceId: mod.id,
-          changeLabel: `${sign} Attack Roll`
+          changeLabel: `${sign} Attack Roll`,
+          tier
         });
       }
     }
@@ -217,6 +286,7 @@ export function getEffectiveAbility(
       effects = effects.map((eff) => {
         if (eff.type !== 'DAMAGE') return eff;
         let updatedEff = { ...eff };
+        let effPatched = false;
 
         if (patch.diceStep && updatedEff.damageProfile) {
           const oldSides = updatedEff.damageProfile.sides;
@@ -231,6 +301,7 @@ export function getEffectiveAbility(
             };
             patchLabels.push(`${updatedEff.damageProfile!.count}d${oldSides} -> ${updatedEff.damageProfile!.count}d${newSides}`);
             patchedAny = true;
+            effPatched = true;
           }
         }
 
@@ -246,6 +317,7 @@ export function getEffectiveAbility(
           const sign = patch.diceCount > 0 ? `+${patch.diceCount}` : `${patch.diceCount}`;
           patchLabels.push(`${sign}d${updatedEff.damageProfile!.sides}`);
           patchedAny = true;
+          effPatched = true;
         }
 
         if (patch.flatDamage) {
@@ -258,6 +330,16 @@ export function getEffectiveAbility(
           const sign = patch.flatDamage > 0 ? `+${patch.flatDamage}` : `${patch.flatDamage}`;
           patchLabels.push(`${sign} Dmg`);
           patchedAny = true;
+          effPatched = true;
+        }
+
+        if (effPatched) {
+          const nextTier = maxProvenanceTier(updatedEff.sourceTier ?? 'NORMAL', tier) as ActiveModifierTier;
+          updatedEff = {
+            ...updatedEff,
+            sourceTier: nextTier,
+            sourceName: mod.name
+          };
         }
 
         return updatedEff;
@@ -268,19 +350,26 @@ export function getEffectiveAbility(
           property: 'damageProfile',
           sourceName: mod.name,
           sourceId: mod.id,
-          changeLabel: patchLabels.join(', ')
+          changeLabel: patchLabels.join(', '),
+          tier
         });
       }
     }
 
     // 4. Effect Injections
     if (mod.appendEffects && mod.appendEffects.length > 0) {
-      effects = [...effects, ...mod.appendEffects];
+      const taggedAppends = mod.appendEffects.map((eff) => ({
+        ...eff,
+        sourceTier: tier,
+        sourceName: mod.name
+      }));
+      effects = [...effects, ...taggedAppends];
       attributions.push({
         property: 'effects',
         sourceName: mod.name,
         sourceId: mod.id,
-        changeLabel: `+${mod.appendEffects.length} Effect(s)`
+        changeLabel: `+${mod.appendEffects.length} Effect(s)`,
+        tier
       });
     }
   }

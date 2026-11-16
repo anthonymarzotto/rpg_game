@@ -785,16 +785,46 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  max-height: 140px;
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .pinned-ability-item {
+  position: relative;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
   padding: 0.35rem 0.5rem;
   font-size: 0.7rem;
+  cursor: default;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.pinned-ability-item:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.pinned-ability-tooltip {
+  position: absolute;
+  right: calc(100% + 10px);
+  top: 0;
+  width: 280px;
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.65rem 0.8rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  z-index: 40;
+}
+
+.pinned-ability-item:hover .pinned-ability-tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 .pinned-ability-row {
@@ -2642,7 +2672,7 @@
   bottom: calc(100% + 12px);
   left: 50%;
   transform: translateX(-50%);
-  width: 220px;
+  width: 280px;
   background: rgba(15, 23, 42, 0.94);
   backdrop-filter: blur(14px);
   border: 1px solid rgba(255, 255, 255, 0.18);

@@ -5,7 +5,7 @@ import { ClassPackage } from '../../core/types/classPackage';
 export const BLOOD_FRENZY: Ability = {
   id: 'blood_frenzy',
   name: 'Blood Frenzy',
-  description: 'A sacrificial blood primer. Sacrifices 3 HP to empower the next physical attack this turn with +1 Die Step and +2 to the attack roll.',
+  description: 'A sacrificial blood primer that trades vitality for ferocious physical power.',
   archetypeTag: 'FIGHTER',
   apCost: 1,
   hpCost: 3,
@@ -35,7 +35,7 @@ export const BLOOD_FRENZY: Ability = {
 export const RECKLESS_CLEAVE: Ability = {
   id: 'reckless_cleave',
   name: 'Reckless Cleave',
-  description: 'A ferocious frontal sweep dealing 2d4 + Force physical damage to an enemy and sweeping up to 2 adjacent frontal foes for collateral damage, at the cost of -2 Evasion for 1 turn.',
+  description: 'A ferocious frontal sweep that tears through nearby foes at the expense of your guard.',
   archetypeTag: 'FIGHTER',
   apCost: 2,
   range: 1,
@@ -71,7 +71,7 @@ export const RECKLESS_CLEAVE: Ability = {
 export const IGNITE_RAGE: Ability = {
   id: 'ignite_rage',
   name: 'Ignite Rage',
-  description: 'Strikes an adjacent foe with crackling arcane flames, dealing 1d6 + Focus magical damage vs Resolve and inflicting BURN for 2 turns.',
+  description: 'Strikes an adjacent foe with crackling arcane flames fueled by fury.',
   archetypeTag: 'MAGE',
   apCost: 1,
   range: 1,

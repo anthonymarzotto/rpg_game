@@ -5,7 +5,7 @@ import { ClassPackage } from '../../core/types/classPackage';
 export const ELDRITCH_BLAST: Ability = {
   id: 'eldritch_blast',
   name: 'Eldritch Blast',
-  description: 'A concentrated beam of eldritch force dealing 1d8 + Focus magical damage vs Resolve and knocking the target back 1 hex with wall-slam collision risk.',
+  description: 'A concentrated beam of eldritch force that hurls foes backward.',
   archetypeTag: 'MAGE',
   apCost: 2,
   range: 3,
@@ -32,7 +32,7 @@ export const ELDRITCH_BLAST: Ability = {
 export const PACT_BLADE: Ability = {
   id: 'pact_blade',
   name: 'Pact Blade',
-  description: 'A swift melee strike with an otherworldly conjured blade dealing 1d6 + Focus magical damage vs Resolve, bypassing physical Armor.',
+  description: 'A swift melee strike with an otherworldly conjured blade that bypasses physical armor.',
   archetypeTag: 'MAGE',
   apCost: 1,
   range: 1,
@@ -64,7 +64,7 @@ export const PACT_BLADE: Ability = {
 export const HELLFIRE_BRAND: Ability = {
   id: 'hellfire_brand',
   name: 'Hellfire Brand',
-  description: 'Engulfs a foe in searing demonic flames, dealing 1d4 + Focus magical damage vs Resolve and inflicting BURN for 2 turns (2 damage/turn).',
+  description: 'Engulfs a foe in searing demonic flames that linger after impact.',
   archetypeTag: 'MAGE',
   apCost: 1,
   range: 2,

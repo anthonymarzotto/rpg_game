@@ -5,7 +5,7 @@ import { ClassPackage } from '../../core/types/classPackage';
 export const EXPOSE_WEAKNESS: Ability = {
   id: 'expose_weakness',
   name: 'Expose Weakness',
-  description: 'Marks enemy weak points within 3 hexes, inflicting -2 Armor and -2 Evasion for 2 turns.',
+  description: 'Marks a target’s vulnerable openings, stripping away their guard.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 3,
@@ -28,7 +28,7 @@ export const EXPOSE_WEAKNESS: Ability = {
 export const SMOKE_VEIL: Ability = {
   id: 'smoke_veil',
   name: 'Smoke Veil',
-  description: 'Vanishes into a dense cloud of smoke, gaining STEALTH until attacking, taking damage, or being spotted. Attacking from stealth grants Advantage and breaks stealth.',
+  description: 'Vanishes into a dense cloud of smoke, striking from concealment with Advantage.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 0,
@@ -48,7 +48,7 @@ export const SMOKE_VEIL: Ability = {
 export const TOXIC_SHIV: Ability = {
   id: 'toxic_shiv',
   name: 'Toxic Shiv',
-  description: 'A venomous blade strike dealing 1d4 + Finesse physical damage and poisoning the target for 2 turns (2 damage/turn).',
+  description: 'A venomous blade strike that coats the wound in lingering toxin.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 1,

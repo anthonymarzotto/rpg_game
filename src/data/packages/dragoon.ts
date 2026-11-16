@@ -5,7 +5,7 @@ import { ClassPackage } from '../../core/types/classPackage';
 export const DRAGON_DIVE: Ability = {
   id: 'dragon_dive',
   name: 'Dragon Dive',
-  description: 'Vault high into the air over intervening obstacles and units to crash down upon an enemy 2 to 3 hexes away, landing in the rear arc with Near Hex fallback. Deals 1d6 + Force physical damage vs Evasion and unleashes a shockwave dealing 1d4 physical damage to surrounding hostile units.',
+  description: 'Vault high into the air over obstacles and units to crash down behind an enemy in a shockwave.',
   archetypeTag: 'FIGHTER',
   apCost: 2,
   range: 3,
@@ -41,7 +41,7 @@ export const DRAGON_DIVE: Ability = {
 export const PIERCING_THRUST: Ability = {
   id: 'piercing_thrust',
   name: 'Piercing Thrust',
-  description: 'Thrust a long spear forward along a straight hex ray up to 2 tiles away, dealing 1d6 + Force physical damage vs Evasion. If another unit occupies the aligned hex directly behind the primary target, the thrust impales through dealing 1d4 + Force physical collateral damage.',
+  description: 'Thrust a long spear forward along a straight line, impaling any foe aligned behind the primary target.',
   archetypeTag: 'FIGHTER',
   apCost: 1,
   range: 2,
@@ -70,7 +70,7 @@ export const PIERCING_THRUST: Ability = {
 export const WYRMFLAME_BREATH: Ability = {
   id: 'wyrmflame_breath',
   name: 'Wyrmflame Breath',
-  description: 'Exhale a 4-hex forward cone of draconic flames (1 apex at dist 1, 3 fan hexes at dist 2). Each hostile unit hit takes 1d4 + Focus magical damage vs Resolve and suffers BURN (1 damage per turn for 2 turns).',
+  description: 'Exhale a sweeping cone of draconic flames that scorches and ignites caught enemies.',
   archetypeTag: 'MAGE',
   apCost: 1,
   range: 2,

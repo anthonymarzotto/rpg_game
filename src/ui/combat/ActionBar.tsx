@@ -1,9 +1,9 @@
 import { Ability } from '../../core/types/ability';
 import { CombatUnit } from '../../core/combat/types';
 import { ActionMode } from './useCombatSimulation';
-import { getEffectiveAbility } from '../../core/combat/modifiers';
-import { formatDisciplineName } from './combatXpUtils';
+import { getEffectiveAbility, resolvePropertyTier } from '../../core/combat/modifiers';
 import { getPassiveIcon, PassiveTooltipContent } from './UnitStatusCard';
+import { AbilityHoverTooltipBody } from '../common/AbilityDescriptionBlock';
 
 export interface ActionBarProps {
   readonly activeCu: CombatUnit | undefined;
@@ -50,18 +50,10 @@ export function ActionBar({
         ? '🗡️'
         : '🔮';
 
-    const renderBadges = (predicate: (a: (typeof effectiveAbility.attributions)[number]) => boolean) =>
-      effectiveAbility.attributions
-        .filter(predicate)
-        .map((a, i) => (
-          <span key={i} className="inline-attribution-badge">
-            [✦ {a.changeLabel} from {a.sourceName}]
-          </span>
-        ));
-    const renderPropBadges = (prop: string) => renderBadges((a) => a.property === prop);
-
-    const hasAoe = (effectiveAbility.aoeRadius ?? 0) > 0 || effectiveAbility.attributions.some((a) => a.property === 'aoeRadius');
-    const hasApDiscount = effectiveAbility.attributions.some((a) => a.property === 'apCost');
+    const apTier = resolvePropertyTier(effectiveAbility.attributions, 'apCost');
+    const hpTier = resolvePropertyTier(effectiveAbility.attributions, 'hpCost');
+    const apTierClass = apTier === 'TRIAL' ? 'cost-tier-trial' : apTier === 'SHARD' ? 'cost-tier-shard' : '';
+    const hpTierClass = hpTier === 'TRIAL' ? 'cost-tier-trial' : hpTier === 'SHARD' ? 'cost-tier-shard' : '';
 
     return (
       <div key={ability.id} className="ability-btn-wrapper">
@@ -79,10 +71,10 @@ export function ActionBar({
           <span className="action-icon">{icon}</span>
           <div className="action-text-block">
             <span className="action-name">{effectiveAbility.name}</span>
-            <span className={`action-cost ${isApDiscounted ? 'cost-discounted' : ''}`}>
+            <span className={`action-cost ${isApDiscounted ? 'cost-discounted' : ''} ${apTierClass}`.trim()}>
               {effectiveAbility.apCost} AP
               {effectiveAbility.hpCost && effectiveAbility.hpCost > 0 ? (
-                <span className={`action-cost-hp ${activeCu.currentHp <= effectiveAbility.hpCost ? 'cost-lethal' : ''}`}>
+                <span className={`action-cost-hp ${activeCu.currentHp <= effectiveAbility.hpCost ? 'cost-lethal' : hpTierClass}`.trim()}>
                   {' '}+ {effectiveAbility.hpCost} HP{activeCu.currentHp <= effectiveAbility.hpCost ? ' ⚠️' : ''}
                 </span>
               ) : null}
@@ -92,99 +84,11 @@ export function ActionBar({
 
         {/* Hover Ability Tooltip */}
         <div className="ability-hover-tooltip">
-          <div className="tooltip-title-row">
-            <span className="tooltip-name">
-              {effectiveAbility.name}
-              {isModified && <span className="tooltip-augment-glyph"> ✦</span>}
-            </span>
-            <span className="tooltip-tag">
-              {isWildcard ? 'Resonant • ' : ''}
-              {formatDisciplineName(effectiveAbility.archetypeTag)}
-            </span>
-          </div>
-          <div className="tooltip-desc">{effectiveAbility.description}</div>
-          <div className="tooltip-stats-grid">
-            <span>
-              Range: <b>{effectiveAbility.range} hex</b>
-              {renderPropBadges('range')}
-            </span>
-            {hasAoe && (
-              <span>
-                AOE: <b>{effectiveAbility.aoeRadius ?? 0} hex</b>
-                {renderPropBadges('aoeRadius')}
-              </span>
-            )}
-            <span>
-              Target: <b>{effectiveAbility.targetType}</b>
-              {renderPropBadges('targetType')}
-            </span>
-            <span>
-              Defense: <b>{effectiveAbility.defenseTarget}</b>
-              {renderPropBadges('defenseTarget')}
-            </span>
-            {effectiveAbility.attackModifierAttribute && (
-              <span>
-                Hit Roll: <b>+{effectiveAbility.attackModifierAttribute}</b>
-                {renderPropBadges('attackModifierAttribute')}
-              </span>
-            )}
-            {hasApDiscount && (
-              <span>
-                Cost: <b>{effectiveAbility.apCost} AP</b>
-                {renderPropBadges('apCost')}
-              </span>
-            )}
-            {effectiveAbility.hpCost && effectiveAbility.hpCost > 0 && (
-              <span>
-                HP Cost:{' '}
-                <b className={activeCu.currentHp <= effectiveAbility.hpCost ? 'cost-lethal' : ''}>
-                  {effectiveAbility.hpCost} HP {activeCu.currentHp <= effectiveAbility.hpCost ? '(⚠️ LETHAL)' : ''}
-                </b>
-              </span>
-            )}
-            {effectiveAbility.effects.map((eff, idx) => {
-              if (eff.type === 'DAMAGE') {
-                const dp = eff.damageProfile;
-                const flat = eff.flatDamage ? ` + ${eff.flatDamage}` : '';
-                const modAttr = dp?.modifierAttribute ? ` + ${dp.modifierAttribute}` : '';
-                return (
-                  <span key={idx} className="tooltip-damage-span">
-                    Dice: <b>{dp ? `${dp.count}d${dp.sides}${modAttr}${flat}` : `${eff.flatDamage ?? 0}`}</b>
-                    {renderBadges(
-                      (a) =>
-                        a.property === 'effects' ||
-                        a.property === 'damageProfile' ||
-                        a.property.startsWith(`effects[${idx}]`)
-                    )}
-                  </span>
-                );
-              }
-              return (
-                <span key={idx} className="tooltip-effect-span text-gold">
-                  Effect: <b>{eff.type}</b>
-                  {eff.magnitude !== undefined && ` (Mag: ${eff.magnitude})`}
-                  {eff.conditionType && ` (${eff.conditionType})`}
-                  {eff.condition && ` (${eff.condition})`}
-                  {renderBadges((a) => a.property === 'effects' || a.property.startsWith(`effects[${idx}]`))}
-                </span>
-              );
-            })}
-          </div>
-
-          {/* Active Augments Summary Footer */}
-          {effectiveAbility.attributions.length > 0 && (
-            <div className="tooltip-augments-footer">
-              <div className="tooltip-augments-title">✦ Active Augments</div>
-              <div className="tooltip-augments-list">
-                {effectiveAbility.attributions.map((attr, idx) => (
-                  <div key={idx} className="tooltip-augment-row">
-                    <span className="augment-source">{attr.sourceName}</span>
-                    <span className="augment-label">{attr.changeLabel}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <AbilityHoverTooltipBody
+            ability={effectiveAbility}
+            isWildcard={isWildcard}
+            currentHp={activeCu.currentHp}
+          />
         </div>
       </div>
     );

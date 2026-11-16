@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { UnitStatusCard } from './UnitStatusCard';
 import { createRecruit } from '../../core/units/unitFactory';
+import { getEffectiveAbility } from '../../core/combat/modifiers';
+import { STRIKE } from '../../data/packages/novice';
 import { CombatUnit } from '../../core/combat/types';
 import { TargetPreview } from '../../core/combat/targetPreview';
 
@@ -333,6 +335,43 @@ describe('UnitStatusCard Component', () => {
       expect(html).toContain('💨 Elusive Stride');
       expect(html).toContain('Disengaging or moving through threatened hexes costs 0 additional AP.');
       expect(html).not.toContain('title="Disengaging or moving through');
+    });
+
+    it('renders compact 1-liner and hybrid hover tooltip with Shard and In-Trial precedence on pinned abilities', () => {
+      const activeCu = createMockCombatUnit({ unit: createRecruit('p1', 'Active Hero') });
+      const shardStrike = getEffectiveAbility(STRIKE, [
+        {
+          id: 'shard_starlight_lens',
+          name: 'Starlight Lens',
+          isPermanent: true,
+          effectPatches: { diceStep: 1 }
+        }
+      ]);
+      const pinnedCu = createMockCombatUnit({
+        faction: 'PLAYER',
+        unit: createRecruit('p2', 'Pinned Hero'),
+        abilities: [shardStrike],
+        abilityModifiers: [
+          {
+            id: 'blood_frenzy',
+            name: 'Blood Frenzy',
+            targetDamageTypes: ['PHYSICAL'],
+            deltas: { attackRoll: 2 },
+            effectPatches: { diceStep: 1 }
+          }
+        ]
+      });
+
+      const html = renderToStaticMarkup(
+        <UnitStatusCard activeCu={activeCu} targetPreview={null} pinnedUnitCu={pinnedCu} />
+      );
+
+      expect(html).toContain('pinned-ability-compact');
+      expect(html).toContain('pinned-ability-tooltip');
+      expect(html).toContain('1d10 + FRC Physical');
+      expect(html).toContain('compact-seg tier-trial');
+      expect(html).toContain('Starlight Lens');
+      expect(html).toContain('Blood Frenzy');
     });
   });
 });

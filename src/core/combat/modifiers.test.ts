@@ -3,7 +3,8 @@ import {
   upgradeDieSides,
   STANDARD_DICE_STEPS,
   isModifierApplicable,
-  getEffectiveAbility
+  getEffectiveAbility,
+  resolvePropertyTier
 } from './modifiers';
 import { Ability } from '../types/ability';
 import { AbilityModifier } from '../types/modifier';
@@ -215,6 +216,69 @@ describe('Universal Ability Modifier Engine', () => {
       expect(eff.effects).toHaveLength(2);
       expect(eff.effects[1].type).toBe('CONDITION');
       expect(eff.attributions.some((a) => a.property === 'effects')).toBe(true);
+    });
+
+    it('preserves pre-resolved shard attributions when evaluated with empty modifiers (B.10)', () => {
+      const shardMod: AbilityModifier = {
+        id: 'shard_bloodbound_shard',
+        name: 'Bloodbound Shard',
+        isPermanent: true,
+        deltas: { hpCost: 2 },
+        effectPatches: { diceStep: 1, flatDamage: 2 }
+      };
+
+      const campResolved = getEffectiveAbility(baseAbility, [shardMod]);
+      const trialResolved = getEffectiveAbility(campResolved, []);
+
+      expect(trialResolved.hpCost).toBe(2);
+      expect(trialResolved.effects[0].damageProfile?.sides).toBe(8);
+      expect(trialResolved.effects[0].flatDamage).toBe(2);
+      expect(trialResolved.appliedModifierIds).toEqual(['shard_bloodbound_shard']);
+      expect(trialResolved.attributions).toHaveLength(2);
+      expect(trialResolved.attributions.every((a) => a.tier === 'SHARD')).toBe(true);
+      expect(resolvePropertyTier(trialResolved.attributions, 'damageProfile')).toBe('SHARD');
+      expect(resolvePropertyTier(trialResolved.attributions, 'range')).toBe('NORMAL');
+    });
+
+    it('layers in-trial modifiers on top of shard attributions with Normal -> Shard -> In-Trial precedence', () => {
+      const shardMod: AbilityModifier = {
+        id: 'shard_starlight_lens',
+        name: 'Starlight Lens',
+        isPermanent: true,
+        effectPatches: { diceStep: 1 }
+      };
+      const trialMod: AbilityModifier = {
+        id: 'blood_frenzy',
+        name: 'Blood Frenzy',
+        deltas: { attackRoll: 2 },
+        effectPatches: { diceStep: 1 }
+      };
+
+      const withShard = getEffectiveAbility(baseAbility, [shardMod]);
+      const withTrial = getEffectiveAbility(withShard, [trialMod]);
+
+      expect(withTrial.effects[0].damageProfile?.sides).toBe(10);
+      expect(withTrial.effects[0].sourceTier).toBe('TRIAL');
+      expect(withTrial.attackRollBonus).toBe(2);
+      expect(withTrial.appliedModifierIds).toEqual(['shard_starlight_lens', 'blood_frenzy']);
+      expect(resolvePropertyTier(withTrial.attributions, 'damageProfile')).toBe('TRIAL');
+      expect(resolvePropertyTier(withTrial.attributions, 'attackRoll')).toBe('TRIAL');
+      expect(resolvePropertyTier(withTrial.attributions, 'range')).toBe('NORMAL');
+    });
+
+    it('tags appended effects with provenance tier and sourceName', () => {
+      const shardMod: AbilityModifier = {
+        id: 'shard_venom',
+        name: 'Venom Shard',
+        isPermanent: true,
+        appendEffects: [
+          { type: 'CONDITION', conditionType: 'POISON', durationTurns: 2 }
+        ]
+      };
+
+      const eff = getEffectiveAbility(baseAbility, [shardMod]);
+      expect(eff.effects[1].sourceTier).toBe('SHARD');
+      expect(eff.effects[1].sourceName).toBe('Venom Shard');
     });
   });
 });

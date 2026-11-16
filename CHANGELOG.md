@@ -2,6 +2,13 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.19.0] - 2026-11-15
+
+### Unified Ability Cards & Dynamic Augment Highlighting
+- **Consistent Ability Descriptions Everywhere**: Ability cards across Camp (Combat Manifest, Class & Waypoint Inspectors, and Domain Skill Drafts) and Trials (Action Bar tooltips and Pinned Unit cards) now share a unified layout combining pure thematic flavor, scannable stat pills, and clear human-readable effect descriptions.
+- **Dynamic Shard & Combat Primer Highlighting**: Socketed Astral Augment Shards and active in-battle primers (such as *Blood Frenzy* and *Spell Sculpt*) now update ability stats, costs, and added effects live everywhere—including fixing an issue where socketed shard indicators did not appear on Action Bar buttons and tooltips during Trials. Modified stats and effects are color-coded so in-battle boosts stand out over permanent shard augments.
+- **Pinned Unit Skill Tooltips**: Selecting a unit in battle now displays a concise one-line mechanical summary for each equipped skill on their card, with the full detailed ability tooltip appearing on hover.
+
 ## [0.18.0] - 2026-11-13
 
 ### Compact Effect Pills & Hover Breakdowns

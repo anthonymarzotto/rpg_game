@@ -29,7 +29,7 @@ export const POWER_STRIKE: Ability = {
 export const CLEAVE: Ability = {
   id: 'cleave',
   name: 'Cleave',
-  description: 'A sweeping horizontal slash dealing 1d4 kinetic damage and sweeping to 1 adjacent frontal enemy for collateral damage.',
+  description: 'A sweeping horizontal slash that carves through adjacent frontal foes.',
   archetypeTag: 'FIGHTER',
   apCost: 1,
   range: 1,

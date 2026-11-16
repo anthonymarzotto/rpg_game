@@ -1,0 +1,150 @@
+/* ==========================================================================
+   Unified Hybrid Ability Description & Provenance Tier Styling
+   Precedence: Normal -> Shard -> In-Trial
+   ========================================================================== */
+
+.ability-hybrid-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ability-hybrid-flavor {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #94a3b8;
+  line-height: 1.38;
+  font-style: italic;
+}
+
+.ability-stat-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.ability-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.14rem 0.42rem;
+  border-radius: 4px;
+  font-size: 0.69rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+}
+
+.ability-stat-pill.tier-shard {
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.48);
+}
+
+.ability-stat-pill.tier-trial {
+  color: #86efac;
+  background: rgba(74, 222, 128, 0.16);
+  border-color: rgba(74, 222, 128, 0.55);
+}
+
+.ability-effect-clauses {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ability-effect-clause {
+  font-size: 0.73rem;
+  line-height: 1.35;
+  color: #cbd5e1;
+  padding-left: 0.65rem;
+  position: relative;
+}
+
+.ability-effect-clause::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #64748b;
+}
+
+.ability-effect-clause.tier-shard {
+  color: #7dd3fc;
+}
+
+.ability-effect-clause.tier-shard::before {
+  content: '✦';
+  color: #38bdf8;
+  font-size: 0.65rem;
+}
+
+.ability-effect-clause.tier-trial {
+  color: #86efac;
+}
+
+.ability-effect-clause.tier-trial::before {
+  content: '⚡';
+  color: #4ade80;
+  font-size: 0.65rem;
+}
+
+.effect-trigger-label {
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-right: 0.25rem;
+}
+
+.ability-effect-clause.tier-shard .effect-trigger-label {
+  color: #bae6fd;
+}
+
+.ability-effect-clause.tier-trial .effect-trigger-label {
+  color: #bbf7d0;
+}
+
+/* Compact 1-liner for Pinned Unit card */
+.ability-compact-summary {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: #cbd5e1;
+}
+
+.compact-seg.tier-shard {
+  color: #7dd3fc;
+  font-weight: 600;
+}
+
+.compact-seg.tier-trial {
+  color: #86efac;
+  font-weight: 600;
+}
+
+.compact-sep {
+  color: #64748b;
+  margin: 0 0.25rem;
+}
+
+/* Cost / Augments helpers */
+.cost-tier-shard {
+  color: #7dd3fc !important;
+}
+
+.cost-tier-trial {
+  color: #86efac !important;
+}
+
+.tooltip-augment-row.tier-shard .augment-source,
+.tooltip-augment-row.tier-shard .augment-label {
+  color: #7dd3fc;
+}
+
+.tooltip-augment-row.tier-trial .augment-source,
+.tooltip-augment-row.tier-trial .augment-label {
+  color: #86efac;
+}

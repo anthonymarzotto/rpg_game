@@ -10,6 +10,8 @@ import {
 } from '../../core/combat/effectiveVitals';
 import { getClassBadgePalette } from './tokenAssets';
 import { PassiveTrait } from '../../core/types/passive';
+import { getEffectiveAbility, resolvePropertyTier } from '../../core/combat/modifiers';
+import { AbilityCompactSummary, AbilityHoverTooltipBody } from '../common/AbilityDescriptionBlock';
 import {
   formatConditionBadge,
   formatModifierBadge,
@@ -473,20 +475,44 @@ export function UnitStatusCard({
             <div className="pinned-loadout-section" data-testid="pinned-loadout-section">
               <div className="pinned-loadout-title">EQUIPPED ABILITIES:</div>
               <div className="pinned-abilities-list">
-                {inspectedCu.abilities.map((ability) => (
-                  <div key={ability.id} className="pinned-ability-item">
-                    <div className="pinned-ability-row">
-                      <span className="pinned-ability-name">{ability.name}</span>
-                      <span className="pinned-ability-ap">{ability.apCost} AP</span>
-                    </div>
-                    <div className="pinned-ability-details">
-                      <span>Range: {ability.range}</span>
-                      <span>•</span>
-                      <span className="text-capitalize">{ability.damageType.toLowerCase()}</span>
-                    </div>
-                    <div className="pinned-ability-desc">{ability.description}</div>
-                  </div>
-                ))}
+                {(() => {
+                  const wildcardIds = new Set(inspectedCu.unit.loadout?.wildcardAbilityIds ?? []);
+                  return inspectedCu.abilities.map((ability) => {
+                    const effectiveAbility = getEffectiveAbility(ability, inspectedCu.abilityModifiers);
+                    const isModified = effectiveAbility.attributions.length > 0;
+                    const isWildcard = wildcardIds.has(ability.id);
+                    const apTier = resolvePropertyTier(effectiveAbility.attributions, 'apCost');
+                    const hpTier = resolvePropertyTier(effectiveAbility.attributions, 'hpCost');
+                    const apTierClass = apTier === 'TRIAL' ? 'cost-tier-trial' : apTier === 'SHARD' ? 'cost-tier-shard' : '';
+                    const hpTierClass = hpTier === 'TRIAL' ? 'cost-tier-trial' : hpTier === 'SHARD' ? 'cost-tier-shard' : '';
+
+                    return (
+                      <div key={ability.id} className="pinned-ability-item">
+                        <div className="pinned-ability-row">
+                          <span className="pinned-ability-name">
+                            {effectiveAbility.name}
+                            {isModified && <span className="tooltip-augment-glyph"> ✦</span>}
+                          </span>
+                          <span className={`pinned-ability-ap ${apTierClass}`.trim()}>
+                            {effectiveAbility.apCost} AP
+                            {effectiveAbility.hpCost && effectiveAbility.hpCost > 0 ? (
+                              <span className={hpTierClass}> + {effectiveAbility.hpCost} HP</span>
+                            ) : null}
+                          </span>
+                        </div>
+                        <AbilityCompactSummary ability={effectiveAbility} className="pinned-ability-compact" />
+
+                        <div className="pinned-ability-tooltip" role="tooltip">
+                          <AbilityHoverTooltipBody
+                            ability={effectiveAbility}
+                            isWildcard={isWildcard}
+                            currentHp={inspectedCu.currentHp}
+                          />
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
           )}

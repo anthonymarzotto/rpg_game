@@ -5,7 +5,7 @@ import { ClassPackage } from '../../core/types/classPackage';
 export const LEAD_THE_CHARGE: Ability = {
   id: 'lead_the_charge',
   name: 'Lead the Charge',
-  description: 'Knight rallies comrades. Knight and all allies within 3 hexes gain +2 Move, +2 Speed, and +2 Attack rolls for 2 turns.',
+  description: 'Rally nearby comrades with a battle cry that sharpens their momentum and aim.',
   archetypeTag: 'FIGHTER',
   apCost: 2,
   range: 0,
@@ -30,7 +30,7 @@ export const LEAD_THE_CHARGE: Ability = {
 export const CHALLENGING_SHOUT: Ability = {
   id: 'challenging_shout',
   name: 'Challenging Shout',
-  description: 'Taunts an enemy within 3 hexes, forcing them to face the Knight and inflicting CHALLENGED for 2 turns. Defying the challenge inflicts EXPOSED.',
+  description: 'Issue a commanding taunt that draws an enemy’s attention and punishes defiance.',
   archetypeTag: 'FIGHTER',
   apCost: 1,
   range: 3,
@@ -53,7 +53,7 @@ export const CHALLENGING_SHOUT: Ability = {
 export const POMMEL_STRIKE: Ability = {
   id: 'pommel_strike',
   name: 'Pommel Strike',
-  description: 'A concussive melee blow dealing 1d4 + Force physical damage (plus +2 to attack roll and +1d4 bonus damage against Challenged targets) and reducing the target initiative gauge by 20 points.',
+  description: 'A concussive hilt blow that rattles challenged foes and stalls their initiative.',
   archetypeTag: 'FIGHTER',
   apCost: 1,
   range: 1,

@@ -5,7 +5,7 @@ import { ClassPackage } from '../../core/types/classPackage';
 export const SPELL_SCULPT: Ability = {
   id: 'spell_sculpt',
   name: 'Spell Sculpt',
-  description: 'Primes metamagic stance: next Focus spell executed this turn gains +1 Range and +1 AoE Radius.',
+  description: 'Channel metamagic to expand the reach and blast of your next Focus spell.',
   archetypeTag: 'MAGE',
   apCost: 1,
   range: 0,
@@ -33,7 +33,7 @@ export const SPELL_SCULPT: Ability = {
 export const IGNITE: Ability = {
   id: 'ignite',
   name: 'Ignite',
-  description: 'Engulfs target in burning flames dealing 1d4 + Focus magical damage and inflicting BURN for 2 turns (2 damage/turn).',
+  description: 'Engulfs a foe in scorching arcane flames that continue to smolder.',
   archetypeTag: 'MAGE',
   apCost: 1,
   range: 3,
@@ -62,7 +62,7 @@ export const IGNITE: Ability = {
 export const GUST: Ability = {
   id: 'gust',
   name: 'Gust',
-  description: 'A blast of gale-force wind pushing target 1 hex directly away from caster.',
+  description: 'A blast of gale-force wind that drives the target directly away from the caster.',
   archetypeTag: 'MAGE',
   apCost: 1,
   range: 3,

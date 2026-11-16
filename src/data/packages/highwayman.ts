@@ -5,7 +5,7 @@ import { ClassPackage } from '../../core/types/classPackage';
 export const POINT_BLANK_BUCKSHOT: Ability = {
   id: 'point_blank_buckshot',
   name: 'Point-Blank Buckshot',
-  description: 'A heavy firearm blast dealing 1d8 + Finesse physical damage vs Evasion and knocking the target back 1 hex with wall-slam collision risk.',
+  description: 'A heavy firearm blast that batters the target backward.',
   archetypeTag: 'ROGUE',
   apCost: 2,
   range: 2,
@@ -32,7 +32,7 @@ export const POINT_BLANK_BUCKSHOT: Ability = {
 export const STAND_AND_DELIVER: Ability = {
   id: 'stand_and_deliver',
   name: 'Stand and Deliver!',
-  description: 'A theatrical hold-up at gunpoint, rolling vs Resolve to delay target CTB initiative by 20 ticks and divest them of -2 Armor for 2 turns.',
+  description: 'A theatrical hold-up at gunpoint that shakes a foe’s initiative and strips their armor.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 2,
@@ -71,7 +71,7 @@ export const STAND_AND_DELIVER: Ability = {
 export const GALLANT_FLOURISH: Ability = {
   id: 'gallant_flourish',
   name: 'Gallant Flourish',
-  description: 'A dashing rapier strike dealing 1d4 + Finesse physical damage vs Evasion, granting self +2 Evasion for 1 turn, and taking an evasive retreat step 1 hex away.',
+  description: 'A dashing rapier strike that parries incoming blows before springing clear.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 1,

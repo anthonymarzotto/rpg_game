@@ -111,6 +111,10 @@ export interface AbilityEffect {
   readonly attackRollBonus?: number;
   /** Flat penalty to the attack roll modifier from this effect */
   readonly attackRollPenalty?: number;
+  /** Optional provenance tier when injected or patched by a modifier */
+  readonly sourceTier?: 'SHARD' | 'TRIAL';
+  /** Optional provenance source name when injected or patched by a modifier */
+  readonly sourceName?: string;
 }
 
 export type AIRole = 'PRIMER' | 'FINISHER' | 'DEFENSIVE' | 'DISRUPTION' | 'UTILITY' | 'MELEE_CONTINGENCY';

@@ -5,7 +5,7 @@ import { ClassPackage } from '../../core/types/classPackage';
 export const LANCE_CHARGE: Ability = {
   id: 'lance_charge',
   name: 'Lance Charge',
-  description: 'Mounted shock charge. Rushes along an unobstructed straight line (2–3 hexes) into melee contact, dealing 1d8 + Force physical damage and knocking the target back 1 hex.',
+  description: 'A mounted shock charge along an unobstructed straight line that sends foes reeling.',
   archetypeTag: 'FIGHTER',
   apCost: 2,
   range: 3,
@@ -37,7 +37,7 @@ export const LANCE_CHARGE: Ability = {
 export const RIDE_THROUGH: Ability = {
   id: 'ride_through',
   name: 'Ride-Through',
-  description: 'A piercing saber strike dealing 1d4 + Finesse physical damage. If the hex directly behind the enemy is unoccupied, advances through to occupy it.',
+  description: 'A sweeping saber pass that cuts through a foe and rides into the hex behind them.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 1,
@@ -65,7 +65,7 @@ export const RIDE_THROUGH: Ability = {
 export const FLAMBOYANT_FLOURISH: Ability = {
   id: 'flamboyant_flourish',
   name: 'Flamboyant Flourish',
-  description: 'An aristocratic melee taunt that inflicts CHALLENGED on an adjacent foe for 2 turns while granting the Cavalier +2 Evasion for 1 turn.',
+  description: 'An aristocratic melee taunt that goads a foe while raising your own guard.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 1,

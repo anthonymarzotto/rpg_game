@@ -6,7 +6,7 @@ import { SKIRMISH } from './novice';
 export const SNEAK_ATTACK: Ability = {
   id: 'sneak_attack',
   name: 'Sneak Attack',
-  description: 'A precise strike dealing 1d4 damage, gaining +1d6 precision damage when striking from a flank or rear.',
+  description: 'An opportunistic strike that punishes exposed flanks and rear guards.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 1,
@@ -35,7 +35,7 @@ export const SNEAK_ATTACK: Ability = {
 export const SHADOW_STEP: Ability = {
   id: 'shadow_step',
   name: 'Shadow Step',
-  description: 'Phase through the shadows to any unoccupied walkable hex at the same elevation within 2 hexes, bypassing intermediate units and obstacles.',
+  description: 'Phase through the shadows to an open perch on the same terrace, bypassing obstacles.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 2,

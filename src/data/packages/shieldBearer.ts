@@ -5,7 +5,7 @@ import { ClassPackage } from '../../core/types/classPackage';
 export const BASTION_PLANT: Ability = {
   id: 'bastion_plant',
   name: 'Bastion Plant',
-  description: 'Plants the reinforced kite shield into the hex ground. Grants self +3 Armor, locks Move to 0 for 1 turn, projects a Phalanx Front (Zone of Control) halting enemy advance through 3 frontal hexes, and grants 50% ranged damage reduction to allies in the rear.',
+  description: 'Plants the reinforced kite shield into the earth, anchoring a phalanx line that halts advancing foes and shields rear allies.',
   archetypeTag: 'FIGHTER',
   apCost: 2,
   range: 0,
@@ -45,7 +45,7 @@ export const BASTION_PLANT: Ability = {
 export const INTERCEPT_STEP: Ability = {
   id: 'intercept_step',
   name: 'Intercept Step',
-  description: 'Swaps hex positions with a targeted ally up to 3 hexes away, pulling them to safety and granting them +2 Armor for 1 turn.',
+  description: 'Swaps positions with a targeted ally, pulling them to safety behind your shield.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 3,
@@ -74,7 +74,7 @@ export const INTERCEPT_STEP: Ability = {
 export const CONCUSSIVE_SLAM: Ability = {
   id: 'concussive_slam',
   name: 'Concussive Slam',
-  description: 'Slams the heavy kite shield into an adjacent foe, dealing 1d4 + Force physical damage vs Evasion and inflicting SLOW (-2 Move for 1 turn) without knockback.',
+  description: 'Slams the heavy kite shield into an adjacent foe, staggering their footing.',
   archetypeTag: 'FIGHTER',
   apCost: 1,
   range: 1,

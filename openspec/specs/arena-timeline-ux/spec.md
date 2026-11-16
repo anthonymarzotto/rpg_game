@@ -25,6 +25,8 @@ The system SHALL support bidirectional hover highlighting between the CTB initia
 ### Requirement: Transient Unit Status Preview on Hover
 The combat status overlay card SHALL temporarily preview the vitals, defenses, and conditions of any hovered combatant, and support locking the preview into a persistent pinned inspection card upon selection, optionally centering the camera on the selected combatant.
 
+When a combatant is pinned, each skill in the `EQUIPPED ABILITIES` list SHALL be evaluated through `getEffectiveAbility` against the unit's active `abilityModifiers`, rendering a concise **Compact Mechanical 1-Liner** directly on the skill row (with `Normal -> Shard -> In-Trial` provenance color highlights) and displaying the full **Hybrid Ability Tooltip** (flavor text, Stat Strip pills, Effect Clauses, and active augments footer) when hovered.
+
 #### Scenario: Hovering timeline chip previews unit in status card
 - **WHEN** the player hovers over an initiative chip on the timeline ribbon
 - **THEN** the `UnitStatusCard` SHALL display the hovered unit's current HP, maximum HP, defense attributes (EVA, RES, ARM, WRD, MOV, SPD), CTB gauge, and active conditions
@@ -47,7 +49,8 @@ The combat status overlay card SHALL temporarily preview the vitals, defenses, a
 #### Scenario: Pinned inspection card displays active skill loadout and AP
 - **WHEN** a combatant is pinned in the inspection card
 - **THEN** the card SHALL display the combatant's remaining AP and CTB gauge
-- **AND** the card SHALL display their equipped active ability loadout, including ability name, AP cost, reach/range, and short description
+- **AND** the card SHALL evaluate each equipped ability with the unit's active modifiers and display the ability name, effective AP/HP cost, and a compact mechanical 1-liner reflecting any shard or in-trial modifications
+- **AND** hovering over any equipped ability row on the pinned card SHALL display the full Hybrid Ability Tooltip with flavor text, Stat Strip pills, Effect Clauses, and active augments
 
 #### Scenario: Entering an action mode clears or suspends pinned card
 - **WHEN** the player initiates a `MOVE` action or selects an `ABILITY` to enter targeting mode

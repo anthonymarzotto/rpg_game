@@ -31,7 +31,7 @@ export const STRIKE: Ability = {
 export const SHIELD_BASH: Ability = {
   id: 'shield_bash',
   name: 'Shield Bash',
-  description: 'A forceful slam that deals kinetic damage and pushes the target back 1 hex.',
+  description: 'A forceful slam that batters the target backward.',
   archetypeTag: 'FIGHTER',
   apCost: 1,
   range: 1,
@@ -58,7 +58,7 @@ export const SHIELD_BASH: Ability = {
 export const BRACE: Ability = {
   id: 'brace',
   name: 'Brace',
-  description: 'A defensive guard strike dealing light damage and raising Armor by +2 for 1 turn.',
+  description: 'A defensive guard strike that steels your armor.',
   archetypeTag: 'FIGHTER',
   apCost: 1,
   range: 1,
@@ -96,7 +96,7 @@ export const NOVICE_FIGHTER_ABILITIES: readonly Ability[] = [
 export const QUICK_THRUST: Ability = {
   id: 'quick_thrust',
   name: 'Quick Thrust',
-  description: 'A rapid piercing stab with an expanded critical hit threshold (crits on 19-20).',
+  description: 'A rapid piercing stab aimed at vital openings.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 1,
@@ -146,7 +146,7 @@ export const THROW_DART: Ability = {
 export const SKIRMISH: Ability = {
   id: 'skirmish',
   name: 'Skirmish',
-  description: 'Strike a foe and immediately retreat 1 hex backward without spending move AP.',
+  description: 'Strike a foe and dart backward out of immediate reach.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 1,
@@ -206,7 +206,7 @@ export const SPARK: Ability = {
 export const FROSTBITE: Ability = {
   id: 'frostbite',
   name: 'Frostbite',
-  description: 'A chilling frost cantrip that deals magic damage and reduces target Move by 1.',
+  description: 'A chilling frost cantrip that numbs the target’s stride.',
   archetypeTag: 'MAGE',
   apCost: 1,
   range: 2,
@@ -234,7 +234,7 @@ export const FROSTBITE: Ability = {
 export const MINOR_WARD: Ability = {
   id: 'minor_ward',
   name: 'Minor Ward',
-  description: 'Weave protective magic over yourself or an ally, raising Ward by +2 for 1 turn.',
+  description: 'Weave protective magic over an ally or yourself against arcane blows.',
   archetypeTag: 'MAGE',
   apCost: 1,
   range: 2,

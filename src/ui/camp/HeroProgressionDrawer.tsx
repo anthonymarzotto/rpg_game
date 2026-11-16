@@ -30,6 +30,15 @@ import { getClassPackage, getAbilityById, getPassiveById, MOMENTUM } from '../..
 import { OffNodeChoiceModal } from './OffNodeChoiceModal';
 import { formatDisciplineName, formatDisciplineBadge } from '../combat/combatXpUtils';
 import { isLocalhost } from '../../core/config/environment';
+import { resolvePropertyTier } from '../../core/combat/modifiers';
+import { EffectiveAbility, PropertyAttribution } from '../../core/types/modifier';
+import { AbilityHybridBody } from '../common/AbilityDescriptionBlock';
+
+function getAbilityAttributions(ability: Ability | EffectiveAbility): readonly PropertyAttribution[] {
+  return 'attributions' in ability && Array.isArray(ability.attributions)
+    ? (ability.attributions as readonly PropertyAttribution[])
+    : [];
+}
 import './HeroProgressionDrawer.css';
 
 export interface HeroProgressionDrawerProps {
@@ -365,19 +374,19 @@ export function HeroProgressionDrawer({
   const isSelectedActive = hero.loadout.activeClassId === selectedClassDef.id;
   const isSelectedLocked = selectedClassDef.id !== 'novice'
     ? isClassLockedOut(
-        selectedClassDef,
-        hero.progression.currentLevel,
-        hero.progression.archetypePoints,
-        isSelectedUnlocked
-      )
+      selectedClassDef,
+      hero.progression.currentLevel,
+      hero.progression.archetypePoints,
+      isSelectedUnlocked
+    )
     : false;
   const isSelectedEligible = selectedClassDef.id !== 'novice'
     ? isClassEligibleNextLevel(
-        selectedClassDef,
-        hero.progression.currentLevel,
-        hero.progression.archetypePoints,
-        isSelectedUnlocked
-      )
+      selectedClassDef,
+      hero.progression.currentLevel,
+      hero.progression.archetypePoints,
+      isSelectedUnlocked
+    )
     : false;
   const selectedClassReqArch = selectedClassDef.id !== 'novice'
     ? getNeededArchetype(selectedClassDef.requirements, hero.progression.archetypePoints)
@@ -388,19 +397,19 @@ export function HeroProgressionDrawer({
   const isHoveredUnlocked = hoveredClassDef ? unlockedSet.has(hoveredClassDef.id) : false;
   const isHoveredLocked = hoveredClassDef && hoveredClassDef.id !== 'novice'
     ? isClassLockedOut(
-        hoveredClassDef,
-        hero.progression.currentLevel,
-        hero.progression.archetypePoints,
-        isHoveredUnlocked
-      )
+      hoveredClassDef,
+      hero.progression.currentLevel,
+      hero.progression.archetypePoints,
+      isHoveredUnlocked
+    )
     : false;
   const isHoveredEligible = hoveredClassDef && hoveredClassDef.id !== 'novice'
     ? isClassEligibleNextLevel(
-        hoveredClassDef,
-        hero.progression.currentLevel,
-        hero.progression.archetypePoints,
-        isHoveredUnlocked
-      )
+      hoveredClassDef,
+      hero.progression.currentLevel,
+      hero.progression.archetypePoints,
+      isHoveredUnlocked
+    )
     : false;
   const hoveredClassReqArch = hoveredClassDef
     ? getNeededArchetype(hoveredClassDef.requirements, hero.progression.archetypePoints)
@@ -935,20 +944,25 @@ export function HeroProgressionDrawer({
                             {selectedWaypointInfo.rewardShard
                               ? `${selectedWaypointInfo.rewardShard.icon} ${selectedWaypointInfo.rewardShard.name}`
                               : selectedWaypointInfo.rewardAbility
-                              ? `✦ ${selectedWaypointInfo.rewardAbility.name}`
-                              : '✦ Specialization Reward'}
+                                ? `✦ ${selectedWaypointInfo.rewardAbility.name}`
+                                : '✦ Specialization Reward'}
                           </span>
                           {selectedWaypointInfo.rewardAbility && (
                             <span className="kit-ap font-mono">{selectedWaypointInfo.rewardAbility.apCost} AP</span>
                           )}
                         </div>
-                        <p className="kit-desc font-ui">
-                          {selectedWaypointInfo.rewardShard
-                            ? `Socketable into loadout ability slots. ${selectedWaypointInfo.rewardShard.description}`
-                            : selectedWaypointInfo.rewardAbility
-                            ? `${selectedWaypointInfo.rewardAbility.description} (Permanent Wildcard)`
-                            : 'Granted at this milestone.'}
-                        </p>
+                        {selectedWaypointInfo.rewardShard ? (
+                          <p className="kit-desc font-ui">
+                            {`Socketable into loadout ability slots. ${selectedWaypointInfo.rewardShard.description}`}
+                          </p>
+                        ) : selectedWaypointInfo.rewardAbility ? (
+                          <>
+                            <AbilityHybridBody ability={selectedWaypointInfo.rewardAbility} showFlavor={true} />
+                            <p className="kit-desc font-ui">(Permanent Wildcard)</p>
+                          </>
+                        ) : (
+                          <p className="kit-desc font-ui">Granted at this milestone.</p>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -1002,136 +1016,136 @@ export function HeroProgressionDrawer({
             ) : (
               /* Persistent Class Inspector Card */
               <div className="drawer-class-inspector-card" data-testid="drawer-class-inspector-card">
-              <div className="inspector-card-header">
-                <div className="inspector-title-row">
-                  <h4 className="inspector-class-name font-display">
-                    ✦ {selectedClassDef.name}
-                  </h4>
-                  <div className="inspector-badges font-mono">
-                    <span className="inspector-tier-chip">Tier {selectedClassDef.totalPoints}</span>
-                    {selectedClassDef.no !== '--' && (
-                      <span className="inspector-id-chip">#{selectedClassDef.no}</span>
-                    )}
+                <div className="inspector-card-header">
+                  <div className="inspector-title-row">
+                    <h4 className="inspector-class-name font-display">
+                      ✦ {selectedClassDef.name}
+                    </h4>
+                    <div className="inspector-badges font-mono">
+                      <span className="inspector-tier-chip">Tier {selectedClassDef.totalPoints}</span>
+                      {selectedClassDef.no !== '--' && (
+                        <span className="inspector-id-chip">#{selectedClassDef.no}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="inspector-reqs-row font-mono">
+                    <span className="req-chip fighter">⚔️ Force: {selectedClassDef.requirements.fighter}</span>
+                    <span className="req-chip rogue">🗡️ Finesse: {selectedClassDef.requirements.rogue}</span>
+                    <span className="req-chip mage">🔮 Focus: {selectedClassDef.requirements.mage}</span>
+                    <span className="inspector-status-badge font-ui">
+                      {isSelectedActive ? (
+                        <span className="status-active">★ Active Class</span>
+                      ) : isSelectedUnlocked ? (
+                        <span className="status-unlocked">★ Unlocked</span>
+                      ) : isSelectedEligible ? (
+                        <span className="status-eligible">
+                          ✦ Next Ascension{selectedClassReqArch ? ` • +1 ${selectedClassReqArch}` : ''}
+                        </span>
+                      ) : isSelectedLocked ? (
+                        <span className="status-locked">✕ Locked Out</span>
+                      ) : (
+                        <span className="status-pathway">○ Future Pathway</span>
+                      )}
+                    </span>
                   </div>
                 </div>
 
-                <div className="inspector-reqs-row font-mono">
-                  <span className="req-chip fighter">⚔️ Force: {selectedClassDef.requirements.fighter}</span>
-                  <span className="req-chip rogue">🗡️ Finesse: {selectedClassDef.requirements.rogue}</span>
-                  <span className="req-chip mage">🔮 Focus: {selectedClassDef.requirements.mage}</span>
-                  <span className="inspector-status-badge font-ui">
-                    {isSelectedActive ? (
-                      <span className="status-active">★ Active Class</span>
-                    ) : isSelectedUnlocked ? (
-                      <span className="status-unlocked">★ Unlocked</span>
-                    ) : isSelectedEligible ? (
-                      <span className="status-eligible">
-                        ✦ Next Ascension{selectedClassReqArch ? ` • +1 ${selectedClassReqArch}` : ''}
-                      </span>
-                    ) : isSelectedLocked ? (
-                      <span className="status-locked">✕ Locked Out</span>
-                    ) : (
-                      <span className="status-pathway">○ Future Pathway</span>
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              {/* Kit Abilities & Passive details */}
-              <div className="inspector-kit-details">
-                {selectedPackage ? (
-                  <div className="inspector-abilities-grid">
-                    <div className="kit-item signature">
-                      <div className="kit-item-head font-ui">
-                        <span className="kit-type-tag signature font-mono">SIGNATURE</span>
-                        <span className="kit-name font-display">{selectedPackage.signatureAbility.name}</span>
-                        <span className="kit-ap font-mono">{selectedPackage.signatureAbility.apCost} AP</span>
-                      </div>
-                      <p className="kit-desc font-ui">{selectedPackage.signatureAbility.description}</p>
-                    </div>
-
-                    {selectedPackage.domainAbilities.map((dom) => (
-                      <div key={dom.id} className="kit-item domain">
+                {/* Kit Abilities & Passive details */}
+                <div className="inspector-kit-details">
+                  {selectedPackage ? (
+                    <div className="inspector-abilities-grid">
+                      <div className="kit-item signature">
                         <div className="kit-item-head font-ui">
-                          <span className="kit-type-tag domain font-mono">DOMAIN</span>
-                          <span className="kit-name font-display">{dom.name}</span>
-                          <span className="kit-ap font-mono">{dom.apCost} AP</span>
+                          <span className="kit-type-tag signature font-mono">SIGNATURE</span>
+                          <span className="kit-name font-display">{selectedPackage.signatureAbility.name}</span>
+                          <span className="kit-ap font-mono">{selectedPackage.signatureAbility.apCost} AP</span>
                         </div>
-                        <p className="kit-desc font-ui">{dom.description}</p>
+                        <AbilityHybridBody ability={selectedPackage.signatureAbility} showFlavor={true} />
                       </div>
-                    ))}
 
-                    <div className="kit-item passive">
-                      <div className="kit-item-head font-ui">
-                        <span className="kit-type-tag passive font-mono">PASSIVE</span>
-                        <span className="kit-name font-display">🛡️ {selectedPackage.passive.name}</span>
+                      {selectedPackage.domainAbilities.map((dom) => (
+                        <div key={dom.id} className="kit-item domain">
+                          <div className="kit-item-head font-ui">
+                            <span className="kit-type-tag domain font-mono">DOMAIN</span>
+                            <span className="kit-name font-display">{dom.name}</span>
+                            <span className="kit-ap font-mono">{dom.apCost} AP</span>
+                          </div>
+                          <AbilityHybridBody ability={dom} showFlavor={true} />
+                        </div>
+                      ))}
+
+                      <div className="kit-item passive">
+                        <div className="kit-item-head font-ui">
+                          <span className="kit-type-tag passive font-mono">PASSIVE</span>
+                          <span className="kit-name font-display">🛡️ {selectedPackage.passive.name}</span>
+                        </div>
+                        <p className="kit-desc font-ui">{selectedPackage.passive.description}</p>
                       </div>
-                      <p className="kit-desc font-ui">{selectedPackage.passive.description}</p>
                     </div>
-                  </div>
-                ) : selectedClassDef.id === 'novice' ? (
-                  <div className="inspector-abilities-grid">
-                    <div className="kit-item signature">
-                      <div className="kit-item-head font-ui">
-                        <span className="kit-type-tag signature font-mono">STARTER</span>
-                        <span className="kit-name font-display">Novice Strike &amp; Tactics</span>
+                  ) : selectedClassDef.id === 'novice' ? (
+                    <div className="inspector-abilities-grid">
+                      <div className="kit-item signature">
+                        <div className="kit-item-head font-ui">
+                          <span className="kit-type-tag signature font-mono">STARTER</span>
+                          <span className="kit-name font-display">Novice Strike &amp; Tactics</span>
+                        </div>
+                        <p className="kit-desc font-ui">
+                          Disciplined baseline abilities suited for early combat maneuvers before specializing.
+                        </p>
                       </div>
-                      <p className="kit-desc font-ui">
-                        Disciplined baseline abilities suited for early combat maneuvers before specializing.
+                      <div className="kit-item passive">
+                        <div className="kit-item-head font-ui">
+                          <span className="kit-type-tag passive font-mono">PASSIVE</span>
+                          <span className="kit-name font-display">🛡️ {MOMENTUM.name}</span>
+                        </div>
+                        <p className="kit-desc font-ui">{MOMENTUM.description}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="inspector-unauthored-msg font-ui">
+                      <p className="text-dim">
+                        Combat abilities for {selectedClassDef.name} unlock in an upcoming expansion.
+                        Unlocking this node advances your constellation path toward higher tier capstones.
                       </p>
                     </div>
-                    <div className="kit-item passive">
-                      <div className="kit-item-head font-ui">
-                        <span className="kit-type-tag passive font-mono">PASSIVE</span>
-                        <span className="kit-name font-display">🛡️ {MOMENTUM.name}</span>
-                      </div>
-                      <p className="kit-desc font-ui">{MOMENTUM.description}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="inspector-unauthored-msg font-ui">
-                    <p className="text-dim">
-                      Combat abilities for {selectedClassDef.name} unlock in an upcoming expansion.
-                      Unlocking this node advances your constellation path toward higher tier capstones.
-                    </p>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              {/* Inspector Action Button */}
-              <div className="inspector-card-actions">
-                {isSelectedUnlocked ? (
-                  isSelectedActive ? (
-                    <button type="button" className="btn-equip-class equipped font-ui" disabled>
-                      ✓ Attuned Class
-                    </button>
+                {/* Inspector Action Button */}
+                <div className="inspector-card-actions">
+                  {isSelectedUnlocked ? (
+                    isSelectedActive ? (
+                      <button type="button" className="btn-equip-class equipped font-ui" disabled>
+                        ✓ Attuned Class
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn-equip-class font-ui"
+                        onClick={() => handleUpdateLoadout({ activeClassId: selectedClassDef.id })}
+                        data-testid="btn-equip-active-class"
+                      >
+                        ✦ Attune Class
+                      </button>
+                    )
+                  ) : isSelectedEligible ? (
+                    <div className="inspector-instruction font-ui">
+                      ✦ Ascend to unlock this class.
+                    </div>
+                  ) : isSelectedLocked ? (
+                    <div className="inspector-instruction locked font-ui">
+                      ✕ Locked Out: This wayfarer's ascension path cannot reach this class.
+                    </div>
                   ) : (
-                    <button
-                      type="button"
-                      className="btn-equip-class font-ui"
-                      onClick={() => handleUpdateLoadout({ activeClassId: selectedClassDef.id })}
-                      data-testid="btn-equip-active-class"
-                    >
-                      ✦ Attune Class
-                    </button>
-                  )
-                ) : isSelectedEligible ? (
-                  <div className="inspector-instruction font-ui">
-                    ✦ Ascend to unlock this class.
-                  </div>
-                ) : isSelectedLocked ? (
-                  <div className="inspector-instruction locked font-ui">
-                    ✕ Locked Out: This wayfarer's ascension path cannot reach this class.
-                  </div>
-                ) : (
-                  <div className="inspector-instruction locked font-ui">
-                    ○ Future Pathway: Further ascensions required.
-                  </div>
-                )}
+                    <div className="inspector-instruction locked font-ui">
+                      ○ Future Pathway: Further ascensions required.
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
           {/* Right Column: Equipped Loadout & Wildcards */}
           <div className="drawer-right-col">
@@ -1165,16 +1179,29 @@ export function HeroProgressionDrawer({
                 <div className="drawer-core-abilities-summary font-ui">
                   {coreAbilities.map((a, idx) => {
                     const effectiveAbility = resolvedLoadout?.coreAbilities[idx] ?? a;
+                    const attributions = getAbilityAttributions(effectiveAbility);
+                    const apTier = resolvePropertyTier(attributions, 'apCost');
+                    const hpTier = resolvePropertyTier(attributions, 'hpCost');
                     return (
                       <div key={a.id} className="drawer-ability-mini-card">
                         <div className="mini-card-head font-ui">
                           <span className={`slot-tag ${effectiveAbility.archetypeTag?.toLowerCase() ?? 'fighter'} font-mono`}>
                             {formatDisciplineBadge(effectiveAbility.archetypeTag)}
                           </span>
-                          <span className="mini-card-name font-display">{effectiveAbility.name}</span>
-                          <span className="mini-card-ap font-mono">{effectiveAbility.apCost} AP</span>
+                          <span className="mini-card-name font-display">
+                            {effectiveAbility.name}
+                            {attributions.length > 0 && <span className="tooltip-augment-glyph"> ✦</span>}
+                          </span>
+                          <span className={`mini-card-ap font-mono ${apTier === 'SHARD' ? 'cost-tier-shard' : ''}`.trim()}>
+                            {effectiveAbility.apCost} AP
+                            {effectiveAbility.hpCost && effectiveAbility.hpCost > 0 ? (
+                              <span className={hpTier === 'SHARD' ? 'cost-tier-shard' : ''}>
+                                {' + '}{effectiveAbility.hpCost} HP
+                              </span>
+                            ) : null}
+                          </span>
                         </div>
-                        <span className="mini-card-desc">{effectiveAbility.description}</span>
+                        <AbilityHybridBody ability={effectiveAbility} showFlavor={true} />
                         {renderSlotSockets(idx)}
                       </div>
                     );
@@ -1219,16 +1246,29 @@ export function HeroProgressionDrawer({
 
                 {equippedWildcard1Ability ? (() => {
                   const effectiveAbility = resolvedLoadout?.wildcardAbilities[0] ?? equippedWildcard1Ability;
+                  const attributions = getAbilityAttributions(effectiveAbility);
+                  const apTier = resolvePropertyTier(attributions, 'apCost');
+                  const hpTier = resolvePropertyTier(attributions, 'hpCost');
                   return (
                     <div className="drawer-tactical-slot-card">
                       <div className="slot-card-header font-ui">
                         <span className={`slot-tag ${effectiveAbility.archetypeTag?.toLowerCase() ?? 'fighter'} font-mono`}>
                           {formatDisciplineBadge(effectiveAbility.archetypeTag)}
                         </span>
-                        <span className="slot-name font-display">{effectiveAbility.name}</span>
-                        <span className="slot-ap font-mono">{effectiveAbility.apCost} AP</span>
+                        <span className="slot-name font-display">
+                          {effectiveAbility.name}
+                          {attributions.length > 0 && <span className="tooltip-augment-glyph"> ✦</span>}
+                        </span>
+                        <span className={`slot-ap font-mono ${apTier === 'SHARD' ? 'cost-tier-shard' : ''}`.trim()}>
+                          {effectiveAbility.apCost} AP
+                          {effectiveAbility.hpCost && effectiveAbility.hpCost > 0 ? (
+                            <span className={hpTier === 'SHARD' ? 'cost-tier-shard' : ''}>
+                              {' + '}{effectiveAbility.hpCost} HP
+                            </span>
+                          ) : null}
+                        </span>
                       </div>
-                      <p className="slot-desc font-ui">{effectiveAbility.description}</p>
+                      <AbilityHybridBody ability={effectiveAbility} showFlavor={true} />
                       {renderSlotSockets(3)}
                     </div>
                   );
@@ -1268,16 +1308,29 @@ export function HeroProgressionDrawer({
 
                 {equippedWildcard2Ability ? (() => {
                   const effectiveAbility = resolvedLoadout?.wildcardAbilities[1] ?? equippedWildcard2Ability;
+                  const attributions = getAbilityAttributions(effectiveAbility);
+                  const apTier = resolvePropertyTier(attributions, 'apCost');
+                  const hpTier = resolvePropertyTier(attributions, 'hpCost');
                   return (
                     <div className="drawer-tactical-slot-card">
                       <div className="slot-card-header font-ui">
                         <span className={`slot-tag ${effectiveAbility.archetypeTag?.toLowerCase() ?? 'fighter'} font-mono`}>
                           {formatDisciplineBadge(effectiveAbility.archetypeTag)}
                         </span>
-                        <span className="slot-name font-display">{effectiveAbility.name}</span>
-                        <span className="slot-ap font-mono">{effectiveAbility.apCost} AP</span>
+                        <span className="slot-name font-display">
+                          {effectiveAbility.name}
+                          {attributions.length > 0 && <span className="tooltip-augment-glyph"> ✦</span>}
+                        </span>
+                        <span className={`slot-ap font-mono ${apTier === 'SHARD' ? 'cost-tier-shard' : ''}`.trim()}>
+                          {effectiveAbility.apCost} AP
+                          {effectiveAbility.hpCost && effectiveAbility.hpCost > 0 ? (
+                            <span className={hpTier === 'SHARD' ? 'cost-tier-shard' : ''}>
+                              {' + '}{effectiveAbility.hpCost} HP
+                            </span>
+                          ) : null}
+                        </span>
                       </div>
-                      <p className="slot-desc font-ui">{effectiveAbility.description}</p>
+                      <AbilityHybridBody ability={effectiveAbility} showFlavor={true} />
                       {renderSlotSockets(4)}
                     </div>
                   );

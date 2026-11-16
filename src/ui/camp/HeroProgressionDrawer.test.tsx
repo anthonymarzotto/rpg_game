@@ -712,6 +712,32 @@ describe('HeroProgressionDrawer Component', () => {
       expect(html).toContain('FORCE');
       expect(html).toContain('Power Strike');
     });
+
+    it('renders hybrid ability cards with Shard tier highlights when shards are socketed', () => {
+      const hero = makeMockUnit({
+        loadout: {
+          activeClassId: 'warrior',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: [],
+          earnedShards: ['bloodbound_shard'],
+          slotAugments: { 1: ['bloodbound_shard'] } // Socketed into Cleave (slot 1)
+        }
+      });
+      const campaign = makeMockCampaign(hero);
+      const html = renderToStaticMarkup(
+        <HeroProgressionDrawer
+          hero={hero}
+          campaign={campaign}
+          onClose={vi.fn()}
+          onUpdateCampaign={vi.fn()}
+        />
+      );
+
+      // Cleave (1d4 -> 1d6 + 2, +2 HP cost) should show Shard tier pills and HP cost
+      expect(html).toContain('ability-stat-pill tier-shard');
+      expect(html).toContain('1d6 + FRC + 2 Physical');
+      expect(html).toContain('2 HP Cost');
+    });
   });
 });
 

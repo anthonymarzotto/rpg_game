@@ -8,6 +8,7 @@ import {
   getEligibleDomainUnlocks
 } from '../../core/progression/harmonization';
 import { formatDisciplineName, formatDisciplineBadge } from '../combat/combatXpUtils';
+import { AbilityHybridBody } from '../common/AbilityDescriptionBlock';
 import './OffNodeChoiceModal.css';
 
 export interface OffNodeChoiceModalProps {
@@ -191,7 +192,7 @@ export const OffNodeChoiceModal: React.FC<OffNodeChoiceModalProps> = ({
                               <span className="offnode-badge-range">Range {ability.range}</span>
                             </div>
                           </div>
-                          <p className="offnode-ability-desc font-ui">{ability.description}</p>
+                          <AbilityHybridBody ability={ability} showFlavor={true} />
                         </button>
                       );
                     })

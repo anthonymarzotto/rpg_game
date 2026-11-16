@@ -2,6 +2,9 @@ import { Ability, AbilityEffect, AbilityTargetType, DamageType, DefenseTarget } 
 import { Archetype } from './class';
 import { TriadAttributes } from './stats';
 
+export type ModifierProvenanceTier = 'NORMAL' | 'SHARD' | 'TRIAL';
+export type ActiveModifierTier = 'SHARD' | 'TRIAL';
+
 /**
  * Supported properties for attribution tracking when an ability is modified.
  */
@@ -27,6 +30,7 @@ export interface PropertyAttribution {
   readonly sourceName: string;
   readonly sourceId: string;
   readonly changeLabel: string;
+  readonly tier?: ActiveModifierTier;
 }
 
 /**
@@ -87,6 +91,8 @@ export interface AbilityModifier extends AbilityModifierPatches, ModifierApplica
   readonly id: string;
   readonly name: string;
   readonly description?: string;
+  /** Provenance tier for UI color precedence (defaults to 'SHARD' if isPermanent, else 'TRIAL') */
+  readonly tier?: ActiveModifierTier;
   /** If true, this modifier is permanent (e.g. unlocked in progression) */
   readonly isPermanent?: boolean;
   /** If specified, duration in turns until expiration (for combat buffs) */

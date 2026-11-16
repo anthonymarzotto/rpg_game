@@ -5,7 +5,7 @@ import { ClassPackage } from '../../core/types/classPackage';
 export const ROOFTOP_VAULT: Ability = {
   id: 'rooftop_vault',
   name: 'Rooftop Vault',
-  description: 'An acrobatic vertical leap scaling cliffs and clearing obstacles up to 3 hexes away, granting self +2 Evasion for 1 turn upon landing.',
+  description: 'An acrobatic vertical leap scaling cliffs and clearing obstacles with heightened agility.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 3,
@@ -33,7 +33,7 @@ export const ROOFTOP_VAULT: Ability = {
 export const PILFER: Ability = {
   id: 'pilfer',
   name: 'Pilfer',
-  description: 'A lightning-fast finesse strike dealing 1d4 + Finesse physical damage vs Evasion and siphoning 20 CTB initiative ticks directly from the target into the Burglar.',
+  description: 'A lightning-fast finesse strike that siphons initiative directly from the target.',
   archetypeTag: 'ROGUE',
   apCost: 1,
   range: 1,
@@ -67,7 +67,7 @@ export const PILFER: Ability = {
 export const FLASH_POWDER: Ability = {
   id: 'flash_powder',
   name: 'Flash Powder',
-  description: 'Throws a pouch of disorienting powder up to 2 hexes away, exploding in a 1-hex radius. Forces caught enemies to face 180° away from the blast and inflicts -2 Attack Roll for 1 turn.',
+  description: 'Throws a pouch of disorienting powder that spins caught enemies around and blinds their aim.',
   archetypeTag: 'MAGE',
   apCost: 1,
   range: 2,
