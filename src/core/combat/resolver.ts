@@ -25,6 +25,8 @@ import {
 } from './types';
 import { canMove, canExecuteAbility } from './validator';
 import { getEffectiveMove, getEffectiveSpeed, getEffectiveEvasion, getEffectiveResolve } from './effectiveVitals';
+import { clearZeroedInStacks } from './zeroedIn';
+import { getRoughTerrainHexKeys } from './battlefieldZones';
 import { getEffectiveAbility } from './modifiers';
 import { isFlankOrRear } from './flanking';
 import { DiceRoller, SeededDiceRoller, RollAdvantage } from './dice';
@@ -351,7 +353,13 @@ export function executeMove(
   const prevPos = state.arena.getUnitPosition(actorUnitId);
   const effectiveMove = getEffectiveMove(cu);
   const zocKeys = getBastionZocHexKeys(state, actorUnitId);
-  const pathInfo = prevPos ? state.arena.findPath(prevPos, destination, effectiveMove, { terminalHexKeys: zocKeys }) : undefined;
+  const roughKeys = getRoughTerrainHexKeys(state);
+  const pathInfo = prevPos
+    ? state.arena.findPath(prevPos, destination, effectiveMove, {
+        terminalHexKeys: zocKeys,
+        roughTerrainHexKeys: roughKeys
+      })
+    : undefined;
 
   const fullPath = pathInfo && pathInfo.path.length > 0
     ? pathInfo.path
@@ -391,6 +399,9 @@ export function executeMove(
   cu.hexesMovedThisTurn = (cu.hexesMovedThisTurn ?? 0) + stepsTaken;
   cu.currentAp -= 1;
   state.arena.setUnitPosition(actorUnitId, currentCoord);
+  if (stepsTaken > 0) {
+    clearZeroedInStacks(cu, true);
+  }
 
   // If the path included a plunging ledge drop, apply direct unmitigated fall damage
   if (accumulatedFallDamage > 0) {
@@ -549,15 +560,21 @@ export function applyCombatEvents(
         }
       }
     } else if (event.type === 'DISPLACEMENT') {
+      const movedCu = state.units.get(event.unitId);
       if (event.kind === 'SWAP') {
         const otherUnitId = state.arena.getUnitAt(event.toCoord);
         if (otherUnitId && otherUnitId !== event.unitId) {
           state.arena.swapUnits(event.unitId, otherUnitId);
+          const otherCu = state.units.get(otherUnitId);
+          if (otherCu) clearZeroedInStacks(otherCu, true);
         } else if (!otherUnitId) {
           state.arena.setUnitPosition(event.unitId, event.toCoord);
         }
       } else {
         state.arena.setUnitPosition(event.unitId, event.toCoord);
+      }
+      if (movedCu) {
+        clearZeroedInStacks(movedCu, true);
       }
     } else if (event.type === 'STATUS_APPLIED') {
       const cu = state.units.get(event.targetUnitId);
@@ -672,6 +689,110 @@ export function executeAbility(
       };
       actorCu.inBattleXp.mage += xpEarned;
     }
+  }
+
+  // 0. Battlefield Zone abilities: Delayed Bombardment (Siege Barrage) & Shrapnel Rubble (Shrapnel Canister)
+  const delayedBombardmentEffect = effectiveAbility.effects?.find((e) => e.type === 'DELAYED_BOMBARDMENT');
+  if (delayedBombardmentEffect && targetCoord) {
+    const blastRadius = effectiveAbility.aoeRadius ?? 1;
+    const affectedHexes = getHexesInRange(targetCoord, blastRadius).filter((c) => state.arena.hasTile(c));
+    const damageProfile = delayedBombardmentEffect.damageProfile ?? { count: 2, sides: 8, modifierAttribute: 'force' };
+    const bombardmentId = `bombard_${actorUnitId}_${state.turnNumber}_${(state.pendingBombardments?.length ?? 0) + 1}`;
+
+    (state.pendingBombardments ??= []).push({
+      id: bombardmentId,
+      sourceUnitId: actorUnitId,
+      sourceUnitName: actorCu.unit.name,
+      sourceFaction: actorCu.faction,
+      abilityId: effectiveAbility.id,
+      abilityName: effectiveAbility.name,
+      centerCoord: { q: targetCoord.q, r: targetCoord.r },
+      hexCoords: affectedHexes.map((c) => ({ q: c.q, r: c.r })),
+      damageProfile,
+      attackModifierAttribute: effectiveAbility.attackModifierAttribute ?? 'finesse',
+      snapshotFinesse: actorCu.unit.baseAttributes.finesse,
+      snapshotForce: actorCu.unit.baseAttributes.force,
+      snapshotFocus: actorCu.unit.baseAttributes.focus,
+      snapshotZeroedInStacks: actorCu.zeroedInStacks ?? 0
+    });
+
+    combatLogger.logUtility(state, {
+      actorCu,
+      ability: effectiveAbility,
+      effects: [
+        {
+          kind: 'CONTEXT',
+          context: 'ELEVATION',
+          label: 'Barrage Marked',
+          detail: `${affectedHexes.length} hexes targeted for detonation next turn`
+        }
+      ],
+      message: `${actorCu.unit.name} launched ${effectiveAbility.name} at (${targetCoord.q}, ${targetCoord.r}) — ${affectedHexes.length} hexes marked for detonation next turn!`
+    });
+
+    return {
+      type: 'SUPPORT',
+      targetUnitIds: [],
+      events: []
+    };
+  }
+
+  const shrapnelRubbleEffect = effectiveAbility.effects?.find((e) => e.type === 'SHRAPNEL_RUBBLE');
+  if (shrapnelRubbleEffect && targetCoord) {
+    const blastRadius = effectiveAbility.aoeRadius ?? 1;
+    const affectedHexes = getHexesInRange(targetCoord, blastRadius).filter((c) => state.arena.hasTile(c));
+    const revealedUnitIds: string[] = [];
+    const revealedNames: string[] = [];
+
+    for (const hex of affectedHexes) {
+      const occId = state.arena.getUnitAt(hex);
+      if (!occId) continue;
+      const occCu = state.units.get(occId);
+      if (occCu && !occCu.isDefeated && occCu.activeConditions?.some((c) => c.type === 'STEALTH')) {
+        occCu.activeConditions = occCu.activeConditions.filter((c) => c.type !== 'STEALTH');
+        revealedUnitIds.push(occCu.unit.id);
+        revealedNames.push(occCu.unit.name);
+      }
+    }
+
+    const hazardId = `rubble_${actorUnitId}_${state.turnNumber}_${(state.hexHazards?.length ?? 0) + 1}`;
+    const durationTurns = shrapnelRubbleEffect.durationTurns ?? 2;
+    const extraMoveCost = shrapnelRubbleEffect.magnitude ?? 2;
+
+    (state.hexHazards ??= []).push({
+      id: hazardId,
+      type: 'SHRAPNEL_RUBBLE',
+      sourceUnitId: actorUnitId,
+      sourceFaction: actorCu.faction,
+      hexCoords: affectedHexes.map((c) => ({ q: c.q, r: c.r })),
+      durationTurns,
+      extraMoveCost
+    });
+
+    const revealClause =
+      revealedNames.length > 0 ? ` Revealed ${revealedNames.join(', ')} from Stealth!` : '';
+
+    combatLogger.logUtility(state, {
+      actorCu,
+      ability: effectiveAbility,
+      affectedUnitIds: revealedUnitIds.length > 0 ? revealedUnitIds : undefined,
+      effects: [
+        {
+          kind: 'MODIFIER',
+          label: 'Shrapnel Rubble',
+          entries: [{ stat: 'Move Cost', value: `+${extraMoveCost} MP` }],
+          durationTurns,
+          ...(revealedNames.length > 0 ? { note: `Revealed: ${revealedNames.join(', ')}` } : {})
+        }
+      ],
+      message: `${actorCu.unit.name} deployed ${effectiveAbility.name} at (${targetCoord.q}, ${targetCoord.r}), blanketing ${affectedHexes.length} hexes in rough terrain (+${extraMoveCost} MP, ${durationTurns} turns).${revealClause}`
+    });
+
+    return {
+      type: 'SUPPORT',
+      targetUnitIds: revealedUnitIds,
+      events: []
+    };
   }
 
   // 1. Support / Buff abilities (DamageType === 'NONE' and uncontested/no defense target)
@@ -875,6 +996,7 @@ export function executeAbility(
       if (line.length >= 3) {
         const destHex = line[line.length - 2];
         state.arena.setUnitPosition(actorUnitId, destHex);
+        clearZeroedInStacks(actorCu, true);
         attackOriginCoord = destHex;
         const chargeDist = hexDistance(actorPos, destHex);
         actorCu.hexesMovedThisTurn = (actorCu.hexesMovedThisTurn ?? 0) + chargeDist;
@@ -901,6 +1023,7 @@ export function executeAbility(
       const landingHex = resolveAerialVaultLandingHex(state, actorPos, targetPos);
       if (landingHex) {
         state.arena.setUnitPosition(actorUnitId, landingHex);
+        clearZeroedInStacks(actorCu, true);
         attackOriginCoord = landingHex;
         const vaultDist = hexDistance(actorPos, landingHex);
         actorCu.hexesMovedThisTurn = (actorCu.hexesMovedThisTurn ?? 0) + vaultDist;

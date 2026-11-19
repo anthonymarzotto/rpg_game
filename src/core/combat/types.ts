@@ -248,6 +248,10 @@ export interface CombatUnit {
   abilitiesUsedThisTurn?: string[];
   /** Virtual elevation bonus (e.g. from Coiled Apex / unspent AP) acting as vantage in combat checks */
   virtualElevation?: number;
+  /** Zeroed In stationary calibration stacks (0..3): +1 Range, +1 Attack Roll, -1 Evasion per stack, +1 AoE Radius at 3 stacks */
+  zeroedInStacks?: number;
+  /** Whether the unit moved, teleported, or was displaced during the current turn */
+  movedThisTurn?: boolean;
 }
 
 
@@ -478,6 +482,45 @@ export interface EncounterObjective {
 export type CombatOutcome = 'IN_PROGRESS' | 'VICTORY' | 'DEFEAT';
 
 /**
+ * Temporary terrain hazard occupying a set of arena hexes (e.g. Shrapnel Rubble).
+ */
+export interface HexHazard {
+  readonly id: string;
+  readonly type: 'SHRAPNEL_RUBBLE';
+  readonly sourceUnitId: string;
+  readonly sourceFaction?: Faction;
+  readonly hexCoords: readonly HexCoord[];
+  durationTurns: number;
+  readonly extraMoveCost: number;
+}
+
+/**
+ * Airborne delayed area bombardment waiting to detonate at the launcher's next turn start.
+ */
+export interface PendingBombardment {
+  readonly id: string;
+  readonly sourceUnitId: string;
+  readonly sourceUnitName: string;
+  readonly sourceFaction?: Faction;
+  readonly abilityId: string;
+  readonly abilityName: string;
+  readonly centerCoord: HexCoord;
+  readonly hexCoords: readonly HexCoord[];
+  readonly damageProfile: {
+    readonly count: number;
+    readonly sides: number;
+    readonly modifierAttribute?: 'force' | 'finesse' | 'focus';
+  };
+  readonly attackModifierAttribute: 'force' | 'finesse' | 'focus';
+  readonly snapshotFinesse: number;
+  readonly snapshotForce: number;
+  readonly snapshotFocus: number;
+  readonly snapshotZeroedInStacks: number;
+  /** Fallback countdown used if sourceUnitId is defeated while the shells are airborne */
+  defeatedFallbackTurns?: number;
+}
+
+/**
  * Complete state container for an active combat encounter.
  */
 export interface CombatState {
@@ -491,6 +534,10 @@ export interface CombatState {
   aiDecisionLog?: AIDecisionTrace[];
   partyXpPool: InBattleXp;
   readonly seed?: number;
+  /** Active delayed area bombardments (e.g. Siege Barrage) */
+  pendingBombardments?: PendingBombardment[];
+  /** Active temporary terrain hazards (e.g. Shrapnel Rubble) */
+  hexHazards?: HexHazard[];
 }
 
 /**
@@ -516,6 +563,8 @@ export interface SerializedCombatState {
   readonly aiDecisionLog?: readonly AIDecisionTrace[];
   readonly partyXpPool?: InBattleXp;
   readonly seed?: number;
+  readonly pendingBombardments?: readonly PendingBombardment[];
+  readonly hexHazards?: readonly HexHazard[];
   readonly exportedAt?: number;
 }
 

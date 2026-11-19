@@ -7,7 +7,9 @@ import { CombatState, InBattleXp, DiceRollBreakdown } from '../../core/combat/ty
 import { canMove, canExecuteAbility, getAbilityRangeCoords } from '../../core/combat/validator';
 import { executeMove, executeSetFacing, executeAbility } from '../../core/combat/resolver';
 import { endActiveTurn, calculateTurnTransitionTicks } from '../../core/combat/turnClock';
-import { getEffectiveSpeed } from '../../core/combat/effectiveVitals';
+import { getEffectiveSpeed, getEffectiveMove } from '../../core/combat/effectiveVitals';
+import { getBastionZocHexKeys } from '../../core/combat/bastionStance';
+import { getRoughTerrainHexKeys } from '../../core/combat/battlefieldZones';
 import {
   EncounterDefinition,
   buildEncounterState
@@ -305,16 +307,19 @@ export function useCombatSimulation({
     if (phase !== 'PLAYER_ACTION' || actionMode !== 'MOVE' || !activeCoord || !activeCu || activeCu.currentAp < 1) {
       return [];
     }
-    return state.arena.getReachableHexes(activeCoord, activeCu.unit.effectiveVitals.move);
-  }, [phase, actionMode, activeCoord, activeCu, state.arena]);
+    return state.arena.getReachableHexes(activeCoord, getEffectiveMove(activeCu), {
+      terminalHexKeys: getBastionZocHexKeys(state, activeCu.unit.id),
+      roughTerrainHexKeys: getRoughTerrainHexKeys(state)
+    });
+  }, [phase, actionMode, activeCoord, activeCu, state]);
 
   // Computes candidate tiles in range when an ability is selected
   const abilityRangeCoords = useMemo<HexCoord[]>(() => {
     if (phase !== 'PLAYER_ACTION' || actionMode !== 'ABILITY' || !selectedAbility || !activeCoord || !activeCu) {
       return [];
     }
-    return getAbilityRangeCoords(state.arena, activeCoord, selectedAbility, activeCu);
-  }, [phase, actionMode, selectedAbility, activeCoord, activeCu, state.arena]);
+    return getAbilityRangeCoords(state.arena, activeCoord, selectedAbility, activeCu, state);
+  }, [phase, actionMode, selectedAbility, activeCoord, activeCu, state]);
 
   // Candidate targets within ability range that pass validation (enemies for attacks, allies for buffs)
   const candidateTargetCoords = useMemo<HexCoord[]>(() => {
@@ -356,7 +361,10 @@ export function useCombatSimulation({
     ) {
       return null;
     }
-    const info = state.arena.findPath(activeCoord, hoveredCoord, activeCu.unit.effectiveVitals.move);
+    const info = state.arena.findPath(activeCoord, hoveredCoord, getEffectiveMove(activeCu), {
+      terminalHexKeys: getBastionZocHexKeys(state, activeCu.unit.id),
+      roughTerrainHexKeys: getRoughTerrainHexKeys(state)
+    });
     if (!info) {
       return null;
     }

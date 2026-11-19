@@ -2,6 +2,16 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.20.0] - 2026-11-18
+
+### New Tier 4 Class: Ballistician
+- **Siege Artillery Specialist**: Introduced the **Ballistician** (Tier 4: 1 Fighter, 3 Rogue), our first physical long-range sniper class with a dedicated pixel sprite and emerald-and-crimson class badge. All Ballistician siege abilities operate beyond a 1-hex melee blind spot (Range 2–4).
+- **Zeroed In Passive**: Ending a turn without moving, teleporting, or being displaced builds up to 3 stacks of *Zeroed In*, granting +1 Range on ranged abilities, +1 Attack Roll, and -1 Evasion per stack. Reaching 3 stacks also expands the blast radius of area-of-effect abilities by +1 hex. Any movement, teleport, or forced displacement immediately clears all stacks.
+- **Siege Barrage (Signature)**: Launches a high-angle volley that marks a target hex cluster on the battlefield, crashing down at the start of the Ballistician's next turn for heavy physical area damage. Airborne volleys still land even if the Ballistician is displaced or defeated.
+- **Shrapnel Canister**: Lobs a fragmentation flare that immediately strips Stealth from concealed enemies in the blast zone and blankets the area in *Shrapnel Rubble* rough terrain for 2 turns, increasing movement costs by +2 MP per hex and trapping enemies inside incoming bombardments.
+- **Sighting Bolt**: Fires an immediate tracer bolt that inflicts *Exposed* and marks the target with *Quadrant Telemetry* for 2 turns, granting all allied ranged and spell attackers +2 Range while bypassing low-ground elevation and ranged cover penalties against that enemy.
+- **Battlefield Zone Overlays & Smarter Enemy Tactics**: Active *Siege Barrage* target zones and *Shrapnel Rubble* rough terrain now render directly on the arena grid with hover tooltips, and enemy AI now actively tries to escape marked bombardment zones.
+
 ## [0.19.0] - 2026-11-15
 
 ### Unified Ability Cards & Dynamic Augment Highlighting

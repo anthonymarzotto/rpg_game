@@ -260,6 +260,12 @@ const CONDITION_PRESENTATION: Readonly<
     label: 'Exposed',
     tone: 'debuff',
     summary: 'Lowers defenses against incoming attacks.'
+  },
+  TELEMETRY: {
+    icon: '📡',
+    label: 'Telemetry',
+    tone: 'debuff',
+    summary: 'Grants allied ranged and spell attacks +2 Range while bypassing low-ground elevation and ranged cover penalties.'
   }
 };
 

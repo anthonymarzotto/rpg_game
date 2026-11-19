@@ -15,7 +15,7 @@ export interface DiceProfile {
   readonly modifierAttribute?: keyof TriadAttributes;
 }
 
-export type ConditionType = 'POISON' | 'BURN' | 'CHALLENGED' | 'STEALTH' | 'EXPOSED';
+export type ConditionType = 'POISON' | 'BURN' | 'CHALLENGED' | 'STEALTH' | 'EXPOSED' | 'TELEMETRY';
 
 export type AbilityEffectType =
   | 'DAMAGE'           // Deals physical or magical damage via dice profile and/or flat damage
@@ -41,7 +41,9 @@ export type AbilityEffectType =
   | 'POSITION_SWAP'   // Swaps coordinates between actor and target ally
   | 'BASTION_STANCE'  // Stance: Phalanx Front ZOC and rear cover
   | 'AERIAL_VAULT'    // Aerial jump over obstacles landing adjacent to target
-  | 'LINE_PIERCE';    // Piercing thrust penetrating secondary rear target
+  | 'LINE_PIERCE'     // Piercing thrust penetrating secondary rear target
+  | 'DELAYED_BOMBARDMENT' // Marks a hex cluster for delayed artillery impact at next turn start
+  | 'SHRAPNEL_RUBBLE'; // Strips stealth and blankets hexes in rough terrain (+2 MP entry cost)
 
 export type EffectTargetScope = 'TARGET' | 'SELF' | 'ALLIES';
 export type EffectApplyCondition = 'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY';
@@ -165,6 +167,8 @@ export interface Ability {
   readonly apCost: number;
   /** Optional HP cost deducted from user upon execution (self-sacrifice) */
   readonly hpCost?: number;
+  /** Minimum targeting distance in hexes (deadzone below this distance) */
+  readonly minRange?: number;
   /** Maximum targeting distance in hexes */
   readonly range: number;
   readonly targetType: AbilityTargetType;

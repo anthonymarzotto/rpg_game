@@ -746,6 +746,60 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
     expect(px).toBe(bx + 40);
     expect(py).toBe(by - 30);
   });
+
+  it('renders Shrapnel Rubble and incoming Siege Barrage hex overlays with tooltips', () => {
+    const { state } = setupTestState();
+    state.hexHazards = [
+      {
+        id: 'rubble-1',
+        type: 'SHRAPNEL_RUBBLE',
+        sourceUnitId: 'hero',
+        sourceFaction: 'PLAYER',
+        hexCoords: [{ q: 1, r: 0 }],
+        durationTurns: 2,
+        extraMoveCost: 2
+      }
+    ];
+    state.pendingBombardments = [
+      {
+        id: 'bombard-1',
+        sourceUnitId: 'hero',
+        sourceUnitName: 'Ballistician',
+        sourceFaction: 'PLAYER',
+        abilityId: 'siege_barrage',
+        abilityName: 'Siege Barrage',
+        centerCoord: { q: 1, r: 0 },
+        hexCoords: [{ q: 1, r: 0 }, { q: 2, r: 0 }],
+        damageProfile: { count: 2, sides: 8, modifierAttribute: 'force' },
+        attackModifierAttribute: 'finesse',
+        snapshotFinesse: 3,
+        snapshotForce: 1,
+        snapshotFocus: 0,
+        snapshotZeroedInStacks: 1
+      }
+    ];
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('data-testid="hex-rubble-1-0"');
+    expect(html).toContain('Shrapnel Rubble (+2 MP to enter, 2 turns remaining)');
+    expect(html).toContain('+2 MP');
+    expect(html).toContain('data-testid="hex-bombardment-1-0"');
+    expect(html).toContain('data-testid="hex-bombardment-2-0"');
+    expect(html).toContain('Incoming Siege Barrage (Ballistician)');
+  });
 });
 
 

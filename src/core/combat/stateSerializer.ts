@@ -46,6 +46,8 @@ export function serializeCombatState(state: CombatState): SerializedCombatState 
     aiDecisionLog: state.aiDecisionLog ? [...state.aiDecisionLog] : undefined,
     partyXpPool: state.partyXpPool ? { ...state.partyXpPool } : { fighter: 0, rogue: 0, mage: 0 },
     seed: state.seed,
+    pendingBombardments: state.pendingBombardments ? JSON.parse(JSON.stringify(state.pendingBombardments)) : undefined,
+    hexHazards: state.hexHazards ? JSON.parse(JSON.stringify(state.hexHazards)) : undefined,
     exportedAt: Date.now()
   };
 }
@@ -81,7 +83,9 @@ export function deserializeCombatState(payload: SerializedCombatState): CombatSt
     objectives: payload.objectives ? [...payload.objectives] : undefined,
     aiDecisionLog: payload.aiDecisionLog ? [...payload.aiDecisionLog] : undefined,
     partyXpPool: payload.partyXpPool ? { ...payload.partyXpPool } : { fighter: 0, rogue: 0, mage: 0 },
-    seed: payload.seed
+    seed: payload.seed,
+    pendingBombardments: payload.pendingBombardments ? JSON.parse(JSON.stringify(payload.pendingBombardments)) : undefined,
+    hexHazards: payload.hexHazards ? JSON.parse(JSON.stringify(payload.hexHazards)) : undefined
   };
 }
 

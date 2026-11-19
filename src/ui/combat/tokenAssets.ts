@@ -16,6 +16,7 @@ export const AVAILABLE_PIXEL_TOKENS = new Set<string>([
   '05_human_male',  // Shield-bearer
   '07_human_male',  // Dragoon
   '64_human_male',  // Highwayman
+  '65_human_male',  // Ballistician
   '80_human_male',  // Warlock
   '81_human_male',  // Thief
   '82_human_male',  // Infiltrator
@@ -45,7 +46,8 @@ export const CLASS_BADGE_PALETTES: Record<string, { primary: string; border: str
   catburglar: { primary: '#0f766e', border: '#14b8a6' },
   'shield-bearer': { primary: '#334155', border: '#10b981' }, // Slate Iron / Emerald
   shieldbearer: { primary: '#334155', border: '#10b981' },
-  dragoon: { primary: '#312e81', border: '#e11d48' } // Deep Dragon Violet / Radiant Crimson
+  dragoon: { primary: '#312e81', border: '#e11d48' }, // Deep Dragon Violet / Radiant Crimson
+  ballistician: { primary: '#065f46', border: '#e11d48' } // Engineer Emerald / Safety Crimson
 };
 
 /**

@@ -163,4 +163,25 @@ describe('abilityFormatter', () => {
       expect(clause!.text).not.toContain('CTB_DELAY');
     }
   });
+
+  it('formats minimum range deadzone as Range min–max', () => {
+    const artillery: Ability = {
+      id: 'test_artillery',
+      name: 'Test Artillery',
+      description: 'Long-range siege shot.',
+      apCost: 2,
+      minRange: 2,
+      range: 4,
+      targetType: 'HEX',
+      defenseTarget: 'EVASION',
+      attackModifierAttribute: 'finesse',
+      damageType: 'PHYSICAL',
+      aoeRadius: 1,
+      effects: [{ type: 'DAMAGE', damageProfile: { count: 2, sides: 8, modifierAttribute: 'force' } }]
+    };
+
+    const formatted = formatAbilityDescription(artillery);
+    const reachPill = formatted.statPills.find((p) => p.id === 'reach');
+    expect(reachPill?.label).toBe('Range 2–4');
+  });
 });

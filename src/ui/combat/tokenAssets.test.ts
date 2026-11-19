@@ -111,6 +111,27 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       );
     });
 
+    it('resolves ballistician (65_human_male) to pixel idle rotation paths and Engineer Emerald / Safety Crimson badge palette', () => {
+      const ballistician = createMockUnit({
+        gender: 'male',
+        race: 'human',
+        loadout: {
+          activeClassId: 'ballistician',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        }
+      });
+
+      expect(resolvePixelTokenBase(ballistician)).toBe('65_human_male');
+      expect(resolveTokenAssetPath(ballistician, HEX_DIRECTIONS.EAST)).toBe(
+        '/assets/tokens/pixel/65_human_male/Idle/rotations/east.png'
+      );
+      expect(getClassBadgePalette('ballistician')).toEqual({
+        primary: '#065f46',
+        border: '#e11d48'
+      });
+    });
+
     it('resolves thief (81_human_male) to pixel idle rotation paths', () => {
       const thief = createMockUnit({
         gender: 'male',

@@ -81,6 +81,10 @@ export interface ModifierApplicabilityFilter {
   readonly targetArchetypes?: readonly Archetype[];
   /** Damage types this modifier affects (e.g. MAGICAL for spell enhancements) */
   readonly targetDamageTypes?: readonly DamageType[];
+  /** Minimum base ability range required for this modifier to apply (e.g. 2 for ranged-only buffs) */
+  readonly minBaseRange?: number;
+  /** Minimum base ability aoeRadius required for this modifier to apply (e.g. 1 for AoE-only buffs) */
+  readonly minBaseAoeRadius?: number;
 }
 
 /**

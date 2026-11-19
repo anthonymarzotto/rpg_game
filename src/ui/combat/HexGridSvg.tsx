@@ -157,6 +157,39 @@ export function HexGridSvg({
     [candidateTargetCoords]
   );
 
+  // Active Shrapnel Rubble rough terrain lookup
+  const rubbleMap = useMemo(() => {
+    const map = new Map<string, { durationTurns: number; extraMoveCost: number }>();
+    for (const h of state.hexHazards ?? []) {
+      if (h.type === 'SHRAPNEL_RUBBLE' && h.durationTurns > 0) {
+        for (const c of h.hexCoords) {
+          const key = toHexKey(c);
+          const existing = map.get(key);
+          if (!existing || h.durationTurns > existing.durationTurns) {
+            map.set(key, { durationTurns: h.durationTurns, extraMoveCost: h.extraMoveCost });
+          }
+        }
+      }
+    }
+    return map;
+  }, [state.hexHazards]);
+
+  // Active Delayed Bombardment (Siege Barrage) lookup
+  const bombardmentMap = useMemo(() => {
+    const map = new Map<string, { abilityName: string; sourceUnitName: string; isCenter: boolean }>();
+    for (const b of state.pendingBombardments ?? []) {
+      for (const c of b.hexCoords) {
+        const key = toHexKey(c);
+        const isCenter = c.q === b.centerCoord.q && c.r === b.centerCoord.r;
+        const existing = map.get(key);
+        if (!existing || isCenter) {
+          map.set(key, { abilityName: b.abilityName, sourceUnitName: b.sourceUnitName, isCenter });
+        }
+      }
+    }
+    return map;
+  }, [state.pendingBombardments]);
+
   // Memoized movement path step lookup map for lifted stepping stones (UX.1)
   const pathStepMap = useMemo(() => {
     if (!movePreview?.path || movePreview.path.length <= 1) {
@@ -427,6 +460,65 @@ export function HexGridSvg({
                   strokeDasharray={strokeDasharray}
                   filter={filter}
                 />
+
+                {/* Shrapnel Rubble Rough Terrain Overlay */}
+                {rubbleMap.has(key) && (() => {
+                  const rubble = rubbleMap.get(key)!;
+                  return (
+                    <g
+                      className="pointer-events-none hex-rubble-overlay"
+                      data-testid={`hex-rubble-${tile.coord.q}-${tile.coord.r}`}
+                    >
+                      <title>{`Shrapnel Rubble (+${rubble.extraMoveCost} MP to enter, ${rubble.durationTurns} turn${rubble.durationTurns === 1 ? '' : 's'} remaining)`}</title>
+                      <polygon
+                        points={polyPoints}
+                        fill="rgba(217, 119, 6, 0.24)"
+                        stroke="#f59e0b"
+                        strokeWidth={1.4}
+                        strokeDasharray="3 2"
+                      />
+                      <text
+                        x={basePixel.x}
+                        y={liftedTopY + 18}
+                        fill="#fcd34d"
+                        fontSize="7.5"
+                        fontWeight="800"
+                        textAnchor="middle"
+                      >
+                        {`+${rubble.extraMoveCost} MP`}
+                      </text>
+                    </g>
+                  );
+                })()}
+
+                {/* Incoming Delayed Bombardment (Siege Barrage) Overlay */}
+                {bombardmentMap.has(key) && (() => {
+                  const bombard = bombardmentMap.get(key)!;
+                  return (
+                    <g
+                      className="pointer-events-none hex-bombardment-overlay"
+                      data-testid={`hex-bombardment-${tile.coord.q}-${tile.coord.r}`}
+                    >
+                      <title>{`Incoming ${bombard.abilityName} (${bombard.sourceUnitName}) — detonates at next turn start`}</title>
+                      <polygon
+                        points={polyPoints}
+                        fill="rgba(225, 29, 72, 0.28)"
+                        stroke="#fb7185"
+                        strokeWidth={bombard.isCenter ? 2.4 : 1.6}
+                        strokeDasharray="4 2"
+                      />
+                      <text
+                        x={basePixel.x}
+                        y={liftedTopY + 4}
+                        fill="#fecdd3"
+                        fontSize={bombard.isCenter ? '13' : '10'}
+                        textAnchor="middle"
+                      >
+                        {bombard.isCenter ? '💥' : '🎯'}
+                      </text>
+                    </g>
+                  );
+                })()}
 
                 {/* Obstacle / Ruins Token Standee */}
                 {isObstacle && (
@@ -717,8 +809,10 @@ export function HexGridSvg({
                   c.type === 'POISON' ? '🧪' :
                     c.type === 'BURN' ? '🔥' :
                       c.type === 'CHALLENGED' ? '⚔️' :
-                        c.type === 'EXPOSED' ? '🎯' : '✨'
+                        c.type === 'EXPOSED' ? '🎯' :
+                          c.type === 'TELEMETRY' ? '📡' : '✨'
               ),
+              ...((cu.zeroedInStacks ?? 0) > 0 ? ['🔭'] : []),
               ...(cu.activeModifiers ?? []).map((m) =>
                 m.stat === 'move' && m.value < 0 ? '❄️' :
                   m.stat === 'move' && m.value > 0 ? '💨' :
@@ -730,7 +824,12 @@ export function HexGridSvg({
             const hasDebuff =
               (cu.activeModifiers ?? []).some((m) => m.value < 0) ||
               (cu.activeConditions ?? []).some(
-                (c) => c.type === 'POISON' || c.type === 'BURN' || c.type === 'CHALLENGED' || c.type === 'EXPOSED'
+                (c) =>
+                  c.type === 'POISON' ||
+                  c.type === 'BURN' ||
+                  c.type === 'CHALLENGED' ||
+                  c.type === 'EXPOSED' ||
+                  c.type === 'TELEMETRY'
               );
             const statusBubbleStroke = isStealthed ? '#c084fc' : hasDebuff ? '#f87171' : '#fbbf24';
             const statusBubbleWidth = Math.max(statusIcons.length * 13 + 6, 20);

@@ -19,6 +19,7 @@ import { BASTION_PLANT, CONCUSSIVE_SLAM } from '../../data/packages/shieldBearer
 import { LEAD_THE_CHARGE, POMMEL_STRIKE, CHALLENGING_SHOUT } from '../../data/packages/knight';
 import { ROOFTOP_VAULT, FLASH_POWDER, PILFER } from '../../data/packages/catBurglar';
 import { COILED_APEX, PIERCING_THRUST } from '../../data/packages/dragoon';
+import { SIEGE_BARRAGE, SHRAPNEL_CANISTER, SIGHTING_BOLT, ZEROED_IN } from '../../data/packages/ballistician';
 import { scoreTargetThreat, scoreDebuffAndUtility } from './heuristics';
 
 function createMockUnit(
@@ -1863,6 +1864,84 @@ describe('Headless AI Decision Engine', () => {
         state.units.get(hero2.id)!.activeModifiers.push({ stat: 'attackRoll', value: -2, durationTurns: 1 });
         const actionDebuffed = decideNextAction(state, catBurglar.id);
         expect(actionDebuffed.type === 'ABILITY' && actionDebuffed.ability.id === 'flash_powder').toBe(false);
+      });
+
+      it('Ballistician AI stays planted to preserve Zeroed In stacks and fires artillery when targets are in range', () => {
+        const arena = createRadialArena(5);
+        const ball = createMockUnit('ball-1', 'Enemy Ballistician', 'ENEMY', {
+          activeClassId: 'ballistician',
+          move: 3,
+          abilities: ['siege_barrage', 'shrapnel_canister', 'sighting_bolt']
+        });
+        const hero1 = createMockUnit('hero-1', 'Hero 1', 'PLAYER');
+        const hero2 = createMockUnit('hero-2', 'Hero 2', 'PLAYER');
+
+        arena.setUnitPosition(ball.id, { q: 3, r: 0 });
+        arena.setUnitPosition(hero1.id, { q: 0, r: 0 }); // dist 3
+        arena.setUnitPosition(hero2.id, { q: 0, r: 1 }); // adjacent to hero1
+
+        const state = createCombatState(arena, [ball, hero1, hero2], ball.id);
+        const ballCu = state.units.get(ball.id)!;
+        (ballCu as { passives: typeof ballCu.passives }).passives = [ZEROED_IN];
+        (ballCu as { abilities: typeof ballCu.abilities }).abilities = [
+          SIEGE_BARRAGE,
+          SHRAPNEL_CANISTER,
+          SIGHTING_BOLT
+        ];
+        ballCu.zeroedInStacks = 2;
+        ballCu.currentAp = 3;
+
+        const action = decideNextAction(state, ball.id);
+        expect(action.type).toBe('ABILITY');
+      });
+
+      it('AI unit moves out of a hostile pending Siege Barrage bombardment zone', () => {
+        const arena = createRadialArena(4);
+        const enemy = createMockUnit('enemy-1', 'Enemy Fighter', 'ENEMY', {
+          activeClassId: 'warrior',
+          move: 3
+        });
+        const hero = createMockUnit('hero-1', 'Player Ballistician', 'PLAYER');
+
+        arena.setUnitPosition(enemy.id, { q: 0, r: 0 });
+        arena.setUnitPosition(hero.id, { q: -4, r: 0 });
+
+        const state = createCombatState(arena, [enemy, hero], enemy.id);
+        state.pendingBombardments = [
+          {
+            id: 'b-1',
+            sourceUnitId: hero.id,
+            sourceUnitName: 'Player Ballistician',
+            sourceFaction: 'PLAYER',
+            abilityId: 'siege_barrage',
+            abilityName: 'Siege Barrage',
+            centerCoord: { q: 0, r: 0 },
+            hexCoords: [
+              { q: 0, r: 0 },
+              { q: 1, r: 0 },
+              { q: -1, r: 0 },
+              { q: 0, r: 1 },
+              { q: 0, r: -1 },
+              { q: 1, r: -1 },
+              { q: -1, r: 1 }
+            ],
+            damageProfile: { count: 2, sides: 8, modifierAttribute: 'force' },
+            attackModifierAttribute: 'finesse',
+            snapshotFinesse: 3,
+            snapshotForce: 1,
+            snapshotFocus: 0,
+            snapshotZeroedInStacks: 0
+          }
+        ];
+
+        const action = decideNextAction(state, enemy.id);
+        expect(action.type).toBe('MOVE');
+        if (action.type === 'MOVE') {
+          const inZone = state.pendingBombardments![0].hexCoords.some(
+            (c) => c.q === action.destination.q && c.r === action.destination.r
+          );
+          expect(inZone).toBe(false);
+        }
       });
     });
   });

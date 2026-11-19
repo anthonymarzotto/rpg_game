@@ -183,8 +183,25 @@ export const CONDITION_REGISTRY: Readonly<Record<ConditionType, ConditionDefinit
       advantage: true,
       description: 'Exposed (Advantage)'
     })
+  },
+  TELEMETRY: {
+    type: 'TELEMETRY',
+    stackingPolicy: 'REFRESH_DURATION'
   }
 };
+
+/**
+ * Returns true if targetCu is marked with Quadrant Telemetry (TELEMETRY)
+ * and is hostile to attackerCu (when attackerCu is provided).
+ */
+export function hasTelemetryMark(targetCu: CombatUnit | undefined, attackerCu?: CombatUnit): boolean {
+  if (!targetCu || targetCu.isDefeated) return false;
+  if (!targetCu.activeConditions?.some((c) => c.type === 'TELEMETRY')) return false;
+  if (attackerCu && attackerCu.faction && targetCu.faction && attackerCu.faction === targetCu.faction) {
+    return false;
+  }
+  return true;
+}
 
 export function getConditionDefinition(type: ConditionType): ConditionDefinition | undefined {
   return CONDITION_REGISTRY[type];

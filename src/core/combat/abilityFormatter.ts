@@ -268,6 +268,9 @@ export function formatAbilityEffectClause(
       if (cond === 'EXPOSED') {
         return buildClause(`Inflicts Exposed (${dur})`, triggerLabel);
       }
+      if (cond === 'TELEMETRY') {
+        return buildClause(`Marks with Quadrant Telemetry (+2 allied ranged/spell Range, ignores elevation & cover, ${dur})`, triggerLabel);
+      }
       return buildClause(`Applies ${cond ?? 'Condition'} (${dur})`, triggerLabel);
     }
 
@@ -324,6 +327,23 @@ export function formatAbilityEffectClause(
         'Triggers spontaneous Wild Surge on crit (1d3: +1 AP, +25 CTB, or 2 magic dmg)',
         undefined
       );
+
+    case 'DELAYED_BOMBARDMENT': {
+      const dmgStr = effect.damageProfile ? formatDiceProfile(effect.damageProfile, effect.flatDamage) : '2d8 + FRC';
+      return buildClause(
+        `Marks blast zone; crashes down at start of next turn for ${dmgStr} physical damage vs Evasion`,
+        undefined
+      );
+    }
+
+    case 'SHRAPNEL_RUBBLE': {
+      const extraCost = effect.magnitude ?? 2;
+      const dur = formatTurns(effect.durationTurns ?? 2);
+      return buildClause(
+        `Strips Stealth in blast zone and creates Shrapnel Rubble rough terrain (+${extraCost} MP to enter, ${dur})`,
+        undefined
+      );
+    }
   }
 }
 
@@ -401,6 +421,10 @@ function formatCompactEffectTag(effect: AbilityEffect): string | null {
       return '+1 Die/+2 Hit';
     case 'WILD_SURGE':
       return 'Wild Surge';
+    case 'DELAYED_BOMBARDMENT':
+      return 'Delayed Barrage';
+    case 'SHRAPNEL_RUBBLE':
+      return 'Reveal + Rubble';
   }
 }
 
@@ -428,17 +452,22 @@ export function formatAbilityDescription(
   const aoeTier = resolvePropertyTier(attributions, 'aoeRadius');
   const targetTier = resolvePropertyTier(attributions, 'targetType');
 
+  const rangeText =
+    ability.minRange !== undefined && ability.minRange > 0
+      ? `${ability.minRange}–${ability.range}`
+      : `${ability.range}`;
+
   let reachLabel: string;
   if (ability.targetType === 'SELF') {
     reachLabel = 'Self';
   } else if (ability.coneTemplate) {
     reachLabel = `Cone ${ability.range}`;
   } else if (ability.targetType === 'ALLY') {
-    reachLabel = `Ally • Range ${ability.range}`;
-  } else if (ability.range === 1 && rangeTier === 'NORMAL') {
+    reachLabel = `Ally • Range ${rangeText}`;
+  } else if (ability.range === 1 && rangeTier === 'NORMAL' && !ability.minRange) {
     reachLabel = 'Melee 1';
   } else {
-    reachLabel = `Range ${ability.range}`;
+    reachLabel = `Range ${rangeText}`;
   }
 
   const reachPillTier = maxProvenanceTier(rangeTier, targetTier);
@@ -455,7 +484,9 @@ export function formatAbilityDescription(
 
   // 2. Primary Damage Pill
   const effectsList = ability.effects ?? [];
-  const primaryDamageEffect = effectsList.find((e) => e.type === 'DAMAGE' && !e.condition);
+  const primaryDamageEffect = effectsList.find(
+    (e) => (e.type === 'DAMAGE' || e.type === 'DELAYED_BOMBARDMENT') && !e.condition
+  );
   const damageTier = maxProvenanceTier(
     resolvePropertyTier(attributions, 'damageProfile', 'damageType'),
     primaryDamageEffect?.sourceTier ?? 'NORMAL'

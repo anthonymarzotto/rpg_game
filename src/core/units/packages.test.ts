@@ -14,6 +14,7 @@ import {
   CAT_BURGLAR_PACKAGE,
   SHIELD_BEARER_PACKAGE,
   DRAGOON_PACKAGE,
+  BALLISTICIAN_PACKAGE,
   CLASS_PACKAGES,
   MOMENTUM,
   getClassPackage,
@@ -291,6 +292,41 @@ describe('Class Packages & Catalog Verification', () => {
     expect(getAbilityById('wyrmflame_breath')).toBeDefined();
     expect(getPassiveById('coiled_apex')).toBeDefined();
     expect(getClassPackage('dragoon')).toBe(DRAGOON_PACKAGE);
+  });
+
+  it('correctly maps Ballistician abilities, passive, and profile', () => {
+    expect(BALLISTICIAN_PACKAGE.classId).toBe('ballistician');
+    expect(BALLISTICIAN_PACKAGE.className).toBe('Ballistician');
+    expect(BALLISTICIAN_PACKAGE.signatureAbility.id).toBe('siege_barrage');
+    expect(BALLISTICIAN_PACKAGE.signatureAbility.apCost).toBe(2);
+    expect(BALLISTICIAN_PACKAGE.signatureAbility.minRange).toBe(2);
+    expect(BALLISTICIAN_PACKAGE.signatureAbility.range).toBe(4);
+    expect(BALLISTICIAN_PACKAGE.signatureAbility.aoeRadius).toBe(1);
+    expect(BALLISTICIAN_PACKAGE.signatureAbility.oncePerTurn).toBe(true);
+    expect(BALLISTICIAN_PACKAGE.signatureAbility.effects?.some((e) => e.type === 'DELAYED_BOMBARDMENT')).toBe(true);
+
+    expect(BALLISTICIAN_PACKAGE.domainAbilities.map((a) => a.id)).toEqual(['shrapnel_canister', 'sighting_bolt']);
+    const shrapnel = BALLISTICIAN_PACKAGE.domainAbilities.find((a) => a.id === 'shrapnel_canister')!;
+    expect(shrapnel.minRange).toBe(2);
+    expect(shrapnel.range).toBe(4);
+    expect(shrapnel.damageType).toBe('NONE');
+    expect(shrapnel.effects?.some((e) => e.type === 'SHRAPNEL_RUBBLE')).toBe(true);
+
+    const sighting = BALLISTICIAN_PACKAGE.domainAbilities.find((a) => a.id === 'sighting_bolt')!;
+    expect(sighting.minRange).toBe(2);
+    expect(sighting.range).toBe(4);
+    expect(sighting.effects?.some((e) => e.type === 'CONDITION' && e.conditionType === 'EXPOSED' && e.applyOn === 'HIT_OR_CRIT')).toBe(true);
+    expect(sighting.effects?.some((e) => e.type === 'CONDITION' && e.conditionType === 'TELEMETRY' && e.applyOn === 'HIT_OR_CRIT')).toBe(true);
+
+    expect(BALLISTICIAN_PACKAGE.passive.id).toBe('zeroed_in');
+    expect(BALLISTICIAN_PACKAGE.passive.stationaryCalibration).toBe(true);
+    expect(BALLISTICIAN_PACKAGE.aiProfile).toBe('SNIPER');
+
+    expect(getAbilityById('siege_barrage')).toBeDefined();
+    expect(getAbilityById('shrapnel_canister')).toBeDefined();
+    expect(getAbilityById('sighting_bolt')).toBeDefined();
+    expect(getPassiveById('zeroed_in')).toBeDefined();
+    expect(getClassPackage('ballistician')).toBe(BALLISTICIAN_PACKAGE);
   });
 
   it('requires explicit shout configuration on customizable displacement and tempo effects across all registered abilities', () => {

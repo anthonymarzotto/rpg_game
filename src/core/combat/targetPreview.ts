@@ -12,6 +12,7 @@ import { getEffectiveAbility } from './modifiers';
 import { evaluateAttackRollContext } from './attackRoll';
 import { hasBastionRangedCover } from './bastionStance';
 import { resolveAerialVaultLandingHex } from './aerialVault';
+import { hasTelemetryMark } from './conditions';
 import { RollAdvantage } from './dice';
 
 /**
@@ -115,12 +116,17 @@ export function computeAbilityMetrics(
   const elevationDelta = actorElevation - targetElevation;
   const elevationVantageRange =
     effectiveAbility.range >= 2 && elevationDelta > 0 ? elevationDelta : undefined;
+  const telemetryRangeBonus =
+    effectiveAbility.range >= 2 && hasTelemetryMark(targetCu, actorCu) ? 2 : 0;
   const maxRange =
     effectiveAbility.range >= 2
-      ? effectiveAbility.range + Math.max(0, elevationDelta)
+      ? effectiveAbility.range + Math.max(0, elevationDelta) + telemetryRangeBonus
       : effectiveAbility.range;
 
   const dist = hexDistance(effectiveOrigin, targetCoord);
+  if (!isSelf && effectiveAbility.minRange !== undefined && dist < effectiveAbility.minRange) {
+    return null;
+  }
   if (dist > maxRange && !isSelf) {
     return null;
   }
@@ -142,7 +148,10 @@ export function computeAbilityMetrics(
     : undefined;
   const strikeOrigin = projectedLanding ?? effectiveOrigin;
 
-  const obstruction = isAerialVault
+  const isIndirectArtillery = effectiveAbility.effects?.some(
+    (e) => e.type === 'DELAYED_BOMBARDMENT' || e.type === 'SHRAPNEL_RUBBLE'
+  );
+  const obstruction = isAerialVault || isIndirectArtillery
     ? null
     : state.arena.getLineOfSightObstruction(effectiveOrigin, targetCoord, {
         isUnitScreening: (unitId) =>

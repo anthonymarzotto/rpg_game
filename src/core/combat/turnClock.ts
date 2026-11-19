@@ -6,6 +6,8 @@ import { onTurnStartPassives } from './passives';
 import { getConditionDefinition, evaluateFrontArcDetection } from './conditions';
 import { Faction } from '../types/unit';
 import { combatLogger } from './combatLogger';
+import { accumulateZeroedInOnTurnEnd } from './zeroedIn';
+import { tickHexHazardsOnTurnStart, resolvePendingBombardmentsOnTurnStart } from './battlefieldZones';
 
 /**
  * Minimal interface required to participate in CTB clock ticking.
@@ -115,6 +117,18 @@ export function advanceTurnClock(state: CombatState): string {
     const nextActive = winner.cu;
     state.activeUnitId = nextActive.unit.id;
     state.turnNumber += 1;
+
+    // Tick temporary hex hazards (e.g. Shrapnel Rubble) and detonate scheduled delayed bombardments
+    tickHexHazardsOnTurnStart(state, nextActive.unit.id);
+    resolvePendingBombardmentsOnTurnStart(state, nextActive.unit.id);
+    if (state.outcome !== 'IN_PROGRESS') {
+      return nextActive.unit.id;
+    }
+    if (nextActive.isDefeated || nextActive.currentHp <= 0) {
+      nextActive.currentAp = 0;
+      nextActive.initiativeGauge = 0;
+      continue;
+    }
 
     // Resolve turn-start damage-over-time via declarative condition lifecycle hooks before AP grant
     let dotDamageTotal = 0;
@@ -301,6 +315,7 @@ export function endActiveTurn(
     return true;
   });
   activeCombatUnit.abilitiesUsedThisTurn = undefined;
+  accumulateZeroedInOnTurnEnd(activeCombatUnit);
   activeCombatUnit.hexesMovedThisTurn = 0;
 
   if (activeCombatUnit.passives?.some((p) => p.unspentApVirtualHeight)) {

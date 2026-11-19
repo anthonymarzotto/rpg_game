@@ -461,5 +461,27 @@ describe('Arena Spatial Engine', () => {
       expect(pillar?.isWalkable).toBe(false);
     });
   });
+
+  describe('Rough Terrain Movement Cost (Shrapnel Rubble)', () => {
+    it('adds +2 MP step entry cost on roughTerrainHexKeys so a Move-3 unit at center of a 7-hex rubble cluster can only step 1 hex into the outer ring', () => {
+      const arena = createRadialArena(3);
+      const center: HexCoord = { q: 0, r: 0 };
+      const rubbleHexes = getHexesInRange(center, 1);
+      const roughKeys = new Set(rubbleHexes.map((c) => toHexKey(c)));
+
+      const reachable = arena.getReachableHexes(center, 3, {
+        roughTerrainHexKeys: roughKeys
+      });
+
+      // Center (0,0) has cost 0; each adjacent rubble hex costs 1 + 2 = 3 MP; distance 2 costs 4 MP (> 3)
+      expect(reachable.some((c) => c.q === 1 && c.r === 0)).toBe(true);
+      expect(reachable.some((c) => c.q === 2 && c.r === 0)).toBe(false);
+
+      const path = arena.findPath(center, { q: 1, r: 0 }, 3, {
+        roughTerrainHexKeys: roughKeys
+      });
+      expect(path?.cost).toBe(3);
+    });
+  });
 });
 

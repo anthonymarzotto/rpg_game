@@ -7,6 +7,8 @@ import { getClassPackage } from '../../data/packages';
 import { getEffectiveMove } from '../combat/effectiveVitals';
 import { getEffectiveAbility } from '../combat/modifiers';
 import { isBastionStanceActive } from '../combat/bastionStance';
+import { getRoughTerrainHexKeys, getPendingBombardmentHexKeys } from '../combat/battlefieldZones';
+import { toHexKey } from '../grid/hex';
 
 export const DEFAULT_ARCHETYPE_WEIGHTS: Record<AIProfile, AIArchetypeWeights> = {
   BRAWLER: {
@@ -1036,6 +1038,40 @@ export function scoreDebuffAndUtility(
     if (!hasCondition) {
       score += 4.5;
       reasons.push(`Apply ${cond} DoT`);
+    }
+  }
+
+  // 10. Quadrant Telemetry spotter lock (e.g. Sighting Bolt)
+  const hasTelemetryEffect = ability.effects?.some(
+    (e) => e.type === 'CONDITION' && e.conditionType === 'TELEMETRY'
+  );
+  if (hasTelemetryEffect && !targetCu.activeConditions.some((c) => c.type === 'TELEMETRY')) {
+    score += 8.0;
+    reasons.push('Paint target with Quadrant Telemetry');
+  }
+
+  // 11. Shrapnel Rubble rough terrain & Stealth reveal (e.g. Shrapnel Canister)
+  const hasShrapnelRubble = ability.effects?.some((e) => e.type === 'SHRAPNEL_RUBBLE');
+  if (hasShrapnelRubble) {
+    const isStealthed = targetCu.activeConditions.some((c) => c.type === 'STEALTH');
+    const targetKey = toHexKey(targetCoord);
+    const alreadyRubble = getRoughTerrainHexKeys(state).has(targetKey);
+    const inBombardment = getPendingBombardmentHexKeys(state).has(targetKey);
+
+    if (isStealthed) {
+      score += 20.0;
+      reasons.push(`Reveal stealthed ${targetCu.unit.name}`);
+    }
+    if (!alreadyRubble) {
+      score += 10.0;
+      reasons.push(`Trap ${targetCu.unit.name} in Shrapnel Rubble`);
+      const canFollowUpBarrage =
+        actorCu.currentAp >= ability.apCost + 2 &&
+        actorCu.abilities.some((a) => a.effects?.some((e) => e.type === 'DELAYED_BOMBARDMENT'));
+      if (inBombardment || canFollowUpBarrage) {
+        score += 10.0;
+        reasons.push('Trap target for Siege Barrage');
+      }
     }
   }
 

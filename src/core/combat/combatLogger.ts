@@ -29,6 +29,8 @@ export function formatEffectOutcome(outcome: EffectOutcome): string {
           return `[Stealthed for ${outcome.durationTurns} turn(s)]`;
         case 'EXPOSED':
           return `[Exposed for ${outcome.durationTurns} turn(s)]`;
+        case 'TELEMETRY':
+          return `[Telemetry Lock for ${outcome.durationTurns} turn(s)]`;
       }
       break;
     }

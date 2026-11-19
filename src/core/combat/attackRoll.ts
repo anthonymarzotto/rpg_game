@@ -7,7 +7,7 @@ import { DiceRoller, RollAdvantage } from './dice';
 import { COMBAT_RESOLUTION_CONFIG } from '../config/balance';
 import { HexCoord } from '../grid/hex';
 import { evaluateTargetAuras } from './auras';
-import { getConditionDefinition } from './conditions';
+import { getConditionDefinition, hasTelemetryMark } from './conditions';
 
 export interface AttackRollEvaluationOptions {
   readonly state?: CombatState;
@@ -196,6 +196,16 @@ function evaluateActorRollModifiers(
     });
   }
 
+  const zeroedInStacks = actorCu.zeroedInStacks ?? 0;
+  if (zeroedInStacks > 0) {
+    totalBonus += zeroedInStacks;
+    modifierBreakdown.push({
+      label: `Zeroed In (${zeroedInStacks}x)`,
+      value: zeroedInStacks,
+      source: 'MODIFIER'
+    });
+  }
+
   if (options?.advantage === 'ADVANTAGE') {
     advantageSources.push('Context (Advantage)');
   } else if (options?.advantage === 'DISADVANTAGE') {
@@ -292,7 +302,12 @@ export function evaluateAttackRollContext(
     elevationDelta = actorVirtual - targetVirtual;
   }
 
-  const summary = evaluateActorRollModifiers(actorCu, ability, elevationDelta, options);
+  const telemetryBypass = ability.range >= 2 && hasTelemetryMark(targetCu, actorCu);
+  const evalAbility = telemetryBypass && !ability.ignoresElevationPenalty
+    ? { ...ability, ignoresElevationPenalty: true }
+    : ability;
+
+  const summary = evaluateActorRollModifiers(actorCu, evalAbility, elevationDelta, options);
   const { baseModifier, advantageSources, disadvantageSources, modifierBreakdown } = summary;
   let { totalBonus, totalPenalty } = summary;
 

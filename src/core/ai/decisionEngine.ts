@@ -1,7 +1,9 @@
 import { CombatState, CombatUnit, AbilityResolution } from '../combat/types';
-import { HexCoord, hexDistance, hexEquals, getCombatArc, getForwardConeHexes, getDirectionBetween } from '../grid/hex';
+import { HexCoord, hexDistance, hexEquals, getCombatArc, getForwardConeHexes, getDirectionBetween, getHexesInRange, toHexKey } from '../grid/hex';
 import { getEffectiveMove } from '../combat/effectiveVitals';
 import { getBastionZocHexKeys } from '../combat/bastionStance';
+import { getRoughTerrainHexKeys, getPendingBombardmentHexKeys } from '../combat/battlefieldZones';
+import { hasZeroedInPassive } from '../combat/zeroedIn';
 import { computeAbilityMetrics } from '../combat/targetPreview';
 import { canExecuteAbility, getAbilityRangeCoords } from '../combat/validator';
 import { getEffectiveAbility } from '../combat/modifiers';
@@ -211,10 +213,69 @@ export function decideNextActionWithTrace(
         });
       }
     } else if (ability.targetType === 'HEX') {
-      if ((ability.aoeRadius ?? 0) > 0 || ability.coneTemplate) {
-        const rangeHexes = getAbilityRangeCoords(state.arena, currentCoord, ability, cu);
+      if ((effectiveAbility.aoeRadius ?? 0) > 0 || effectiveAbility.coneTemplate) {
+        const rangeHexes = getAbilityRangeCoords(state.arena, currentCoord, ability, cu, state);
+        const isDelayedBombardment = effectiveAbility.effects?.some((e) => e.type === 'DELAYED_BOMBARDMENT');
 
-        if (ability.damageType !== 'NONE') {
+        if (isDelayedBombardment) {
+          const roughKeys = getRoughTerrainHexKeys(state);
+          const blastRadius = effectiveAbility.aoeRadius ?? 1;
+          const candHexes = rangeHexes.filter((hex) =>
+            hostileUnits.some((h) => {
+              const hPos = state.arena.getUnitPosition(h.unit.id);
+              return hPos && hexDistance(hex, hPos) <= blastRadius;
+            })
+          );
+
+          for (const candHex of candHexes) {
+            const val = canExecuteAbility(state, actorUnitId, ability, { coord: candHex });
+            if (!val.valid) continue;
+
+            const blastHexes = getHexesInRange(candHex, blastRadius);
+            let caughtHostiles = 0;
+            let caughtAllies = 0;
+            let trappedHostiles = 0;
+            let paintedHostiles = 0;
+            for (const h of blastHexes) {
+              const occId = state.arena.getUnitAt(h);
+              if (!occId) continue;
+              const occCu = state.units.get(occId);
+              if (!occCu || occCu.isDefeated) continue;
+              if ((occCu.unit.faction ?? occCu.faction) === (cu.unit.faction ?? cu.faction)) {
+                caughtAllies++;
+              } else {
+                caughtHostiles++;
+                if (roughKeys.has(toHexKey(h)) || getEffectiveMove(occCu) === 0) {
+                  trappedHostiles++;
+                }
+                if (occCu.activeConditions.some((c) => c.type === 'EXPOSED' || c.type === 'TELEMETRY')) {
+                  paintedHostiles++;
+                }
+              }
+            }
+            if (caughtHostiles === 0) continue;
+
+            const isHighValueBarrage = caughtHostiles >= 2 || trappedHostiles > 0;
+            const expectedUnitDmg = 9 + cu.unit.baseAttributes.force;
+            const dmgScale = isHighValueBarrage ? 1.15 : 0.45;
+            const totalScore =
+              caughtHostiles * expectedUnitDmg * weights.expectedDamageWeight * dmgScale +
+              (caughtHostiles > 1 ? (caughtHostiles - 1) * 16.0 : 0) +
+              trappedHostiles * 14.0 +
+              (isHighValueBarrage ? paintedHostiles * 10.0 : 0) -
+              caughtAllies * 25.0;
+
+            if (totalScore > 0) {
+              candidateActions.push({
+                type: 'ABILITY',
+                ability,
+                target: { coord: candHex },
+                score: Math.round(totalScore * 10) / 10,
+                reason: `Launch ${ability.name} marking ${caughtHostiles} hostile(s)${trappedHostiles > 0 ? ' (trapped in rubble)' : ''}`
+              });
+            }
+          }
+        } else if (ability.damageType !== 'NONE') {
           // Damaging AoE hex ability (e.g. Arcane Blast or Wyrmflame Breath)
           const candHexes = rangeHexes.filter((hex) => {
             if (ability.coneTemplate) {
@@ -391,8 +452,12 @@ export function decideNextActionWithTrace(
           const selfBuffScore = selfBuff ? 4.0 : 0;
 
           const zocKeys = getBastionZocHexKeys(state, actorUnitId);
+          const roughKeys = getRoughTerrainHexKeys(state);
           const isReachableByWalk = state.arena
-            .getReachableHexes(currentCoord, getEffectiveMove(cu), { terminalHexKeys: zocKeys })
+            .getReachableHexes(currentCoord, getEffectiveMove(cu), {
+              terminalHexKeys: zocKeys,
+              roughTerrainHexKeys: roughKeys
+            })
             .some((h) => hexEquals(h, candHex));
 
           // If destination is already reachable by walk and ability offers no self-buff or elevation climb, prefer standard move
@@ -601,8 +666,18 @@ export function decideNextActionWithTrace(
   // 2. Evaluate composite move-and-act options
   if (cu.currentAp >= 1 && cu.unit.effectiveVitals.move > 0) {
     const zocKeys = getBastionZocHexKeys(state, actorUnitId);
+    const roughKeys = getRoughTerrainHexKeys(state);
+    const hostileBombardHexes = getPendingBombardmentHexKeys(state, cu.faction);
+    const isCurrentlyInBombardment = hostileBombardHexes.has(toHexKey(currentCoord));
+    const isZeroedInUnit = hasZeroedInPassive(cu);
+    const hasImmediateOffense = candidateActions.some((c) => c.type === 'ABILITY' && c.score > 5.0);
+    const isInMeleeThreat = hostileUnits.some((h) => {
+      const hPos = state.arena.getUnitPosition(h.unit.id);
+      return hPos ? hexDistance(currentCoord, hPos) === 1 : false;
+    });
     const reachable = state.arena.getReachableHexes(currentCoord, getEffectiveMove(cu), {
-      terminalHexKeys: zocKeys
+      terminalHexKeys: zocKeys,
+      roughTerrainHexKeys: roughKeys
     });
 
     for (const candCoord of reachable) {
@@ -898,19 +973,37 @@ export function decideNextActionWithTrace(
         }
       }
 
-      if (bestAttackFromCand && bestAttackFromCand.score >= bestRepositionScore) {
+      // Bombardment avoidance & Zeroed In stationary stack preservation
+      const candInBombardment = hostileBombardHexes.has(toHexKey(candCoord));
+      let zoneMoveAdjust = 0;
+      let zoneMoveNote = '';
+      if (isCurrentlyInBombardment && !candInBombardment) {
+        zoneMoveAdjust += 30.0;
+        zoneMoveNote = ' [Escape Siege Barrage]';
+      } else if (candInBombardment) {
+        zoneMoveAdjust -= 25.0;
+        zoneMoveNote = ' [Inside Siege Barrage]';
+      }
+      if (isZeroedInUnit && hasImmediateOffense && !isInMeleeThreat && !isCurrentlyInBombardment) {
+        zoneMoveAdjust -= 15.0 + (cu.zeroedInStacks ?? 0) * 6.0;
+      }
+
+      const finalAttackMoveScore = bestAttackFromCand ? bestAttackFromCand.score + zoneMoveAdjust : -Infinity;
+      const finalRepositionScore = bestRepositionScore > -Infinity ? bestRepositionScore + zoneMoveAdjust : zoneMoveAdjust;
+
+      if (bestAttackFromCand && finalAttackMoveScore >= finalRepositionScore && finalAttackMoveScore > 0) {
         candidateActions.push({
           type: 'MOVE',
           destination: candCoord,
-          score: Math.round(bestAttackFromCand.score * 10) / 10,
-          reason: `Move to (${candCoord.q}, ${candCoord.r}) — ${bestAttackFromCand.reason}`
+          score: Math.round(finalAttackMoveScore * 10) / 10,
+          reason: `Move to (${candCoord.q}, ${candCoord.r}) — ${bestAttackFromCand.reason}${zoneMoveNote}`
         });
-      } else if (bestRepositionScore > 0) {
+      } else if (finalRepositionScore > 0) {
         candidateActions.push({
           type: 'MOVE',
           destination: candCoord,
-          score: Math.round(bestRepositionScore * 10) / 10,
-          reason: `Move to (${candCoord.q}, ${candCoord.r}) — ${repositionReason}`
+          score: Math.round(finalRepositionScore * 10) / 10,
+          reason: `Move to (${candCoord.q}, ${candCoord.r}) — ${repositionReason || 'Reposition'}${zoneMoveNote}`
         });
       }
     }

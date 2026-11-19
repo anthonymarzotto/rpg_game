@@ -25,8 +25,9 @@ export function getEffectiveStat(cu: CombatUnit, stat: ModifiableCombatStat): nu
     .filter((m) => m.stat === stat)
     .reduce((sum, m) => sum + m.value, 0);
   const passiveSum = getPassiveStatModifier(cu.passives, stat);
+  const zeroedInPenalty = stat === 'evasion' ? -(cu.zeroedInStacks ?? 0) : 0;
 
-  const total = base + modSum + passiveSum;
+  const total = base + modSum + passiveSum + zeroedInPenalty;
 
   if (stat === 'move') {
     if (isBastionStanceActive(cu)) {

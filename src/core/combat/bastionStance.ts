@@ -1,6 +1,7 @@
 import { CombatState, CombatUnit } from './types';
 import { HexCoord, hexDistance, getCombatArc, getHexNeighbors, toHexKey } from '../grid/hex';
 import { Ability } from '../types/ability';
+import { hasTelemetryMark } from './conditions';
 
 /**
  * Checks if a combat unit currently has an active Bastion Stance modifier.
@@ -81,6 +82,7 @@ export function hasBastionRangedCover(
   ability?: Ability
 ): boolean {
   if (!targetCu || targetCu.isDefeated) return false;
+  if (hasTelemetryMark(targetCu)) return false;
   const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);
   if (!targetCoord) return false;
 

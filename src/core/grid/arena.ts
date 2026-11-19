@@ -30,6 +30,10 @@ export interface ReachableTileInfo {
 export interface MovementOptions {
   /** Hex keys where entering stops further movement traversal (e.g. Zone of Control) */
   readonly terminalHexKeys?: ReadonlySet<string>;
+  /** Hex keys containing rough terrain (e.g. Shrapnel Rubble) that incur extra movement cost to enter */
+  readonly roughTerrainHexKeys?: ReadonlySet<string>;
+  /** Additional movement points required to enter a rough terrain hex (defaults to 2) */
+  readonly roughTerrainExtraCost?: number;
 }
 
 export type CollisionType = 'VOID' | 'WALL' | 'CLIFF' | 'UNIT';
@@ -248,8 +252,11 @@ export class Arena {
           continue;
         }
 
-        // 4. Step cost: 1 + max(0, dh)
-        const stepCost = 1 + Math.max(0, dh);
+        // 4. Step cost: 1 + max(0, dh) + roughTerrainExtraCost
+        const roughCost = options?.roughTerrainHexKeys?.has(neighborKey)
+          ? (options.roughTerrainExtraCost ?? 2)
+          : 0;
+        const stepCost = 1 + Math.max(0, dh) + roughCost;
         const nextCost = current.cost + stepCost;
 
         if (nextCost > moveBudget) {

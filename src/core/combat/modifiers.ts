@@ -53,6 +53,14 @@ export function isModifierApplicable(modifier: AbilityModifier, ability: Ability
     }
   }
 
+  if (modifier.minBaseRange !== undefined && ability.range < modifier.minBaseRange) {
+    return false;
+  }
+
+  if (modifier.minBaseAoeRadius !== undefined && (ability.aoeRadius ?? 0) < modifier.minBaseAoeRadius) {
+    return false;
+  }
+
   return true;
 }
 

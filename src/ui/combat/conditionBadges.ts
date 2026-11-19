@@ -87,6 +87,13 @@ export function formatConditionBadge(
     className = 'condition-exposed';
     mnemonic = ': +Adv';
     ruleText = 'Incoming attacks against this unit gain Advantage. Consumed immediately upon being attacked.';
+  } else if (cond.type === 'TELEMETRY') {
+    icon = '📡 ';
+    label = 'TELEMETRY';
+    isDebuff = true;
+    className = 'condition-exposed';
+    mnemonic = ': +2 Rng';
+    ruleText = 'Allied ranged and spell attacks (range 2+) gain +2 Range and ignore low-ground elevation and ranged cover penalties against this target.';
   }
 
   const durationStr = `${cond.durationTurns}t`;

@@ -383,4 +383,34 @@ describe('Target Preview Calculation', () => {
     // Max dmg: 6 (1d6) + 4 (1d4) + 2 (force) - 1 (armor) = 11
     expect(previewWithChallenge!.damageRange).toBe('3 – 11 (Soak: 1)');
   });
+
+  it('rejects targets inside minRange deadzone in preview and allows targets at or beyond minRange', () => {
+    const arena = createRadialArena(4);
+    const actor = createRecruit('actor', 'Ballistician', { faction: 'PLAYER' });
+    const adjEnemy = createRecruit('adj', 'Adjacent Enemy', { faction: 'ENEMY' });
+    const farEnemy = createRecruit('far', 'Far Enemy', { faction: 'ENEMY' });
+
+    arena.setUnitPosition('actor', { q: 0, r: 0 });
+    arena.setUnitPosition('adj', { q: 1, r: 0 });
+    arena.setUnitPosition('far', { q: 3, r: 0 });
+
+    const state = createCombatState(arena, [actor, adjEnemy, farEnemy], 'actor');
+
+    const deadzoneShot: Ability = {
+      id: 'test_deadzone_shot',
+      name: 'Deadzone Shot',
+      description: 'Requires at least 2 hexes of distance.',
+      apCost: 1,
+      minRange: 2,
+      range: 4,
+      targetType: 'SINGLE_TARGET',
+      defenseTarget: 'EVASION',
+      attackModifierAttribute: 'finesse',
+      damageType: 'PHYSICAL',
+      effects: [{ type: 'DAMAGE', damageProfile: { count: 1, sides: 4, modifierAttribute: 'finesse' } }]
+    };
+
+    expect(computeTargetPreview(state, 'actor', deadzoneShot, { q: 1, r: 0 })).toBeNull();
+    expect(computeTargetPreview(state, 'actor', deadzoneShot, { q: 3, r: 0 })).not.toBeNull();
+  });
 });

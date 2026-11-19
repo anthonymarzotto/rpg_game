@@ -108,4 +108,6 @@ export interface PassiveTrait {
   readonly unspentApVirtualHeight?: boolean;
   /** Flat bonus damage when attacking a target at lower elevation (dh >= 1 or Virtual Height) */
   readonly lowerElevationDamageBonus?: number;
+  /** If true, accumulates Zeroed In stacks on stationary turn end (+1 Range, +1 Attack Roll, -1 Evasion per stack, max 3; +1 AoE Radius at 3 stacks) */
+  readonly stationaryCalibration?: boolean;
 }

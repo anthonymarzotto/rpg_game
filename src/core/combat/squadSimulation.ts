@@ -22,7 +22,8 @@ export const ALL_AUTHORED_CLASS_IDS = [
   'warlock',
   'witch',
   'shield-bearer',
-  'dragoon'
+  'dragoon',
+  'ballistician'
 ] as const;
 
 export type AuthoredClassId = typeof ALL_AUTHORED_CLASS_IDS[number];
@@ -92,6 +93,10 @@ export const DEFAULT_CLASS_RESONANT_LOADOUTS: Readonly<Record<string, ResonantLo
   dragoon: {
     wildcardAbilityIds: ['power_strike', 'spark'],
     wildcardPassiveIds: ['momentum']
+  },
+  ballistician: {
+    wildcardAbilityIds: ['gallant_flourish', 'shield_bash'],
+    wildcardPassiveIds: ['quickstep']
   }
 };
 
@@ -162,6 +167,7 @@ export interface SquadSimulationOptions {
   readonly matches?: number;
   readonly maxTurnsPerMatch?: number;
   readonly arenaRadius?: number;
+  readonly squadSize?: number;
   readonly baseSeed?: number;
   readonly fixedTeamA?: readonly string[];
   readonly fixedTeamB?: readonly string[];
@@ -243,6 +249,7 @@ export function runSquadSimulation(options?: SquadSimulationOptions): SquadSimul
   const matches = options?.matches ?? 100;
   const maxTurnsPerMatch = options?.maxTurnsPerMatch ?? 80;
   const arenaRadius = options?.arenaRadius ?? 3;
+  const squadSize = options?.squadSize ?? 3;
   const baseSeed = options?.baseSeed ?? 88888;
   const enableElevation = options?.enableElevationTopography ?? true;
 
@@ -258,13 +265,13 @@ export function runSquadSimulation(options?: SquadSimulationOptions): SquadSimul
   let totalZocHalts = 0;
 
   const deployment = getDeploymentZones(arenaRadius);
-  const playerSpawns = deployment.playerCoords.slice(0, 3);
-  const enemySpawns = deployment.enemyCoords.slice(0, 3);
+  const playerSpawns = deployment.playerCoords.slice(0, squadSize);
+  const enemySpawns = deployment.enemyCoords.slice(0, squadSize);
 
   const draftRng = createRng(baseSeed);
 
   for (let m = 0; m < matches; m++) {
-    // 1. Determine Team Compositions (Shuffled 12 classes or Fixed)
+    // 1. Determine Team Compositions (Shuffled authored classes or Fixed)
     let teamAClasses: readonly string[];
     let teamBClasses: readonly string[];
 
@@ -275,11 +282,11 @@ export function runSquadSimulation(options?: SquadSimulationOptions): SquadSimul
       const shuffled = shuffle(ALL_AUTHORED_CLASS_IDS, draftRng);
       // Alternate which half of the draft gets PLAYER (West) vs ENEMY (East)
       if (m % 2 === 0) {
-        teamAClasses = shuffled.slice(0, 3);
-        teamBClasses = shuffled.slice(3, 6);
+        teamAClasses = shuffled.slice(0, squadSize);
+        teamBClasses = shuffled.slice(squadSize, squadSize * 2);
       } else {
-        teamAClasses = shuffled.slice(3, 6);
-        teamBClasses = shuffled.slice(0, 3);
+        teamAClasses = shuffled.slice(squadSize, squadSize * 2);
+        teamBClasses = shuffled.slice(0, squadSize);
       }
     }
 

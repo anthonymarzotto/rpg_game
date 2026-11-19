@@ -18,6 +18,7 @@
   - Emit dedicated `DEFEATED` card (naming lethal condition) and `ZONE_OF_CONTROL` card (with `faction` and `affectedUnitIds` for both units), and add faction/header styling to the `GENERIC` fallback card (`UX.24`, `UX.25`).
 - [x] **I.2 (`structured-effect-badges`)**: Extend `EffectHandler` & `EffectExecutionResult` to return structured `EffectOutcome` metadata (and unify `resolver.ts` splash/context outcomes) rather than plain text strings (`logDetail` / `secondaryDetail` / `effectDetail`), enabling compact color-coded effect pills and portal hover tooltips (`EffectBadgeTooltip`) in the Combat Log.
 - [x] **B.10 / Scratchpad 1 (`unified-ability-descriptions`)**: Unified dynamic ability descriptions across Camp and Trial surfaces (pure flavor `description` + deterministic hybrid Stat Strip pills & Effect Clauses + compact mechanical 1-liner on Selected Unit card with hover tooltip + `Normal -> Shard -> In-Trial` color precedence and `getEffectiveAbility` attribution preservation).
+- [x] **3.3 (`tier-4-ballistician`)**: **Ballistician** (`#65`, Tier 4: `1F, 3R, 0M`), `65_human_male` — `Zeroed In` passive, `Siege Barrage` delayed bombardment signature, `Shrapnel Canister` stealth reveal & rough terrain rubble, and `Sighting Bolt` telemetry spotter.
 
 ---
 
@@ -25,7 +26,6 @@
 
 ### 3. Tier 4 Class Kits & Token Integration
 Sketch and author class package (signature ability, 2 domain abilities, passive trait, AI heuristic profile, and badge palette) and whitelist tokens for the following new classes:
-- [ ] **3.3**: **Ballistician** (`#65`, Tier 4: `1F, 3R, 0M`), `65_human_male`.
 - [ ] **3.4**: **Philanderer** (`#84`, Tier 4: `0F, 3R, 1M`), `84_human_male`.
 - [ ] **3.5**: **Theurge** (`#79`, Tier 4: `1F, 0R, 3M`), `79_human_male`.
 - [ ] **3.6**: **Arcanist** (`#96`, Tier 4: `0F, 1R, 3M`), `96_human_male`.

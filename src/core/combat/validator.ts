@@ -3,8 +3,9 @@ import { Ability } from '../types/ability';
 import { CombatState, CombatUnit, ValidationResult } from './types';
 import { getEffectiveMove } from './effectiveVitals';
 import { getEffectiveAbility } from './modifiers';
-import { getConditionDefinition } from './conditions';
+import { getConditionDefinition, hasTelemetryMark } from './conditions';
 import { getBastionZocHexKeys } from './bastionStance';
+import { getRoughTerrainHexKeys } from './battlefieldZones';
 import { resolveAerialVaultLandingHex } from './aerialVault';
 import { Arena, LineOfSightObstruction } from '../grid/arena';
 
@@ -17,7 +18,8 @@ export function getAbilityRangeCoords(
   arena: Arena,
   actorCoord: HexCoord,
   ability: Ability,
-  cu?: CombatUnit
+  cu?: CombatUnit,
+  state?: CombatState
 ): HexCoord[] {
   const effectiveAbility = cu?.abilityModifiers
     ? getEffectiveAbility(ability, cu.abilityModifiers)
@@ -48,8 +50,9 @@ export function getAbilityRangeCoords(
   // Ranged abilities (range >= 2):
   // Vantage grants +1 range per level of positive elevation difference:
   // effectiveRange = range + max(0, actorElevation - targetElevation).
-  // The maximum possible range in any direction is range + actorElevation (since min arena elevation is 0).
-  const maxPotentialRange = effectiveAbility.range + Math.max(0, actorElevation);
+  // Additionally, targets marked with TELEMETRY grant +2 Range when targeted.
+  const telemetryPadding = state ? 2 : 0;
+  const maxPotentialRange = effectiveAbility.range + Math.max(0, actorElevation) + telemetryPadding;
   const candidates = getHexesInRange(actorCoord, maxPotentialRange);
 
   return candidates.filter((coord) => {
@@ -59,8 +62,19 @@ export function getAbilityRangeCoords(
       return false;
     }
     const dist = hexDistance(actorCoord, coord);
+    if (effectiveAbility.minRange !== undefined && dist < effectiveAbility.minRange) {
+      return false;
+    }
     const elevationDelta = actorElevation - targetElevation;
-    const effectiveRange = effectiveAbility.range + Math.max(0, elevationDelta);
+    let telemetryBonus = 0;
+    if (state) {
+      const occId = arena.getUnitAt(coord);
+      const occCu = occId ? state.units.get(occId) : undefined;
+      if (hasTelemetryMark(occCu, cu)) {
+        telemetryBonus = 2;
+      }
+    }
+    const effectiveRange = effectiveAbility.range + Math.max(0, elevationDelta) + telemetryBonus;
     return dist <= effectiveRange;
   });
 }
@@ -70,8 +84,15 @@ function validateElevationReachAndRange(
   targetElevation: number,
   effectiveAbility: Ability,
   cu: CombatUnit,
-  dist: number
+  dist: number,
+  targetCu?: CombatUnit
 ): ValidationResult | undefined {
+  if (effectiveAbility.minRange !== undefined && dist < effectiveAbility.minRange) {
+    return {
+      valid: false,
+      reason: `Target inside minimum range deadzone (distance ${dist} < min range ${effectiveAbility.minRange}).`
+    };
+  }
   const elevationDelta = actorElevation - targetElevation;
   if (effectiveAbility.range <= 1) {
     const maxReach = effectiveAbility.reachElevationDelta ?? 1;
@@ -84,9 +105,11 @@ function validateElevationReachAndRange(
     }
   }
 
+  const telemetryBonus =
+    effectiveAbility.range >= 2 && hasTelemetryMark(targetCu, cu) ? 2 : 0;
   const effectiveRange =
     effectiveAbility.range >= 2
-      ? effectiveAbility.range + Math.max(0, elevationDelta)
+      ? effectiveAbility.range + Math.max(0, elevationDelta) + telemetryBonus
       : effectiveAbility.range;
 
   if (dist > effectiveRange) {
@@ -121,8 +144,10 @@ export function canMove(
 
   const effectiveMove = getEffectiveMove(cu);
   const zocKeys = getBastionZocHexKeys(state, actorUnitId);
+  const roughKeys = getRoughTerrainHexKeys(state);
   const reachable = state.arena.getReachableHexes(currentCoord, effectiveMove, {
-    terminalHexKeys: zocKeys
+    terminalHexKeys: zocKeys,
+    roughTerrainHexKeys: roughKeys
   });
 
   if (!reachable.some((h) => h.q === destination.q && h.r === destination.r)) {
@@ -182,13 +207,16 @@ export function canExecuteAbility(
     if (!destCoord) {
       return { valid: false, reason: 'Missing destination coordinate for hex-targeted ability.' };
     }
+    const hexOccupantId = state.arena.getUnitAt(destCoord);
+    const hexTargetCu = hexOccupantId ? state.units.get(hexOccupantId) : undefined;
     const dist = hexDistance(actorCoord, destCoord);
     const rangeError = validateElevationReachAndRange(
       actorElevation,
       state.arena.getElevation(destCoord),
       effectiveAbility,
       cu,
-      dist
+      dist,
+      hexTargetCu
     );
     if (rangeError) return rangeError;
 
@@ -214,7 +242,10 @@ export function canExecuteAbility(
 
     const isDamaging = effectiveAbility.damageType !== 'NONE';
     const isTeleport = effectiveAbility.effects?.some((e) => e.type === 'TELEPORT');
-    if (isDamaging && !isTeleport && dist > 1) {
+    const isIndirectArtillery = effectiveAbility.effects?.some(
+      (e) => e.type === 'DELAYED_BOMBARDMENT' || e.type === 'SHRAPNEL_RUBBLE'
+    );
+    if (isDamaging && !isTeleport && !isIndirectArtillery && dist > 1) {
       const obstruction = state.arena.getLineOfSightObstruction(actorCoord, destCoord, {
         isUnitScreening: (unitId) =>
           !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
@@ -284,7 +315,8 @@ export function canExecuteAbility(
       state.arena.getElevation(targetCoord),
       effectiveAbility,
       cu,
-      dist
+      dist,
+      targetCu
     );
     if (rangeError) return rangeError;
 
