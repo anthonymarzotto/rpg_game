@@ -79,6 +79,10 @@ export function CombatArena({
     state,
     activeCu,
     phase,
+    selectedDeploymentUnitId,
+    deploymentZoneCoords,
+    handleAutoArrangeDeployment,
+    handleConfirmDeployment,
     aiSpeed,
     setAiSpeed,
     hostileActionStatus,
@@ -518,6 +522,8 @@ export function CombatArena({
               hoveredCoord={hoveredCoord}
               highlightedUnitId={highlightedUnitId}
               pinnedUnitId={pinnedUnitId}
+              deploymentZoneCoords={deploymentZoneCoords}
+              selectedDeploymentUnitId={selectedDeploymentUnitId}
               floatingTexts={floatingTexts}
               targetPreview={targetPreview}
               movePreview={movePreview}
@@ -558,8 +564,58 @@ export function CombatArena({
           />
         </div>
 
-        {/* Floating Tactical Action Bar or Hostile Turn Banner */}
-        {phase === 'HOSTILE_TURN' ? (
+        {/* Floating Tactical Action Bar, Deployment Bar, or Hostile Turn Banner */}
+        {phase === 'DEPLOYMENT' ? (
+          <div
+            className="combat-action-bar-container deployment-bar"
+            data-testid="deployment-bar"
+          >
+            <div className="deployment-status-block">
+              <div className="deployment-badge-row">
+                <span className="deployment-phase-badge">🛡️ Vanguard Deployment</span>
+              </div>
+              <span className="deployment-prompt-text">
+                {selectedDeploymentUnitId && state.units.get(selectedDeploymentUnitId) ? (
+                  <>
+                    Deploying <strong>{state.units.get(selectedDeploymentUnitId)!.unit.name}</strong> — Click any highlighted West hex to move, or another ally to swap
+                  </>
+                ) : (
+                  'Select an ally and click any highlighted West hex to reposition or swap'
+                )}
+              </span>
+            </div>
+
+            <div className="action-buttons-group">
+              <button
+                type="button"
+                className="btn-action deployment-auto-btn"
+                onClick={handleAutoArrangeDeployment}
+                title="Reset squad positions to role-aware tactical formation"
+                data-testid="btn-deployment-auto-arrange"
+              >
+                <span className="action-icon">🔀</span>
+                <div className="action-text-block">
+                  <span className="action-name">Auto-Arrange</span>
+                  <span className="action-cost">Tactical Formation</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="btn-action deployment-begin-btn"
+                onClick={handleConfirmDeployment}
+                title="Lock in positions and roll opening initiative"
+                data-testid="btn-begin-trial"
+              >
+                <span className="action-icon">⚔️</span>
+                <div className="action-text-block">
+                  <span className="action-name">Begin Trial</span>
+                  <span className="action-cost">Roll Initiative</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        ) : phase === 'HOSTILE_TURN' ? (
           <EnemyTurnBanner
             activeCu={activeCu}
             actionDescription={isOpeningInitiativeActive ? 'Rolling initiative...' : hostileActionStatus}

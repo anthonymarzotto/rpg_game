@@ -12,9 +12,8 @@ import { ClassRegistry } from '../progression/registry';
 import { CLASS_REGISTRY } from '../../data/classes';
 import { getClassPackage } from '../../data/packages';
 import { CampaignState } from './types';
-import { EncounterDefinition, PlacedUnit } from '../combat/encounter';
-import { HEX_DIRECTIONS } from '../grid/hex';
-import { generateStageEncounter, getDeploymentZones } from './encounterGenerator';
+import { EncounterDefinition } from '../combat/encounter';
+import { generateStageEncounter, getDeploymentZones, placeSquadTactically } from './encounterGenerator';
 import { generateProceduralRecruit } from './campaignFactory';
 
 export interface CampaignBattleResult {
@@ -348,14 +347,12 @@ export function syncEncounterActiveSquad(
   const { playerCoords } = getDeploymentZones(radius);
   const enemyUnits = encounter.units.filter((p) => p.unit.faction !== 'PLAYER');
 
-  const playerUnits: PlacedUnit[] = activeSquad.map((unit, idx) => {
-    const coord = playerCoords[idx] ?? { q: -Math.min(radius, 2), r: idx };
-    return {
-      unit: { ...unit, faction: 'PLAYER' as const },
-      coord,
-      facing: HEX_DIRECTIONS.EAST
-    };
-  });
+  const playerUnits = placeSquadTactically(
+    activeSquad,
+    playerCoords,
+    encounter.tileOverrides ?? [],
+    'PLAYER'
+  );
 
   return {
     ...encounter,

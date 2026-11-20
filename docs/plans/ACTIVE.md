@@ -19,6 +19,7 @@
 - [x] **I.2 (`structured-effect-badges`)**: Extend `EffectHandler` & `EffectExecutionResult` to return structured `EffectOutcome` metadata (and unify `resolver.ts` splash/context outcomes) rather than plain text strings (`logDetail` / `secondaryDetail` / `effectDetail`), enabling compact color-coded effect pills and portal hover tooltips (`EffectBadgeTooltip`) in the Combat Log.
 - [x] **B.10 / Scratchpad 1 (`unified-ability-descriptions`)**: Unified dynamic ability descriptions across Camp and Trial surfaces (pure flavor `description` + deterministic hybrid Stat Strip pills & Effect Clauses + compact mechanical 1-liner on Selected Unit card with hover tooltip + `Normal -> Shard -> In-Trial` color precedence and `getEffectiveAbility` attribution preservation).
 - [x] **3.3 (`tier-4-ballistician`)**: **Ballistician** (`#65`, Tier 4: `1F, 3R, 0M`), `65_human_male` — `Zeroed In` passive, `Siege Barrage` delayed bombardment signature, `Shrapnel Canister` stealth reveal & rough terrain rubble, and `Sighting Bolt` telemetry spotter.
+- [x] **UX.5 (`tactical-opening-deployment`)**: Let the User place their units at opening. Enemy team to also do better at starting positions.
 
 ---
 
@@ -36,7 +37,6 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 ---
 
 ## 🎨 UX Updates
-- [ ] **UX.5**: Let the User place their units at opening. Enemy team to also do better at starting positions.
 - [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close (re-assess after pacing & clash stage update).
 - [ ] **UX.15**: Make Vanguard Squad area in Post Trial XP distribution dialog scrollable.
 - [ ] **UX.16**: More interesting Vanguard area. Maybe some sort of campfire with the unit sprites randomly gathered around. Maybe animated milling about?

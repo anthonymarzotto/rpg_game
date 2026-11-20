@@ -800,6 +800,31 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
     expect(html).toContain('data-testid="hex-bombardment-2-0"');
     expect(html).toContain('Incoming Siege Barrage (Ballistician)');
   });
+
+  it('renders deployment zone tile highlighting and selected deployment unit ring (UX.5)', () => {
+    const { state } = setupTestState();
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={{ q: -2, r: 0 }}
+        deploymentZoneCoords={[{ q: -1, r: 0 }, { q: -2, r: 0 }]}
+        selectedDeploymentUnitId="p1"
+        floatingTexts={[]}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('deployment-zone-tile');
+    expect(html).toContain('data-testid="deployment-hex--1-0"');
+    expect(html).toContain('data-testid="deployment-hex--2-0"');
+    expect(html).toContain('unit-deployment-selected-ring');
+    expect(html).toContain('data-testid="unit-deployment-selected-ring-p1"');
+  });
 });
 
 

@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { HexCoord, HexDirection } from '../../core/grid/hex';
+import { HexCoord, HexDirection, HEX_DIRECTIONS, toHexKey } from '../../core/grid/hex';
 import { Ability } from '../../core/types/ability';
 import { Unit } from '../../core/types/unit';
 import { UnitLoadout } from '../../core/types/loadout';
@@ -12,8 +12,13 @@ import { getBastionZocHexKeys } from '../../core/combat/bastionStance';
 import { getRoughTerrainHexKeys } from '../../core/combat/battlefieldZones';
 import {
   EncounterDefinition,
+  PlacedUnit,
   buildEncounterState
 } from '../../core/combat/encounter';
+import {
+  getDeploymentZones,
+  placeSquadTactically
+} from '../../core/campaign/encounterGenerator';
 import { TargetPreview, computeTargetPreview } from '../../core/combat/targetPreview';
 import { SeededDiceRoller } from '../../core/combat/dice';
 import { DiceMode, DevDiceRoller } from './devDice';
@@ -27,8 +32,169 @@ import {
 } from './asyncTurnSequencer';
 
 export type ActionMode = 'IDLE' | 'MOVE' | 'ABILITY';
-export type CombatPhase = 'PLAYER_ACTION' | 'HOSTILE_TURN' | 'VICTORY' | 'DEFEAT';
+export type CombatPhase = 'DEPLOYMENT' | 'PLAYER_ACTION' | 'HOSTILE_TURN' | 'VICTORY' | 'DEFEAT';
 export type DiceTrayMode = 'ALL' | 'PLAYER_ONLY' | 'OFF';
+
+export const STORAGE_KEY_SAVED_FORMATIONS = 'astral_tactics_saved_formations_v1';
+
+export type SavedFormationsMap = Record<string, Record<string, HexCoord>>;
+
+let inMemorySavedFormations: SavedFormationsMap = {};
+
+export function loadSavedFormationForRadius(radius: number): Record<string, HexCoord> {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(STORAGE_KEY_SAVED_FORMATIONS);
+      if (raw) {
+        const parsed = JSON.parse(raw) as SavedFormationsMap;
+        return parsed?.[String(radius)] ?? {};
+      }
+    }
+  } catch {
+    // fallback to in-memory store
+  }
+  return inMemorySavedFormations[String(radius)] ?? {};
+}
+
+export function saveFormationForRadius(radius: number, formation: Record<string, HexCoord>): void {
+  inMemorySavedFormations = {
+    ...inMemorySavedFormations,
+    [String(radius)]: { ...formation }
+  };
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(STORAGE_KEY_SAVED_FORMATIONS);
+      const parsed: SavedFormationsMap = raw ? JSON.parse(raw) : {};
+      parsed[String(radius)] = formation;
+      localStorage.setItem(STORAGE_KEY_SAVED_FORMATIONS, JSON.stringify(parsed));
+    }
+  } catch {
+    // ignore storage errors in restricted contexts
+  }
+}
+
+export function clearSavedFormations(): void {
+  inMemorySavedFormations = {};
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY_SAVED_FORMATIONS);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function computeWalkableDeploymentCoords(encounter: EncounterDefinition): readonly HexCoord[] {
+  const radius = encounter.arenaRadius ?? 3;
+  const { playerCoords } = getDeploymentZones(radius);
+  const blockedKeys = new Set<string>();
+  const enemyKeys = new Set<string>();
+
+  for (const ov of encounter.tileOverrides ?? []) {
+    if (ov.isWalkable === false) {
+      blockedKeys.add(toHexKey(ov.coord));
+    }
+  }
+  for (const p of encounter.units) {
+    if (p.unit.faction === 'ENEMY') {
+      enemyKeys.add(toHexKey(p.coord));
+    }
+  }
+
+  const validCoords: HexCoord[] = [];
+  const seenKeys = new Set<string>();
+
+  for (const c of playerCoords) {
+    const k = toHexKey(c);
+    if (!blockedKeys.has(k) && !enemyKeys.has(k) && !seenKeys.has(k)) {
+      seenKeys.add(k);
+      validCoords.push(c);
+    }
+  }
+
+  // Also include any initial player unit coordinates in the encounter if they are valid and walkable
+  for (const p of encounter.units) {
+    if (p.unit.faction !== 'ENEMY') {
+      const k = toHexKey(p.coord);
+      if (!blockedKeys.has(k) && !enemyKeys.has(k) && !seenKeys.has(k)) {
+        seenKeys.add(k);
+        validCoords.push(p.coord);
+      }
+    }
+  }
+
+  return validCoords;
+}
+
+export function prepareDeploymentEncounter(
+  encounter: EncounterDefinition,
+  useSavedFormation: boolean
+): EncounterDefinition {
+  const radius = encounter.arenaRadius ?? 3;
+  const deploymentCoords = computeWalkableDeploymentCoords(encounter);
+  const deploymentKeySet = new Set(deploymentCoords.map(toHexKey));
+
+  const playerPlaced = encounter.units.filter((p) => p.unit.faction !== 'ENEMY');
+  const enemyPlaced = encounter.units.filter((p) => p.unit.faction === 'ENEMY');
+
+  if (playerPlaced.length === 0 || deploymentCoords.length === 0) {
+    return encounter;
+  }
+
+  const savedByUnit = useSavedFormation ? loadSavedFormationForRadius(radius) : {};
+  const claimedKeys = new Set<string>();
+  const preAssigned = new Map<string, HexCoord>();
+  const unplacedUnits: Unit[] = [];
+
+  for (const p of playerPlaced) {
+    const savedCoord = savedByUnit[p.unit.id];
+    const savedKey = savedCoord ? toHexKey(savedCoord) : undefined;
+    if (savedCoord && savedKey && deploymentKeySet.has(savedKey) && !claimedKeys.has(savedKey)) {
+      claimedKeys.add(savedKey);
+      preAssigned.set(p.unit.id, savedCoord);
+    } else {
+      unplacedUnits.push(p.unit);
+    }
+  }
+
+  if (unplacedUnits.length > 0) {
+    const remainingCoords = deploymentCoords.filter((c) => !claimedKeys.has(toHexKey(c)));
+    const tacticallyPlaced = placeSquadTactically(
+      unplacedUnits,
+      remainingCoords.length > 0 ? remainingCoords : deploymentCoords,
+      encounter.tileOverrides ?? [],
+      'PLAYER'
+    );
+    for (const tp of tacticallyPlaced) {
+      preAssigned.set(tp.unit.id, tp.coord);
+    }
+  }
+
+  const updatedPlayers: PlacedUnit[] = playerPlaced.map((p) => ({
+    unit: { ...p.unit, faction: 'PLAYER' as const },
+    coord: preAssigned.get(p.unit.id) ?? p.coord,
+    facing: HEX_DIRECTIONS.EAST
+  }));
+
+  return {
+    ...encounter,
+    units: [...updatedPlayers, ...enemyPlaced]
+  };
+}
+
+export function createDeploymentPreviewState(encounter: EncounterDefinition): CombatState {
+  const prepared = prepareDeploymentEncounter(encounter, true);
+  const previewRoller = new SeededDiceRoller(1);
+  const state = buildEncounterState(prepared, previewRoller);
+  state.turnNumber = 0;
+  state.combatLog.length = 0;
+  for (const cu of state.units.values()) {
+    if ((cu.faction ?? cu.unit.faction ?? 'PLAYER') === 'PLAYER') {
+      cu.facing = HEX_DIRECTIONS.EAST;
+    }
+  }
+  return state;
+}
 
 export interface ActiveDiceRollState {
   readonly attackerName: string;
@@ -59,6 +225,7 @@ export interface UseCombatSimulationOptions {
   readonly encounter: EncounterDefinition;
   readonly initialActionMode?: ActionMode;
   readonly initialSelectedAbility?: Ability | null;
+  readonly startInDeployment?: boolean;
 }
 
 /**
@@ -67,8 +234,35 @@ export interface UseCombatSimulationOptions {
 export function useCombatSimulation({
   encounter,
   initialActionMode,
-  initialSelectedAbility
+  initialSelectedAbility,
+  startInDeployment
 }: UseCombatSimulationOptions) {
+  const defaultStartInDeployment = useMemo(() => {
+    if (startInDeployment !== undefined) return startInDeployment;
+    const playerCount = encounter.units.filter((p) => p.unit.faction !== 'ENEMY').length;
+    return !Boolean(encounter.initialActiveUnitId) && playerCount >= 2;
+  }, [startInDeployment, encounter]);
+
+  const isDeploymentPhaseRef = useRef<boolean>(defaultStartInDeployment);
+  const [isDeploymentPhase, setIsDeploymentPhaseState] = useState<boolean>(defaultStartInDeployment);
+
+  const setIsDeploymentPhase = useCallback((val: boolean) => {
+    isDeploymentPhaseRef.current = val;
+    setIsDeploymentPhaseState(val);
+  }, []);
+
+  const selectedDeploymentUnitIdRef = useRef<string | null>(null);
+  const [, setSelectedDeploymentUnitIdState] = useState<string | null>(null);
+
+  const setSelectedDeploymentUnitId = useCallback(
+    (action: string | null | ((prev: string | null) => string | null)) => {
+      const next = typeof action === 'function' ? action(selectedDeploymentUnitIdRef.current) : action;
+      selectedDeploymentUnitIdRef.current = next;
+      setSelectedDeploymentUnitIdState(next);
+    },
+    []
+  );
+
   const [squadSummaries, setSquadSummaries] = useState<readonly SquadMemberVictorySummary[]>([]);
   const [activeSquadUnitId, setActiveSquadUnitId] = useState<string>('player-warrior');
   const [isVictoryModalOpen, setIsVictoryModalOpen] = useState(false);
@@ -83,9 +277,17 @@ export function useCombatSimulation({
     trialRollerRef.current = new SeededDiceRoller(Date.now());
   }
 
-  const [state, setState] = useState<CombatState>(() =>
-    buildEncounterState(encounter, trialRollerRef.current!)
+  const stateRef = useRef<CombatState>(
+    defaultStartInDeployment
+      ? createDeploymentPreviewState(encounter)
+      : buildEncounterState(encounter, trialRollerRef.current!)
   );
+  const [state, setStateInternal] = useState<CombatState>(() => stateRef.current);
+  const setState = useCallback((next: CombatState | ((prev: CombatState) => CombatState)) => {
+    const resolved = typeof next === 'function' ? next(stateRef.current) : next;
+    stateRef.current = resolved;
+    setStateInternal(resolved);
+  }, []);
   const [actionMode, setActionMode] = useState<ActionMode>(initialActionMode ?? 'IDLE');
   const [selectedAbility, setSelectedAbility] = useState<Ability | null>(initialSelectedAbility ?? null);
   const [facingCompassCoord, setFacingCompassCoord] = useState<HexCoord | null>(null);
@@ -166,8 +368,8 @@ export function useCombatSimulation({
     setActiveDiceRollState(val);
   }, []);
 
-  const isOpeningInitiativeActiveRef = useRef<boolean>(true);
-  const [isOpeningInitiativeActive, setIsOpeningInitiativeActiveState] = useState<boolean>(true);
+  const isOpeningInitiativeActiveRef = useRef<boolean>(!defaultStartInDeployment);
+  const [isOpeningInitiativeActive, setIsOpeningInitiativeActiveState] = useState<boolean>(!defaultStartInDeployment);
 
   const setIsOpeningInitiativeActive = useCallback((active: boolean) => {
     isOpeningInitiativeActiveRef.current = active;
@@ -218,12 +420,17 @@ export function useCombatSimulation({
     setFacingCompassCoord(null);
   }, [state.activeUnitId, state.turnNumber]);
 
-  // Spawn opening initiative floating text sequentially on mount / encounter reset
+  // Spawn opening initiative floating text sequentially on mount / encounter reset / deployment confirmation
   useEffect(() => {
     for (const t of openingTimeoutsRef.current) {
       clearTimeout(t);
     }
     openingTimeoutsRef.current = [];
+
+    if (isDeploymentPhaseRef.current) {
+      setIsOpeningInitiativeActive(false);
+      return;
+    }
 
     const items = collectInitiativeFloatingTexts(state);
     if (items.length === 0) {
@@ -261,13 +468,14 @@ export function useCombatSimulation({
       }
       openingTimeoutsRef.current = [];
     };
-  }, [encounterSession, addFloatingText]);
+  }, [encounterSession, isDeploymentPhase, addFloatingText]);
 
   const lastTurnStartEmittedRef = useRef<number>(-1);
 
   // Emit turn start floating text ("My Turn!" for players, unit name for hostiles)
   useEffect(() => {
     if (
+      isDeploymentPhaseRef.current ||
       !state.activeUnitId ||
       state.outcome !== 'IN_PROGRESS' ||
       isOpeningInitiativeActiveRef.current ||
@@ -285,6 +493,7 @@ export function useCombatSimulation({
       addFloatingText(text, 'buff', coord);
     }
   }, [
+    isDeploymentPhase,
     state.activeUnitId,
     state.turnNumber,
     isOpeningInitiativeActive,
@@ -298,9 +507,16 @@ export function useCombatSimulation({
   const phase = useMemo<CombatPhase>(() => {
     if (state.outcome === 'VICTORY') return 'VICTORY';
     if (state.outcome === 'DEFEAT') return 'DEFEAT';
+    if (isDeploymentPhase) return 'DEPLOYMENT';
     if (activeCu?.faction !== 'PLAYER') return 'HOSTILE_TURN';
     return 'PLAYER_ACTION';
-  }, [state.outcome, activeCu]);
+  }, [state.outcome, isDeploymentPhase, activeCu]);
+
+  // Valid West deployment zone coordinates when in DEPLOYMENT phase
+  const deploymentZoneCoords = useMemo<readonly HexCoord[]>(() => {
+    if (!isDeploymentPhase) return [];
+    return computeWalkableDeploymentCoords(encounter);
+  }, [isDeploymentPhase, encounter]);
 
   // Computes reachable tiles when in MOVE mode for currently active player unit
   const reachableCoords = useMemo<HexCoord[]>(() => {
@@ -657,11 +873,116 @@ export function useCombatSimulation({
     checkEncounterProgression
   ]);
 
+  // Resets player unit placement in DEPLOYMENT phase to the role-aware tactical formation
+  const handleAutoArrangeDeployment = useCallback(() => {
+    if (!isDeploymentPhaseRef.current) return;
+    const arranged = prepareDeploymentEncounter(encounter, false);
+    for (const p of arranged.units) {
+      if (p.unit.faction !== 'ENEMY') {
+        state.arena.setUnitPosition(p.unit.id, p.coord);
+        const cu = state.units.get(p.unit.id);
+        if (cu) cu.facing = HEX_DIRECTIONS.EAST;
+      }
+    }
+    setSelectedDeploymentUnitId(null);
+    setState({ ...state });
+  }, [encounter, state, setSelectedDeploymentUnitId]);
+
+  // Confirms DEPLOYMENT positions, saves formation by radius, and launches Turn 1 with opening initiative rolls
+  const handleConfirmDeployment = useCallback(() => {
+    if (!isDeploymentPhaseRef.current) return;
+    const radius = encounter.arenaRadius ?? 3;
+    const savedMap: Record<string, HexCoord> = {};
+
+    const finalizedUnits: PlacedUnit[] = encounter.units.map((p) => {
+      const liveCoord = state.arena.getUnitPosition(p.unit.id) ?? p.coord;
+      const isPlayer = p.unit.faction !== 'ENEMY';
+      if (isPlayer) {
+        savedMap[p.unit.id] = liveCoord;
+      }
+      return {
+        ...p,
+        coord: liveCoord,
+        facing: isPlayer ? HEX_DIRECTIONS.EAST : (p.facing ?? HEX_DIRECTIONS.WEST)
+      };
+    });
+
+    saveFormationForRadius(radius, savedMap);
+
+    const finalizedEncounter: EncounterDefinition = {
+      ...encounter,
+      units: finalizedUnits
+    };
+
+    const nextRoller = trialRollerRef.current ?? new SeededDiceRoller(Date.now());
+    trialRollerRef.current = nextRoller;
+    const liveCombatState = buildEncounterState(finalizedEncounter, nextRoller);
+
+    setSelectedDeploymentUnitId(null);
+    setIsDeploymentPhase(false);
+    setIsOpeningInitiativeActive(true);
+    lastTurnStartEmittedRef.current = -1;
+    setState(liveCombatState);
+    setEncounterSession((prev) => prev + 1);
+  }, [encounter, state, setSelectedDeploymentUnitId, setIsDeploymentPhase, setIsOpeningInitiativeActive]);
+
   // Dispatches tactical intent on tile click
   const handleTileClick = useCallback(
     (coord: HexCoord) => {
       if (activeDiceRollRef.current) {
         activeDiceRollRef.current.onComplete();
+        return;
+      }
+
+      if (isDeploymentPhaseRef.current) {
+        const clickedUnitId = state.arena.getUnitAt(coord);
+        const clickedCu = clickedUnitId ? state.units.get(clickedUnitId) : undefined;
+        const isClickedPlayer =
+          clickedCu && (clickedCu.faction ?? clickedCu.unit.faction ?? 'PLAYER') === 'PLAYER';
+        const isClickedEnemy =
+          clickedCu && (clickedCu.faction ?? clickedCu.unit.faction) === 'ENEMY';
+
+        const validDeployKeys = new Set(deploymentZoneCoords.map(toHexKey));
+        const isDeployHex = validDeployKeys.has(toHexKey(coord));
+        const currentSelectedId = selectedDeploymentUnitIdRef.current;
+
+        if (isClickedPlayer && clickedUnitId) {
+          if (!currentSelectedId) {
+            setSelectedDeploymentUnitId(clickedUnitId);
+            setPinnedUnitId(clickedUnitId);
+          } else if (currentSelectedId === clickedUnitId) {
+            setSelectedDeploymentUnitId(null);
+            setPinnedUnitId(null);
+          } else {
+            // Swap Unit A (currentSelectedId) and Unit B (clickedUnitId)
+            state.arena.swapUnits(currentSelectedId, clickedUnitId);
+            const cuA = state.units.get(currentSelectedId);
+            if (cuA) cuA.facing = HEX_DIRECTIONS.EAST;
+            if (clickedCu) clickedCu.facing = HEX_DIRECTIONS.EAST;
+            setSelectedDeploymentUnitId(null);
+            setPinnedUnitId(null);
+            setState({ ...state });
+          }
+          return;
+        }
+
+        if (!clickedUnitId && isDeployHex && currentSelectedId) {
+          state.arena.setUnitPosition(currentSelectedId, coord);
+          const cuA = state.units.get(currentSelectedId);
+          if (cuA) cuA.facing = HEX_DIRECTIONS.EAST;
+          setSelectedDeploymentUnitId(null);
+          setState({ ...state });
+          return;
+        }
+
+        if (isClickedEnemy && clickedUnitId) {
+          setPinnedUnitId((prev) => (prev === clickedUnitId ? null : clickedUnitId));
+          return;
+        }
+
+        if (!clickedUnitId) {
+          setPinnedUnitId(null);
+        }
         return;
       }
 
@@ -814,6 +1135,9 @@ export function useCombatSimulation({
       activeDiceRoll,
       isDiceTrayEnabled,
       isOpeningInitiativeActive,
+      deploymentZoneCoords,
+      setSelectedDeploymentUnitId,
+      setPinnedUnitId,
       skipOpeningInitiative,
       addFloatingText,
       dispatchResolutionFeedback,
@@ -932,7 +1256,10 @@ export function useCombatSimulation({
       }
       openingTimeoutsRef.current = [];
       pendingInitiativeItemsRef.current = [];
-      setIsOpeningInitiativeActive(true);
+      setSelectedDeploymentUnitId(null);
+      setIsDeploymentPhase(defaultStartInDeployment);
+      setIsOpeningInitiativeActive(!defaultStartInDeployment);
+      lastTurnStartEmittedRef.current = -1;
 
       setIsVictoryModalOpen(false);
       setIsDefeatModalOpen(false);
@@ -942,7 +1269,9 @@ export function useCombatSimulation({
 
       const nextRoller = new SeededDiceRoller(Date.now());
       trialRollerRef.current = nextRoller;
-      const fresh = buildEncounterState(encounter, nextRoller);
+      const fresh = defaultStartInDeployment
+        ? createDeploymentPreviewState(encounter)
+        : buildEncounterState(encounter, nextRoller);
       setState(fresh);
       setActionMode('IDLE');
       setSelectedAbility(null);
@@ -951,7 +1280,7 @@ export function useCombatSimulation({
       setPinnedUnitId(null);
       clearFloatingTexts();
     },
-    [encounter, clearFloatingTexts]
+    [encounter, defaultStartInDeployment, clearFloatingTexts, setSelectedDeploymentUnitId, setIsDeploymentPhase, setIsOpeningInitiativeActive]
   );
 
   // Full reset back to encounter start
@@ -961,7 +1290,10 @@ export function useCombatSimulation({
     }
     openingTimeoutsRef.current = [];
     pendingInitiativeItemsRef.current = [];
-    setIsOpeningInitiativeActive(true);
+    setSelectedDeploymentUnitId(null);
+    setIsDeploymentPhase(defaultStartInDeployment);
+    setIsOpeningInitiativeActive(!defaultStartInDeployment);
+    lastTurnStartEmittedRef.current = -1;
 
     setSquadSummaries([]);
     setIsVictoryModalOpen(false);
@@ -971,7 +1303,9 @@ export function useCombatSimulation({
 
     const nextRoller = new SeededDiceRoller(Date.now());
     trialRollerRef.current = nextRoller;
-    const fresh = buildEncounterState(encounter, nextRoller);
+    const fresh = defaultStartInDeployment
+      ? createDeploymentPreviewState(encounter)
+      : buildEncounterState(encounter, nextRoller);
     setState(fresh);
     setActionMode('IDLE');
     setSelectedAbility(null);
@@ -979,13 +1313,15 @@ export function useCombatSimulation({
     setHoveredCoord(null);
     setPinnedUnitId(null);
     clearFloatingTexts();
-  }, [encounter, clearFloatingTexts]);
+  }, [encounter, defaultStartInDeployment, clearFloatingTexts, setSelectedDeploymentUnitId, setIsDeploymentPhase, setIsOpeningInitiativeActive]);
 
-  // Global keydown listener for Escape (dismiss ability targeting / unpin unit)
+  // Global keydown listener for Escape (dismiss ability targeting / unpin unit / clear deployment selection)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (actionMode === 'ABILITY' || actionMode === 'MOVE') {
+        if (isDeploymentPhaseRef.current && selectedDeploymentUnitIdRef.current) {
+          setSelectedDeploymentUnitId(null);
+        } else if (actionMode === 'ABILITY' || actionMode === 'MOVE') {
           setActionMode('IDLE');
           setSelectedAbility(null);
         } else if (pinnedUnitId) {
@@ -997,13 +1333,39 @@ export function useCombatSimulation({
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [actionMode, pinnedUnitId]);
+  }, [actionMode, pinnedUnitId, setSelectedDeploymentUnitId]);
 
   return {
-    state,
-    activeCu,
-    activeCoord,
-    phase,
+    get state() {
+      return stateRef.current;
+    },
+    get activeCu() {
+      return stateRef.current.units.get(stateRef.current.activeUnitId);
+    },
+    get activeCoord() {
+      return stateRef.current.activeUnitId
+        ? stateRef.current.arena.getUnitPosition(stateRef.current.activeUnitId)
+        : undefined;
+    },
+    get phase(): CombatPhase {
+      const s = stateRef.current;
+      if (s.outcome === 'VICTORY') return 'VICTORY';
+      if (s.outcome === 'DEFEAT') return 'DEFEAT';
+      if (isDeploymentPhaseRef.current) return 'DEPLOYMENT';
+      const cu = s.units.get(s.activeUnitId);
+      if (cu?.faction !== 'PLAYER') return 'HOSTILE_TURN';
+      return 'PLAYER_ACTION';
+    },
+    get isDeploymentPhase() {
+      return isDeploymentPhaseRef.current;
+    },
+    get selectedDeploymentUnitId() {
+      return selectedDeploymentUnitIdRef.current;
+    },
+    setSelectedDeploymentUnitId,
+    deploymentZoneCoords,
+    handleAutoArrangeDeployment,
+    handleConfirmDeployment,
     aiSpeed,
     setAiSpeed,
     hostileActionStatus,

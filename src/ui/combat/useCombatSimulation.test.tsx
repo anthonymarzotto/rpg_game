@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { useCombatSimulation } from './useCombatSimulation';
+import { useCombatSimulation, clearSavedFormations } from './useCombatSimulation';
 import { EncounterDefinition } from '../../core/combat/encounter';
 import { createRecruit } from '../../core/units/unitFactory';
 import { STRIKE } from '../../data/packages/novice';
@@ -677,6 +677,110 @@ describe('useCombatSimulation movePreview & fall hazard detection', () => {
     capturedHostileHook!.skipOpeningInitiative();
     capturedEffects.forEach((e) => e.fn());
     expect(capturedHostileHook!.floatingTexts.some((ft) => ft.text === 'Orc')).toBe(true);
+  });
+
+  describe('Pre-Combat Tactical Deployment Phase & Formation Memory (UX.5)', () => {
+    it('starts interactive multi-unit encounters in DEPLOYMENT phase with deferred initiative and supports Move, Swap, Deselect, Auto-Arrange, and Confirm', () => {
+      clearSavedFormations();
+
+      const p1 = createRecruit('p1', 'Alden', { faction: 'PLAYER' });
+      const p2 = createRecruit('p2', 'Lyra', { faction: 'PLAYER' });
+      const e1 = createRecruit('e1', 'Orc', { faction: 'ENEMY' });
+
+      const encounter: EncounterDefinition = {
+        id: 'deployment-phase-test',
+        name: 'Deployment Phase Test',
+        arenaRadius: 3,
+        units: [
+          { unit: p1, coord: { q: -2, r: 0 } },
+          { unit: p2, coord: { q: -2, r: 1 } },
+          { unit: e1, coord: { q: 2, r: 0 } }
+        ]
+      };
+
+      let capturedHook: ReturnType<typeof useCombatSimulation> | null = null;
+      function Harness() {
+        capturedHook = useCombatSimulation({ encounter });
+        return null;
+      }
+
+      renderToStaticMarkup(<Harness />);
+      expect(capturedHook).not.toBeNull();
+      expect(capturedHook!.phase).toBe('DEPLOYMENT');
+      expect(capturedHook!.isDeploymentPhase).toBe(true);
+      expect(capturedHook!.state.turnNumber).toBe(0);
+      expect(capturedHook!.state.combatLog).toHaveLength(0);
+      expect(capturedHook!.deploymentZoneCoords.length).toBeGreaterThanOrEqual(8);
+
+      const p1Start = capturedHook!.state.arena.getUnitPosition('p1')!;
+      const p2Start = capturedHook!.state.arena.getUnitPosition('p2')!;
+
+      // 1. Click Player Unit 1 -> selects p1
+      capturedHook!.handleTileClick(p1Start);
+      expect(capturedHook!.selectedDeploymentUnitId).toBe('p1');
+
+      // 2. Click Player Unit 1 again -> deselects p1
+      capturedHook!.handleTileClick(p1Start);
+      expect(capturedHook!.selectedDeploymentUnitId).toBeNull();
+
+      // 3. Select p1 and click an empty deployment hex -> moves p1
+      const emptyDeployHex = capturedHook!.deploymentZoneCoords.find(
+        (c) =>
+          (c.q !== p1Start.q || c.r !== p1Start.r) &&
+          (c.q !== p2Start.q || c.r !== p2Start.r)
+      )!;
+      capturedHook!.handleTileClick(p1Start);
+      expect(capturedHook!.selectedDeploymentUnitId).toBe('p1');
+      capturedHook!.handleTileClick(emptyDeployHex);
+      expect(capturedHook!.state.arena.getUnitPosition('p1')).toEqual(emptyDeployHex);
+      expect(capturedHook!.selectedDeploymentUnitId).toBeNull();
+
+      // 4. Select p1 (at emptyDeployHex) and click p2 -> swaps p1 and p2 and clears selection
+      capturedHook!.handleTileClick(emptyDeployHex);
+      expect(capturedHook!.selectedDeploymentUnitId).toBe('p1');
+      capturedHook!.handleTileClick(p2Start);
+      expect(capturedHook!.state.arena.getUnitPosition('p1')).toEqual(p2Start);
+      expect(capturedHook!.state.arena.getUnitPosition('p2')).toEqual(emptyDeployHex);
+      expect(capturedHook!.selectedDeploymentUnitId).toBeNull();
+
+      // 5. Clicking enemy unit pins/inspects enemy without moving player units
+      capturedHook!.handleTileClick({ q: 2, r: 0 });
+      expect(capturedHook!.pinnedUnitId).toBe('e1');
+
+      // 6. Auto-arrange resets positions to tactical formation
+      capturedHook!.handleAutoArrangeDeployment();
+      expect(capturedHook!.selectedDeploymentUnitId).toBeNull();
+
+      // Move p1 to a specific custom deployment hex before confirming
+      const p1Now = capturedHook!.state.arena.getUnitPosition('p1')!;
+      const p2Now = capturedHook!.state.arena.getUnitPosition('p2')!;
+      const customCoord = capturedHook!.deploymentZoneCoords.find(
+        (c) =>
+          (c.q !== p1Now.q || c.r !== p1Now.r) &&
+          (c.q !== p2Now.q || c.r !== p2Now.r)
+      )!;
+      capturedHook!.handleTileClick(p1Now);
+      capturedHook!.handleTileClick(customCoord);
+      expect(capturedHook!.state.arena.getUnitPosition('p1')).toEqual(customCoord);
+
+      // 7. Confirm deployment -> transitions to active combat on Turn 1, rolls initiative, logs Turn 0
+      capturedHook!.handleConfirmDeployment();
+      expect(capturedHook!.isDeploymentPhase).toBe(false);
+      expect(capturedHook!.phase === 'PLAYER_ACTION' || capturedHook!.phase === 'HOSTILE_TURN').toBe(true);
+      expect(capturedHook!.state.turnNumber).toBe(1);
+      expect(capturedHook!.state.combatLog.length).toBeGreaterThanOrEqual(1);
+      expect(capturedHook!.state.arena.getUnitPosition('p1')).toEqual(customCoord);
+
+      // 8. Subsequent trial of same radius restores remembered formation coordinate
+      let secondHook: ReturnType<typeof useCombatSimulation> | null = null;
+      function SecondHarness() {
+        secondHook = useCombatSimulation({ encounter });
+        return null;
+      }
+      renderToStaticMarkup(<SecondHarness />);
+      expect(secondHook!.phase).toBe('DEPLOYMENT');
+      expect(secondHook!.state.arena.getUnitPosition('p1')).toEqual(customCoord);
+    });
   });
 });
 

@@ -2,6 +2,14 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.21.0] - 2026-11-19
+
+### Pre-Combat Tactical Deployment & Smarter Starting Formations
+- **Interactive Vanguard Deployment Phase**: Trials now open in a dedicated pre-combat deployment phase before initiative dice are rolled. You can inspect the battlefield topography and enemy positions, select any of your deployed heroes, and click any highlighted West deployment tile to move them or click another ally to swap positions before clicking **Begin Trial**.
+- **Remembered Squad Formations**: Once you confirm your squad's starting positions, your layout is automatically remembered for future trials of the same arena size. An **Auto-Arrange** button is also available during deployment to reset your squad into a balanced tactical formation at any time.
+- **Expanded Full-Span Deployment Zones with High-Ground Perches**: Starting deployment zones on both sides of the arena now span the full North-to-South height of the battlefield with elevated terrace perches available inside the deployment zone, giving large squads plenty of room to spread out and offering ranged units immediate high-ground vantages.
+- **Role-Aware Enemy Starting Formations**: Enemy squads now organize their starting positions by combat role—anchoring frontline fighters and Shield-bearers forward in the center lanes, positioning mages, supports, and artillery on screened or elevated backline perches, and deploying agile skirmishers on the outer North and South flank wings.
+
 ## [0.20.0] - 2026-11-18
 
 ### New Tier 4 Class: Ballistician

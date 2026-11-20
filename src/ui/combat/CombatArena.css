@@ -367,7 +367,8 @@
 }
 
 .hex-tile-group.reachable,
-.hex-tile-group.candidate {
+.hex-tile-group.candidate,
+.hex-tile-group.deployment-zone-tile {
   cursor: pointer;
 }
 
@@ -2658,6 +2659,73 @@
 
 .end-turn-btn .action-cost {
   color: #fbbf24;
+}
+
+/* Pre-Combat Deployment Bar */
+.deployment-bar {
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 22px rgba(56, 189, 248, 0.16);
+}
+
+.deployment-status-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 290px;
+}
+
+.deployment-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.deployment-phase-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+}
+
+.deployment-prompt-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.deployment-prompt-text strong {
+  color: #34d399;
+}
+
+.deployment-auto-btn {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.deployment-auto-btn:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.24);
+  border-color: #38bdf8;
+}
+
+.deployment-begin-btn {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.38) 100%);
+  border-color: #34d399;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.32);
+}
+
+.deployment-begin-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.42) 0%, rgba(5, 150, 105, 0.55) 100%);
+  border-color: #6ee7b7;
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.5);
+}
+
+.deployment-begin-btn .action-cost {
+  color: #6ee7b7;
 }
 
 /* Ability Hover Tooltip */

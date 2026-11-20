@@ -112,4 +112,17 @@ describe('CombatArena', () => {
     expect(html).toContain('arena-canvas-container');
     expect(html).toContain('dev-zoom-controls');
   });
+
+  it('renders pre-combat DeploymentBar with Auto-Arrange and Begin Trial controls on opening mount (UX.5)', () => {
+    const encounter = createNoviceSandboxEncounter();
+    const html = renderToStaticMarkup(<CombatArena encounter={encounter} onExit={vi.fn()} />);
+
+    expect(html).toContain('data-testid="deployment-bar"');
+    expect(html).toContain('Vanguard Deployment');
+    expect(html).toContain('data-testid="btn-deployment-auto-arrange"');
+    expect(html).toContain('Auto-Arrange');
+    expect(html).toContain('data-testid="btn-begin-trial"');
+    expect(html).toContain('Begin Trial');
+    expect(html).toContain('deployment-zone-tile');
+  });
 });

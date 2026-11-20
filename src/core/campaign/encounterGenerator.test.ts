@@ -5,9 +5,13 @@ import {
   generateStageEncounter,
   createEnemyUnit,
   getDeploymentZones,
+  generateArenaTerrain,
+  resolveUnitTacticalRole,
+  placeSquadTactically,
   assembleEnemySquad,
   TIER3_CLASSES
 } from './encounterGenerator';
+import { createRng } from '../prng';
 
 describe('Procedural Encounter Generator', () => {
   const recruitSquad = [
@@ -267,34 +271,151 @@ describe('Procedural Encounter Generator', () => {
   });
 
   describe('Deployment Zones & Radial Bounds', () => {
-    it('generates 4 candidate spawns per side for Radius 3 within arena bounds', () => {
+    it('generates 8 symmetric full-span candidate spawns per side for Radius 3 within arena bounds', () => {
       const zones = getDeploymentZones(3);
-      expect(zones.playerCoords).toHaveLength(4);
-      expect(zones.enemyCoords).toHaveLength(4);
+      expect(zones.playerCoords).toHaveLength(8);
+      expect(zones.enemyCoords).toHaveLength(8);
       const arena = createRadialArena(3);
-      for (const c of [...zones.playerCoords, ...zones.enemyCoords]) {
+      for (const c of zones.playerCoords) {
         expect(arena.getTile(c)).toBeDefined();
+        expect(2 * c.q + c.r).toBeLessThanOrEqual(-3);
+      }
+      for (const c of zones.enemyCoords) {
+        expect(arena.getTile(c)).toBeDefined();
+        expect(2 * c.q + c.r).toBeGreaterThanOrEqual(3);
       }
     });
 
-    it('generates 6 candidate spawns per side for Radius 4 within arena bounds', () => {
+    it('generates 12 symmetric full-span candidate spawns per side for Radius 4 within arena bounds', () => {
       const zones = getDeploymentZones(4);
-      expect(zones.playerCoords).toHaveLength(6);
-      expect(zones.enemyCoords).toHaveLength(6);
+      expect(zones.playerCoords).toHaveLength(12);
+      expect(zones.enemyCoords).toHaveLength(12);
       const arena = createRadialArena(4);
-      for (const c of [...zones.playerCoords, ...zones.enemyCoords]) {
+      for (const c of zones.playerCoords) {
         expect(arena.getTile(c)).toBeDefined();
+        expect(2 * c.q + c.r).toBeLessThanOrEqual(-4);
+      }
+      for (const c of zones.enemyCoords) {
+        expect(arena.getTile(c)).toBeDefined();
+        expect(2 * c.q + c.r).toBeGreaterThanOrEqual(4);
       }
     });
 
-    it('generates 10 candidate spawns per side for Radius 5 within arena bounds', () => {
+    it('generates 18 symmetric full-span candidate spawns per side for Radius 5 within arena bounds', () => {
       const zones = getDeploymentZones(5);
-      expect(zones.playerCoords).toHaveLength(10);
-      expect(zones.enemyCoords).toHaveLength(10);
+      expect(zones.playerCoords).toHaveLength(18);
+      expect(zones.enemyCoords).toHaveLength(18);
       const arena = createRadialArena(5);
-      for (const c of [...zones.playerCoords, ...zones.enemyCoords]) {
+      for (const c of zones.playerCoords) {
         expect(arena.getTile(c)).toBeDefined();
+        expect(2 * c.q + c.r).toBeLessThanOrEqual(-5);
       }
+      for (const c of zones.enemyCoords) {
+        expect(arena.getTile(c)).toBeDefined();
+        expect(2 * c.q + c.r).toBeGreaterThanOrEqual(5);
+      }
+      // Spans from North wing (r <= -3) to South wing (r >= 3)
+      expect(zones.playerCoords.some((c) => c.r <= -3)).toBe(true);
+      expect(zones.playerCoords.some((c) => c.r >= 3)).toBe(true);
+    });
+
+    it('allows h=1 elevation terraces inside deployment zones while keeping non-walkable obstacles strictly in the neutral center strip', () => {
+      const zones = getDeploymentZones(4);
+      const spawnKeySet = new Set(
+        [...zones.playerCoords, ...zones.enemyCoords].map((c) => `${c.q},${c.r}`)
+      );
+
+      let foundElevatedSpawnTile = false;
+      for (let seed = 100; seed < 130; seed++) {
+        const overrides = generateArenaTerrain(
+          4,
+          zones.playerCoords,
+          zones.enemyCoords,
+          createRng(seed)
+        );
+        for (const ov of overrides) {
+          const key = `${ov.coord.q},${ov.coord.r}`;
+          if (spawnKeySet.has(key)) {
+            // Deployment zone hexes must never be non-walkable obstacles or h>=2 peaks
+            expect(ov.isWalkable).not.toBe(false);
+            expect(ov.elevation ?? 0).toBeLessThanOrEqual(1);
+            if ((ov.elevation ?? 0) === 1) {
+              foundElevatedSpawnTile = true;
+            }
+          }
+        }
+      }
+      expect(foundElevatedSpawnTile).toBe(true);
+    });
+  });
+
+  describe('Role-Aware Tactical Squad Placement (UX.5)', () => {
+    it('places frontline Brawlers ahead of backline Snipers/Supports and Skirmishers on outer flank wings', () => {
+      const zones = getDeploymentZones(4);
+      const shieldBearer = createEnemyUnit('e-sb', 'shield-bearer');
+      const knight = createEnemyUnit('e-kn', 'knight');
+      const sorcerer = createEnemyUnit('e-so', 'sorcerer');
+      const witch = createEnemyUnit('e-wi', 'witch');
+      const infiltrator = createEnemyUnit('e-in', 'infiltrator');
+
+      expect(resolveUnitTacticalRole(shieldBearer)).toBe('BRAWLER');
+      expect(resolveUnitTacticalRole(sorcerer)).toBe('SNIPER');
+      expect(resolveUnitTacticalRole(witch)).toBe('SUPPORT');
+      expect(resolveUnitTacticalRole(infiltrator)).toBe('SKIRMISHER');
+
+      // Elevate a rear deployment hex (3, 0) -> col = 6
+      const overrides = [{ coord: { q: 3, r: 0 }, elevation: 1, isWalkable: true }];
+      const placed = placeSquadTactically(
+        [sorcerer, infiltrator, shieldBearer, witch, knight],
+        zones.enemyCoords,
+        overrides,
+        'ENEMY'
+      );
+
+      const byId = new Map(placed.map((p) => [p.unit.id, p.coord]));
+      const sbCoord = byId.get('e-sb')!;
+      const knCoord = byId.get('e-kn')!;
+      const soCoord = byId.get('e-so')!;
+      const wiCoord = byId.get('e-wi')!;
+      const inCoord = byId.get('e-in')!;
+
+      const sbCol = 2 * sbCoord.q + sbCoord.r;
+      const knCol = 2 * knCoord.q + knCoord.r;
+      const soCol = 2 * soCoord.q + soCoord.r;
+      const wiCol = 2 * wiCoord.q + wiCoord.r;
+
+      // Frontline Brawlers deploy closer to the center (smaller 2q+r) than backline Snipers/Supports
+      expect(sbCol).toBeLessThan(soCol);
+      expect(sbCol).toBeLessThan(wiCol);
+      expect(knCol).toBeLessThan(soCol);
+      expect(knCol).toBeLessThan(wiCol);
+      // Shield-bearer anchors the center-front lane (r === 0, col === 4)
+      expect(sbCoord).toEqual({ q: 2, r: 0 });
+      // Sorcerer claims the elevated backline perch at (3, 0)
+      expect(soCoord).toEqual({ q: 3, r: 0 });
+      // Infiltrator takes an outer North or South flank wing (|r| > |sbCoord.r|)
+      expect(Math.abs(inCoord.r)).toBeGreaterThan(Math.abs(sbCoord.r));
+    });
+
+    it('spreads 6+ units across the vertical span in Radius 5 without bunching', () => {
+      const zones = getDeploymentZones(5);
+      const squad6 = [
+        createEnemyUnit('u1', 'shield-bearer'),
+        createEnemyUnit('u2', 'knight'),
+        createEnemyUnit('u3', 'cavalier'),
+        createEnemyUnit('u4', 'sorcerer'),
+        createEnemyUnit('u5', 'infiltrator'),
+        createEnemyUnit('u6', 'highwayman')
+      ];
+
+      const placed = placeSquadTactically(squad6, zones.playerCoords, [], 'PLAYER');
+      expect(placed).toHaveLength(6);
+
+      const rValues = placed.map((p) => p.coord.r);
+      const minR = Math.min(...rValues);
+      const maxR = Math.max(...rValues);
+      // Vertical span covers at least 4 distinct rows from North to South wings
+      expect(maxR - minR).toBeGreaterThanOrEqual(4);
     });
   });
 

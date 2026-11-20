@@ -1,5 +1,6 @@
-import { Unit } from '../types/unit';
+import { Unit, Faction } from '../types/unit';
 import { Archetype } from '../types/class';
+import { AIProfile } from '../ai/types';
 import { HexCoord, HEX_DIRECTIONS, hexDistance, getHexNeighbors } from '../grid/hex';
 import { createRadialArena } from '../grid/templates';
 import {
@@ -240,83 +241,268 @@ export function assembleEnemySquad(
 }
 
 /**
- * Generates candidate player and enemy deployment coordinates for the given radius.
+ * Generates candidate player (West) and enemy (East) deployment coordinates for the given radius.
+ * Uses horizontal screen-column projection (col = 2*q + r) to create symmetric full-height
+ * deployment crescents across the North-to-South span of the radial arena:
+ * - Radius 3: |2*q + r| >= 3 (8 hexes per side)
+ * - Radius 4: |2*q + r| >= 4 (12 hexes per side)
+ * - Radius 5: |2*q + r| >= 5 (18 hexes per side)
  */
 export function getDeploymentZones(radius: number): {
   readonly playerCoords: readonly HexCoord[];
   readonly enemyCoords: readonly HexCoord[];
 } {
-  if (radius <= 3) {
-    return {
-      playerCoords: [
-        { q: -2, r: 0 },
-        { q: -2, r: 1 },
-        { q: -2, r: -1 },
-        { q: -1, r: -1 }
-      ],
-      enemyCoords: [
-        { q: 2, r: 0 },
-        { q: 2, r: -1 },
-        { q: 2, r: -2 },
-        { q: 1, r: 1 }
-      ]
-    };
+  const effectiveRadius = Math.max(2, radius);
+  const threshold = effectiveRadius <= 3 ? Math.min(3, effectiveRadius) : effectiveRadius === 4 ? 4 : 5;
+
+  const playerCoords: HexCoord[] = [];
+  const enemyCoords: HexCoord[] = [];
+
+  for (let q = -effectiveRadius; q <= effectiveRadius; q++) {
+    const r1 = Math.max(-effectiveRadius, -q - effectiveRadius);
+    const r2 = Math.min(effectiveRadius, -q + effectiveRadius);
+    for (let r = r1; r <= r2; r++) {
+      const col = 2 * q + r;
+      if (col <= -threshold) {
+        playerCoords.push({ q, r });
+      } else if (col >= threshold) {
+        enemyCoords.push({ q, r });
+      }
+    }
   }
 
-  if (radius === 4) {
-    return {
-      playerCoords: [
-        { q: -3, r: 0 },
-        { q: -3, r: 1 },
-        { q: -3, r: -1 },
-        { q: -2, r: -1 },
-        { q: -2, r: 1 },
-        { q: -2, r: 0 }
-      ],
-      enemyCoords: [
-        { q: 3, r: 0 },
-        { q: 3, r: -1 },
-        { q: 3, r: -2 },
-        { q: 2, r: 1 },
-        { q: 2, r: -1 },
-        { q: 2, r: 0 }
-      ]
-    };
-  }
-
-  // Radius 5+ deployment (10 candidate spawns per side)
-  return {
-    playerCoords: [
-      { q: -4, r: 0 },
-      { q: -4, r: 1 },
-      { q: -4, r: 2 },
-      { q: -4, r: -1 },
-      { q: -3, r: 0 },
-      { q: -3, r: 1 },
-      { q: -3, r: -1 },
-      { q: -3, r: -2 },
-      { q: -3, r: 2 },
-      { q: -2, r: 0 }
-    ],
-    enemyCoords: [
-      { q: 4, r: 0 },
-      { q: 4, r: -1 },
-      { q: 4, r: -2 },
-      { q: 4, r: 1 },
-      { q: 3, r: 0 },
-      { q: 3, r: -1 },
-      { q: 3, r: 1 },
-      { q: 3, r: 2 },
-      { q: 3, r: -2 },
-      { q: 2, r: 0 }
-    ]
+  // Sort deterministically: front-to-back (|2q+r| ascending), then center-to-wings (|r| ascending, r ascending)
+  const sortZone = (a: HexCoord, b: HexCoord) => {
+    const absColA = Math.abs(2 * a.q + a.r);
+    const absColB = Math.abs(2 * b.q + b.r);
+    if (absColA !== absColB) return absColA - absColB;
+    const absRA = Math.abs(a.r);
+    const absRB = Math.abs(b.r);
+    if (absRA !== absRB) return absRA - absRB;
+    return a.r - b.r;
   };
+
+  playerCoords.sort(sortZone);
+  enemyCoords.sort(sortZone);
+
+  const maxCandidates = effectiveRadius <= 3 ? 8 : effectiveRadius === 4 ? 12 : 18;
+  return {
+    playerCoords: playerCoords.slice(0, maxCandidates),
+    enemyCoords: enemyCoords.slice(0, maxCandidates)
+  };
+}
+
+/**
+ * Resolves the tactical formation role for a unit from its class package or base attributes.
+ * Note: Frontline Fighter-lineage commanders (such as Knight) deploy as BRAWLER vanguards.
+ */
+export function resolveUnitTacticalRole(unit: Unit): AIProfile {
+  const classId = unit.loadout?.activeClassId;
+  if (classId === 'knight') {
+    return 'BRAWLER';
+  }
+  if (classId && classId !== 'novice') {
+    const pkg = getClassPackage(classId);
+    if (pkg?.aiProfile) {
+      return pkg.aiProfile;
+    }
+  }
+
+  const { force, finesse, focus } = unit.baseAttributes;
+  if (focus > force && focus >= finesse) {
+    return 'SNIPER';
+  }
+  if (finesse > force && finesse > focus) {
+    return 'SKIRMISHER';
+  }
+  return 'BRAWLER';
+}
+
+/**
+ * Places a squad onto candidate deployment coordinates using deterministic role-aware tactical scoring:
+ * - BRAWLER: Forward row closest to center, central lanes (|r| small), anti-clumping spacing.
+ * - SNIPER / SUPPORT: Back/mid rows behind frontline, prioritizes h>=1 terrace elevation and Brawler screening.
+ * - SKIRMISHER: Outer North/South flank wings (|r| larger) on forward/mid rows, balancing wings.
+ */
+export function placeSquadTactically(
+  units: readonly Unit[],
+  candidateCoords: readonly HexCoord[],
+  tileOverrides: readonly EncounterTileOverride[] = [],
+  faction: Faction = 'ENEMY'
+): readonly PlacedUnit[] {
+  if (units.length === 0 || candidateCoords.length === 0) {
+    return [];
+  }
+
+  const elevationMap = new Map<string, number>();
+  const blockedSet = new Set<string>();
+  for (const ov of tileOverrides) {
+    const key = `${ov.coord.q},${ov.coord.r}`;
+    if (ov.elevation !== undefined) {
+      elevationMap.set(key, ov.elevation);
+    }
+    if (ov.isWalkable === false) {
+      blockedSet.add(key);
+    }
+  }
+
+  const walkableCandidates = candidateCoords.filter(
+    (c) => !blockedSet.has(`${c.q},${c.r}`)
+  );
+  const pool = walkableCandidates.length > 0 ? walkableCandidates : candidateCoords;
+
+  const minAbsCol = Math.min(...pool.map((c) => Math.abs(2 * c.q + c.r)));
+  const maxAbsR = Math.max(1, ...pool.map((c) => Math.abs(c.r)));
+
+  const rolePriority: Record<AIProfile, number> = {
+    BRAWLER: 0,
+    SNIPER: 1,
+    SUPPORT: 2,
+    SKIRMISHER: 3
+  };
+
+  const indexedUnits = units.map((unit, originalIndex) => ({
+    unit,
+    originalIndex,
+    role: resolveUnitTacticalRole(unit)
+  }));
+
+  // Order units for placement so frontline Brawlers anchor first, then Snipers/Supports screen behind them, then Skirmishers take wings
+  const placementOrder = [...indexedUnits].sort((a, b) => {
+    const prioDiff = rolePriority[a.role] - rolePriority[b.role];
+    if (prioDiff !== 0) return prioDiff;
+    // Shield-bearer anchors center first among Brawlers
+    if (a.unit.loadout?.activeClassId === 'shield-bearer' && b.unit.loadout?.activeClassId !== 'shield-bearer') {
+      return -1;
+    }
+    if (b.unit.loadout?.activeClassId === 'shield-bearer' && a.unit.loadout?.activeClassId !== 'shield-bearer') {
+      return 1;
+    }
+    return a.originalIndex - b.originalIndex;
+  });
+
+  const occupied = new Map<string, { coord: HexCoord; role: AIProfile; unit: Unit }>();
+  const assignedByIndex = new Map<number, HexCoord>();
+
+  for (const entry of placementOrder) {
+    let bestCoord: HexCoord | undefined;
+    let bestScore = -Infinity;
+
+    for (const coord of pool) {
+      const key = `${coord.q},${coord.r}`;
+      if (occupied.has(key)) continue;
+
+      const absCol = Math.abs(2 * coord.q + coord.r);
+      const depth = absCol - minAbsCol; // 0 = front row, 1..2 = mid row, 3+ = back row
+      const absR = Math.abs(coord.r);
+      const elev = elevationMap.get(key) ?? 0;
+
+      let score = 0;
+
+      if (entry.role === 'BRAWLER') {
+        const isShieldBearer = entry.unit.loadout?.activeClassId === 'shield-bearer';
+        score -= depth * 18;
+        score -= absR * (isShieldBearer ? 6 : 2.5);
+        score += elev * 2;
+
+        for (const placed of occupied.values()) {
+          const dist = hexDistance(coord, placed.coord);
+          if (dist === 1) {
+            score -= placed.role === 'BRAWLER' ? 5 : 3;
+          } else if (dist === 2 && placed.role === 'BRAWLER') {
+            score += 4;
+          }
+        }
+      } else if (entry.role === 'SNIPER' || entry.role === 'SUPPORT') {
+        // Prefer backline rows (depth >= 2) behind the frontline
+        if (depth === 0) {
+          score -= 22;
+        } else {
+          score += Math.min(depth, 3) * 10;
+        }
+
+        // High-ground terrace perch bonus
+        score += elev * 15;
+        score -= absR * 1.5;
+
+        // Screening bonus behind an already-placed friendly Brawler
+        let isScreened = false;
+        let isAheadOrEqualToAnyBrawler = false;
+        for (const placed of occupied.values()) {
+          if (placed.role === 'BRAWLER') {
+            const brawlerAbsCol = Math.abs(2 * placed.coord.q + placed.coord.r);
+            if (brawlerAbsCol < absCol && Math.abs(placed.coord.r - coord.r) <= 1) {
+              isScreened = true;
+            }
+            if (brawlerAbsCol >= absCol) {
+              isAheadOrEqualToAnyBrawler = true;
+            }
+          }
+          const dist = hexDistance(coord, placed.coord);
+          if (dist === 1 && (placed.role === 'SNIPER' || placed.role === 'SUPPORT')) {
+            score -= 2;
+          }
+        }
+        if (isScreened) {
+          score += 9;
+        }
+        if (isAheadOrEqualToAnyBrawler) {
+          score -= 14;
+        }
+      } else if (entry.role === 'SKIRMISHER') {
+        // Prefer outer North/South wings (|r| larger) near forward/mid rows
+        score += Math.min(absR, maxAbsR) * 7;
+        if (depth <= 1) {
+          score += 8 - depth * 2;
+        } else {
+          score -= depth * 4;
+        }
+        score += elev * 3;
+
+        // Split wings if another Skirmisher is already placed
+        for (const placed of occupied.values()) {
+          if (placed.role === 'SKIRMISHER') {
+            if ((placed.coord.r < 0 && coord.r > 0) || (placed.coord.r > 0 && coord.r < 0)) {
+              score += 10;
+            } else if (hexDistance(coord, placed.coord) === 1) {
+              score -= 10;
+            }
+          } else if (hexDistance(coord, placed.coord) === 1) {
+            score -= 5;
+          }
+        }
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestCoord = coord;
+      }
+    }
+
+    const chosen = bestCoord ?? pool[entry.originalIndex % pool.length];
+    occupied.set(`${chosen.q},${chosen.r}`, {
+      coord: chosen,
+      role: entry.role,
+      unit: entry.unit
+    });
+    assignedByIndex.set(entry.originalIndex, chosen);
+  }
+
+  const facing = faction === 'PLAYER' ? HEX_DIRECTIONS.EAST : HEX_DIRECTIONS.WEST;
+
+  return units.map((unit, idx) => ({
+    unit: { ...unit, faction },
+    coord: assignedByIndex.get(idx) ?? pool[idx % pool.length],
+    facing
+  }));
 }
 
 
 /**
  * Procedurally generates terraced elevation topography and obstacles ensuring
  * guaranteed traversable path connectivity between player and enemy deployment zones.
+ * Non-walkable obstacles and h=2 peaks are kept strictly in the neutral center strip
+ * outside deployment zones, while h=1 elevation terraces may spread into deployment zones.
  */
 export function generateArenaTerrain(
   radius: number,
@@ -330,24 +516,32 @@ export function generateArenaTerrain(
 
   // Collect all radial arena coordinates
   const allCoords: HexCoord[] = [];
+  const allCoordSet = new Set<string>();
   for (let q = -radius; q <= radius; q++) {
     const r1 = Math.max(-radius, -q - radius);
     const r2 = Math.min(radius, -q + radius);
     for (let r = r1; r <= r2; r++) {
       allCoords.push({ q, r });
+      allCoordSet.add(`${q},${r}`);
     }
   }
 
-  // Eligible interior coordinates (strictly inside perimeter, excluding spawns)
+  // Eligible interior coordinates (strictly inside perimeter, excluding deployment zones)
   const interiorCoords = allCoords.filter((c) => {
     const dist = hexDistance(c, { q: 0, r: 0 });
     return dist < radius && !spawnSet.has(`${c.q},${c.r}`);
   });
 
+  // Candidate coordinates for h=1 terrace spreading (includes interior and deployment zone hexes)
+  const terraceCandidateCoords = allCoords.filter((c) => {
+    const dist = hexDistance(c, { q: 0, r: 0 });
+    return dist < radius || spawnSet.has(`${c.q},${c.r}`);
+  });
+
   for (let attempt = 0; attempt < 12; attempt++) {
     const elevationMap = new Map<string, number>();
 
-    // 1. Seed 1-2 peak foci (h = 2) in the interior
+    // 1. Seed 1-2 peak foci (h = 2) strictly in the neutral interior
     const numPeaks = radius >= 4 ? (rng() < 0.75 ? 2 : 1) : 1;
     const peakCandidates = shuffle(
       interiorCoords.filter((c) => hexDistance(c, { q: 0, r: 0 }) <= Math.max(1, radius - 2)),
@@ -358,12 +552,12 @@ export function generateArenaTerrain(
       elevationMap.set(`${p.q},${p.r}`, 2);
     }
 
-    // 2. Flood-fill surrounding terraces (h = 1)
+    // 2. Flood-fill surrounding terraces (h = 1), allowing spread into deployment zones
     for (const p of peaks) {
       const neighbors = getHexNeighbors(p);
       for (const n of neighbors) {
         const key = `${n.q},${n.r}`;
-        if (!spawnSet.has(key) && !elevationMap.has(key)) {
+        if (allCoordSet.has(key) && !elevationMap.has(key)) {
           // Asymmetrical terrace contour: 75% chance for adjacent to be terrace, leaving some raw cliff edges (h=2 -> h=0)
           if (rng() < 0.75) {
             elevationMap.set(key, 1);
@@ -372,22 +566,20 @@ export function generateArenaTerrain(
       }
     }
 
-    // Secondary terrace spreading for Radius 4
-    if (radius >= 4) {
-      for (const p of peaks) {
-        for (const c of interiorCoords) {
-          const key = `${c.q},${c.r}`;
-          if (!elevationMap.has(key) && !spawnSet.has(key)) {
-            const d = hexDistance(p, c);
-            if (d === 2 && rng() < 0.35) {
-              elevationMap.set(key, 1);
-            }
+    // Secondary terrace spreading for Radius 3+ (can spill h=1 terraces into deployment zones)
+    for (const p of peaks) {
+      for (const c of terraceCandidateCoords) {
+        const key = `${c.q},${c.r}`;
+        if (!elevationMap.has(key)) {
+          const d = hexDistance(p, c);
+          if ((d === 2 && rng() < 0.35) || (spawnSet.has(key) && d <= 3 && rng() < 0.22)) {
+            elevationMap.set(key, 1);
           }
         }
       }
     }
 
-    // 3. Place 2 to 4 obstacles (RUINS)
+    // 3. Place 2 to 4 obstacles (RUINS) strictly in the neutral interior outside deployment zones
     const numObstacles = 2 + Math.floor(rng() * 3);
     const obstacleCandidates = shuffle(
       interiorCoords.filter((c) => !peaks.some((p) => p.q === c.q && p.r === c.r)),
@@ -412,11 +604,10 @@ export function generateArenaTerrain(
       }
     }
 
-    // Check connectivity from first player spawn to first enemy spawn
+    // Check connectivity from first player spawn to all other spawns
     const reachable = arena.getReachableHexes(playerSpawns[0], 99);
-    const connectsToEnemy = reachable.some(
-      (c) => c.q === enemySpawns[0].q && c.r === enemySpawns[0].r
-    );
+    const reachableSet = new Set(reachable.map((c) => `${c.q},${c.r}`));
+    const connectsToEnemy = enemySpawns.every((c) => reachableSet.has(`${c.q},${c.r}`));
 
     if (connectsToEnemy) {
       const overrides: EncounterTileOverride[] = [];
@@ -478,29 +669,19 @@ export function generateStageEncounter(
 
   const tileOverrides = generateArenaTerrain(radius, playerCoords, enemyCoords, rng);
 
-  const placedUnits: PlacedUnit[] = [];
-
-  // Place player units (facing East toward enemies)
-  playerSquad.forEach((unit, idx) => {
-    if (idx < playerCoords.length) {
-      placedUnits.push({
-        unit: { ...unit, faction: 'PLAYER' },
-        coord: playerCoords[idx],
-        facing: HEX_DIRECTIONS.EAST
-      });
-    }
-  });
-
-  // Place enemy units (facing West toward player)
-  enemies.forEach((unit, idx) => {
-    if (idx < enemyCoords.length) {
-      placedUnits.push({
-        unit,
-        coord: enemyCoords[idx],
-        facing: HEX_DIRECTIONS.WEST
-      });
-    }
-  });
+  const placedPlayerUnits = placeSquadTactically(
+    playerSquad,
+    playerCoords,
+    tileOverrides,
+    'PLAYER'
+  );
+  const placedEnemyUnits = placeSquadTactically(
+    enemies,
+    enemyCoords,
+    tileOverrides,
+    'ENEMY'
+  );
+  const placedUnits: PlacedUnit[] = [...placedPlayerUnits, ...placedEnemyUnits];
 
   return {
     id: `stage-${stage}-encounter-${effectiveSeed}`,

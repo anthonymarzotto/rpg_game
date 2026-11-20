@@ -40,6 +40,8 @@ export interface HexGridSvgProps {
   readonly onSelectFacing?: (direction: HexDirection) => void;
   readonly highlightedUnitId?: string | null;
   readonly pinnedUnitId?: string | null;
+  readonly deploymentZoneCoords?: readonly HexCoord[];
+  readonly selectedDeploymentUnitId?: string | null;
   readonly onTileClick: (coord: HexCoord) => void;
   readonly onTileHover: (coord: HexCoord | null) => void;
 }
@@ -134,6 +136,8 @@ export function HexGridSvg({
   hoveredCoord,
   highlightedUnitId,
   pinnedUnitId,
+  deploymentZoneCoords = [],
+  selectedDeploymentUnitId = null,
   floatingTexts,
   targetPreview,
   movePreview,
@@ -155,6 +159,10 @@ export function HexGridSvg({
   const candidateSet = useMemo(
     () => new Set(candidateTargetCoords.map(toHexKey)),
     [candidateTargetCoords]
+  );
+  const deploymentSet = useMemo(
+    () => new Set(deploymentZoneCoords.map(toHexKey)),
+    [deploymentZoneCoords]
   );
 
   // Active Shrapnel Rubble rough terrain lookup
@@ -293,6 +301,7 @@ export function HexGridSvg({
           const isReachable = reachableSet.has(key);
           const isRange = rangeSet.has(key);
           const isCandidate = candidateSet.has(key);
+          const isDeploymentZone = deploymentSet.has(key);
           const isHovered =
             hoveredCoord && hoveredCoord.q === coord.q && hoveredCoord.r === coord.r;
 
@@ -390,6 +399,16 @@ export function HexGridSvg({
               : 'rgba(245, 158, 11, 0.08)';
             strokeColor = 'rgba(245, 158, 11, 0.45)';
             strokeWidth = 1.2;
+          } else if (isDeploymentZone) {
+            fillColor = isHovered
+              ? 'rgba(56, 189, 248, 0.34)'
+              : 'rgba(56, 189, 248, 0.16)';
+            strokeColor = isHovered ? '#7dd3fc' : '#38bdf8';
+            strokeWidth = isHovered ? 2.4 : 1.7;
+            strokeDasharray = '5 2';
+            if (isHovered) {
+              filter = 'url(#tile-glow-cyan)';
+            }
           } else if (isHovered) {
             fillColor = elevation >= 2
               ? 'rgba(71, 85, 105, 0.95)'
@@ -407,7 +426,8 @@ export function HexGridSvg({
           return (
             <g
               key={key}
-              className={`hex-tile-group ${isPathStep ? 'path-step-tile' : ''} ${pathInfo?.isDestination ? 'path-step-destination-tile' : ''} ${isReachable ? 'reachable' : ''} ${isRange ? 'in-range' : ''} ${isCandidate ? 'candidate' : ''} ${isCutaway ? 'cutaway-translucent' : ''}`}
+              className={`hex-tile-group ${isPathStep ? 'path-step-tile' : ''} ${pathInfo?.isDestination ? 'path-step-destination-tile' : ''} ${isReachable ? 'reachable' : ''} ${isRange ? 'in-range' : ''} ${isCandidate ? 'candidate' : ''} ${isDeploymentZone ? 'deployment-zone-tile' : ''} ${isCutaway ? 'cutaway-translucent' : ''}`}
+              data-testid={isDeploymentZone ? `deployment-hex-${coord.q}-${coord.r}` : undefined}
               style={isCutaway ? { opacity: 0.35, transition: 'opacity 0.15s ease' } : undefined}
               onClick={() => onTileClick(coord)}
               onMouseEnter={() => onTileHover(coord)}
@@ -906,6 +926,23 @@ export function HexGridSvg({
                       />
                     )}
 
+                    {/* Deployment Selected Unit Halo */}
+                    {unitId === selectedDeploymentUnitId && (
+                      <ellipse
+                        cx="0"
+                        cy="2"
+                        rx="26"
+                        ry="10"
+                        fill="rgba(16, 185, 129, 0.18)"
+                        stroke="#34d399"
+                        strokeWidth="2.4"
+                        strokeDasharray="5 2"
+                        filter="url(#tile-glow-cyan)"
+                        className="unit-deployment-selected-ring"
+                        data-testid={`unit-deployment-selected-ring-${unitId}`}
+                      />
+                    )}
+
                     {/* 3D Pedestal Base Rim / Bevel */}
                     <path
                       d="M -18 2 C -18 8, 18 8, 18 2 L 18 5 C 18 11, -18 11, -18 5 Z"
@@ -1071,6 +1108,20 @@ export function HexGridSvg({
                         filter="url(#tile-glow-amber)"
                         className="unit-active-halo"
                         data-testid={`unit-active-halo-${unitId}`}
+                      />
+                    )}
+
+                    {/* Deployment Selected Unit Halo in Vector Fallback */}
+                    {unitId === selectedDeploymentUnitId && (
+                      <circle
+                        r="23"
+                        fill="rgba(16, 185, 129, 0.18)"
+                        stroke="#34d399"
+                        strokeWidth="2.4"
+                        strokeDasharray="5 2"
+                        filter="url(#tile-glow-cyan)"
+                        className="unit-deployment-selected-ring"
+                        data-testid={`unit-deployment-selected-ring-${unitId}`}
                       />
                     )}
 
