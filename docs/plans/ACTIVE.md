@@ -5,7 +5,7 @@
 ---
 
 ## 🔨 In Progress
-Nothing to see here.
+- [X] **3.5**: **Theurge** (`#79`, Tier 4: `1F, 0R, 3M`), `79_human_male`.
 
 ---
 
@@ -13,7 +13,6 @@ Nothing to see here.
 
 ### 3. Tier 4 Class Kits & Token Integration
 Sketch and author class package (signature ability, 2 domain abilities, passive trait, AI heuristic profile, and badge palette) and whitelist tokens for the following new classes:
-- [ ] **3.5**: **Theurge** (`#79`, Tier 4: `1F, 0R, 3M`), `79_human_male`.
 - [ ] **3.6**: **Arcanist** (`#96`, Tier 4: `0F, 1R, 3M`), `96_human_male`.
 
 ### 4. No penalty for unit retreat/death
