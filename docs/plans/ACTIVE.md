@@ -5,22 +5,7 @@
 ---
 
 ## 🔨 In Progress
-- [x] **B.17 / B.18 (`effect-shout-labels`)**: Declarative effect shout labels (`AbilityEffect.shout`, `CombatEvent.label`, exhaustive `DisplacementKind` floater defaults, silent `Ride-Through`, `"INTERCEPT!"` on Shield-bearer only for `Intercept Step`, and catalog shout guardrails).
-- [x] **UX.6 / UX.11 / UX.14 / UX.19 / UX.20 / B.14**: **Clash Dice Tray Expansion, Damage Tooltip & Enemy Turn Tray Mode**:
-  - Tri-state Dice Tray toggle (`ALL` / `PLAYER_ONLY` / `OFF`) so enemy attacks can also present the Clash Dice Tray (`UX.19`, `UX.20`).
-  - Attacker & Defender directional tokens in the Dice Tray with attack lunge, hit shake/flash, miss sidestep, and defeat indicator (`UX.20`).
-  - Fix premature roll spoilers during Stage 1 and Stage 2 dice tumbles (`UX.11`) and slow down stage timings slightly.
-  - Simplify `"EVADED / MISS"` stamp to `"MISS"` (`UX.6`).
-  - Show Armor/Ward soak and full damage math in the Dice Tray (`B.14`) with a shared rich hover tooltip breakdown (`DamageRollTooltip`) in both the Dice Tray and Combat Log (`UX.14`).
-- [x] **UX.21 / UX.22 / UX.23 / UX.24 / UX.25 (`combat-log-polish`)**:
-  - Simplify Combat Log attack roll & damage chips to final results (`🎲 21 vs DC 11` / `🎲 15`, `💥 9 dmg`) with hover tooltips handling full breakdowns, and flip their order (`UX.21`, `UX.22`).
-  - Populate `attackRollBreakdown` on ground-targeted `HEX` rolls (`Wyrmflame Breath`, empty-hex `Arcane Blast`) so they get `AttackRollTooltip`, remove `"Spellcast Roll & Score"`, and include `BURN` application in `Wyrmflame Breath` cone splash details (`UX.23`).
-  - Emit dedicated `DEFEATED` card (naming lethal condition) and `ZONE_OF_CONTROL` card (with `faction` and `affectedUnitIds` for both units), and add faction/header styling to the `GENERIC` fallback card (`UX.24`, `UX.25`).
-- [x] **I.2 (`structured-effect-badges`)**: Extend `EffectHandler` & `EffectExecutionResult` to return structured `EffectOutcome` metadata (and unify `resolver.ts` splash/context outcomes) rather than plain text strings (`logDetail` / `secondaryDetail` / `effectDetail`), enabling compact color-coded effect pills and portal hover tooltips (`EffectBadgeTooltip`) in the Combat Log.
-- [x] **B.10 / Scratchpad 1 (`unified-ability-descriptions`)**: Unified dynamic ability descriptions across Camp and Trial surfaces (pure flavor `description` + deterministic hybrid Stat Strip pills & Effect Clauses + compact mechanical 1-liner on Selected Unit card with hover tooltip + `Normal -> Shard -> In-Trial` color precedence and `getEffectiveAbility` attribution preservation).
-- [x] **3.3 (`tier-4-ballistician`)**: **Ballistician** (`#65`, Tier 4: `1F, 3R, 0M`), `65_human_male` — `Zeroed In` passive, `Siege Barrage` delayed bombardment signature, `Shrapnel Canister` stealth reveal & rough terrain rubble, and `Sighting Bolt` telemetry spotter.
-- [x] **UX.5 (`tactical-opening-deployment`)**: Let the User place their units at opening. Enemy team to also do better at starting positions.
-- [x] **3.4 (`tier-4-philanderer`)**: **Philanderer** (`#84`, Tier 4: `0F, 3R, 1M`), `84_human_male` — `Captivating Presence` directional front-arc passive, `Billet-Doux` faction-flip charm signature, `Beckoning Glance` pull & expose lure, and `Looking-Glass Glare` myopic blind ray.
+Nothing to see here.
 
 ---
 
