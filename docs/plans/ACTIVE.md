@@ -40,6 +40,7 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close (re-assess after pacing & clash stage update).
 - [ ] **UX.15**: Make Vanguard Squad area in Post Trial XP distribution dialog scrollable.
 - [ ] **UX.16**: More interesting Vanguard area. Maybe some sort of campfire with the unit sprites randomly gathered around. Maybe animated milling about?
+- [ ] **UX.26**: "The Enclave" should scroll vertically, not horizontally.
 
 ---
 
@@ -52,6 +53,7 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 
 ## 💡 Ideas
 - [ ] **I.1**: Persist the last trial's combat log. Can help with identifying all kinds of things like AI behaviour enhancements.
+- [ ] **I.2**: Post match ratings/stats for units. I saw this happen in a Trial debug session.
 
 ---
 
@@ -64,4 +66,6 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 5. **Cavalier**:
   - What does he do after a Lance Charge? It's 2AP, so a move doesn't help. He ends up 1 space away from his target. If he doesn't start beside a target or have a ranged Resonant ability he is awkward, taking that last AP and saving it.
   - Maybe increase Ride-Through PENETRATING_STEP to 2. This gives separation to make a Lance Charge.
-6. Hellfire Brand and Ignite seem to stack. Intended?
+6. **Warlock**:
+  - Warlock is good but weird. Eldritch Blast is so-so for 2AP and Hellfire Brand is strictly worse than Ignite.
+
