@@ -642,6 +642,12 @@
   color: var(--color-text-dim);
 }
 
+.status-unauthored {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
 /* Inspector Kit Details & Abilities Grid */
 .inspector-kit-details {
   display: flex;

@@ -5,6 +5,7 @@ import {
 } from '../../core/progression/pyramid';
 import { toCoordKey } from '../../core/progression/registry';
 import { isOffNodeCoordinate } from '../../core/progression/harmonization';
+import { getClassPackage } from '../../data/packages';
 import { STAR_POINTS, getOffNodeWaypoint } from './geometry';
 import './ConstellationSvg.css';
 
@@ -162,6 +163,7 @@ export function ConstellationSvg({
             );
             const isHovered = hoveredClassId === pt.cls.id;
             const isSelected = selectedClassId === pt.cls.id;
+            const isUnauthored = !getClassPackage(pt.cls.id);
 
             const baseFill = isSelected
               ? '#fbbf24'
@@ -170,7 +172,9 @@ export function ConstellationSvg({
               : isHovered
               ? '#fff'
               : isEligible
-              ? 'rgba(245, 158, 11, 0.45)'
+              ? isUnauthored
+                ? 'rgba(245, 158, 11, 0.22)'
+                : 'rgba(245, 158, 11, 0.45)'
               : isLocked
               ? 'rgba(15, 23, 42, 0.68)'
               : pt.color;
@@ -182,9 +186,13 @@ export function ConstellationSvg({
               : isHovered
               ? 0.95
               : isEligible
-              ? 0.55
+              ? isUnauthored
+                ? 0.35
+                : 0.55
               : isLocked
               ? 0.25
+              : isUnauthored
+              ? 0.1
               : 0.42;
 
             const strokeColor = isSelected
@@ -197,14 +205,24 @@ export function ConstellationSvg({
               ? '#fcd34d'
               : isLocked
               ? 'rgba(255, 255, 255, 0.07)'
+              : isUnauthored
+              ? 'rgba(255, 255, 255, 0.22)'
               : 'rgba(255, 255, 255, 0.2)';
 
             const strokeWidth = isSelected ? 3 : isUnlocked ? 2 : isHovered ? 2.5 : isEligible ? 1.5 : 1;
 
+            const strokeDasharray = isEligible
+              ? isUnauthored
+                ? '2.5 2.5'
+                : '4 2'
+              : isUnauthored && !isLocked && !isUnlocked && !isSelected
+              ? '2 2'
+              : undefined;
+
             return (
               <g
                 key={`mosaic-${pt.cls.id}`}
-                className={`mosaic-tile ${isUnlocked ? 'unlocked' : ''} ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''} ${isEligible ? 'eligible' : ''}`}
+                className={`mosaic-tile ${isUnlocked ? 'unlocked' : ''} ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''} ${isEligible ? 'eligible' : ''} ${isUnauthored ? 'unauthored' : ''}`}
                 onMouseEnter={() => onHoverNode(pt.cls.id)}
                 onMouseLeave={() => onHoverNode(null)}
                 onClick={() => onClickNode?.(pt.cls.id)}
@@ -218,7 +236,7 @@ export function ConstellationSvg({
                   fillOpacity={fillOpacity}
                   stroke={strokeColor}
                   strokeWidth={strokeWidth}
-                  strokeDasharray={isEligible ? '4 2' : undefined}
+                  strokeDasharray={strokeDasharray}
                   filter={isUnlocked || isHovered || isSelected ? 'url(#star-glow)' : undefined}
                 />
 

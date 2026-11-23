@@ -414,6 +414,9 @@ export function HeroProgressionDrawer({
   const hoveredClassReqArch = hoveredClassDef
     ? getNeededArchetype(hoveredClassDef.requirements, hero.progression.archetypePoints)
     : null;
+  const isHoveredUnauthored = hoveredClassDef && hoveredClassDef.id !== 'novice'
+    ? !getClassPackage(hoveredClassDef.id)
+    : false;
 
   const handleMouseLeaveViewport = () => {
     setHoveredClassId(null);
@@ -857,6 +860,11 @@ export function HeroProgressionDrawer({
                           <span className="status-locked">✕ Locked Out</span>
                         ) : (
                           <span className="status-pathway">○ Future Pathway</span>
+                        )}
+                        {isHoveredUnauthored && (
+                          <span className="status-unauthored font-mono" data-testid="scanner-unauthored-badge">
+                            {' '}• ◌ No Kit Yet
+                          </span>
                         )}
                       </div>
                       <div className="scanner-hint font-mono">

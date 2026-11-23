@@ -7,6 +7,8 @@ import { UnitProgression } from '../../core/types/class';
 import { CampaignState } from '../../core/campaign/types';
 
 import { createCampaign } from '../../core/campaign/campaignFactory';
+import { CLASS_CATALOG } from '../../data/classes';
+import { getClassPackage } from '../../data/packages';
 
 interface MockUnitOverrides extends Omit<Partial<Unit>, 'progression'> {
   progression?: Partial<UnitProgression>;
@@ -737,6 +739,59 @@ describe('HeroProgressionDrawer Component', () => {
       expect(html).toContain('ability-stat-pill tier-shard');
       expect(html).toContain('1d6 + FRC + 2 Physical');
       expect(html).toContain('2 HP Cost');
+    });
+  });
+
+  describe('Unauthored Class Indicators', () => {
+    it('styles unauthored future-pathway tiles as hollow wireframes and shows Scanner HUD badge on hover', () => {
+      const hero = makeMockUnit({
+        progression: {
+          unitId: 'hero_1',
+          currentLevel: 0,
+          archetypePoints: { fighter: 0, rogue: 0, mage: 0 },
+          constellation: [],
+          offNodeMilestones: [],
+          milestoneSelections: {}
+        },
+        loadout: {
+          activeClassId: 'novice',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        }
+      });
+      const campaign = makeMockCampaign(hero);
+
+      const unauthoredClass = CLASS_CATALOG.find((cls) => !getClassPackage(cls.id))?.id;
+      expect(unauthoredClass).toBeDefined();
+      const htmlUnauthored = renderToStaticMarkup(
+        <HeroProgressionDrawer
+          hero={hero}
+          campaign={campaign}
+          onClose={vi.fn()}
+          onUpdateCampaign={vi.fn()}
+          initialHoveredClassId={unauthoredClass!}
+        />
+      );
+
+      // Unauthored tile has unauthored class (and not the removed Option 4 glyph)
+      expect(htmlUnauthored).toContain(`data-testid="tile-${unauthoredClass}"`);
+      expect(htmlUnauthored).toContain('unauthored');
+      expect(htmlUnauthored).not.toContain('unauthored-glyph');
+      // Scanner HUD displays the No Kit Yet badge on hover
+      expect(htmlUnauthored).toContain('data-testid="scanner-unauthored-badge"');
+      expect(htmlUnauthored).toContain('No Kit Yet');
+
+      // Authored class hover should NOT display the No Kit Yet badge
+      const htmlAuthored = renderToStaticMarkup(
+        <HeroProgressionDrawer
+          hero={hero}
+          campaign={campaign}
+          onClose={vi.fn()}
+          onUpdateCampaign={vi.fn()}
+          initialHoveredClassId="knight"
+        />
+      );
+      expect(htmlAuthored).not.toContain('data-testid="scanner-unauthored-badge"');
     });
   });
 });
