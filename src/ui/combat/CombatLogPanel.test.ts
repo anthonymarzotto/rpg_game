@@ -1663,6 +1663,58 @@ describe('parseCombatLogMessage', () => {
       expect(html).toContain('Alden');
       expect(html).toContain('Alden inspected the astral beacon.');
     });
+
+    it('renders CHARMED, BLINDED, and PULL structured effect outcome badges in CombatLogPanel', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 4,
+        actorUnitId: 'player-philanderer',
+        faction: 'PLAYER',
+        actionId: 'billet_doux',
+        message: 'Casanova used Billet-Doux on Enemy Knight.',
+        metadata: {
+          type: 'ATTACK',
+          actor: 'Casanova',
+          ability: 'Billet-Doux',
+          target: 'Enemy Knight',
+          d20: '18 + 4',
+          defenseTarget: 11,
+          totalScore: 22,
+          hitOutcome: 'SOLID_HIT',
+          damageTotal: '0',
+          effects: [
+            {
+              kind: 'CONDITION',
+              condition: 'CHARMED',
+              durationTurns: 1,
+              sourceName: 'Casanova',
+              targetName: 'Enemy Knight'
+            },
+            {
+              kind: 'CONDITION',
+              condition: 'BLINDED',
+              durationTurns: 1,
+              targetName: 'Enemy Knight'
+            },
+            {
+              kind: 'DISPLACEMENT',
+              displacement: 'PULL',
+              toCoord: { q: 1, r: 0 }
+            }
+          ]
+        }
+      };
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 4
+        })
+      );
+
+      expect(html).toContain('Charmed 1t');
+      expect(html).toContain('Blinded 1t');
+      expect(html).toContain('Pull (1, 0)');
+    });
   });
 });
 

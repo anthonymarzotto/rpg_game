@@ -20,6 +20,7 @@
 - [x] **B.10 / Scratchpad 1 (`unified-ability-descriptions`)**: Unified dynamic ability descriptions across Camp and Trial surfaces (pure flavor `description` + deterministic hybrid Stat Strip pills & Effect Clauses + compact mechanical 1-liner on Selected Unit card with hover tooltip + `Normal -> Shard -> In-Trial` color precedence and `getEffectiveAbility` attribution preservation).
 - [x] **3.3 (`tier-4-ballistician`)**: **Ballistician** (`#65`, Tier 4: `1F, 3R, 0M`), `65_human_male` — `Zeroed In` passive, `Siege Barrage` delayed bombardment signature, `Shrapnel Canister` stealth reveal & rough terrain rubble, and `Sighting Bolt` telemetry spotter.
 - [x] **UX.5 (`tactical-opening-deployment`)**: Let the User place their units at opening. Enemy team to also do better at starting positions.
+- [x] **3.4 (`tier-4-philanderer`)**: **Philanderer** (`#84`, Tier 4: `0F, 3R, 1M`), `84_human_male` — `Captivating Presence` directional front-arc passive, `Billet-Doux` faction-flip charm signature, `Beckoning Glance` pull & expose lure, and `Looking-Glass Glare` myopic blind ray.
 
 ---
 
@@ -27,7 +28,6 @@
 
 ### 3. Tier 4 Class Kits & Token Integration
 Sketch and author class package (signature ability, 2 domain abilities, passive trait, AI heuristic profile, and badge palette) and whitelist tokens for the following new classes:
-- [ ] **3.4**: **Philanderer** (`#84`, Tier 4: `0F, 3R, 1M`), `84_human_male`.
 - [ ] **3.5**: **Theurge** (`#79`, Tier 4: `1F, 0R, 3M`), `79_human_male`.
 - [ ] **3.6**: **Arcanist** (`#96`, Tier 4: `0F, 1R, 3M`), `96_human_male`.
 

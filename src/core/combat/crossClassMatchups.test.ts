@@ -19,11 +19,11 @@ describe('Cross-Class Matchup Matrix Simulation', () => {
       maxTurnsPerTrial
     });
 
-    // 14 classes -> 14 * 13 / 2 = 91 matchups
-    // 91 matchups * 10 duels = 910 duels
-    expect(result.totalMatchups).toBe(91);
-    expect(result.totalDuels).toBe(910);
-    expect(result.leaderboard.length).toBe(14);
+    const classCount = MATCHUP_CLASSES.length;
+    const expectedMatchups = (classCount * (classCount - 1)) / 2;
+    expect(result.totalMatchups).toBe(expectedMatchups);
+    expect(result.totalDuels).toBe(expectedMatchups * trialsPerMatchup);
+    expect(result.leaderboard.length).toBe(classCount);
 
     // Format ASCII report and display in console
     const asciiReport = formatCrossClassReport(result);

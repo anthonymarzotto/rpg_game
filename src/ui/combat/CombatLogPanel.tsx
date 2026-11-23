@@ -266,11 +266,24 @@ const CONDITION_PRESENTATION: Readonly<
     label: 'Telemetry',
     tone: 'debuff',
     summary: 'Grants allied ranged and spell attacks +2 Range while bypassing low-ground elevation and ranged cover penalties.'
+  },
+  CHARMED: {
+    icon: '💘',
+    label: 'Charmed',
+    tone: 'debuff',
+    summary: 'Temporarily switches the unit to the charmer’s faction for the duration.'
+  },
+  BLINDED: {
+    icon: '🕶️',
+    label: 'Blinded',
+    tone: 'debuff',
+    summary: 'Imposes Disadvantage on outgoing attacks, clamps maximum ability range to 1 hex, and disables front-arc Stealth detection.'
   }
 };
 
-const DISPLACEMENT_LABELS: Readonly<Record<'KNOCKBACK' | 'RETREAT' | 'CHARGE' | 'SWAP' | 'TELEPORT', string>> = {
+const DISPLACEMENT_LABELS: Readonly<Record<'KNOCKBACK' | 'PULL' | 'RETREAT' | 'CHARGE' | 'SWAP' | 'TELEPORT', string>> = {
   KNOCKBACK: 'Knockback',
+  PULL: 'Pull',
   RETREAT: 'Retreat',
   CHARGE: 'Charge',
   SWAP: 'Swap',
@@ -351,7 +364,12 @@ export function presentEffectOutcome(outcome: EffectOutcome): EffectOutcomePrese
 
     case 'DISPLACEMENT': {
       if (outcome.resisted) {
-        const pillText = outcome.displacement === 'TELEPORT' ? 'Teleport Blocked' : 'Resisted Knockback';
+        const pillText =
+          outcome.displacement === 'TELEPORT'
+            ? 'Teleport Blocked'
+            : outcome.displacement === 'PULL'
+            ? 'Resisted Pull'
+            : 'Resisted Knockback';
         return {
           icon: '🛡️',
           pillText,

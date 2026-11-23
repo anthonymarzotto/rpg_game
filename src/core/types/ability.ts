@@ -15,11 +15,20 @@ export interface DiceProfile {
   readonly modifierAttribute?: keyof TriadAttributes;
 }
 
-export type ConditionType = 'POISON' | 'BURN' | 'CHALLENGED' | 'STEALTH' | 'EXPOSED' | 'TELEMETRY';
+export type ConditionType =
+  | 'POISON'
+  | 'BURN'
+  | 'CHALLENGED'
+  | 'STEALTH'
+  | 'EXPOSED'
+  | 'TELEMETRY'
+  | 'CHARMED'
+  | 'BLINDED';
 
 export type AbilityEffectType =
   | 'DAMAGE'           // Deals physical or magical damage via dice profile and/or flat damage
   | 'KNOCKBACK'        // Push target 1 hex
+  | 'PULL'             // Pull target 1 hex toward actor
   | 'RETREAT_STEP'     // User steps back 1 hex freely
   | 'ARMOR_BUFF'       // Grants temporary armor boost
   | 'WARD_BUFF'        // Grants temporary ward boost
@@ -31,7 +40,7 @@ export type AbilityEffectType =
   | 'INITIATIVE_BOOST' // Boosts target CTB initiative gauge (e.g. Tactical Vanguard)
   | 'FORCE_FACING'     // Forces target to face actor
   | 'FORCE_FACING_AWAY'// Forces target to face 180 degrees away from actor
-  | 'CONDITION'        // Applies a status condition (Poison, Burn, Challenged, Stealth, Exposed)
+  | 'CONDITION'        // Applies a status condition (Poison, Burn, Challenged, Stealth, Exposed, Charmed, Blinded)
   | 'SPELL_SCULPT'     // Primes pending ability modifier for next Mage spell
   | 'WILD_SURGE'       // Spontaneous arcane surges on critical hits
   | 'STAT_MODIFIER'    // Applies stat modifier (e.g. Expose Weakness -2 Armor & -2 Evasion)
@@ -46,7 +55,7 @@ export type AbilityEffectType =
   | 'SHRAPNEL_RUBBLE'; // Strips stealth and blankets hexes in rough terrain (+2 MP entry cost)
 
 export type EffectTargetScope = 'TARGET' | 'SELF' | 'ALLIES';
-export type EffectApplyCondition = 'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY';
+export type EffectApplyCondition = 'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY' | 'HIT_ONLY' | 'GRAZE_ONLY';
 export type AbilityCondition = 'FLANK_OR_REAR' | 'TARGET_CHALLENGED';
 
 /**

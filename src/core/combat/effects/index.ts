@@ -1,6 +1,7 @@
 export * from './types';
 export * from './registry';
 export * from './knockbackHandler';
+export * from './pullHandler';
 export * from './retreatHandler';
 export * from './modifierHandler';
 export * from './teleportHandler';

@@ -1,5 +1,7 @@
 import { CombatUnit, CombatState } from '../combat/types';
-import { CombatArc, HexCoord, hexDistance } from '../grid/hex';
+import { CombatArc, HexCoord, hexDistance, getHexLine } from '../grid/hex';
+import { calculateRawFallDamage } from '../grid/arena';
+import { DISPLACEMENT_CONFIG } from '../config/balance';
 import { AbilityMetrics } from '../combat/targetPreview';
 import { Ability } from '../types/ability';
 import { AIProfile, AIArchetypeWeights } from './types';
@@ -1072,6 +1074,97 @@ export function scoreDebuffAndUtility(
         score += 10.0;
         reasons.push('Trap target for Siege Barrage');
       }
+    }
+  }
+
+  // 12. CHARMED temporary faction flip (e.g. Billet-Doux)
+  const hasCharmedEffect = ability.effects?.some(
+    (e) => e.type === 'CONDITION' && e.conditionType === 'CHARMED'
+  );
+  if (hasCharmedEffect) {
+    if (targetCu.activeConditions.some((c) => c.type === 'CHARMED')) {
+      return { score: 0 };
+    }
+    const livingHostiles = Array.from(state.units.values()).filter(
+      (u) => !u.isDefeated && u.currentHp > 0 && u.faction !== actorCu.faction
+    );
+    if (livingHostiles.length >= 2) {
+      let charmScore = 24.0;
+      const targetTriadSum =
+        targetCu.unit.baseAttributes.force +
+        targetCu.unit.baseAttributes.finesse +
+        targetCu.unit.baseAttributes.focus;
+      charmScore += Math.min(6.0, targetTriadSum * 0.8);
+
+      // High synergy: cashing in EXPOSED (Advantage on +FIN vs RES roll for high hit & 2-turn crit chance)
+      if (targetCu.activeConditions.some((c) => c.type === 'EXPOSED')) {
+        charmScore += 18.0;
+        reasons.push(`Exploit Exposed ${targetCu.unit.name} with Advantage Charm`);
+      }
+
+      // Priority bonus when no unit is currently charmed on the battlefield
+      const anyActiveCharm = Array.from(state.units.values()).some(
+        (u) => !u.isDefeated && u.activeConditions.some((c) => c.type === 'CHARMED')
+      );
+      if (!anyActiveCharm) {
+        charmScore += 4.0;
+      }
+
+      score += charmScore;
+      reasons.push(`Charm ${targetCu.unit.name} to flip faction allegiance`);
+    } else {
+      // In 1v1 (sole remaining enemy), prioritize damaging abilities over non-damaging charm
+      score += 10.0;
+      reasons.push(`Charm sole remaining enemy ${targetCu.unit.name}`);
+    }
+  }
+
+  // 13. BLINDED myopic dazzle (e.g. Looking-Glass Glare)
+  const hasBlindedEffect = ability.effects?.some(
+    (e) => e.type === 'CONDITION' && e.conditionType === 'BLINDED'
+  );
+  if (hasBlindedEffect && !targetCu.activeConditions.some((c) => c.type === 'BLINDED')) {
+    score += 12.0;
+    reasons.push(`Blind ${targetCu.unit.name} (Disadvantage & max Range 1)`);
+    const isRangedThreat = targetCu.abilities.some((a) => a.range >= 2 && a.damageType !== 'NONE');
+    if (isRangedThreat && dist >= 2) {
+      score += 8.0;
+      reasons.push('Shut down ranged threat at distance');
+    }
+  }
+
+  // 14. PULL displacement and EXPOSED lure (e.g. Beckoning Glance)
+  const pullEffect = ability.effects?.find((e) => e.type === 'PULL');
+  if (pullEffect) {
+    const alreadyExposed = targetCu.activeConditions.some((c) => c.type === 'EXPOSED');
+    if (dist <= 1 && alreadyExposed) {
+      return { score: 0 };
+    }
+    if (dist >= 2) {
+      const line = getHexLine(targetCoord, actorCoord);
+      const nextCoord = line[1];
+      const nextTile = nextCoord ? state.arena.getTile(nextCoord) : undefined;
+      const targetTile = state.arena.getTile(targetCoord);
+      if (
+        nextTile &&
+        nextTile.isWalkable &&
+        !nextTile.occupiedByUnitId &&
+        targetTile &&
+        nextTile.elevation - targetTile.elevation <= DISPLACEMENT_CONFIG.maxClimbElevation
+      ) {
+        score += 12.0;
+        reasons.push(`Pull ${targetCu.unit.name} 1 hex out of position`);
+        const dh = nextTile.elevation - targetTile.elevation;
+        const fallDmg = calculateRawFallDamage(dh);
+        if (fallDmg > 0) {
+          score += Math.min(16.0, 8.0 + fallDmg * 2.0);
+          reasons.push(`Pull target off ledge (+${fallDmg} fall dmg)`);
+        }
+      }
+    }
+    if (!alreadyExposed && teamCanFollowUp) {
+      score += 8.0;
+      reasons.push(`Expose ${targetCu.unit.name} for Advantage follow-up`);
     }
   }
 

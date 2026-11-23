@@ -7,6 +7,20 @@ import { STRIKE } from '../../data/packages';
 import { CombatState, CombatUnit } from './types';
 import { PassiveTrait } from '../types/passive';
 import { evaluateTargetAuras } from './auras';
+import { HEX_DIRECTIONS } from '../grid/hex';
+
+const MOCK_CAPTIVATING_AURA: PassiveTrait = {
+  id: 'captivating_presence',
+  name: 'Captivating Presence',
+  description: 'Hostile units within 3 hexes in the FRONT arc suffer -2 Attack Roll.',
+  hook: 'ALWAYS',
+  aura: {
+    radius: 3,
+    targetScope: 'ENEMIES',
+    arc: 'FRONT',
+    attackRollPenalty: 2
+  }
+};
 
 const MOCK_AURA_PASSIVE: PassiveTrait = {
   id: 'misfortune_ward',
@@ -156,5 +170,41 @@ describe('Tactical Aura System', () => {
       expect(actionResult.details.totalAttackScore).toBe(8); // 10 - 2
     }
     expect(state.combatLog[0].message).toContain('[Aura Penalty: -2 (Misfortune Ward)]');
+  });
+
+  it('applies Captivating Presence (-2 Attack Roll) only to enemies within 3 hexes in the FRONT arc', () => {
+    const arena = createRadialArena(4);
+    const philanderer = createTestCombatUnit('phil', 'Philanderer', 'PLAYER', [MOCK_CAPTIVATING_AURA]);
+    const ally = createTestCombatUnit('ally', 'Ally', 'PLAYER');
+    const frontEnemy = createTestCombatUnit('front-enemy', 'Front Enemy', 'ENEMY');
+    const rearEnemy = createTestCombatUnit('rear-enemy', 'Rear Enemy', 'ENEMY');
+    const farEnemy = createTestCombatUnit('far-enemy', 'Far Enemy', 'ENEMY');
+
+    // Philanderer at (0, 0) facing EAST (0)
+    philanderer.facing = HEX_DIRECTIONS.EAST;
+    arena.setUnitPosition('phil', { q: 0, r: 0 });
+    arena.setUnitPosition('ally', { q: 0, r: 1 });
+    // Front enemy at (3, 0) -> dist 3 in FRONT arc
+    arena.setUnitPosition('front-enemy', { q: 3, r: 0 });
+    // Rear enemy at (-2, 0) -> dist 2 in REAR arc
+    arena.setUnitPosition('rear-enemy', { q: -2, r: 0 });
+    // Far enemy at (4, 0) -> dist 4 in FRONT arc (outside radius 3)
+    arena.setUnitPosition('far-enemy', { q: 4, r: 0 });
+
+    const state = createTestCombatState(arena, [philanderer, ally, frontEnemy, rearEnemy, farEnemy]);
+
+    // Front enemy at dist 3 attacking either Philanderer or Ally suffers -2
+    const vsPhil = evaluateTargetAuras(philanderer, frontEnemy, state);
+    expect(vsPhil.attackRollPenalty).toBe(2);
+    expect(vsPhil.sourceAuraNames).toContain('Captivating Presence');
+
+    const vsAlly = evaluateTargetAuras(ally, frontEnemy, state);
+    expect(vsAlly.attackRollPenalty).toBe(2);
+
+    // Rear enemy is in REAR arc -> 0 penalty
+    expect(evaluateTargetAuras(philanderer, rearEnemy, state).attackRollPenalty).toBe(0);
+
+    // Far enemy at dist 4 -> 0 penalty
+    expect(evaluateTargetAuras(philanderer, farEnemy, state).attackRollPenalty).toBe(0);
   });
 });

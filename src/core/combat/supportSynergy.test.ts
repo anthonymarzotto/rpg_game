@@ -6,9 +6,10 @@ import {
   formatSupportSynergyReport,
   formatSupportSynergyMarkdown
 } from './supportSynergy';
+import { MATCHUP_CLASSES } from './crossClassMatchups';
 
 describe('2v2 Support Synergy Benchmark', () => {
-  it('runs Option B: Knight vs Warrior (Control) across 10 partner classes', () => {
+  it('runs Option B: Knight vs Warrior (Control) across partner classes', () => {
     const result = runSupportSynergyBenchmark({
       candidateClass: 'knight',
       controlClass: 'warrior',
@@ -19,11 +20,12 @@ describe('2v2 Support Synergy Benchmark', () => {
       baseSeed: 88200
     });
 
+    const expectedPartners = MATCHUP_CLASSES.length - 2;
     expect(result.candidateClassId).toBe('knight');
     expect(result.controlClassId).toBe('warrior');
-    expect(result.records.length).toBe(12);
-    // 12 partners * 6 gauntlet teams * 6 trials * 2 teams = 864 matches
-    expect(result.totalMatches).toBe(864);
+    expect(result.records.length).toBe(expectedPartners);
+    // expectedPartners * 6 gauntlet teams * 6 trials * 2 teams
+    expect(result.totalMatches).toBe(expectedPartners * 6 * 6 * 2);
 
     // Format ASCII report and display in console
     const asciiReport = formatSupportSynergyReport(result);

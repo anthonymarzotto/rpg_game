@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { createRadialArena } from '../grid/templates';
 import { createRecruit } from '../units/unitFactory';
 import { createCombatState } from './resolver';
-import { canMove, canExecuteAbility } from './validator';
+import { canMove, canExecuteAbility, getAbilityRangeCoords } from './validator';
+import { applyConditionToUnit } from './effects/conditionHandler';
 import { Ability } from '../types/ability';
 import { CHALLENGING_SHOUT } from '../../data/packages/knight';
 
@@ -503,6 +504,43 @@ describe('Combat Validator', () => {
       if (!losResult.valid) {
         expect(losResult.reason).toContain('Line-of-Sight is blocked');
       }
+    });
+
+    it('clamps effective maximum range to 1 hex when actor is afflicted with BLINDED', () => {
+      const arena = createRadialArena(4);
+      const archer = createRecruit('archer', 'Archer', { faction: 'PLAYER' });
+      const nearEnemy = createRecruit('near', 'Near Enemy', { faction: 'ENEMY' });
+      const farEnemy = createRecruit('far', 'Far Enemy', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('archer', { q: 0, r: 0 });
+      arena.setUnitPosition('near', { q: 1, r: 0 });
+      arena.setUnitPosition('far', { q: 0, r: 2 });
+
+      const state = createCombatState(arena, [archer, nearEnemy, farEnemy], 'archer');
+      const archerCu = state.units.get('archer')!;
+
+      const RANGED_SHOT: Ability = {
+        ...STRIKE,
+        id: 'ranged_shot',
+        range: 3
+      };
+
+      // Unblinded: can target both distance 1 and distance 2
+      expect(canExecuteAbility(state, 'archer', RANGED_SHOT, { targetUnitId: 'far' }).valid).toBe(true);
+
+      // Apply BLINDED: max range clamped to 1
+      applyConditionToUnit(archerCu, 'BLINDED', 1, 'phil');
+
+      expect(canExecuteAbility(state, 'archer', RANGED_SHOT, { targetUnitId: 'near' }).valid).toBe(true);
+      const farCheck = canExecuteAbility(state, 'archer', RANGED_SHOT, { targetUnitId: 'far' });
+      expect(farCheck.valid).toBe(false);
+      if (!farCheck.valid) {
+        expect(farCheck.reason).toContain('out of range');
+      }
+
+      const rangeCoords = getAbilityRangeCoords(arena, { q: 0, r: 0 }, RANGED_SHOT, archerCu, state);
+      expect(rangeCoords.some((c) => c.q === 0 && c.r === 2)).toBe(false);
+      expect(rangeCoords.some((c) => c.q === 1 && c.r === 0)).toBe(true);
     });
   });
 });

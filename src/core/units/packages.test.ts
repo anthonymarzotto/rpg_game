@@ -15,6 +15,7 @@ import {
   SHIELD_BEARER_PACKAGE,
   DRAGOON_PACKAGE,
   BALLISTICIAN_PACKAGE,
+  PHILANDERER_PACKAGE,
   CLASS_PACKAGES,
   MOMENTUM,
   getClassPackage,
@@ -327,6 +328,47 @@ describe('Class Packages & Catalog Verification', () => {
     expect(getAbilityById('sighting_bolt')).toBeDefined();
     expect(getPassiveById('zeroed_in')).toBeDefined();
     expect(getClassPackage('ballistician')).toBe(BALLISTICIAN_PACKAGE);
+  });
+
+  it('correctly maps Philanderer abilities, passive, and profile', () => {
+    expect(PHILANDERER_PACKAGE.classId).toBe('philanderer');
+    expect(PHILANDERER_PACKAGE.className).toBe('Philanderer');
+    expect(PHILANDERER_PACKAGE.signatureAbility.id).toBe('billet_doux');
+    expect(PHILANDERER_PACKAGE.signatureAbility.apCost).toBe(2);
+    expect(PHILANDERER_PACKAGE.signatureAbility.range).toBe(3);
+    expect(PHILANDERER_PACKAGE.signatureAbility.defenseTarget).toBe('RESOLVE');
+    expect(PHILANDERER_PACKAGE.signatureAbility.attackModifierAttribute).toBe('finesse');
+    expect(PHILANDERER_PACKAGE.signatureAbility.damageType).toBe('NONE');
+
+    expect(PHILANDERER_PACKAGE.domainAbilities.map((a) => a.id)).toEqual([
+      'beckoning_glance',
+      'looking_glass_glare'
+    ]);
+    const beckoning = PHILANDERER_PACKAGE.domainAbilities.find((a) => a.id === 'beckoning_glance')!;
+    expect(beckoning.range).toBe(3);
+    expect(beckoning.effects.some((e) => e.type === 'PULL' && e.magnitude === 1)).toBe(true);
+    expect(beckoning.effects.some((e) => e.type === 'FORCE_FACING')).toBe(true);
+    expect(beckoning.effects.some((e) => e.type === 'CONDITION' && e.conditionType === 'EXPOSED')).toBe(true);
+
+    const glare = PHILANDERER_PACKAGE.domainAbilities.find((a) => a.id === 'looking_glass_glare')!;
+    expect(glare.range).toBe(3);
+    expect(glare.damageType).toBe('MAGICAL');
+    expect(glare.effects.some((e) => e.type === 'CONDITION' && e.conditionType === 'BLINDED')).toBe(true);
+
+    expect(PHILANDERER_PACKAGE.passive.id).toBe('captivating_presence');
+    expect(PHILANDERER_PACKAGE.passive.aura).toEqual({
+      radius: 3,
+      targetScope: 'ENEMIES',
+      arc: 'FRONT',
+      attackRollPenalty: 2
+    });
+    expect(PHILANDERER_PACKAGE.aiProfile).toBe('SUPPORT');
+
+    expect(getAbilityById('billet_doux')).toBeDefined();
+    expect(getAbilityById('beckoning_glance')).toBeDefined();
+    expect(getAbilityById('looking_glass_glare')).toBeDefined();
+    expect(getPassiveById('captivating_presence')).toBeDefined();
+    expect(getClassPackage('philanderer')).toBe(PHILANDERER_PACKAGE);
   });
 
   it('requires explicit shout configuration on customizable displacement and tempo effects across all registered abilities', () => {

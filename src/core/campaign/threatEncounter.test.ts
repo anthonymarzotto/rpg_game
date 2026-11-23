@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   assembleEnemySquad,
   getDeploymentZones,
-  generateArenaTerrain
+  generateArenaTerrain,
+  TIER4_CLASSES
 } from './encounterGenerator';
 import { createSimulatedCombatant } from '../combat/simulation';
 import { buildEncounterState, EncounterDefinition, PlacedUnit } from '../combat/encounter';
@@ -27,7 +28,7 @@ describe('Procedural Threat Encounter Playtest (~150 Threat)', () => {
       expect(squad.length).toBeLessThanOrEqual(6);
 
       const hasTier4 = squad.some(
-        (u) => u.loadout?.activeClassId === 'shield-bearer' || u.loadout?.activeClassId === 'dragoon'
+        (u) => TIER4_CLASSES.includes(u.loadout?.activeClassId as any)
       );
       if (hasTier4) {
         tier4Count++;

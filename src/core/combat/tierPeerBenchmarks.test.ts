@@ -31,7 +31,8 @@ const TIER_3_CLASSES: TierClassInfo[] = [
 const TIER_4_CLASSES: TierClassInfo[] = [
   { classId: 'shield-bearer', name: 'Shield-bearer', tier: 4 },
   { classId: 'dragoon', name: 'Dragoon', tier: 4 },
-  { classId: 'ballistician', name: 'Ballistician', tier: 4 }
+  { classId: 'ballistician', name: 'Ballistician', tier: 4 },
+  { classId: 'philanderer', name: 'Philanderer', tier: 4 }
 ];
 
 function runTierBenchmarks(tierName: string, classes: TierClassInfo[], trials = 25) {

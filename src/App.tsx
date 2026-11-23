@@ -151,11 +151,11 @@ export function App() {
     const activeSquad = campaignState.roster.filter((u) => campaignState.activeSquadIds.includes(u.id));
     const budget = getStageDeploymentBudget(campaignState.stage);
     const threat = computeSquadThreat(activeSquad);
-    if (activeSquad.length < 1 || threat > budget) {
+    if (activeSquad.length < 1 || (!isDevEnvironment && threat > budget)) {
       return;
     }
     setCurrentView('ARENA');
-  }, [campaignState]);
+  }, [campaignState, isDevEnvironment]);
 
   const handleExitToTitle = useCallback(async () => {
     setCurrentView('START');

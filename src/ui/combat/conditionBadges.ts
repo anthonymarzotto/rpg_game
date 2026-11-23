@@ -94,6 +94,21 @@ export function formatConditionBadge(
     className = 'condition-exposed';
     mnemonic = ': +2 Rng';
     ruleText = 'Allied ranged and spell attacks (range 2+) gain +2 Range and ignore low-ground elevation and ranged cover penalties against this target.';
+  } else if (cond.type === 'CHARMED') {
+    icon = '💘 ';
+    label = 'CHARMED';
+    isDebuff = true;
+    className = 'condition-challenged';
+    mnemonic = ': Turncoat';
+    const targetDesc = shortSource ? shortSource : 'the charmer';
+    ruleText = `Temporarily fights for ${targetDesc}'s faction until the end of their turn when duration expires. Persists through damage.`;
+  } else if (cond.type === 'BLINDED') {
+    icon = '🕶️ ';
+    label = 'BLINDED';
+    isDebuff = true;
+    className = 'condition-exposed';
+    mnemonic = ': Disadv/Rng 1';
+    ruleText = 'Outgoing attacks suffer Disadvantage, maximum targeting range is clamped to 1 hex, and front-arc Stealth detection is disabled.';
   }
 
   const durationStr = `${cond.durationTurns}t`;

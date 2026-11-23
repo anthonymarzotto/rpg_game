@@ -78,7 +78,7 @@ describe('ExpeditionWarRoom Component', () => {
     expect(html).toContain('Attune at least 1 wayfarer into the active vanguard');
   });
 
-  it('renders activeSquadThreat points vs stage budget and disables when over budget', () => {
+  it('renders activeSquadThreat points vs stage budget, allowing over-budget deployment on localhost and disabling on production hostnames', () => {
     const htmlWithinBudget = renderToStaticMarkup(
       <ExpeditionWarRoom
         stage={1}
@@ -93,7 +93,8 @@ describe('ExpeditionWarRoom Component', () => {
     expect(htmlWithinBudget).not.toContain('disabled=""');
     expect(htmlWithinBudget).toContain('title="Enter the astral trial"');
 
-    const htmlOverBudget = renderToStaticMarkup(
+    // Default test runner environment is localhost/dev mode -> over-budget deployment is optional/allowed
+    const htmlOverBudgetDev = renderToStaticMarkup(
       <ExpeditionWarRoom
         stage={1}
         activeSquadCount={4}
@@ -103,10 +104,36 @@ describe('ExpeditionWarRoom Component', () => {
       />
     );
 
-    expect(htmlOverBudget).toContain('4 Ready (90 / 75 Pts)');
-    expect(htmlOverBudget).toContain('disabled=""');
-    expect(htmlOverBudget).toContain('title="Vanguard threat (90 pts) exceeds stage deployment budget (75 pts)"');
-    expect(htmlOverBudget).not.toContain('readiness-warning');
+    expect(htmlOverBudgetDev).toContain('4 Ready (90 / 75 Pts)');
+    expect(htmlOverBudgetDev).not.toContain('disabled=""');
+    expect(htmlOverBudgetDev).toContain(
+      'title="Enter the astral trial (Dev Mode: Vanguard threat 90 pts exceeds 75 pts budget)"'
+    );
+
+    // Production hostname enforces strict threat cap
+    (globalThis as unknown as { window?: unknown }).window = {
+      location: { hostname: 'astral-tactics.com' }
+    };
+    try {
+      const htmlOverBudgetProd = renderToStaticMarkup(
+        <ExpeditionWarRoom
+          stage={1}
+          activeSquadCount={4}
+          activeSquadThreat={90}
+          deploymentBudget={75}
+          onDeploySquad={vi.fn()}
+        />
+      );
+
+      expect(htmlOverBudgetProd).toContain('4 Ready (90 / 75 Pts)');
+      expect(htmlOverBudgetProd).toContain('disabled=""');
+      expect(htmlOverBudgetProd).toContain(
+        'title="Vanguard threat (90 pts) exceeds stage deployment budget (75 pts)"'
+      );
+      expect(htmlOverBudgetProd).not.toContain('readiness-warning');
+    } finally {
+      delete (globalThis as unknown as { window?: unknown }).window;
+    }
   });
 
   it('renders reroll trial button when onRerollEncounter is provided', () => {

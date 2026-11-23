@@ -152,7 +152,11 @@ describe('abilityFormatter', () => {
       { type: 'CRIT_BOOST', magnitude: 1 },
       { type: 'SPELL_SCULPT', magnitude: 1 },
       { type: 'BLOOD_FRENZY', magnitude: 1 },
-      { type: 'WILD_SURGE', magnitude: 1 }
+      { type: 'WILD_SURGE', magnitude: 1 },
+      { type: 'PULL', magnitude: 1 },
+      { type: 'CONDITION', conditionType: 'CHARMED', durationTurns: 1, applyOn: 'HIT_ONLY' },
+      { type: 'CONDITION', conditionType: 'BLINDED', durationTurns: 1, applyOn: 'HIT_OR_CRIT' },
+      { type: 'CONDITION', conditionType: 'EXPOSED', durationTurns: 1, applyOn: 'GRAZE_ONLY' }
     ];
 
     for (const eff of allEffects) {

@@ -1344,7 +1344,12 @@ export function executeAbility(
   applyCombatEvents(state, events, { claimed: true });
 
   // When a unit is hit with an attack, their facing direction updates to face the attack (or away if FORCE_FACING_AWAY)
-  if (targetCu && rollResult.hitOutcome !== 'MISS' && !targetCu.isDefeated) {
+  if (
+    targetCu &&
+    rollResult.hitOutcome !== 'MISS' &&
+    !targetCu.isDefeated &&
+    (effectiveAbility.damageType !== 'NONE' || rollResult.hitOutcome !== 'GRAZE')
+  ) {
     const finalTargetPos = state.arena.getUnitPosition(targetCu.unit.id);
     if (finalTargetPos && attackOriginCoord && !hexEquals(finalTargetPos, attackOriginCoord)) {
       const dirToOrigin = getDirectionBetween(finalTargetPos, attackOriginCoord);

@@ -63,7 +63,9 @@ export interface PassiveAuraEffect {
   readonly radius: number;
   /** Whether the aura protects allies (and self) or affects enemies */
   readonly targetScope: 'ALLIES' | 'ENEMIES';
-  /** Flat penalty applied to attack rolls made against units protected by this aura */
+  /** Optional directional combat arc restriction relative to the aura emitter's facing (e.g. 'FRONT') */
+  readonly arc?: 'FRONT';
+  /** Flat penalty applied to attack rolls made against units protected by this aura (or made by enemies inside this aura) */
   readonly attackRollPenalty?: number;
 }
 

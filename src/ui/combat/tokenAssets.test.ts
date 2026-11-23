@@ -132,6 +132,27 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       });
     });
 
+    it('resolves philanderer (84_human_male) to pixel idle rotation paths and Velvet Rose badge palette', () => {
+      const philanderer = createMockUnit({
+        gender: 'male',
+        race: 'human',
+        loadout: {
+          activeClassId: 'philanderer',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        }
+      });
+
+      expect(resolvePixelTokenBase(philanderer)).toBe('84_human_male');
+      expect(resolveTokenAssetPath(philanderer, HEX_DIRECTIONS.EAST)).toBe(
+        '/assets/tokens/pixel/84_human_male/Idle/rotations/east.png'
+      );
+      expect(getClassBadgePalette('philanderer')).toEqual({
+        primary: '#9f1239',
+        border: '#f43f5e'
+      });
+    });
+
     it('resolves thief (81_human_male) to pixel idle rotation paths', () => {
       const thief = createMockUnit({
         gender: 'male',

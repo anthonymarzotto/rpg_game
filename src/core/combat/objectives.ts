@@ -1,4 +1,5 @@
 import { CombatState, ObjectiveCondition, EncounterObjective, CombatOutcome } from './types';
+import { getOriginalFaction } from './conditions';
 
 /**
  * Purely evaluates a single atomic or composable objective condition against the current combat state.
@@ -13,7 +14,7 @@ export function evaluateCondition(condition: ObjectiveCondition, state: CombatSt
 
   if (condition.kind === 'FACTION_DEFEATED') {
     const factionUnits = Array.from(state.units.values()).filter(
-      (cu) => (cu.faction ?? cu.unit.faction) === condition.faction
+      (cu) => getOriginalFaction(cu) === condition.faction
     );
     if (factionUnits.length === 0) return false;
     return factionUnits.every((cu) => cu.isDefeated || cu.currentHp <= 0);
@@ -35,7 +36,7 @@ export function evaluateEncounterOutcome(
   state: CombatState
 ): CombatOutcome {
   const playerFactionUnits = Array.from(state.units.values()).filter(
-    (cu) => (cu.faction ?? cu.unit.faction) === 'PLAYER'
+    (cu) => getOriginalFaction(cu) === 'PLAYER'
   );
 
   if (playerFactionUnits.length > 0) {

@@ -30,6 +30,7 @@ export function getAbilityRangeCoords(
   }
 
   const actorElevation = arena.getElevation(actorCoord);
+  const isBlinded = Boolean(cu?.activeConditions?.some((c) => c.type === 'BLINDED'));
 
   if (effectiveAbility.range <= 1) {
     const candidates = getHexesInRange(actorCoord, 1);
@@ -74,7 +75,8 @@ export function getAbilityRangeCoords(
         telemetryBonus = 2;
       }
     }
-    const effectiveRange = effectiveAbility.range + Math.max(0, elevationDelta) + telemetryBonus;
+    const rawEffectiveRange = effectiveAbility.range + Math.max(0, elevationDelta) + telemetryBonus;
+    const effectiveRange = isBlinded ? Math.min(rawEffectiveRange, 1) : rawEffectiveRange;
     return dist <= effectiveRange;
   });
 }
@@ -105,12 +107,14 @@ function validateElevationReachAndRange(
     }
   }
 
+  const isBlinded = Boolean(cu.activeConditions?.some((c) => c.type === 'BLINDED'));
   const telemetryBonus =
     effectiveAbility.range >= 2 && hasTelemetryMark(targetCu, cu) ? 2 : 0;
-  const effectiveRange =
+  const rawEffectiveRange =
     effectiveAbility.range >= 2
       ? effectiveAbility.range + Math.max(0, elevationDelta) + telemetryBonus
       : effectiveAbility.range;
+  const effectiveRange = isBlinded ? Math.min(rawEffectiveRange, 1) : rawEffectiveRange;
 
   if (dist > effectiveRange) {
     return { valid: false, reason: `Target out of range (distance ${dist} > range ${effectiveRange}).` };

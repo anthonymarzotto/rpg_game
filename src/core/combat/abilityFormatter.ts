@@ -89,6 +89,8 @@ function getEffectTriggerLabel(
   );
 
   if (applyOn === 'CRIT_ONLY') return 'On Crit';
+  if (applyOn === 'HIT_ONLY') return 'On Hit';
+  if (applyOn === 'GRAZE_ONLY') return 'On Graze';
   if (applyOn === 'HIT_OR_CRIT' && ability.defenseTarget !== 'NONE') return 'On Hit';
   return undefined;
 }
@@ -188,6 +190,11 @@ export function formatAbilityEffectClause(
       return buildClause(`Pushes target ${mag} hex${mag === 1 ? '' : 'es'}`, triggerLabel);
     }
 
+    case 'PULL': {
+      const mag = effect.magnitude ?? 1;
+      return buildClause(`Pulls target ${mag} hex${mag === 1 ? '' : 'es'} toward caster`, triggerLabel);
+    }
+
     case 'RETREAT_STEP': {
       const mag = effect.magnitude ?? 1;
       return buildClause(`Steps back ${mag} hex${mag === 1 ? '' : 'es'} freely`, triggerLabel);
@@ -267,6 +274,12 @@ export function formatAbilityEffectClause(
       }
       if (cond === 'EXPOSED') {
         return buildClause(`Inflicts Exposed (${dur})`, triggerLabel);
+      }
+      if (cond === 'CHARMED') {
+        return buildClause(`Inflicts Charmed (switches target to your faction, ${dur})`, triggerLabel);
+      }
+      if (cond === 'BLINDED') {
+        return buildClause(`Inflicts Blinded (outgoing Disadvantage and max Range 1, ${dur})`, triggerLabel);
       }
       if (cond === 'TELEMETRY') {
         return buildClause(`Marks with Quadrant Telemetry (+2 allied ranged/spell Range, ignores elevation & cover, ${dur})`, triggerLabel);
@@ -359,6 +372,8 @@ function formatCompactEffectTag(effect: AbilityEffect): string | null {
       return null;
     case 'KNOCKBACK':
       return `Push ${effect.magnitude ?? 1}`;
+    case 'PULL':
+      return `Pull ${effect.magnitude ?? 1}`;
     case 'RETREAT_STEP':
       return `Retreat ${effect.magnitude ?? 1}`;
     case 'PENETRATE_STEP':

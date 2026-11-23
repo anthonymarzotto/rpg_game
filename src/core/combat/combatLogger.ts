@@ -31,6 +31,10 @@ export function formatEffectOutcome(outcome: EffectOutcome): string {
           return `[Exposed for ${outcome.durationTurns} turn(s)]`;
         case 'TELEMETRY':
           return `[Telemetry Lock for ${outcome.durationTurns} turn(s)]`;
+        case 'CHARMED':
+          return `[Charmed by ${outcome.sourceName ?? 'charmer'} for ${outcome.durationTurns} turn(s)]`;
+        case 'BLINDED':
+          return `[Blinded for ${outcome.durationTurns} turn(s)]`;
       }
       break;
     }
@@ -41,12 +45,14 @@ export function formatEffectOutcome(outcome: EffectOutcome): string {
         if (outcome.displacement === 'SWAP') {
           return `[${outcome.targetName ? `${outcome.targetName} is immune to displacement!` : 'Resisted Swap'}]`;
         }
-        return `[Resisted ${outcome.displacement === 'KNOCKBACK' ? 'Knockback' : outcome.displacement}]`;
+        return `[Resisted ${outcome.displacement === 'KNOCKBACK' ? 'Knockback' : outcome.displacement === 'PULL' ? 'Pull' : outcome.displacement}]`;
       }
       const coordText = outcome.toCoord ? `(${outcome.toCoord.q}, ${outcome.toCoord.r})` : '';
       switch (outcome.displacement) {
         case 'KNOCKBACK':
           return `[Knockback: Pushed to ${coordText}]`;
+        case 'PULL':
+          return `[Pull: Pulled to ${coordText}]`;
         case 'RETREAT':
           return `[Retreat Step to ${coordText}]`;
         case 'CHARGE':

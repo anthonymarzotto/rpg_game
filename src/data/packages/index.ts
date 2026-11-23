@@ -20,6 +20,7 @@ import { CAT_BURGLAR_PACKAGE } from './catBurglar';
 import { SHIELD_BEARER_PACKAGE } from './shieldBearer';
 import { DRAGOON_PACKAGE } from './dragoon';
 import { BALLISTICIAN_PACKAGE } from './ballistician';
+import { PHILANDERER_PACKAGE } from './philanderer';
 
 export * from './novice';
 export * from './warrior';
@@ -37,6 +38,7 @@ export * from './catBurglar';
 export * from './shieldBearer';
 export * from './dragoon';
 export * from './ballistician';
+export * from './philanderer';
 
 export const CLASS_PACKAGES: Readonly<Record<string, ClassPackage>> = {
   warrior: WARRIOR_PACKAGE,
@@ -53,7 +55,8 @@ export const CLASS_PACKAGES: Readonly<Record<string, ClassPackage>> = {
   'cat-burglar': CAT_BURGLAR_PACKAGE,
   'shield-bearer': SHIELD_BEARER_PACKAGE,
   dragoon: DRAGOON_PACKAGE,
-  ballistician: BALLISTICIAN_PACKAGE
+  ballistician: BALLISTICIAN_PACKAGE,
+  philanderer: PHILANDERER_PACKAGE
 };
 
 /**

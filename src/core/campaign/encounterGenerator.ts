@@ -23,7 +23,7 @@ import { assignEnemyTitles } from '../../data/names';
 export type EnemyTier1Class = 'warrior' | 'thief' | 'wizard';
 export type EnemyTier2Class = 'knight' | 'infiltrator' | 'sorcerer';
 export type EnemyTier3Class = 'cavalier' | 'berserker' | 'highwayman' | 'warlock' | 'witch' | 'cat-burglar';
-export type EnemyTier4Class = 'shield-bearer' | 'dragoon';
+export type EnemyTier4Class = 'shield-bearer' | 'dragoon' | 'ballistician' | 'philanderer';
 
 export const TIER1_CLASSES: readonly EnemyTier1Class[] = ['warrior', 'thief', 'wizard'];
 export const TIER2_CLASSES: readonly EnemyTier2Class[] = ['knight', 'infiltrator', 'sorcerer'];
@@ -35,7 +35,12 @@ export const TIER3_CLASSES: readonly EnemyTier3Class[] = [
   'witch',
   'cat-burglar'
 ];
-export const TIER4_CLASSES: readonly EnemyTier4Class[] = ['shield-bearer', 'dragoon'];
+export const TIER4_CLASSES: readonly EnemyTier4Class[] = [
+  'shield-bearer',
+  'dragoon',
+  'ballistician',
+  'philanderer'
+];
 
 /**
  * Creates an enemy combatant using core class archetypes (Novice, Tier 1, Tier 2, Tier 3, or Tier 4).

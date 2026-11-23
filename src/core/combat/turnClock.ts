@@ -3,7 +3,7 @@ import { getEffectiveSpeed } from './effectiveVitals';
 import { ACTION_ECONOMY_CONFIG } from '../config/balance';
 import { evaluateEncounterOutcome } from './objectives';
 import { onTurnStartPassives } from './passives';
-import { getConditionDefinition, evaluateFrontArcDetection } from './conditions';
+import { getConditionDefinition, evaluateFrontArcDetection, restoreOriginalFactionIfUncharmed } from './conditions';
 import { Faction } from '../types/unit';
 import { combatLogger } from './combatLogger';
 import { accumulateZeroedInOnTurnEnd } from './zeroedIn';
@@ -158,9 +158,10 @@ export function advanceTurnClock(state: CombatState): string {
       nextActive.currentHp = Math.max(0, nextActive.currentHp - dotDamageTotal);
     }
 
-    // Decrement durations on active unit's conditions and purge expired ones (STEALTH persists until broken)
+    // Decrement durations on active unit's conditions and purge expired ones
+    // (STEALTH persists until broken; CHARMED and BLINDED span the unit's full turn and decrement at turn end)
     nextActive.activeConditions.forEach((c) => {
-      if (c.type !== 'STEALTH') {
+      if (c.type !== 'STEALTH' && c.type !== 'CHARMED' && c.type !== 'BLINDED') {
         c.durationTurns -= 1;
       }
     });
@@ -317,6 +318,22 @@ export function endActiveTurn(
   activeCombatUnit.abilitiesUsedThisTurn = undefined;
   accumulateZeroedInOnTurnEnd(activeCombatUnit);
   activeCombatUnit.hexesMovedThisTurn = 0;
+
+  // Decrement turn-spanning conditions (CHARMED, BLINDED) at the end of the bearer's turn
+  const hadCharmed = activeCombatUnit.activeConditions?.some((c) => c.type === 'CHARMED');
+  if (activeCombatUnit.activeConditions && activeCombatUnit.activeConditions.length > 0) {
+    activeCombatUnit.activeConditions.forEach((c) => {
+      if (c.type === 'CHARMED' || c.type === 'BLINDED') {
+        c.durationTurns -= 1;
+      }
+    });
+    activeCombatUnit.activeConditions = activeCombatUnit.activeConditions.filter(
+      (c) => c.durationTurns > 0
+    );
+  }
+  if (hadCharmed) {
+    restoreOriginalFactionIfUncharmed(activeCombatUnit);
+  }
 
   if (activeCombatUnit.passives?.some((p) => p.unspentApVirtualHeight)) {
     activeCombatUnit.virtualElevation = Math.min(1, Math.max(0, unspent));

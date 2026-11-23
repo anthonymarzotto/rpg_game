@@ -1,6 +1,26 @@
 import { Ability, ConditionType, DamageType } from '../types/ability';
+import { Faction } from '../types/unit';
 import { ActiveCondition, CombatState, CombatUnit } from './types';
 import { getCombatArc, hexDistance, HexCoord, HexDirection } from '../grid/hex';
+
+/**
+ * Returns a combat unit's permanent base faction before any temporary CHARMED allegiance flip.
+ */
+export function getOriginalFaction(cu: CombatUnit): Faction | undefined {
+  return cu.originalFaction ?? cu.unit.faction ?? cu.faction;
+}
+
+/**
+ * Restores a combat unit's faction to its original base faction when CHARMED is no longer active.
+ */
+export function restoreOriginalFactionIfUncharmed(cu: CombatUnit): void {
+  if (!cu.activeConditions?.some((c) => c.type === 'CHARMED')) {
+    const orig = cu.originalFaction ?? cu.unit.faction;
+    if (orig !== undefined) {
+      cu.faction = orig;
+    }
+  }
+}
 
 export type StackingPolicy = 'OVERRIDE_SOURCE' | 'STACK_INTENSITY' | 'REFRESH_DURATION' | 'IGNORE';
 
@@ -187,6 +207,18 @@ export const CONDITION_REGISTRY: Readonly<Record<ConditionType, ConditionDefinit
   TELEMETRY: {
     type: 'TELEMETRY',
     stackingPolicy: 'REFRESH_DURATION'
+  },
+  CHARMED: {
+    type: 'CHARMED',
+    stackingPolicy: 'OVERRIDE_SOURCE'
+  },
+  BLINDED: {
+    type: 'BLINDED',
+    stackingPolicy: 'REFRESH_DURATION',
+    onOutgoingAttackRoll: () => ({
+      disadvantage: true,
+      description: 'Blinded (Disadvantage)'
+    })
   }
 };
 
@@ -222,6 +254,10 @@ export function evaluateFrontArcDetection(
 ): string[] {
   const detectorCu = state.units.get(detectorUnitId);
   if (!detectorCu || detectorCu.isDefeated) return [];
+  // Blinded units cannot spot adjacent stealthed units in their front arc
+  if (detectorCu.activeConditions?.some((c) => c.type === 'BLINDED')) {
+    return [];
+  }
 
   const detectedUnitIds: string[] = [];
 

@@ -5,6 +5,7 @@ import { createRecruit } from '../units/unitFactory';
 import { Unit } from '../types/unit';
 import { EncounterObjective } from './types';
 import { evaluateCondition, evaluateEncounterOutcome } from './objectives';
+import { applyConditionToUnit } from './effects/conditionHandler';
 
 function setupTestCombatState() {
   const arena = createRadialArena(2);
@@ -111,6 +112,20 @@ describe('objectives evaluation engine', () => {
       state.units.get('player')!.isDefeated = true;
 
       expect(evaluateEncounterOutcome(objectives, state)).toBe('DEFEAT');
+    });
+
+    it('does not prematurely return VICTORY when the last surviving enemy is CHARMED to PLAYER faction', () => {
+      const state = setupTestCombatState();
+      // Defeat dummy1, leaving only dummy2 alive
+      state.units.get('dummy1')!.currentHp = 0;
+      state.units.get('dummy1')!.isDefeated = true;
+
+      const dummy2Cu = state.units.get('dummy2')!;
+      applyConditionToUnit(dummy2Cu, 'CHARMED', 1, 'player', undefined, 'PLAYER');
+      expect(dummy2Cu.faction).toBe('PLAYER');
+
+      // Encounter remains IN_PROGRESS because dummy2's original base faction is ENEMY and dummy2 is still alive
+      expect(evaluateEncounterOutcome(objectives, state)).toBe('IN_PROGRESS');
     });
   });
 });

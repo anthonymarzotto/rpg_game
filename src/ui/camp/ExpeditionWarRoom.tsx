@@ -1,6 +1,7 @@
 import { EncounterDefinition } from '../../core/combat/encounter';
 import { resolveTokenAssetPath } from '../combat/tokenAssets';
 import { computeUnitThreat, getStageDeploymentBudget } from '../../core/campaign/threatBudget';
+import { isLocalhost } from '../../core/config/environment';
 import './ExpeditionWarRoom.css';
 
 export interface ExpeditionWarRoomProps {
@@ -25,7 +26,9 @@ export function ExpeditionWarRoom({
   onRerollEncounter
 }: ExpeditionWarRoomProps) {
   const stageBudget = deploymentBudget ?? getStageDeploymentBudget(stage);
-  const isBudgetValid = activeSquadThreat == null || activeSquadThreat <= stageBudget;
+  const isOverBudget = activeSquadThreat != null && activeSquadThreat > stageBudget;
+  const isDevEnvironment = isLocalhost();
+  const isBudgetValid = !isOverBudget || isDevEnvironment;
   const isSquadReady = activeSquadCount >= minSquadRequired && isBudgetValid;
 
   const enemyUnits = encounter
@@ -127,7 +130,9 @@ export function ExpeditionWarRoom({
             ? activeSquadCount < minSquadRequired
               ? 'Attune at least 1 wayfarer into the active vanguard before entering the trial.'
               : `Vanguard threat (${activeSquadThreat} pts) exceeds stage deployment budget (${stageBudget} pts)`
-            : 'Enter the astral trial'
+            : isOverBudget && isDevEnvironment
+              ? `Enter the astral trial (Dev Mode: Vanguard threat ${activeSquadThreat} pts exceeds ${stageBudget} pts budget)`
+              : 'Enter the astral trial'
         }
         data-testid="deploy-squad-btn"
       >

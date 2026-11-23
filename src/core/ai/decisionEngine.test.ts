@@ -1943,6 +1943,34 @@ describe('Headless AI Decision Engine', () => {
           expect(inZone).toBe(false);
         }
       });
+
+      it('AI Philanderer prioritizes Billet-Doux, Beckoning Glance, and Looking-Glass Glare at standoff range', () => {
+        const arena = createRadialArena(4);
+        const phil = createMockUnit('phil-1', 'Enemy Philanderer', 'ENEMY', {
+          activeClassId: 'philanderer',
+          baseAttributes: { force: 1, finesse: 4, focus: 2 }
+        });
+        const hero1 = createMockUnit('hero-1', 'Player Bruiser', 'PLAYER', {
+          baseAttributes: { force: 4, finesse: 1, focus: 1 }
+        });
+        const hero2 = createMockUnit('hero-2', 'Player Archer', 'PLAYER', {
+          baseAttributes: { force: 1, finesse: 3, focus: 1 }
+        });
+
+        arena.setUnitPosition(phil.id, { q: 2, r: 0 });
+        arena.setUnitPosition(hero1.id, { q: 0, r: 0 });
+        arena.setUnitPosition(hero2.id, { q: -1, r: 1 });
+
+        const state = createCombatState(arena, [phil, hero1, hero2], phil.id);
+        const philCu = state.units.get(phil.id)!;
+        philCu.currentAp = 3;
+
+        const action = decideNextAction(state, phil.id);
+        expect(action.type).toBe('ABILITY');
+        if (action.type === 'ABILITY') {
+          expect(['billet_doux', 'beckoning_glance', 'looking_glass_glare']).toContain(action.ability.id);
+        }
+      });
     });
   });
 });

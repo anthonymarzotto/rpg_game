@@ -2,6 +2,15 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.22.0] - 2026-11-21
+
+### New Tier 4 Class: Philanderer
+- **Silver-Tongued Charmer**: Introduced the **Philanderer** (Tier 4: 0 Fighter, 3 Rogue, 1 Mage), a dashing Rogue/Mage specialist with a dedicated pixel sprite and velvet-rose class badge who turns enemy formations inside out through flattery, luring glances, and mirror-bright dazzles.
+- **Captivating Presence Passive**: Projects a dazzling frontal glamour across a 3-hex forward arc. Any enemy standing within 3 hexes in front of the Philanderer suffers -2 to their Attack Roll on all attacks, whether targeting the Philanderer or an ally.
+- **Billet-Doux (Signature)**: Flicks a perfumed love letter sealed with a crimson rose at a target up to 3 hexes away, testing Finesse against the target's Resolve. A Solid Hit inflicts **Charmed** for 1 turn—temporarily switching the enemy to your team and handing you direct control of their next turn—while a Critical Hit extends the charm to 2 turns, and a Graze leaves them **Exposed**.
+- **Beckoning Glance**: Catches an enemy's eye from up to 3 hexes away to pull them 1 hex toward the Philanderer (including off elevated ledges for fall damage), force them to face him, and leave them **Exposed**.
+- **Looking-Glass Glare**: Angles a polished hand mirror to fire a beam of starlight for magical damage that inflicts **Blinded** for 1 turn, imposing Disadvantage on the target's attacks, restricting their maximum targeting range to 1 hex, and preventing them from spotting hidden units.
+
 ## [0.21.0] - 2026-11-19
 
 ### Pre-Combat Tactical Deployment & Smarter Starting Formations

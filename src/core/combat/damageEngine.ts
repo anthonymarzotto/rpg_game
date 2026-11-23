@@ -37,6 +37,14 @@ export function resolveDamage(
   damageEffect?: AbilityEffect,
   options?: DamageOptions
 ): DamageResult {
+  if (ability.damageType === 'NONE') {
+    return {
+      rawDamage: 0,
+      mitigation: 0,
+      damageDealt: 0,
+      damageBreakdown: hitOutcome === 'MISS' ? '0 (Miss)' : '0'
+    };
+  }
   const eff = damageEffect ?? ability.effects?.find((e) => e.type === 'DAMAGE');
   const damageProfile = eff?.damageProfile;
   const baseFlatBonus = eff?.flatDamage ?? 0;

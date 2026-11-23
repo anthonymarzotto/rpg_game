@@ -226,6 +226,8 @@ export type AbilityResolution =
 export interface CombatUnit {
   readonly unit: Unit;
   faction?: Faction;
+  /** Original pre-charm faction preserved when CHARMED temporarily switches active faction */
+  originalFaction?: Faction;
   currentHp: number;
   currentAp: number;
   initiativeGauge: number;
@@ -274,7 +276,7 @@ export type EffectOutcome =
     }
   | {
       readonly kind: 'DISPLACEMENT';
-      readonly displacement: 'KNOCKBACK' | 'RETREAT' | 'CHARGE' | 'SWAP' | 'TELEPORT';
+      readonly displacement: 'KNOCKBACK' | 'PULL' | 'RETREAT' | 'CHARGE' | 'SWAP' | 'TELEPORT';
       readonly toCoord?: { readonly q: number; readonly r: number };
       readonly targetName?: string;
       readonly resisted?: boolean;

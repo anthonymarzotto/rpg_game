@@ -2,6 +2,7 @@ import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
 import { Ability, AbilityEffect } from '../../types/ability';
 import { damageHandler } from './damageHandler';
 import { knockbackHandler } from './knockbackHandler';
+import { pullHandler } from './pullHandler';
 import { retreatHandler } from './retreatHandler';
 import { modifierHandler } from './modifierHandler';
 import { teleportHandler } from './teleportHandler';
@@ -20,6 +21,7 @@ import { CombatEvent, EffectOutcome } from '../types';
 export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
   DAMAGE: damageHandler,
   KNOCKBACK: knockbackHandler,
+  PULL: pullHandler,
   RETREAT_STEP: retreatHandler,
   PENETRATE_STEP: penetrateHandler,
   POSITION_SWAP: positionSwapHandler,
@@ -85,21 +87,31 @@ export function executeAbilityEffects(
     if (applyOn === 'CRIT_ONLY' && ctx.hitOutcome !== 'CRITICAL_HIT') {
       continue;
     }
-    if (applyOn === 'HIT_OR_CRIT' && ctx.hitOutcome === 'MISS') {
+    if (applyOn === 'HIT_ONLY' && ctx.hitOutcome !== 'SOLID_HIT') {
       continue;
     }
-    // Graze rule: damage resolves with x0.5; secondary non-damage effects are negated on Graze
-    if (ctx.hitOutcome === 'GRAZE' && effect.type !== 'DAMAGE' && applyOn !== 'ALWAYS') {
-      if (!grazeNegatedRecorded) {
-        effects.push({
-          kind: 'CONTEXT',
-          context: 'GRAZE_NEGATED',
-          label: 'Graze: Secondary Negated',
-          detail: 'Secondary effect(s) negated due to Graze hit outcome'
-        });
-        grazeNegatedRecorded = true;
+    if (applyOn === 'GRAZE_ONLY') {
+      if (ctx.hitOutcome !== 'GRAZE') {
+        continue;
       }
-      continue;
+    } else {
+      if (applyOn === 'HIT_OR_CRIT' && ctx.hitOutcome === 'MISS') {
+        continue;
+      }
+      // Graze rule: damage resolves with x0.5; secondary non-damage effects are negated on Graze
+      if (ctx.hitOutcome === 'GRAZE' && effect.type !== 'DAMAGE' && applyOn !== 'ALWAYS') {
+        const hasDedicatedGrazeEffect = ability.effects.some((e) => e.applyOn === 'GRAZE_ONLY');
+        if (!grazeNegatedRecorded && !hasDedicatedGrazeEffect) {
+          effects.push({
+            kind: 'CONTEXT',
+            context: 'GRAZE_NEGATED',
+            label: 'Graze: Secondary Negated',
+            detail: 'Secondary effect(s) negated due to Graze hit outcome'
+          });
+          grazeNegatedRecorded = true;
+        }
+        continue;
+      }
     }
 
     const handler = registry.get(effect.type);

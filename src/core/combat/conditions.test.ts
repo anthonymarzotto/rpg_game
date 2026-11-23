@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { CONDITION_REGISTRY, getConditionDefinition } from './conditions';
+import { CONDITION_REGISTRY, getConditionDefinition, evaluateFrontArcDetection } from './conditions';
+import { applyConditionToUnit } from './effects/conditionHandler';
+import { endActiveTurn } from './turnClock';
+import { createCombatState } from './resolver';
+import { createRadialArena } from '../grid/templates';
+import { HEX_DIRECTIONS } from '../grid/hex';
 import { ActiveCondition, CombatUnit } from './types';
 import { Ability } from '../types/ability';
 import { createRecruit } from '../units/unitFactory';
@@ -301,6 +306,69 @@ describe('Condition Registry', () => {
     it('does not modify outgoing attack rolls or turn start', () => {
       expect(exposedDef.onOutgoingAttackRoll).toBeUndefined();
       expect(exposedDef.onTurnStart).toBeUndefined();
+    });
+  });
+
+  describe('CHARMED and BLINDED', () => {
+    it('CHARMED switches unit faction to charmer faction and restores original faction when turn ends', () => {
+      const arena = createRadialArena(3);
+      const philanderer = createRecruit('phil', 'Philanderer', { faction: 'PLAYER' });
+      const bandit = createRecruit('bandit', 'Bandit', { faction: 'ENEMY' });
+      arena.setUnitPosition('phil', { q: 0, r: 0 });
+      arena.setUnitPosition('bandit', { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [philanderer, bandit], 'phil');
+      const banditCu = state.units.get('bandit')!;
+      expect(banditCu.faction).toBe('ENEMY');
+
+      applyConditionToUnit(banditCu, 'CHARMED', 1, 'phil', undefined, 'PLAYER');
+      expect(banditCu.faction).toBe('PLAYER');
+      expect(banditCu.originalFaction).toBe('ENEMY');
+      // Does not break on damage
+      expect(CONDITION_REGISTRY.CHARMED.onTakeDamage).toBeUndefined();
+
+      // When it becomes bandit's turn and bandit ends their turn, CHARMED expires and restores ENEMY
+      banditCu.initiativeGauge = 200;
+      endActiveTurn(state); // switches to bandit
+      expect(state.activeUnitId).toBe('bandit');
+      expect(banditCu.faction).toBe('PLAYER');
+
+      endActiveTurn(state); // concludes bandit's turn
+      expect(banditCu.activeConditions.some((c) => c.type === 'CHARMED')).toBe(false);
+      expect(banditCu.faction).toBe('ENEMY');
+    });
+
+    it('BLINDED imposes outgoing Disadvantage and disables front-arc Stealth detection', () => {
+      const blindedDef = CONDITION_REGISTRY.BLINDED;
+      expect(blindedDef.stackingPolicy).toBe('REFRESH_DURATION');
+
+      const actor = createMockUnit('archer', 'ENEMY');
+      const target = createMockUnit('hero', 'PLAYER');
+      const cond: ActiveCondition = {
+        type: 'BLINDED',
+        durationTurns: 1,
+        sourceUnitId: 'phil'
+      };
+      const mod = blindedDef.onOutgoingAttackRoll?.(cond, actor, target);
+      expect(mod?.disadvantage).toBe(true);
+
+      // Front-arc stealth detection skipped while BLINDED
+      const arena = createRadialArena(3);
+      const rogue = createRecruit('rogue', 'Rogue', { faction: 'PLAYER' });
+      const guard = createRecruit('guard', 'Guard', { faction: 'ENEMY' });
+      arena.setUnitPosition('guard', { q: 0, r: 0 });
+      arena.setUnitPosition('rogue', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [rogue, guard], 'guard');
+      const rogueCu = state.units.get('rogue')!;
+      const guardCu = state.units.get('guard')!;
+      guardCu.facing = HEX_DIRECTIONS.EAST;
+      applyConditionToUnit(rogueCu, 'STEALTH', 1, 'rogue');
+      applyConditionToUnit(guardCu, 'BLINDED', 1, 'phil');
+
+      const detected = evaluateFrontArcDetection(state, 'guard', { q: 0, r: 0 }, HEX_DIRECTIONS.EAST, 'TURN_START');
+      expect(detected).toHaveLength(0);
+      expect(rogueCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
     });
   });
 });

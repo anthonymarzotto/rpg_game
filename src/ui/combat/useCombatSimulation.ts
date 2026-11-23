@@ -597,7 +597,7 @@ export function useCombatSimulation({
     (nextState: CombatState) => {
       if (nextState.outcome === 'VICTORY') {
         const playerUnits = Array.from(nextState.units.values()).filter(
-          (cu) => cu.faction === 'PLAYER'
+          (cu) => (cu.originalFaction ?? cu.unit.faction ?? cu.faction) === 'PLAYER'
         );
 
         const summaries: SquadMemberVictorySummary[] = playerUnits.map((pCu) => ({

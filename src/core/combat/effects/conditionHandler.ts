@@ -1,5 +1,6 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
 import { AbilityEffect, ConditionType } from '../../types/ability';
+import { Faction } from '../../types/unit';
 import { ActiveCondition, CombatEvent, CombatUnit, EffectOutcome } from '../types';
 import { getConditionDefinition } from '../conditions';
 import { getDirectionBetween, hexEquals } from '../../grid/hex';
@@ -9,7 +10,8 @@ export function applyConditionToUnit(
   conditionType: ConditionType,
   durationTurns: number,
   sourceUnitId: string,
-  damagePerTurn?: number
+  damagePerTurn?: number,
+  sourceFaction?: Faction
 ): { condition: ActiveCondition; event: CombatEvent } {
   const def = getConditionDefinition(conditionType);
   const policy = def?.stackingPolicy ?? 'REFRESH_DURATION';
@@ -56,6 +58,15 @@ export function applyConditionToUnit(
     }
   }
 
+  if (conditionType === 'CHARMED') {
+    if (targetUnit.originalFaction === undefined) {
+      targetUnit.originalFaction = targetUnit.unit.faction ?? targetUnit.faction;
+    }
+    const newFaction: Faction =
+      sourceFaction ?? (targetUnit.faction === 'PLAYER' ? 'ENEMY' : 'PLAYER');
+    targetUnit.faction = newFaction;
+  }
+
   const event: CombatEvent = {
     type: 'STATUS_APPLIED',
     targetUnitId: targetUnit.unit.id,
@@ -98,7 +109,8 @@ export const conditionHandler: EffectHandler = {
         conditionType,
         durationTurns,
         actorCu.unit.id,
-        damagePerTurn
+        damagePerTurn,
+        actorCu.faction ?? actorCu.unit.faction ?? 'PLAYER'
       );
       events.push(event);
 
@@ -108,7 +120,9 @@ export const conditionHandler: EffectHandler = {
         condition: conditionType,
         durationTurns: conditionToEmit.durationTurns,
         ...(resolvedDpt !== undefined ? { damagePerTurn: resolvedDpt } : {}),
-        ...(conditionType === 'CHALLENGED' ? { sourceName: actorCu.unit.name } : {}),
+        ...(conditionType === 'CHALLENGED' || conditionType === 'CHARMED'
+          ? { sourceName: actorCu.unit.name }
+          : {}),
         ...(targetUnit.unit.id !== actorCu.unit.id ? { targetName: targetUnit.unit.name } : {})
       });
     }

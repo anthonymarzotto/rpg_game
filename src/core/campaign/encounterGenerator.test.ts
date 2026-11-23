@@ -522,7 +522,7 @@ describe('Procedural Encounter Generator', () => {
       }
     });
 
-    it('generates Tier-4 enemy units (shield-bearer, dragoon) with Level-4 progression and vitals', () => {
+    it('generates Tier-4 enemy units (shield-bearer, dragoon, ballistician, philanderer) with Level-4 progression and vitals', () => {
       const shieldBearer = createEnemyUnit('sb-1', 'shield-bearer');
       expect(shieldBearer.progression.currentLevel).toBe(4);
       expect(shieldBearer.effectiveVitals.maxHp).toBe(32);
@@ -534,6 +534,12 @@ describe('Procedural Encounter Generator', () => {
       expect(dragoon.effectiveVitals.maxHp).toBe(32);
       expect(dragoon.loadout?.activeClassId).toBe('dragoon');
       expect(dragoon.progression.constellation).toContain('dragoon');
+
+      const philanderer = createEnemyUnit('ph-1', 'philanderer');
+      expect(philanderer.progression.currentLevel).toBe(4);
+      expect(philanderer.effectiveVitals.maxHp).toBe(32);
+      expect(philanderer.loadout?.activeClassId).toBe('philanderer');
+      expect(philanderer.progression.constellation).toContain('philanderer');
     });
 
     it('incorporates Tier-4 enemies in squad assembly when budget allows (70+ threat, stage 5+)', () => {
@@ -543,7 +549,11 @@ describe('Procedural Encounter Generator', () => {
 
       expect(squad.length).toBeGreaterThanOrEqual(2);
       const hasTier4 = squad.some(
-        (u) => u.loadout?.activeClassId === 'shield-bearer' || u.loadout?.activeClassId === 'dragoon'
+        (u) =>
+          u.loadout?.activeClassId === 'shield-bearer' ||
+          u.loadout?.activeClassId === 'dragoon' ||
+          u.loadout?.activeClassId === 'ballistician' ||
+          u.loadout?.activeClassId === 'philanderer'
       );
       expect(hasTier4).toBe(true);
     });
