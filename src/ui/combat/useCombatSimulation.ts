@@ -22,7 +22,12 @@ import {
 import { TargetPreview, computeTargetPreview } from '../../core/combat/targetPreview';
 import { SeededDiceRoller } from '../../core/combat/dice';
 import { DiceMode, DevDiceRoller } from './devDice';
-import { useFloatingCombatText, collectInitiativeFloatingTexts, FloatingText } from './useFloatingCombatText';
+import {
+  useFloatingCombatText,
+  collectInitiativeFloatingTexts,
+  resolveDamageFloatingText,
+  FloatingText
+} from './useFloatingCombatText';
 import {
   AISpeedMode,
   PACING_PRESETS,
@@ -472,12 +477,11 @@ export function useCombatSimulation({
 
   const lastTurnStartEmittedRef = useRef<number>(-1);
 
-  // Emit turn start floating text ("My Turn!" for players, unit name for hostiles)
+  // Emit turn start floating text ("My Turn!" for players, unit name for hostiles) and any turn-start bombardment events
   useEffect(() => {
     if (
       isDeploymentPhaseRef.current ||
       !state.activeUnitId ||
-      state.outcome !== 'IN_PROGRESS' ||
       isOpeningInitiativeActiveRef.current ||
       lastTurnStartEmittedRef.current === state.turnNumber
     ) {
@@ -485,6 +489,32 @@ export function useCombatSimulation({
     }
 
     lastTurnStartEmittedRef.current = state.turnNumber;
+
+    if (state.lastTurnStartEvents && state.lastTurnStartEvents.length > 0) {
+      for (const event of state.lastTurnStartEvents) {
+        if (event.type === 'DAMAGE') {
+          const eventCoord = event.coord ?? state.arena.getUnitPosition(event.targetUnitId);
+          if (eventCoord) {
+            const { text, textType, tier } = resolveDamageFloatingText(
+              event,
+              event.isCrit ? 'CRITICAL_HIT' : 'SOLID_HIT'
+            );
+            addFloatingText(text, textType, eventCoord, tier);
+          }
+        } else if (event.type === 'MISS') {
+          const eventCoord = event.coord ?? state.arena.getUnitPosition(event.targetUnitId);
+          if (eventCoord) {
+            addFloatingText('MISS', 'miss', eventCoord, 'standard');
+          }
+        }
+      }
+      state.lastTurnStartEvents = [];
+    }
+
+    if (state.outcome !== 'IN_PROGRESS') {
+      return;
+    }
+
     const cu = state.units.get(state.activeUnitId);
     const coord = state.arena.getUnitPosition(state.activeUnitId);
     if (cu && coord) {
@@ -500,6 +530,7 @@ export function useCombatSimulation({
     state.outcome,
     state.units,
     state.arena,
+    state.lastTurnStartEvents,
     addFloatingText
   ]);
 
@@ -590,7 +621,7 @@ export function useCombatSimulation({
       fallDamage: info.fallDamage,
       path: info.path
     };
-  }, [phase, actionMode, activeCoord, hoveredCoord, activeCu, state.arena]);
+  }, [phase, actionMode, activeCoord, hoveredCoord, activeCu, state]);
 
   // Check and trigger post-battle reconciliation for all player squad members on VICTORY / DEFEAT
   const checkEncounterProgression = useCallback(

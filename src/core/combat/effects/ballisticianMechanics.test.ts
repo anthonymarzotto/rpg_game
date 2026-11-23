@@ -268,6 +268,14 @@ describe('Ballistician Mechanics: Zeroed In & TELEMETRY', () => {
       rogueCu.currentAp = 3;
       expect(canMove(state, 'rogue', { q: 1, r: 0 }).valid).toBe(true);
       expect(canMove(state, 'rogue', { q: 2, r: 0 }).valid).toBe(false);
+
+      // Subsequent cast produces a new hexHazards array reference so React useMemo hooks invalidate immediately
+      state.activeUnitId = 'ball';
+      ballCu.currentAp = 3;
+      const prevHazardsRef = state.hexHazards;
+      executeAbility(state, 'ball', SHRAPNEL_CANISTER_TEST, { coord: { q: -1, r: 0 } });
+      expect(state.hexHazards).not.toBe(prevHazardsRef);
+      expect(state.hexHazards).toHaveLength(2);
     });
   });
 
@@ -321,8 +329,71 @@ describe('Ballistician Mechanics: Zeroed In & TELEMETRY', () => {
       const roller = new MockDiceRoller({ d20Rolls: [15], damageRolls: [13] });
       const events = resolvePendingBombardmentsOnTurnStart(state, 'ball', roller);
       expect(state.pendingBombardments).toHaveLength(0);
-      expect(events.some((e) => e.type === 'DAMAGE' && e.targetUnitId === 'enemy' && e.amount === 15)).toBe(true);
+      expect(events.some((e) => e.type === 'DAMAGE' && e.targetUnitId === 'enemy' && e.amount === 15 && e.coord?.q === 0 && e.coord?.r === 0)).toBe(true);
       expect(enemyCu.currentHp).toBe(25);
+
+      const hitLog = state.combatLog[state.combatLog.length - 1];
+      expect(hitLog.metadata).toMatchObject({
+        type: 'UTILITY',
+        ability: 'Siege Barrage',
+        target: 'hex (0, 0)',
+        damageTotal: '15',
+        effects: [
+          expect.objectContaining({
+            kind: 'COLLATERAL_HIT',
+            sourceLabel: 'Barrage',
+            targetName: 'Target',
+            damage: 15,
+            hitOutcome: 'SOLID_HIT'
+          })
+        ]
+      });
+
+      // Subsequent cast on a later turn produces a new pendingBombardments array reference
+      ballCu.currentAp = 3;
+      ballCu.abilitiesUsedThisTurn = [];
+      const prevBombardmentsRef = state.pendingBombardments;
+      executeAbility(state, 'ball', SIEGE_BARRAGE_TEST, { coord: { q: 0, r: 0 } });
+      expect(state.pendingBombardments).not.toBe(prevBombardmentsRef);
+      expect(state.pendingBombardments).toHaveLength(1);
+
+      // Miss on target in blast zone logs a COLLATERAL_HIT with hitOutcome: 'MISS'
+      const missRoller = new MockDiceRoller({ d20Rolls: [1], damageRolls: [10] });
+      const missEvents = resolvePendingBombardmentsOnTurnStart(state, 'ball', missRoller);
+      expect(missEvents.some((e) => e.type === 'MISS' && e.targetUnitId === 'enemy' && e.coord?.q === 0 && e.coord?.r === 0)).toBe(true);
+      const missLog = state.combatLog[state.combatLog.length - 1];
+      expect(missLog.metadata).toMatchObject({
+        type: 'UTILITY',
+        ability: 'Siege Barrage',
+        target: 'hex (0, 0)',
+        effects: [
+          expect.objectContaining({
+            kind: 'COLLATERAL_HIT',
+            sourceLabel: 'Barrage',
+            targetName: 'Target',
+            damage: 0,
+            hitOutcome: 'MISS'
+          })
+        ]
+      });
+
+      // Empty blast zone logs an 'Empty Blast Zone' CONTEXT pill so the log card is never blank
+      ballCu.currentAp = 3;
+      ballCu.abilitiesUsedThisTurn = [];
+      executeAbility(state, 'ball', SIEGE_BARRAGE_TEST, { coord: { q: 0, r: -3 } });
+      resolvePendingBombardmentsOnTurnStart(state, 'ball', roller);
+      const emptyLog = state.combatLog[state.combatLog.length - 1];
+      expect(emptyLog.metadata).toMatchObject({
+        type: 'UTILITY',
+        ability: 'Siege Barrage',
+        target: 'hex (0, -3)',
+        effects: [
+          expect.objectContaining({
+            kind: 'CONTEXT',
+            label: 'Empty Blast Zone'
+          })
+        ]
+      });
     });
 
     it('persists and detonates even if the Ballistician is defeated while the volley is airborne', () => {

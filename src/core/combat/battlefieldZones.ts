@@ -177,6 +177,8 @@ export function resolvePendingBombardmentsOnTurnStart(
         targetCu.activeConditions = targetCu.activeConditions.filter((c) => c.type !== 'EXPOSED');
       }
 
+      affectedUnitIds.push(targetCu.unit.id);
+
       if (rollResult.hitOutcome !== 'MISS') {
         const dmg = resolveDamage(
           rollResult.hitOutcome,
@@ -190,7 +192,6 @@ export function resolvePendingBombardmentsOnTurnStart(
         if (dmg.damageDealt > 0) {
           targetCu.currentHp = Math.max(0, targetCu.currentHp - dmg.damageDealt);
           totalDamage += dmg.damageDealt;
-          affectedUnitIds.push(targetCu.unit.id);
           allEvents.push({
             type: 'DAMAGE',
             targetUnitId: targetCu.unit.id,
@@ -199,7 +200,8 @@ export function resolvePendingBombardmentsOnTurnStart(
             reason: 'SPLASH',
             label: 'BARRAGE',
             sourceUnitId: b.sourceUnitId,
-            isCrit: rollResult.hitOutcome === 'CRITICAL_HIT'
+            isCrit: rollResult.hitOutcome === 'CRITICAL_HIT',
+            coord: { q: hex.q, r: hex.r }
           });
 
           if (targetCu.currentHp <= 0) {
@@ -224,21 +226,49 @@ export function resolvePendingBombardmentsOnTurnStart(
         allEvents.push({
           type: 'MISS',
           targetUnitId: targetCu.unit.id,
-          reason: `${b.abilityName} missed ${targetCu.unit.name}`
+          reason: `${b.abilityName} missed ${targetCu.unit.name}`,
+          coord: { q: hex.q, r: hex.r }
+        });
+
+        hitOutcomes.push({
+          kind: 'COLLATERAL_HIT',
+          sourceLabel: 'Barrage',
+          targetName: targetCu.unit.name,
+          damage: 0,
+          damageType: 'PHYSICAL',
+          hitOutcome: 'MISS',
+          defenseTarget: getEffectiveEvasion(targetCu),
+          targetHp: targetCu.currentHp,
+          targetMaxHp: targetCu.unit.effectiveVitals.maxHp
         });
       }
     }
 
+    const loggedEffects: EffectOutcome[] =
+      hitOutcomes.length > 0
+        ? hitOutcomes
+        : [
+            {
+              kind: 'CONTEXT',
+              context: 'ELEVATION',
+              label: 'Empty Blast Zone',
+              detail: `No targets caught at (${b.centerCoord.q}, ${b.centerCoord.r})`
+            }
+          ];
+
     combatLogger.logUtility(state, {
       actorCu: snapshotActor,
       ability: syntheticAbility,
+      targetName: `hex (${b.centerCoord.q}, ${b.centerCoord.r})`,
       damageTotal: totalDamage > 0 ? String(totalDamage) : undefined,
-      effects: hitOutcomes.length > 0 ? hitOutcomes : undefined,
+      effects: loggedEffects,
       affectedUnitIds: affectedUnitIds.length > 0 ? affectedUnitIds : undefined,
       message:
-        affectedUnitIds.length > 0
+        totalDamage > 0
           ? `${b.sourceUnitName}'s ${b.abilityName} crashed down on (${b.centerCoord.q}, ${b.centerCoord.r}), dealing ${totalDamage} total damage!`
-          : `${b.sourceUnitName}'s ${b.abilityName} crashed down on (${b.centerCoord.q}, ${b.centerCoord.r}) with no targets caught in the blast.`
+          : hitOutcomes.length > 0
+            ? `${b.sourceUnitName}'s ${b.abilityName} crashed down on (${b.centerCoord.q}, ${b.centerCoord.r}), missing all targets in the blast!`
+            : `${b.sourceUnitName}'s ${b.abilityName} crashed down on (${b.centerCoord.q}, ${b.centerCoord.r}) with no targets caught in the blast.`
     });
   }
 

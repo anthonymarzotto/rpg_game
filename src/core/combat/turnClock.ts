@@ -1,4 +1,4 @@
-import { CombatState } from './types';
+import { CombatEvent, CombatState } from './types';
 import { getEffectiveSpeed } from './effectiveVitals';
 import { ACTION_ECONOMY_CONFIG } from '../config/balance';
 import { evaluateEncounterOutcome } from './objectives';
@@ -91,6 +91,8 @@ export function stepClockUntilReady<T extends ClockParticipant>(
  * and decrements/purges active modifiers on the newly active unit.
  */
 export function advanceTurnClock(state: CombatState): string {
+  const turnStartEvents: CombatEvent[] = [];
+  state.lastTurnStartEvents = turnStartEvents;
   while (true) {
     const activeUnits = Array.from(state.units.values()).filter(
       (cu) => !cu.isDefeated
@@ -120,7 +122,7 @@ export function advanceTurnClock(state: CombatState): string {
 
     // Tick temporary hex hazards (e.g. Shrapnel Rubble) and detonate scheduled delayed bombardments
     tickHexHazardsOnTurnStart(state, nextActive.unit.id);
-    resolvePendingBombardmentsOnTurnStart(state, nextActive.unit.id);
+    turnStartEvents.push(...resolvePendingBombardmentsOnTurnStart(state, nextActive.unit.id));
     if (state.outcome !== 'IN_PROGRESS') {
       return nextActive.unit.id;
     }

@@ -699,26 +699,30 @@ export function executeAbility(
     const damageProfile = delayedBombardmentEffect.damageProfile ?? { count: 2, sides: 8, modifierAttribute: 'force' };
     const bombardmentId = `bombard_${actorUnitId}_${state.turnNumber}_${(state.pendingBombardments?.length ?? 0) + 1}`;
 
-    (state.pendingBombardments ??= []).push({
-      id: bombardmentId,
-      sourceUnitId: actorUnitId,
-      sourceUnitName: actorCu.unit.name,
-      sourceFaction: actorCu.faction,
-      abilityId: effectiveAbility.id,
-      abilityName: effectiveAbility.name,
-      centerCoord: { q: targetCoord.q, r: targetCoord.r },
-      hexCoords: affectedHexes.map((c) => ({ q: c.q, r: c.r })),
-      damageProfile,
-      attackModifierAttribute: effectiveAbility.attackModifierAttribute ?? 'finesse',
-      snapshotFinesse: actorCu.unit.baseAttributes.finesse,
-      snapshotForce: actorCu.unit.baseAttributes.force,
-      snapshotFocus: actorCu.unit.baseAttributes.focus,
-      snapshotZeroedInStacks: actorCu.zeroedInStacks ?? 0
-    });
+    state.pendingBombardments = [
+      ...(state.pendingBombardments ?? []),
+      {
+        id: bombardmentId,
+        sourceUnitId: actorUnitId,
+        sourceUnitName: actorCu.unit.name,
+        sourceFaction: actorCu.faction,
+        abilityId: effectiveAbility.id,
+        abilityName: effectiveAbility.name,
+        centerCoord: { q: targetCoord.q, r: targetCoord.r },
+        hexCoords: affectedHexes.map((c) => ({ q: c.q, r: c.r })),
+        damageProfile,
+        attackModifierAttribute: effectiveAbility.attackModifierAttribute ?? 'finesse',
+        snapshotFinesse: actorCu.unit.baseAttributes.finesse,
+        snapshotForce: actorCu.unit.baseAttributes.force,
+        snapshotFocus: actorCu.unit.baseAttributes.focus,
+        snapshotZeroedInStacks: actorCu.zeroedInStacks ?? 0
+      }
+    ];
 
     combatLogger.logUtility(state, {
       actorCu,
       ability: effectiveAbility,
+      targetName: `hex (${targetCoord.q}, ${targetCoord.r})`,
       effects: [
         {
           kind: 'CONTEXT',
@@ -759,15 +763,18 @@ export function executeAbility(
     const durationTurns = shrapnelRubbleEffect.durationTurns ?? 2;
     const extraMoveCost = shrapnelRubbleEffect.magnitude ?? 2;
 
-    (state.hexHazards ??= []).push({
-      id: hazardId,
-      type: 'SHRAPNEL_RUBBLE',
-      sourceUnitId: actorUnitId,
-      sourceFaction: actorCu.faction,
-      hexCoords: affectedHexes.map((c) => ({ q: c.q, r: c.r })),
-      durationTurns,
-      extraMoveCost
-    });
+    state.hexHazards = [
+      ...(state.hexHazards ?? []),
+      {
+        id: hazardId,
+        type: 'SHRAPNEL_RUBBLE',
+        sourceUnitId: actorUnitId,
+        sourceFaction: actorCu.faction,
+        hexCoords: affectedHexes.map((c) => ({ q: c.q, r: c.r })),
+        durationTurns,
+        extraMoveCost
+      }
+    ];
 
     const revealClause =
       revealedNames.length > 0 ? ` Revealed ${revealedNames.join(', ')} from Stealth!` : '';
@@ -775,6 +782,7 @@ export function executeAbility(
     combatLogger.logUtility(state, {
       actorCu,
       ability: effectiveAbility,
+      targetName: `hex (${targetCoord.q}, ${targetCoord.r})`,
       affectedUnitIds: revealedUnitIds.length > 0 ? revealedUnitIds : undefined,
       effects: [
         {

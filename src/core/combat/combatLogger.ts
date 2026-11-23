@@ -186,6 +186,7 @@ export interface LogUtilityParams {
   readonly actorCu: CombatUnit;
   readonly ability: Ability | { readonly id: string; readonly name: string };
   readonly targetCu?: CombatUnit;
+  readonly targetName?: string;
   readonly damageTotal?: string;
   readonly targetHp?: number;
   readonly targetMaxHp?: number;
@@ -429,7 +430,7 @@ export const combatLogger = {
     const allAffected = Array.from(
       new Set([actorCu.unit.id, ...(targetCu ? [targetCu.unit.id] : []), ...affectedUnitIds])
     );
-    const targetName = targetCu ? targetCu.unit.name : '';
+    const targetName = params.targetName ?? (targetCu ? targetCu.unit.name : undefined);
     const formattedEffects = formatEffectOutcomes(effects);
     const message =
       params.message ??
@@ -446,7 +447,7 @@ export const combatLogger = {
         type: 'UTILITY',
         actor: actorCu.unit.name,
         ability: ability.name,
-        target: targetCu?.unit.name,
+        target: targetName,
         damageTotal,
         targetHp: targetHp ?? targetCu?.currentHp,
         targetMaxHp: targetMaxHp ?? targetCu?.unit.effectiveVitals.maxHp,

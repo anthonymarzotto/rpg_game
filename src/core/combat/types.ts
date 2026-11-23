@@ -35,6 +35,7 @@ export type CombatEvent =
       readonly isCrit?: boolean;
       readonly label?: string;
       readonly logged?: boolean;
+      readonly coord?: HexCoord;
     }
   | {
       readonly type: 'DISPLACEMENT';
@@ -71,6 +72,7 @@ export type CombatEvent =
       readonly type: 'MISS';
       readonly targetUnitId: string;
       readonly reason?: string;
+      readonly coord?: HexCoord;
     };
 
 import { RollAdvantage } from './dice';
@@ -540,6 +542,8 @@ export interface CombatState {
   pendingBombardments?: PendingBombardment[];
   /** Active temporary terrain hazards (e.g. Shrapnel Rubble) */
   hexHazards?: HexHazard[];
+  /** Turn-start combat events (e.g. delayed bombardment impacts) awaiting UI floating text dispatch */
+  lastTurnStartEvents?: CombatEvent[];
 }
 
 /**
