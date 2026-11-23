@@ -21,6 +21,7 @@ import { SHIELD_BEARER_PACKAGE } from './shieldBearer';
 import { DRAGOON_PACKAGE } from './dragoon';
 import { BALLISTICIAN_PACKAGE } from './ballistician';
 import { PHILANDERER_PACKAGE } from './philanderer';
+import { THEURGE_PACKAGE } from './theurge';
 
 export * from './novice';
 export * from './warrior';
@@ -39,6 +40,7 @@ export * from './shieldBearer';
 export * from './dragoon';
 export * from './ballistician';
 export * from './philanderer';
+export * from './theurge';
 
 export const CLASS_PACKAGES: Readonly<Record<string, ClassPackage>> = {
   warrior: WARRIOR_PACKAGE,
@@ -56,7 +58,8 @@ export const CLASS_PACKAGES: Readonly<Record<string, ClassPackage>> = {
   'shield-bearer': SHIELD_BEARER_PACKAGE,
   dragoon: DRAGOON_PACKAGE,
   ballistician: BALLISTICIAN_PACKAGE,
-  philanderer: PHILANDERER_PACKAGE
+  philanderer: PHILANDERER_PACKAGE,
+  theurge: THEURGE_PACKAGE
 };
 
 /**

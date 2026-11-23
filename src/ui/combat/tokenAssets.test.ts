@@ -153,6 +153,27 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       });
     });
 
+    it('resolves theurge (79_human_male) to pixel idle rotation paths and Empyrean Azure / Celestial Gold badge palette', () => {
+      const theurge = createMockUnit({
+        gender: 'male',
+        race: 'human',
+        loadout: {
+          activeClassId: 'theurge',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        }
+      });
+
+      expect(resolvePixelTokenBase(theurge)).toBe('79_human_male');
+      expect(resolveTokenAssetPath(theurge, HEX_DIRECTIONS.EAST)).toBe(
+        '/assets/tokens/pixel/79_human_male/Idle/rotations/east.png'
+      );
+      expect(getClassBadgePalette('theurge')).toEqual({
+        primary: '#1e3a8a',
+        border: '#f59e0b'
+      });
+    });
+
     it('resolves thief (81_human_male) to pixel idle rotation paths', () => {
       const thief = createMockUnit({
         gender: 'male',

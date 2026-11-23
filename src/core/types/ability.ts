@@ -23,7 +23,9 @@ export type ConditionType =
   | 'EXPOSED'
   | 'TELEMETRY'
   | 'CHARMED'
-  | 'BLINDED';
+  | 'BLINDED'
+  | 'HENOSIS'
+  | 'MORTAL_EBB';
 
 export type AbilityEffectType =
   | 'DAMAGE'           // Deals physical or magical damage via dice profile and/or flat damage
@@ -40,7 +42,8 @@ export type AbilityEffectType =
   | 'INITIATIVE_BOOST' // Boosts target CTB initiative gauge (e.g. Tactical Vanguard)
   | 'FORCE_FACING'     // Forces target to face actor
   | 'FORCE_FACING_AWAY'// Forces target to face 180 degrees away from actor
-  | 'CONDITION'        // Applies a status condition (Poison, Burn, Challenged, Stealth, Exposed, Charmed, Blinded)
+  | 'CONDITION'        // Applies a status condition (Poison, Burn, Challenged, Stealth, Exposed, Charmed, Blinded, Henosis, Mortal Ebb)
+  | 'CLEANSE'          // Purges active negative status conditions marked purgeableByCleanse
   | 'SPELL_SCULPT'     // Primes pending ability modifier for next Mage spell
   | 'WILD_SURGE'       // Spontaneous arcane surges on critical hits
   | 'STAT_MODIFIER'    // Applies stat modifier (e.g. Expose Weakness -2 Armor & -2 Evasion)

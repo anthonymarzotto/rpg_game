@@ -109,6 +109,20 @@ export function formatConditionBadge(
     className = 'condition-exposed';
     mnemonic = ': Disadv/Rng 1';
     ruleText = 'Outgoing attacks suffer Disadvantage, maximum targeting range is clamped to 1 hex, and front-arc Stealth detection is disabled.';
+  } else if (cond.type === 'HENOSIS') {
+    icon = '✨ ';
+    label = 'HENOSIS';
+    isDebuff = false;
+    className = 'condition-stealth';
+    mnemonic = ': +2 Hit/Def';
+    ruleText = 'Divine Vessel: Grants +2 Attack Roll, +2 Armor, +2 Ward, +1 Move, and +1 Speed. When Henosis expires, the vessel enters Mortal Ebb for 1 turn.';
+  } else if (cond.type === 'MORTAL_EBB') {
+    icon = '🕯️ ';
+    label = 'MORTAL EBB';
+    isDebuff = true;
+    className = 'condition-exposed';
+    mnemonic = ': -1 All';
+    ruleText = 'Vessel Fatigue: Inflicts -1 Attack Roll, -1 Armor, -1 Ward, -1 Move, and -1 Speed, and blocks receiving Henosis until recovered. Cannot be cleansed.';
   }
 
   const durationStr = `${cond.durationTurns}t`;

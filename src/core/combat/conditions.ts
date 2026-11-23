@@ -1,6 +1,6 @@
 import { Ability, ConditionType, DamageType } from '../types/ability';
 import { Faction } from '../types/unit';
-import { ActiveCondition, CombatState, CombatUnit } from './types';
+import { ActiveCondition, CombatState, CombatUnit, ModifiableCombatStat } from './types';
 import { getCombatArc, hexDistance, HexCoord, HexDirection } from '../grid/hex';
 
 /**
@@ -58,11 +58,33 @@ export interface ConditionAttackRollModifier {
   readonly description?: string;
 }
 
+export type ConditionTickTiming = 'TURN_START' | 'TURN_END' | 'NEVER';
+
 export interface ConditionDefinition {
   readonly type: ConditionType;
   readonly stackingPolicy: StackingPolicy;
+  readonly tickTiming?: ConditionTickTiming;
   readonly defaultIntensity?: number;
   readonly maxIntensity?: number;
+  /** Declarative stat deltas active while the condition is on a unit */
+  readonly statModifiers?: Partial<Record<ModifiableCombatStat, number>>;
+  /** Whether this condition is removed by negative-status purification (CLEANSE) */
+  readonly purgeableByCleanse?: boolean;
+  /** Optional cap on how many living units on the arena may simultaneously hold this condition from the same sourceUnitId */
+  readonly maxActivePerSource?: number;
+  /** Optional list of conditions on a target that block applying this condition to that target */
+  readonly blockedByTargetConditions?: readonly ConditionType[];
+  /** Optional follow-up condition automatically applied to the bearer when this condition's duration expires naturally */
+  readonly onExpireApplyCondition?: {
+    readonly type: ConditionType;
+    readonly durationTurns: number;
+  };
+  /** Optional lifecycle hook invoked whenever the condition expires or is purged */
+  readonly onRemoved?: (
+    condition: ActiveCondition,
+    bearer: CombatUnit,
+    state?: CombatState
+  ) => void;
   readonly onOutgoingAttackRoll?: (
     condition: ActiveCondition,
     actor: CombatUnit,
@@ -110,6 +132,8 @@ export const CONDITION_REGISTRY: Readonly<Record<ConditionType, ConditionDefinit
   CHALLENGED: {
     type: 'CHALLENGED',
     stackingPolicy: 'OVERRIDE_SOURCE',
+    tickTiming: 'TURN_START',
+    purgeableByCleanse: true,
     onOutgoingAttackRoll: (condition, _actor, target) => {
       // Disadvantage applies when attacking any target other than the challenger
       if (condition.sourceUnitId && target.unit.id !== condition.sourceUnitId) {
@@ -151,6 +175,8 @@ export const CONDITION_REGISTRY: Readonly<Record<ConditionType, ConditionDefinit
   STEALTH: {
     type: 'STEALTH',
     stackingPolicy: 'REFRESH_DURATION',
+    tickTiming: 'NEVER',
+    purgeableByCleanse: false,
     onOutgoingAttackRoll: () => ({
       advantage: true,
       description: 'Stealth (Advantage)'
@@ -179,6 +205,8 @@ export const CONDITION_REGISTRY: Readonly<Record<ConditionType, ConditionDefinit
   POISON: {
     type: 'POISON',
     stackingPolicy: 'STACK_INTENSITY',
+    tickTiming: 'TURN_START',
+    purgeableByCleanse: true,
     defaultIntensity: 2,
     maxIntensity: 8,
     onTurnStart: (condition) => ({
@@ -189,6 +217,8 @@ export const CONDITION_REGISTRY: Readonly<Record<ConditionType, ConditionDefinit
   BURN: {
     type: 'BURN',
     stackingPolicy: 'STACK_INTENSITY',
+    tickTiming: 'TURN_START',
+    purgeableByCleanse: true,
     defaultIntensity: 2,
     maxIntensity: 8,
     onTurnStart: (condition) => ({
@@ -199,6 +229,8 @@ export const CONDITION_REGISTRY: Readonly<Record<ConditionType, ConditionDefinit
   EXPOSED: {
     type: 'EXPOSED',
     stackingPolicy: 'REFRESH_DURATION',
+    tickTiming: 'TURN_START',
+    purgeableByCleanse: true,
     onIncomingAttackRoll: () => ({
       advantage: true,
       description: 'Exposed (Advantage)'
@@ -206,21 +238,146 @@ export const CONDITION_REGISTRY: Readonly<Record<ConditionType, ConditionDefinit
   },
   TELEMETRY: {
     type: 'TELEMETRY',
-    stackingPolicy: 'REFRESH_DURATION'
+    stackingPolicy: 'REFRESH_DURATION',
+    tickTiming: 'TURN_START',
+    purgeableByCleanse: true
   },
   CHARMED: {
     type: 'CHARMED',
-    stackingPolicy: 'OVERRIDE_SOURCE'
+    stackingPolicy: 'OVERRIDE_SOURCE',
+    tickTiming: 'TURN_END',
+    purgeableByCleanse: false,
+    onRemoved: (_condition, bearer) => {
+      restoreOriginalFactionIfUncharmed(bearer);
+    }
   },
   BLINDED: {
     type: 'BLINDED',
     stackingPolicy: 'REFRESH_DURATION',
+    tickTiming: 'TURN_END',
+    purgeableByCleanse: true,
     onOutgoingAttackRoll: () => ({
       disadvantage: true,
       description: 'Blinded (Disadvantage)'
     })
+  },
+  HENOSIS: {
+    type: 'HENOSIS',
+    stackingPolicy: 'OVERRIDE_SOURCE',
+    tickTiming: 'TURN_END',
+    purgeableByCleanse: false,
+    maxActivePerSource: 1,
+    blockedByTargetConditions: ['MORTAL_EBB'],
+    statModifiers: {
+      attackRoll: 2,
+      armor: 2,
+      ward: 2,
+      move: 1,
+      speed: 1
+    },
+    onOutgoingAttackRoll: () => ({
+      attackRollBonus: 2,
+      description: 'Henosis (+2)'
+    }),
+    onExpireApplyCondition: {
+      type: 'MORTAL_EBB',
+      durationTurns: 1
+    }
+  },
+  MORTAL_EBB: {
+    type: 'MORTAL_EBB',
+    stackingPolicy: 'REFRESH_DURATION',
+    tickTiming: 'TURN_END',
+    purgeableByCleanse: false,
+    statModifiers: {
+      attackRoll: -1,
+      armor: -1,
+      ward: -1,
+      move: -1,
+      speed: -1
+    },
+    onOutgoingAttackRoll: () => ({
+      attackRollPenalty: 1,
+      description: 'Mortal Ebb (-1)'
+    })
   }
 };
+
+/**
+ * Computes the aggregate flat modifier for a given combat stat across all active conditions on a unit.
+ */
+export function getConditionStatModifier(
+  conditions: readonly ActiveCondition[] | undefined,
+  stat: ModifiableCombatStat
+): number {
+  return (conditions ?? []).reduce(
+    (sum, c) => sum + (CONDITION_REGISTRY[c.type]?.statModifiers?.[stat] ?? 0),
+    0
+  );
+}
+
+/**
+ * Generically ticks active conditions on a unit matching the specified timing phase ('TURN_START' or 'TURN_END').
+ * When a condition expires (durationTurns <= 0), removes it, invokes its `onRemoved` lifecycle hook,
+ * and applies any declarative `onExpireApplyCondition` follow-up condition.
+ */
+export function tickUnitConditions(
+  cu: CombatUnit,
+  phase: 'TURN_START' | 'TURN_END',
+  state?: CombatState
+): void {
+  if (!cu.activeConditions || cu.activeConditions.length === 0) return;
+
+  const snapshot = [...cu.activeConditions];
+  const remaining: ActiveCondition[] = [];
+  const followUps: { readonly type: ConditionType; readonly durationTurns: number; readonly sourceUnitId: string }[] = [];
+  const removedDefs: { readonly def: ConditionDefinition; readonly cond: ActiveCondition }[] = [];
+
+  for (const cond of snapshot) {
+    const def = getConditionDefinition(cond.type);
+    const timing: ConditionTickTiming = def?.tickTiming ?? 'TURN_START';
+    if (timing !== phase) {
+      remaining.push(cond);
+      continue;
+    }
+
+    cond.durationTurns -= 1;
+    if (cond.durationTurns > 0) {
+      remaining.push(cond);
+    } else {
+      if (def) {
+        removedDefs.push({ def, cond });
+        if (def.onExpireApplyCondition) {
+          followUps.push({
+            type: def.onExpireApplyCondition.type,
+            durationTurns: def.onExpireApplyCondition.durationTurns,
+            sourceUnitId: cond.sourceUnitId
+          });
+        }
+      }
+    }
+  }
+
+  cu.activeConditions = remaining;
+
+  for (const { def, cond } of removedDefs) {
+    def.onRemoved?.(cond, cu, state);
+  }
+
+  for (const followUp of followUps) {
+    const existing = cu.activeConditions.find((c) => c.type === followUp.type);
+    if (existing) {
+      existing.durationTurns = Math.max(existing.durationTurns, followUp.durationTurns);
+      existing.sourceUnitId = followUp.sourceUnitId;
+    } else {
+      cu.activeConditions.push({
+        type: followUp.type,
+        durationTurns: followUp.durationTurns,
+        sourceUnitId: followUp.sourceUnitId
+      });
+    }
+  }
+}
 
 /**
  * Returns true if targetCu is marked with Quadrant Telemetry (TELEMETRY)

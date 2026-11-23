@@ -156,7 +156,10 @@ describe('abilityFormatter', () => {
       { type: 'PULL', magnitude: 1 },
       { type: 'CONDITION', conditionType: 'CHARMED', durationTurns: 1, applyOn: 'HIT_ONLY' },
       { type: 'CONDITION', conditionType: 'BLINDED', durationTurns: 1, applyOn: 'HIT_OR_CRIT' },
-      { type: 'CONDITION', conditionType: 'EXPOSED', durationTurns: 1, applyOn: 'GRAZE_ONLY' }
+      { type: 'CONDITION', conditionType: 'EXPOSED', durationTurns: 1, applyOn: 'GRAZE_ONLY' },
+      { type: 'CONDITION', conditionType: 'HENOSIS', durationTurns: 2 },
+      { type: 'CONDITION', conditionType: 'MORTAL_EBB', durationTurns: 1 },
+      { type: 'CLEANSE' }
     ];
 
     for (const eff of allEffects) {

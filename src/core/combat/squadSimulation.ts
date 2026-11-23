@@ -24,7 +24,8 @@ export const ALL_AUTHORED_CLASS_IDS = [
   'shield-bearer',
   'dragoon',
   'ballistician',
-  'philanderer'
+  'philanderer',
+  'theurge'
 ] as const;
 
 export type AuthoredClassId = typeof ALL_AUTHORED_CLASS_IDS[number];
@@ -102,6 +103,10 @@ export const DEFAULT_CLASS_RESONANT_LOADOUTS: Readonly<Record<string, ResonantLo
   philanderer: {
     wildcardAbilityIds: ['pilfer', 'smoke_veil'],
     wildcardPassiveIds: ['quickstep']
+  },
+  theurge: {
+    wildcardAbilityIds: ['minor_ward', 'spark'],
+    wildcardPassiveIds: ['arcane_aegis']
   }
 };
 

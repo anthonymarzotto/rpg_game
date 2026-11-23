@@ -1,6 +1,6 @@
 # 2v2 Support Synergy Benchmark: Knight vs Warrior (Control)
 
-**Candidate:** Knight | **Control:** Warrior | **Gauntlet Comps:** 6 | **Trials/Pair:** 6 | **Total Matches:** 1008
+**Candidate:** Knight | **Control:** Warrior | **Gauntlet Comps:** 6 | **Trials/Pair:** 6 | **Total Matches:** 1080
 
 ## Benchmark Overview
 
@@ -23,8 +23,9 @@ This benchmark evaluates whether bringing **Knight** as a partner enables other 
 | **Shield-bearer** | T4 | 41.7% | 33.3% | **+8.4%** | 41.7% | 33.3% | **+8.4%** | 19.1 | 15.5 | **+3.6** | 8.8 vs 12.5 (-3.7) |
 | **Dragoon** | T4 | 83.3% | 75.0% | **+8.3%** | 83.3% | 72.2% | **+11.1%** | 33.1 | 31.3 | **+1.8** | 6.8 vs 7.6 (-0.8) |
 | **Ballistician** | T4 | 86.1% | 66.7% | **+19.4%** | 86.1% | 55.6% | **+30.5%** | 25.5 | 21.6 | **+3.9** | 11.3 vs 16.4 (-5.1) |
-| **Philanderer** | T4 | 77.8% | 88.9% | **-11.1%** | 83.3% | 86.1% | **-2.8%** | 15.4 | 12.4 | **+3.0** | 13.1 vs 19.1 (-6.0) |
-| **NET AVERAGE** | **--** | **50.8%** | **50.0%** | **+0.8%** | **50.6%** | **43.5%** | **+7.1%** | **20.9** | **16.4** | **+4.6** | **10.2 vs 15.8 (-5.6)** |
+| **Philanderer** | T4 | 75.0% | 88.9% | **-13.9%** | 75.0% | 88.9% | **-13.9%** | 12.4 | 11.8 | **+0.6** | 11.8 vs 19.6 (-7.8) |
+| **Theurge** | T4 | 77.8% | 72.2% | **+5.6%** | 80.6% | 66.7% | **+13.9%** | 22.7 | 17.7 | **+5.0** | 16.6 vs 20.6 (-4.0) |
+| **NET AVERAGE** | **--** | **52.4%** | **51.5%** | **+0.9%** | **52.0%** | **45.2%** | **+6.8%** | **20.9** | **16.4** | **+4.5** | **10.6 vs 16.2 (-5.6)** |
 
 ## Gauntlet Compositions
 

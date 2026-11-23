@@ -16,6 +16,7 @@ import {
   DRAGOON_PACKAGE,
   BALLISTICIAN_PACKAGE,
   PHILANDERER_PACKAGE,
+  THEURGE_PACKAGE,
   CLASS_PACKAGES,
   MOMENTUM,
   getClassPackage,
@@ -369,6 +370,54 @@ describe('Class Packages & Catalog Verification', () => {
     expect(getAbilityById('looking_glass_glare')).toBeDefined();
     expect(getPassiveById('captivating_presence')).toBeDefined();
     expect(getClassPackage('philanderer')).toBe(PHILANDERER_PACKAGE);
+  });
+
+  it('correctly maps Theurge abilities, passive, and profile', () => {
+    expect(THEURGE_PACKAGE.classId).toBe('theurge');
+    expect(THEURGE_PACKAGE.className).toBe('Theurge');
+    expect(THEURGE_PACKAGE.signatureAbility.id).toBe('henosis');
+    expect(THEURGE_PACKAGE.signatureAbility.apCost).toBe(2);
+    expect(THEURGE_PACKAGE.signatureAbility.range).toBe(3);
+    expect(THEURGE_PACKAGE.signatureAbility.targetType).toBe('ALLY');
+    expect(THEURGE_PACKAGE.signatureAbility.damageType).toBe('NONE');
+
+    expect(THEURGE_PACKAGE.domainAbilities.map((a) => a.id)).toEqual([
+      'absolution',
+      'empyrean_pillar'
+    ]);
+    const absolution = THEURGE_PACKAGE.domainAbilities.find((a) => a.id === 'absolution')!;
+    expect(absolution.range).toBe(3);
+    expect(absolution.targetType).toBe('ALLY');
+    expect(absolution.effects.some((e) => e.type === 'CLEANSE')).toBe(true);
+    expect(absolution.effects.some((e) => e.type === 'INITIATIVE_BOOST' && e.magnitude === 20)).toBe(true);
+
+    const pillar = THEURGE_PACKAGE.domainAbilities.find((a) => a.id === 'empyrean_pillar')!;
+    expect(pillar.range).toBe(3);
+    expect(pillar.ignoresElevationPenalty).toBe(true);
+    expect(pillar.damageType).toBe('MAGICAL');
+    expect(pillar.effects.some((e) => e.type === 'CTB_DELAY' && e.magnitude === 20)).toBe(true);
+
+    expect(THEURGE_PACKAGE.passive.id).toBe('theurgic_synergy');
+    expect(THEURGE_PACKAGE.passive.hook).toBe('ON_HIT');
+    expect(THEURGE_PACKAGE.passive.triggerFilter).toEqual({
+      damageType: 'MAGICAL',
+      requireSolidHitOrCrit: true
+    });
+    expect(THEURGE_PACKAGE.passive.conduitPulse).toEqual({
+      linkedCondition: 'HENOSIS',
+      fallbackToSelf: true,
+      radius: 1,
+      damage: 1,
+      damageType: 'MAGICAL',
+      label: 'SYNERGY'
+    });
+    expect(THEURGE_PACKAGE.aiProfile).toBe('SUPPORT');
+
+    expect(getAbilityById('henosis')).toBeDefined();
+    expect(getAbilityById('absolution')).toBeDefined();
+    expect(getAbilityById('empyrean_pillar')).toBeDefined();
+    expect(getPassiveById('theurgic_synergy')).toBeDefined();
+    expect(getClassPackage('theurge')).toBe(THEURGE_PACKAGE);
   });
 
   it('requires explicit shout configuration on customizable displacement and tempo effects across all registered abilities', () => {

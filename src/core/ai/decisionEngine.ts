@@ -625,7 +625,13 @@ export function decideNextActionWithTrace(
       for (const allyCu of alliedUnits) {
         const isSelf = allyCu.unit.id === actorUnitId;
         if (ability.targetType === 'SELF' && !isSelf) continue;
-        if (ability.targetType === 'ALLY' && isSelf) continue;
+        if (
+          ability.targetType === 'ALLY' &&
+          isSelf &&
+          !ability.effects?.some((e) => e.type === 'CLEANSE' || (e.type === 'CONDITION' && e.conditionType === 'HENOSIS'))
+        ) {
+          continue;
+        }
 
         const allyCoord = state.arena.getUnitPosition(allyCu.unit.id);
         if (!allyCoord) continue;

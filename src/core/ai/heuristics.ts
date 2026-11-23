@@ -7,6 +7,7 @@ import { Ability } from '../types/ability';
 import { AIProfile, AIArchetypeWeights } from './types';
 import { getClassPackage } from '../../data/packages';
 import { getEffectiveMove } from '../combat/effectiveVitals';
+import { getConditionDefinition } from '../combat/conditions';
 import { getEffectiveAbility } from '../combat/modifiers';
 import { isBastionStanceActive } from '../combat/bastionStance';
 import { getRoughTerrainHexKeys, getPendingBombardmentHexKeys } from '../combat/battlefieldZones';
@@ -511,17 +512,113 @@ export function scoreBuffAbility(
     }
   }
 
-  // 2. INITIATIVE_BOOST or Witch's Talisman (Speed/Ward buff) evaluation
+  // 1b. HENOSIS vessel ascension evaluation
+  if (conditionEffect?.conditionType === 'HENOSIS') {
+    const condDef = getConditionDefinition('HENOSIS');
+    if (
+      condDef?.blockedByTargetConditions?.some((b) =>
+        targetCu.activeConditions.some((c) => c.type === b)
+      )
+    ) {
+      return { score: 0 };
+    }
+    let henosisScore = isSelf ? 18.0 : 32.0;
+    const reasons: string[] = [
+      isSelf ? 'Channel Henosis onto self' : `Elevate ally ${targetCu.unit.name} as Henosis vessel`
+    ];
+    if (minHostileDist <= 1) {
+      henosisScore += 12.0;
+      reasons.push('Vessel engaged in melee (radiant pulse & frontline defenses)');
+    } else if (minHostileDist <= 2) {
+      henosisScore += 8.0;
+      reasons.push('Vessel in frontline combat proximity');
+    }
+    const targetRole = resolveAIProfile(targetCu);
+    if (!isSelf && (targetRole === 'BRAWLER' || targetRole === 'SKIRMISHER')) {
+      henosisScore += 6.0;
+      reasons.push('Empower frontline martial champion');
+    }
+    if (profile === 'SUPPORT' && !isSelf) {
+      henosisScore += 12.0;
+    }
+    return {
+      score: Math.round(henosisScore * 10) / 10,
+      reason: reasons.join('; ')
+    };
+  }
+
+  // 1c. CLEANSE status purification evaluation (e.g. Absolution)
+  const hasCleanse = Boolean(ability.effects?.some((e) => e.type === 'CLEANSE'));
   const initiativeEffect = ability.effects?.find((e) => e.type === 'INITIATIVE_BOOST');
+  if (hasCleanse) {
+    const purgeableConditions = targetCu.activeConditions.filter(
+      (c) => getConditionDefinition(c.type)?.purgeableByCleanse
+    );
+
+    if (purgeableConditions.length > 0) {
+      let cleanseScore = 18.0 + purgeableConditions.length * 16.0;
+      const reasons: string[] = [
+        `Purge ${purgeableConditions.map((c) => c.type).join(', ')} from ${isSelf ? 'self' : targetCu.unit.name}`
+      ];
+
+      if (!isSelf && initiativeEffect && targetCu.initiativeGauge < 80) {
+        if (minHostileDist <= 1) {
+          cleanseScore += 4.0;
+          reasons.push('Frontline ally engaged in melee');
+        }
+        if (targetCu.initiativeGauge < 50) {
+          cleanseScore += 4.0;
+          reasons.push('Boost lagging CTB gauge');
+        }
+      }
+
+      if (profile === 'SUPPORT' && !isSelf) {
+        cleanseScore += 6.0;
+      }
+
+      return {
+        score: Math.round(cleanseScore * 10) / 10,
+        reason: reasons.join('; ')
+      };
+    }
+
+    // No purgeable debuffs: only evaluate as modest CTB filler on an ally so it doesn't crowd out offensive spells
+    if (isSelf || !initiativeEffect || targetCu.initiativeGauge >= 80) {
+      return { score: 0 };
+    }
+
+    let fillerScore = 4.5;
+    const reasons: string[] = ['Initiative acceleration (no debuffs to cleanse)'];
+    if (minHostileDist <= 1) {
+      fillerScore += 1.5;
+      reasons.push('Frontline ally engaged in melee');
+    } else if (minHostileDist <= 2) {
+      fillerScore += 0.5;
+      reasons.push('Ally in combat proximity');
+    }
+    if (targetCu.initiativeGauge < 50) {
+      fillerScore += 1.0;
+      reasons.push('Boost lagging CTB gauge');
+    }
+    if (targetCu.activeConditions.some((c) => c.type === 'HENOSIS')) {
+      fillerScore += 1.5;
+      reasons.push('Accelerate active Henosis vessel');
+    }
+
+    return {
+      score: Math.round(fillerScore * 10) / 10,
+      reason: reasons.join('; ')
+    };
+  }
+
+  // 2. INITIATIVE_BOOST or Witch's Talisman (Speed/Ward buff) evaluation
   const isTalisman = ability.id === 'witchs_talisman' || Boolean(initiativeEffect);
   if (isTalisman) {
     if (isSelf) return { score: 0 };
     if (targetCu.initiativeGauge >= 80) return { score: 0 };
 
-    // Check if target already has an active speed modifier buff
-    const hasSpeedBuff = targetCu.activeModifiers.some(
-      (m) => m.stat === 'speed' && m.value > 0
-    );
+    // Check if target already has an active speed modifier buff (for Witch's Talisman)
+    const hasSpeedBuff = targetCu.activeModifiers.some((m) => m.stat === 'speed' && m.value > 0);
     if (hasSpeedBuff) return { score: 0 };
 
     let initScore = 20.0;

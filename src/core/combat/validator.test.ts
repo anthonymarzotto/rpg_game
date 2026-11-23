@@ -542,6 +542,74 @@ describe('Combat Validator', () => {
       expect(rangeCoords.some((c) => c.q === 0 && c.r === 2)).toBe(false);
       expect(rangeCoords.some((c) => c.q === 1 && c.r === 0)).toBe(true);
     });
+
+    it('enforces maxActivePerSource (strict single-vessel lockout), clears on vessel defeat, and enforces blockedByTargetConditions (MORTAL_EBB)', () => {
+      const arena = createRadialArena(3);
+      const theurge = createRecruit('theurge', 'Theurge', { faction: 'PLAYER' });
+      const allyA = createRecruit('allyA', 'Ally A', { faction: 'PLAYER' });
+      const allyB = createRecruit('allyB', 'Ally B', { faction: 'PLAYER' });
+
+      arena.setUnitPosition('theurge', { q: 0, r: 0 });
+      arena.setUnitPosition('allyA', { q: 1, r: 0 });
+      arena.setUnitPosition('allyB', { q: 0, r: 1 });
+
+      const state = createCombatState(arena, [theurge, allyA, allyB], 'theurge');
+      const theurgeCu = state.units.get('theurge')!;
+      const allyACu = state.units.get('allyA')!;
+
+      const HENOSIS_ABILITY: Ability = {
+        id: 'henosis',
+        name: 'Henosis',
+        description: 'Channel divine union.',
+        archetypeTag: 'MAGE',
+        apCost: 2,
+        range: 3,
+        targetType: 'ALLY',
+        defenseTarget: 'NONE',
+        damageType: 'NONE',
+        effects: [
+          {
+            type: 'CONDITION',
+            conditionType: 'HENOSIS',
+            durationTurns: 2
+          }
+        ]
+      };
+
+      // Initially valid on self, allyA, and allyB
+      expect(canExecuteAbility(state, 'theurge', HENOSIS_ABILITY, { targetUnitId: 'theurge' }).valid).toBe(true);
+      expect(canExecuteAbility(state, 'theurge', HENOSIS_ABILITY, { targetUnitId: 'allyA' }).valid).toBe(true);
+
+      // Apply HENOSIS from theurge to allyA -> maxActivePerSource: 1 locks out Henosis
+      applyConditionToUnit(allyACu, 'HENOSIS', 2, 'theurge');
+      const lockedCheck = canExecuteAbility(state, 'theurge', HENOSIS_ABILITY, { targetUnitId: 'allyB' });
+      expect(lockedCheck.valid).toBe(false);
+      if (!lockedCheck.valid) {
+        expect(lockedCheck.reason).toContain('already active');
+      }
+      expect(getAbilityRangeCoords(arena, { q: 0, r: 0 }, HENOSIS_ABILITY, theurgeCu, state)).toHaveLength(0);
+
+      // When allyA is defeated, lockout clears immediately
+      allyACu.isDefeated = true;
+      allyACu.currentHp = 0;
+      arena.removeUnit('allyA');
+      expect(canExecuteAbility(state, 'theurge', HENOSIS_ABILITY, { targetUnitId: 'allyB' }).valid).toBe(true);
+
+      // Revive allyA with MORTAL_EBB instead of HENOSIS: allyA is blocked by MORTAL_EBB, while allyB and self are valid
+      allyACu.isDefeated = false;
+      allyACu.currentHp = 10;
+      allyACu.activeConditions = [];
+      arena.setUnitPosition('allyA', { q: 1, r: 0 });
+      applyConditionToUnit(allyACu, 'MORTAL_EBB', 1, 'theurge');
+
+      const ebbBlocked = canExecuteAbility(state, 'theurge', HENOSIS_ABILITY, { targetUnitId: 'allyA' });
+      expect(ebbBlocked.valid).toBe(false);
+      if (!ebbBlocked.valid) {
+        expect(ebbBlocked.reason).toContain('MORTAL_EBB');
+      }
+      expect(canExecuteAbility(state, 'theurge', HENOSIS_ABILITY, { targetUnitId: 'allyB' }).valid).toBe(true);
+      expect(canExecuteAbility(state, 'theurge', HENOSIS_ABILITY, { targetUnitId: 'theurge' }).valid).toBe(true);
+    });
   });
 });
 

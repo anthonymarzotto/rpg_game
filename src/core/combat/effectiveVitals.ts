@@ -1,5 +1,6 @@
 import { CombatUnit, ModifiableCombatStat } from './types';
 import { getPassiveStatModifier } from './passives';
+import { getConditionStatModifier } from './conditions';
 import { isBastionStanceActive } from './bastionStance';
 import { isDisplacementImmune } from './displacementImmunity';
 
@@ -10,9 +11,11 @@ import { isDisplacementImmune } from './displacementImmunity';
  */
 export function getEffectiveStat(cu: CombatUnit, stat: ModifiableCombatStat): number {
   if (stat === 'attackRoll') {
-    return cu.activeModifiers
+    const modSum = cu.activeModifiers
       .filter((m) => m.stat === 'attackRoll')
       .reduce((sum, m) => sum + m.value, 0);
+    const condSum = getConditionStatModifier(cu.activeConditions, 'attackRoll');
+    return modSum + condSum;
   }
   if (stat === 'bastionStance') {
     return isBastionStanceActive(cu) ? 1 : 0;
@@ -24,10 +27,11 @@ export function getEffectiveStat(cu: CombatUnit, stat: ModifiableCombatStat): nu
   const modSum = cu.activeModifiers
     .filter((m) => m.stat === stat)
     .reduce((sum, m) => sum + m.value, 0);
+  const condSum = getConditionStatModifier(cu.activeConditions, stat);
   const passiveSum = getPassiveStatModifier(cu.passives, stat);
   const zeroedInPenalty = stat === 'evasion' ? -(cu.zeroedInStacks ?? 0) : 0;
 
-  const total = base + modSum + passiveSum + zeroedInPenalty;
+  const total = base + modSum + condSum + passiveSum + zeroedInPenalty;
 
   if (stat === 'move') {
     if (isBastionStanceActive(cu)) {

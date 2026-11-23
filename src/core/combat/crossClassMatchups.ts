@@ -27,7 +27,8 @@ export const MATCHUP_CLASSES: readonly ClassMatchupProfile[] = [
   { classId: 'shield-bearer', name: 'Shield-bearer', shortCode: 'SBR', tier: 4 },
   { classId: 'dragoon', name: 'Dragoon', shortCode: 'DRG', tier: 4 },
   { classId: 'ballistician', name: 'Ballistician', shortCode: 'BAL', tier: 4 },
-  { classId: 'philanderer', name: 'Philanderer', shortCode: 'PHL', tier: 4 }
+  { classId: 'philanderer', name: 'Philanderer', shortCode: 'PHL', tier: 4 },
+  { classId: 'theurge', name: 'Theurge', shortCode: 'THG', tier: 4 }
 ];
 
 export interface MatchupRecord {

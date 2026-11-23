@@ -1202,6 +1202,45 @@ describe('parseCombatLogMessage', () => {
       expect(html).toContain('effect-pill-displacement');
       expect(html).toContain('Knockback (2, 0)');
     });
+
+    it('renders HENOSIS and MORTAL_EBB condition pills and tooltips cleanly', () => {
+      const entry: CombatLogEntry = {
+        turnNumber: 5,
+        actorUnitId: 'player-theurge',
+        actionId: 'henosis',
+        message: 'Theurge used Henosis on Alden.',
+        metadata: {
+          type: 'BUFF',
+          actor: 'Theurge',
+          ability: 'Henosis',
+          target: 'Alden',
+          effects: [
+            {
+              kind: 'CONDITION',
+              condition: 'HENOSIS',
+              durationTurns: 2,
+              targetName: 'Alden'
+            },
+            {
+              kind: 'CONDITION',
+              condition: 'MORTAL_EBB',
+              durationTurns: 1,
+              targetName: 'Alden'
+            }
+          ]
+        }
+      };
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: [entry],
+          turnNumber: 5
+        })
+      );
+
+      expect(html).toContain('Henosis 2t');
+      expect(html).toContain('Mortal Ebb 1t');
+    });
   });
 
   describe('formatD20Roll', () => {

@@ -1096,7 +1096,7 @@ describe('Headless AI Decision Engine', () => {
       const state = createCombatState(arena, [enemy, hero], enemy.id);
       const initialTurnNumber = state.turnNumber;
 
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
       const errorSpy = vi.spyOn(resolver, 'executeAbility').mockImplementationOnce(() => {
         throw new Error('Simulated ability execution throw');
       });
@@ -1969,6 +1969,62 @@ describe('Headless AI Decision Engine', () => {
         expect(action.type).toBe('ABILITY');
         if (action.type === 'ABILITY') {
           expect(['billet_doux', 'beckoning_glance', 'looking_glass_glare']).toContain(action.ability.id);
+        }
+      });
+
+      it('AI Theurge prioritizes Henosis onto frontline ally, Absolution to cleanse/accelerate allies, and Empyrean Pillar against enemies', () => {
+        const arena = createRadialArena(4);
+        const theurge = createMockUnit('th-1', 'Enemy Theurge', 'ENEMY', {
+          activeClassId: 'theurge',
+          baseAttributes: { force: 2, finesse: 1, focus: 4 }
+        });
+        const bruiserAlly = createMockUnit('ally-1', 'Enemy Bruiser', 'ENEMY', {
+          activeClassId: 'warrior',
+          baseAttributes: { force: 4, finesse: 1, focus: 1 }
+        });
+        const hero = createMockUnit('hero-1', 'Player Hero', 'PLAYER', {
+          baseAttributes: { force: 3, finesse: 2, focus: 1 }
+        });
+
+        arena.setUnitPosition(theurge.id, { q: 2, r: -1 }); // Clear LoS to both hero (dist 2) and bruiserAlly (dist 1)
+        arena.setUnitPosition(bruiserAlly.id, { q: 1, r: 0 }); // Engaged adjacent to hero
+        arena.setUnitPosition(hero.id, { q: 0, r: 0 });
+
+        const state = createCombatState(arena, [theurge, bruiserAlly, hero], theurge.id);
+        const theurgeCu = state.units.get(theurge.id)!;
+        theurgeCu.currentAp = 3;
+
+        // 1. At 3 AP with unblessed frontline ally engaged in melee, Theurge casts Henosis on ally
+        const firstAction = decideNextAction(state, theurge.id);
+        expect(firstAction.type).toBe('ABILITY');
+        if (firstAction.type === 'ABILITY') {
+          expect(firstAction.ability.id).toBe('henosis');
+          expect(firstAction.target.targetUnitId).toBe(bruiserAlly.id);
+        }
+        executeAiAction(state, theurge.id, firstAction);
+
+        // 2. With 1 AP left and Henosis locked out, if ally has NO debuffs and enemy is in range, Theurge casts Empyrean Pillar
+        const allyCu = state.units.get(bruiserAlly.id)!;
+        allyCu.initiativeGauge = 30;
+
+        const offensiveAction = decideNextAction(state, theurge.id);
+        expect(offensiveAction.type).toBe('ABILITY');
+        if (offensiveAction.type === 'ABILITY') {
+          expect(offensiveAction.ability.id).toBe('empyrean_pillar');
+          expect(offensiveAction.target.targetUnitId).toBe(hero.id);
+        }
+
+        // 3. If ally IS afflicted with POISON and BLINDED, Theurge prioritizes Absolution to cleanse
+        allyCu.activeConditions.push(
+          { type: 'POISON', durationTurns: 2, sourceUnitId: hero.id },
+          { type: 'BLINDED', durationTurns: 1, sourceUnitId: hero.id }
+        );
+
+        const cleanseAction = decideNextAction(state, theurge.id);
+        expect(cleanseAction.type).toBe('ABILITY');
+        if (cleanseAction.type === 'ABILITY') {
+          expect(cleanseAction.ability.id).toBe('absolution');
+          expect(cleanseAction.target.targetUnitId).toBe(bruiserAlly.id);
         }
       });
     });

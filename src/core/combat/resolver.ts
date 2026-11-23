@@ -106,10 +106,78 @@ export function triggerPassiveHook(
   for (const passive of actorCu.passives ?? []) {
     if (passive.hook !== hook) continue;
 
-    // Check trigger filters if present (e.g. magic spell crits)
+    // Check trigger filters if present (e.g. magic spell crits or solid hit/crit requirement)
     if (passive.triggerFilter) {
       if (passive.triggerFilter.damageType && extra?.ability?.damageType !== passive.triggerFilter.damageType) {
         continue;
+      }
+      if (
+        passive.triggerFilter.requireSolidHitOrCrit &&
+        extra?.hitOutcome !== 'SOLID_HIT' &&
+        extra?.hitOutcome !== 'CRITICAL_HIT'
+      ) {
+        continue;
+      }
+    }
+
+    // Execute conduit-projected AoE damage pulse if defined (e.g. Theurgic Synergy)
+    if (passive.conduitPulse) {
+      const pulse = passive.conduitPulse;
+      let conduitCu: CombatUnit | undefined;
+      for (const u of state.units.values()) {
+        if (u.isDefeated || u.currentHp <= 0) continue;
+        if (!state.arena.getUnitPosition(u.unit.id)) continue;
+        if (u.activeConditions?.some((c) => c.type === pulse.linkedCondition && c.sourceUnitId === actorCu.unit.id)) {
+          conduitCu = u;
+          break;
+        }
+      }
+      if (!conduitCu && pulse.fallbackToSelf && !actorCu.isDefeated && actorCu.currentHp > 0) {
+        conduitCu = actorCu;
+      }
+
+      const conduitPos = conduitCu ? state.arena.getUnitPosition(conduitCu.unit.id) : undefined;
+      if (conduitCu && conduitPos) {
+        const pulseOutcomes: EffectOutcome[] = [];
+        const affectedEnemyIds: string[] = [];
+        for (const enemyCu of state.units.values()) {
+          if (enemyCu.isDefeated || enemyCu.currentHp <= 0) continue;
+          if (!enemyCu.faction || !actorCu.faction || enemyCu.faction === actorCu.faction) continue;
+          const enemyPos = state.arena.getUnitPosition(enemyCu.unit.id);
+          if (!enemyPos) continue;
+          const dist = hexDistance(conduitPos, enemyPos);
+          if (dist >= 1 && dist <= pulse.radius) {
+            events.push({
+              type: 'DAMAGE',
+              targetUnitId: enemyCu.unit.id,
+              amount: pulse.damage,
+              damageType: pulse.damageType,
+              reason: 'PASSIVE',
+              label: pulse.label,
+              sourceUnitId: actorCu.unit.id,
+              isCrit: false
+            });
+            affectedEnemyIds.push(enemyCu.unit.id);
+            pulseOutcomes.push({
+              kind: 'COLLATERAL_HIT',
+              sourceLabel: passive.name,
+              targetName: enemyCu.unit.name,
+              damage: pulse.damage,
+              damageType: pulse.damageType,
+              targetHp: Math.max(0, enemyCu.currentHp - pulse.damage),
+              targetMaxHp: enemyCu.unit.effectiveVitals.maxHp
+            });
+          }
+        }
+        if (pulseOutcomes.length > 0) {
+          combatLogger.logPassive(state, {
+            cu: actorCu,
+            passiveName: passive.name,
+            passiveId: passive.id,
+            effects: pulseOutcomes,
+            affectedUnitIds: [conduitCu.unit.id, ...affectedEnemyIds]
+          });
+        }
       }
     }
 
@@ -1370,7 +1438,11 @@ export function executeAbility(
 
   // Also turn any living secondary splash damage targets to face the attack origin
   for (const event of events) {
-    if (event.type === 'DAMAGE' && (!targetCu || event.targetUnitId !== targetCu.unit.id)) {
+    if (
+      event.type === 'DAMAGE' &&
+      event.reason !== 'PASSIVE' &&
+      (!targetCu || event.targetUnitId !== targetCu.unit.id)
+    ) {
       const secondaryCu = state.units.get(event.targetUnitId);
       if (secondaryCu && !secondaryCu.isDefeated) {
         const secPos = state.arena.getUnitPosition(secondaryCu.unit.id);
@@ -1463,7 +1535,10 @@ export function executeAbility(
   const dcClause = targetCu ? ` vs DC ${rollResult.targetDefense} -> ${rollResult.hitOutcome}` : ` -> score ${rollResult.totalScore}`;
   const hpClause = targetCu ? ` (HP: ${targetCu.currentHp}/${targetCu.unit.effectiveVitals.maxHp})` : '';
 
-  const totalDamageEvents = events.filter((e): e is Extract<CombatEvent, { type: 'DAMAGE' }> => e.type === 'DAMAGE');
+  const totalDamageEvents = events.filter(
+    (e): e is Extract<CombatEvent, { type: 'DAMAGE' }> =>
+      e.type === 'DAMAGE' && e.reason !== 'PASSIVE'
+  );
   const totalDamageDealt = totalDamageEvents.reduce((acc, d) => acc + d.amount, 0);
 
   const d20ModFormatted = rollResult.modifier >= 0

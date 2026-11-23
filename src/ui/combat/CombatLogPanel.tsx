@@ -278,6 +278,18 @@ const CONDITION_PRESENTATION: Readonly<
     label: 'Blinded',
     tone: 'debuff',
     summary: 'Imposes Disadvantage on outgoing attacks, clamps maximum ability range to 1 hex, and disables front-arc Stealth detection.'
+  },
+  HENOSIS: {
+    icon: '✨',
+    label: 'Henosis',
+    tone: 'buff',
+    summary: 'Divine vessel ascension: grants +2 Attack Roll, +2 Armor, +2 Ward, +1 Move, and +1 Speed. Transitions into 1 turn of Mortal Ebb when it expires.'
+  },
+  MORTAL_EBB: {
+    icon: '🕯️',
+    label: 'Mortal Ebb',
+    tone: 'debuff',
+    summary: 'Post-ascension vessel fatigue: inflicts -1 Attack Roll, -1 Armor, -1 Ward, -1 Move, and -1 Speed, and blocks receiving Henosis until recovered.'
   }
 };
 

@@ -540,6 +540,12 @@ describe('Procedural Encounter Generator', () => {
       expect(philanderer.effectiveVitals.maxHp).toBe(32);
       expect(philanderer.loadout?.activeClassId).toBe('philanderer');
       expect(philanderer.progression.constellation).toContain('philanderer');
+
+      const theurge = createEnemyUnit('th-1', 'theurge');
+      expect(theurge.progression.currentLevel).toBe(4);
+      expect(theurge.effectiveVitals.maxHp).toBe(32);
+      expect(theurge.loadout?.activeClassId).toBe('theurge');
+      expect(theurge.progression.constellation).toContain('theurge');
     });
 
     it('incorporates Tier-4 enemies in squad assembly when budget allows (70+ threat, stage 5+)', () => {
@@ -553,7 +559,8 @@ describe('Procedural Encounter Generator', () => {
           u.loadout?.activeClassId === 'shield-bearer' ||
           u.loadout?.activeClassId === 'dragoon' ||
           u.loadout?.activeClassId === 'ballistician' ||
-          u.loadout?.activeClassId === 'philanderer'
+          u.loadout?.activeClassId === 'philanderer' ||
+          u.loadout?.activeClassId === 'theurge'
       );
       expect(hasTier4).toBe(true);
     });

@@ -9,6 +9,7 @@ import { teleportHandler } from './teleportHandler';
 import { cleaveHandler } from './cleaveHandler';
 import { ctbDelayHandler } from './ctbDelayHandler';
 import { conditionHandler } from './conditionHandler';
+import { cleanseHandler } from './cleanseHandler';
 import { spellSculptHandler } from './spellSculptHandler';
 import { initiativeBoostHandler } from './initiativeBoostHandler';
 import { wildSurgeHandler } from './wildSurgeHandler';
@@ -37,6 +38,7 @@ export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
   INITIATIVE_BOOST: initiativeBoostHandler,
   CONDITION: conditionHandler,
   CONDITION_APPLIED: conditionHandler,
+  CLEANSE: cleanseHandler,
   FORCE_FACING: conditionHandler,
   FORCE_FACING_AWAY: conditionHandler,
   SPELL_SCULPT: spellSculptHandler,

@@ -15,7 +15,8 @@ export type CombatDamageReason =
   | 'SPLASH'
   | 'STATUS_TICK'
   | 'ENVIRONMENT'
-  | 'FALL';
+  | 'FALL'
+  | 'PASSIVE';
 
 export type DisplacementKind = 'KNOCKBACK' | 'RETREAT' | 'PULL' | 'TELEPORT' | 'CHARGE' | 'SWAP';
 
@@ -329,7 +330,7 @@ export type EffectOutcome =
     }
   | {
       readonly kind: 'CONTEXT';
-      readonly context: 'ELEVATION' | 'AURA_PENALTY' | 'GRAZE_NEGATED';
+      readonly context: 'ELEVATION' | 'AURA_PENALTY' | 'GRAZE_NEGATED' | 'CLEANSED';
       readonly label: string;
       readonly detail?: string;
     };

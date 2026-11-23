@@ -1,5 +1,5 @@
 import { DerivedCombatVitals } from './stats';
-import { AbilityEffect, DamageType } from './ability';
+import { AbilityEffect, ConditionType, DamageType } from './ability';
 
 /**
  * Trigger hook for passive traits. Kept minimal with 'ALWAYS' for now.
@@ -69,6 +69,21 @@ export interface PassiveAuraEffect {
   readonly attackRollPenalty?: number;
 }
 
+export interface PassiveConduitPulseEffect {
+  /** Active condition type applied by this unit that designates the pulse conduit vessel (e.g. 'HENOSIS') */
+  readonly linkedCondition: ConditionType;
+  /** Whether to fall back to pulsing from the bearer themselves when no living linked conduit exists */
+  readonly fallbackToSelf: boolean;
+  /** Radius in hexes around the conduit unit to emit the pulse (e.g. 1 for adjacent ring) */
+  readonly radius: number;
+  /** Flat unmitigated damage dealt to each hostile unit within radius */
+  readonly damage: number;
+  /** Damage type of the pulse ('PHYSICAL' | 'MAGICAL') */
+  readonly damageType: 'PHYSICAL' | 'MAGICAL';
+  /** Floating combat text label emitted on struck enemies (e.g. 'SYNERGY') */
+  readonly label: string;
+}
+
 export interface PassiveTrait {
   readonly id: string;
   readonly name: string;
@@ -102,10 +117,13 @@ export interface PassiveTrait {
   readonly targetForceBonus?: TargetForceBonusEffect;
   /** Target-centric or proximity-based aura active on the battlefield */
   readonly aura?: PassiveAuraEffect;
-  /** Optional filter constraint for trigger (e.g. only on MAGICAL critical hits) */
+  /** Optional filter constraint for trigger (e.g. only on MAGICAL Solid Hit / Critical Hit) */
   readonly triggerFilter?: {
     readonly damageType?: DamageType;
+    readonly requireSolidHitOrCrit?: boolean;
   };
+  /** Optional conduit-projected AoE damage pulse emitted when the passive hook triggers (e.g. Theurgic Synergy) */
+  readonly conduitPulse?: PassiveConduitPulseEffect;
   /** If true, grants +1 Virtual Height per unspent AP on turn end (max +2) */
   readonly unspentApVirtualHeight?: boolean;
   /** Flat bonus damage when attacking a target at lower elevation (dh >= 1 or Virtual Height) */

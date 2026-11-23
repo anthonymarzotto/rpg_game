@@ -23,7 +23,7 @@ import { assignEnemyTitles } from '../../data/names';
 export type EnemyTier1Class = 'warrior' | 'thief' | 'wizard';
 export type EnemyTier2Class = 'knight' | 'infiltrator' | 'sorcerer';
 export type EnemyTier3Class = 'cavalier' | 'berserker' | 'highwayman' | 'warlock' | 'witch' | 'cat-burglar';
-export type EnemyTier4Class = 'shield-bearer' | 'dragoon' | 'ballistician' | 'philanderer';
+export type EnemyTier4Class = 'shield-bearer' | 'dragoon' | 'ballistician' | 'philanderer' | 'theurge';
 
 export const TIER1_CLASSES: readonly EnemyTier1Class[] = ['warrior', 'thief', 'wizard'];
 export const TIER2_CLASSES: readonly EnemyTier2Class[] = ['knight', 'infiltrator', 'sorcerer'];
@@ -39,7 +39,8 @@ export const TIER4_CLASSES: readonly EnemyTier4Class[] = [
   'shield-bearer',
   'dragoon',
   'ballistician',
-  'philanderer'
+  'philanderer',
+  'theurge'
 ];
 
 /**

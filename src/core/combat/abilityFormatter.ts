@@ -284,8 +284,26 @@ export function formatAbilityEffectClause(
       if (cond === 'TELEMETRY') {
         return buildClause(`Marks with Quadrant Telemetry (+2 allied ranged/spell Range, ignores elevation & cover, ${dur})`, triggerLabel);
       }
+      if (cond === 'HENOSIS') {
+        return buildClause(
+          `Bestows Henosis (+2 Attack Roll, +2 Armor, +2 Ward, +1 Move, +1 Speed, ${dur}; max 1 active vessel, followed by 1 turn of Mortal Ebb)`,
+          triggerLabel
+        );
+      }
+      if (cond === 'MORTAL_EBB') {
+        return buildClause(
+          `Inflicts Mortal Ebb (-1 Attack Roll, -1 Armor, -1 Ward, -1 Move, -1 Speed, ${dur})`,
+          triggerLabel
+        );
+      }
       return buildClause(`Applies ${cond ?? 'Condition'} (${dur})`, triggerLabel);
     }
+
+    case 'CLEANSE':
+      return buildClause(
+        `Purges all active negative status conditions from ${scopePhrase}`,
+        triggerLabel
+      );
 
     case 'ARMOR_BUFF': {
       const mag = effect.magnitude ?? 1;
@@ -399,9 +417,14 @@ function formatCompactEffectTag(effect: AbilityEffect): string | null {
     case 'FORCE_FACING_AWAY':
       return 'Turn 180°';
     case 'CONDITION':
+      if (effect.conditionType === 'MORTAL_EBB') {
+        return `Mortal Ebb ${effect.durationTurns ?? 1}t`;
+      }
       return effect.conditionType
         ? `${effect.conditionType.charAt(0)}${effect.conditionType.slice(1).toLowerCase()} ${effect.durationTurns ?? 1}t`
         : null;
+    case 'CLEANSE':
+      return 'Cleanse';
     case 'ARMOR_BUFF':
       return `+${effect.magnitude ?? 1} ARM ${effect.durationTurns ?? 1}t`;
     case 'WARD_BUFF':

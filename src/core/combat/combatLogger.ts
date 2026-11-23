@@ -35,6 +35,10 @@ export function formatEffectOutcome(outcome: EffectOutcome): string {
           return `[Charmed by ${outcome.sourceName ?? 'charmer'} for ${outcome.durationTurns} turn(s)]`;
         case 'BLINDED':
           return `[Blinded for ${outcome.durationTurns} turn(s)]`;
+        case 'HENOSIS':
+          return `[Henosis for ${outcome.durationTurns} turn(s)]`;
+        case 'MORTAL_EBB':
+          return `[Mortal Ebb for ${outcome.durationTurns} turn(s)]`;
       }
       break;
     }

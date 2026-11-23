@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CONDITION_REGISTRY, getConditionDefinition, evaluateFrontArcDetection } from './conditions';
+import { getEffectiveArmor, getEffectiveWard, getEffectiveMove, getEffectiveSpeed, getEffectiveStat } from './effectiveVitals';
 import { applyConditionToUnit } from './effects/conditionHandler';
 import { endActiveTurn } from './turnClock';
 import { createCombatState } from './resolver';
@@ -369,6 +370,60 @@ describe('Condition Registry', () => {
       const detected = evaluateFrontArcDetection(state, 'guard', { q: 0, r: 0 }, HEX_DIRECTIONS.EAST, 'TURN_START');
       expect(detected).toHaveLength(0);
       expect(rogueCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
+    });
+  });
+
+  describe('HENOSIS and MORTAL_EBB declarative lifecycle', () => {
+    it('applies HENOSIS stat modifiers (+2 Attack Roll, +2 Armor, +2 Ward, +1 Move, +1 Speed) and transitions to 1-turn MORTAL_EBB (-1/-1/-1/-1/-1) on turn-end expiry', () => {
+      const arena = createRadialArena(3);
+      const theurge = createRecruit('theurge', 'Theurge', { faction: 'PLAYER' });
+      const ally = createRecruit('ally', 'Ally', { faction: 'PLAYER' });
+      arena.setUnitPosition('theurge', { q: 0, r: 0 });
+      arena.setUnitPosition('ally', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [theurge, ally], 'ally');
+      const allyCu = state.units.get('ally')!;
+      const baseArmor = allyCu.unit.effectiveVitals.armor;
+      const baseWard = allyCu.unit.effectiveVitals.ward;
+      const baseMove = allyCu.unit.effectiveVitals.move;
+      const baseSpeed = allyCu.unit.effectiveVitals.speed;
+
+      applyConditionToUnit(allyCu, 'HENOSIS', 2, 'theurge');
+      expect(getEffectiveStat(allyCu, 'attackRoll')).toBe(2);
+      expect(getEffectiveArmor(allyCu)).toBe(baseArmor + 2);
+      expect(getEffectiveWard(allyCu)).toBe(baseWard + 2);
+      expect(getEffectiveMove(allyCu)).toBe(baseMove + 1);
+      expect(getEffectiveSpeed(allyCu)).toBe(baseSpeed + 1);
+      expect(CONDITION_REGISTRY.HENOSIS.onOutgoingAttackRoll?.(allyCu.activeConditions[0], allyCu, allyCu)?.attackRollBonus).toBe(2);
+
+      // End Ally Turn 1 -> HENOSIS decrements from 2 to 1
+      allyCu.initiativeGauge = 200;
+      endActiveTurn(state, 3);
+      expect(allyCu.activeConditions.find((c) => c.type === 'HENOSIS')?.durationTurns).toBe(1);
+      expect(allyCu.activeConditions.some((c) => c.type === 'MORTAL_EBB')).toBe(false);
+
+      // End Ally Turn 2 -> HENOSIS expires and declaratively transitions into 1-turn MORTAL_EBB
+      allyCu.initiativeGauge = 200;
+      endActiveTurn(state, 3);
+      expect(allyCu.activeConditions.some((c) => c.type === 'HENOSIS')).toBe(false);
+      const ebbCond = allyCu.activeConditions.find((c) => c.type === 'MORTAL_EBB');
+      expect(ebbCond).toBeDefined();
+      expect(ebbCond?.durationTurns).toBe(1);
+      expect(ebbCond?.sourceUnitId).toBe('theurge');
+
+      // Check MORTAL_EBB stat penalties (respecting 0 floor on armor/ward and 1 floor on move/speed)
+      expect(getEffectiveStat(allyCu, 'attackRoll')).toBe(-1);
+      expect(getEffectiveArmor(allyCu)).toBe(Math.max(0, baseArmor - 1));
+      expect(getEffectiveWard(allyCu)).toBe(Math.max(0, baseWard - 1));
+      expect(getEffectiveMove(allyCu)).toBe(Math.max(1, baseMove - 1));
+      expect(getEffectiveSpeed(allyCu)).toBe(Math.max(1, baseSpeed - 1));
+      expect(CONDITION_REGISTRY.MORTAL_EBB.onOutgoingAttackRoll?.(ebbCond!, allyCu, allyCu)?.attackRollPenalty).toBe(1);
+
+      // End Ally Turn 3 -> MORTAL_EBB expires
+      allyCu.initiativeGauge = 200;
+      endActiveTurn(state, 3);
+      expect(allyCu.activeConditions.some((c) => c.type === 'MORTAL_EBB')).toBe(false);
+      expect(getEffectiveStat(allyCu, 'attackRoll')).toBe(0);
     });
   });
 });

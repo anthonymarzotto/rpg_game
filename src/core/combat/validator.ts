@@ -9,6 +9,59 @@ import { getRoughTerrainHexKeys } from './battlefieldZones';
 import { resolveAerialVaultLandingHex } from './aerialVault';
 import { Arena, LineOfSightObstruction } from '../grid/arena';
 
+function checkActiveSourceConditionCap(
+  state: CombatState | undefined,
+  actorUnitId: string | undefined,
+  effectiveAbility: Ability
+): ValidationResult | undefined {
+  if (!state || !actorUnitId) return undefined;
+  for (const eff of effectiveAbility.effects ?? []) {
+    if (eff.type === 'CONDITION' && eff.conditionType) {
+      const def = getConditionDefinition(eff.conditionType);
+      if (def?.maxActivePerSource !== undefined) {
+        let activeCount = 0;
+        for (const u of state.units.values()) {
+          if (u.isDefeated || u.currentHp <= 0) continue;
+          if (!state.arena.getUnitPosition(u.unit.id)) continue;
+          if (u.activeConditions?.some((c) => c.type === eff.conditionType && c.sourceUnitId === actorUnitId)) {
+            activeCount += 1;
+          }
+        }
+        if (activeCount >= def.maxActivePerSource) {
+          return {
+            valid: false,
+            reason: `A divine vessel (${eff.conditionType}) is already active.`
+          };
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
+function checkBlockedByTargetConditions(
+  targetCu: CombatUnit | undefined,
+  effectiveAbility: Ability
+): ValidationResult | undefined {
+  if (!targetCu) return undefined;
+  for (const eff of effectiveAbility.effects ?? []) {
+    if (eff.type === 'CONDITION' && eff.conditionType) {
+      const def = getConditionDefinition(eff.conditionType);
+      if (def?.blockedByTargetConditions && def.blockedByTargetConditions.length > 0) {
+        for (const blockingType of def.blockedByTargetConditions) {
+          if (targetCu.activeConditions?.some((c) => c.type === blockingType)) {
+            return {
+              valid: false,
+              reason: `Cannot apply ${eff.conditionType} while ${targetCu.unit.name} is afflicted with ${blockingType}.`
+            };
+          }
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
 /**
  * Calculates all arena tile coordinates that fall within the effective reach of an ability,
  * accounting for active ability modifiers, relative elevation vantage (for ranged),
@@ -24,6 +77,10 @@ export function getAbilityRangeCoords(
   const effectiveAbility = cu?.abilityModifiers
     ? getEffectiveAbility(ability, cu.abilityModifiers)
     : ability;
+
+  if (checkActiveSourceConditionCap(state, cu?.unit.id, effectiveAbility)) {
+    return [];
+  }
 
   if (effectiveAbility.targetType === 'SELF') {
     return arena.hasTile(actorCoord) ? [actorCoord] : [];
@@ -195,6 +252,9 @@ export function canExecuteAbility(
     return { valid: false, reason: `${effectiveAbility.name} can only be used once per turn.` };
   }
 
+  const sourceCapError = checkActiveSourceConditionCap(state, actorUnitId, effectiveAbility);
+  if (sourceCapError) return sourceCapError;
+
   const actorCoord = target?.originCoord ?? state.arena.getUnitPosition(actorUnitId);
   if (!actorCoord) {
     return { valid: false, reason: 'Actor not placed on arena.' };
@@ -312,6 +372,9 @@ export function canExecuteAbility(
         return { valid: false, reason: 'Cannot cast an ally ability on an enemy unit.' };
       }
     }
+
+    const blockedError = checkBlockedByTargetConditions(targetCu, effectiveAbility);
+    if (blockedError) return blockedError;
 
     const dist = hexDistance(actorCoord, targetCoord);
     const rangeError = validateElevationReachAndRange(

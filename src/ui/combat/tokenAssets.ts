@@ -17,6 +17,7 @@ export const AVAILABLE_PIXEL_TOKENS = new Set<string>([
   '07_human_male',  // Dragoon
   '64_human_male',  // Highwayman
   '65_human_male',  // Ballistician
+  '79_human_male',  // Theurge
   '80_human_male',  // Warlock
   '81_human_male',  // Thief
   '82_human_male',  // Infiltrator
@@ -49,7 +50,8 @@ export const CLASS_BADGE_PALETTES: Record<string, { primary: string; border: str
   shieldbearer: { primary: '#334155', border: '#10b981' },
   dragoon: { primary: '#312e81', border: '#e11d48' }, // Deep Dragon Violet / Radiant Crimson
   ballistician: { primary: '#065f46', border: '#e11d48' }, // Engineer Emerald / Safety Crimson
-  philanderer: { primary: '#9f1239', border: '#f43f5e' } // Velvet Rose / Rose Crimson
+  philanderer: { primary: '#9f1239', border: '#f43f5e' }, // Velvet Rose / Rose Crimson
+  theurge: { primary: '#1e3a8a', border: '#f59e0b' } // Empyrean Azure / Celestial Gold
 };
 
 /**

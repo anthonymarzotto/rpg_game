@@ -2,6 +2,15 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.23.0] - 2026-11-23
+
+### New Tier 4 Class: Theurge
+- **Celestial Conduit**: Introduced the **Theurge** (Tier 4: 1 Fighter, 0 Rogue, 3 Mage), a divine-arcane support specialist with a dedicated pixel sprite and empyrean-azure-and-gold class badge who channels celestial power into a chosen mortal vessel, purifies afflictions, and calls down solar judgment from the firmament.
+- **Henosis (Signature) & Mortal Ebb**: Elevates a target ally or the Theurge into a divine vessel for 2 turns, granting +2 Attack Roll, +2 Armor, +2 Ward, +1 Move, and +1 Speed. Only one vessel can hold *Henosis* from a Theurge at a time (if the vessel falls in battle, the blessing becomes available again immediately). When *Henosis* expires after 2 turns, the vessel enters **Mortal Ebb** for 1 turn (-1 Attack Roll, -1 Armor, -1 Ward, -1 Move, and -1 Speed) and cannot receive *Henosis* again until recovered, though the Theurge may bless a different unit in the meantime.
+- **Absolution**: Bestows a cleansing rite of starlight upon an ally or self within 3 hexes, purging all active negative status conditions (Poison, Burn, Exposed, Blinded, Challenged, and Telemetry—excluding Mortal Ebb) while boosting the recipient's CTB initiative gauge by +20 ticks.
+- **Empyrean Pillar**: Calls down a vertical column of solar fire from the zenith that ignores low-ground elevation penalties, dealing magical damage against Resolve and delaying the target's CTB initiative gauge by 20 ticks on a Solid or Critical Hit.
+- **Theurgic Synergy Passive**: Whenever the bearer scores a Solid Hit or Critical Hit with a magical attack (excluding Grazes), a 1-hex ring of celestial radiance erupts around their active *Henosis* vessel—or around the bearer themselves if no vessel is active—dealing 1 magical damage to all adjacent enemies.
+
 ## [0.22.0] - 2026-11-21
 
 ### New Tier 4 Class: Philanderer
