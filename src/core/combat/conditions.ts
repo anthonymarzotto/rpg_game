@@ -2,6 +2,7 @@ import { Ability, ConditionType, DamageType } from '../types/ability';
 import { Faction } from '../types/unit';
 import { ActiveCondition, CombatState, CombatUnit, ModifiableCombatStat } from './types';
 import { getCombatArc, hexDistance, HexCoord, HexDirection } from '../grid/hex';
+import { combatLogger } from './combatLogger';
 
 /**
  * Returns a combat unit's permanent base faction before any temporary CHARMED allegiance flip.
@@ -70,6 +71,8 @@ export interface ConditionDefinition {
   readonly statModifiers?: Partial<Record<ModifiableCombatStat, number>>;
   /** Whether this condition is removed by negative-status purification (CLEANSE) */
   readonly purgeableByCleanse?: boolean;
+  /** Whether this condition is purged from all living units when its originating sourceUnitId is defeated */
+  readonly clearWhenSourceDefeated?: boolean;
   /** Optional cap on how many living units on the arena may simultaneously hold this condition from the same sourceUnitId */
   readonly maxActivePerSource?: number;
   /** Optional list of conditions on a target that block applying this condition to that target */
@@ -134,6 +137,7 @@ export const CONDITION_REGISTRY: Readonly<Record<ConditionType, ConditionDefinit
     stackingPolicy: 'OVERRIDE_SOURCE',
     tickTiming: 'TURN_START',
     purgeableByCleanse: true,
+    clearWhenSourceDefeated: true,
     onOutgoingAttackRoll: (condition, _actor, target) => {
       // Disadvantage applies when attacking any target other than the challenger
       if (condition.sourceUnitId && target.unit.id !== condition.sourceUnitId) {
@@ -247,6 +251,7 @@ export const CONDITION_REGISTRY: Readonly<Record<ConditionType, ConditionDefinit
     stackingPolicy: 'OVERRIDE_SOURCE',
     tickTiming: 'TURN_END',
     purgeableByCleanse: false,
+    clearWhenSourceDefeated: true,
     onRemoved: (_condition, bearer) => {
       restoreOriginalFactionIfUncharmed(bearer);
     }
@@ -266,6 +271,7 @@ export const CONDITION_REGISTRY: Readonly<Record<ConditionType, ConditionDefinit
     stackingPolicy: 'OVERRIDE_SOURCE',
     tickTiming: 'TURN_END',
     purgeableByCleanse: false,
+    clearWhenSourceDefeated: true,
     maxActivePerSource: 1,
     blockedByTargetConditions: ['MORTAL_EBB'],
     statModifiers: {
@@ -394,6 +400,53 @@ export function hasTelemetryMark(targetCu: CombatUnit | undefined, attackerCu?: 
 
 export function getConditionDefinition(type: ConditionType): ConditionDefinition | undefined {
   return CONDITION_REGISTRY[type];
+}
+
+/**
+ * Purges active conditions from all living units when their originating source unit is defeated,
+ * for condition definitions configured with `clearWhenSourceDefeated: true`.
+ * Invokes `onRemoved` cleanup hooks (without triggering natural-expiration `onExpireApplyCondition`)
+ * and records a `CONDITION_BROKEN` combat log entry (`reason: 'source_defeated'`).
+ */
+export function purgeConditionsFromDefeatedSource(
+  state: CombatState,
+  defeatedUnitId: string
+): void {
+  const sourceUnit = state.units.get(defeatedUnitId);
+  const sourceName = sourceUnit?.unit.name ?? defeatedUnitId;
+
+  for (const cu of state.units.values()) {
+    if (cu.isDefeated || !cu.activeConditions || cu.activeConditions.length === 0) {
+      continue;
+    }
+
+    const removed: { readonly def: ConditionDefinition; readonly cond: ActiveCondition }[] = [];
+    const remaining: ActiveCondition[] = [];
+
+    for (const cond of cu.activeConditions) {
+      const def = getConditionDefinition(cond.type);
+      if (def?.clearWhenSourceDefeated && cond.sourceUnitId === defeatedUnitId) {
+        removed.push({ def, cond });
+      } else {
+        remaining.push(cond);
+      }
+    }
+
+    if (removed.length === 0) continue;
+
+    cu.activeConditions = remaining;
+    for (const { def, cond } of removed) {
+      def.onRemoved?.(cond, cu, state);
+      combatLogger.logConditionBroken(state, {
+        cu,
+        condition: cond.type,
+        reason: 'source_defeated',
+        actionId: 'condition_removed',
+        text: `${sourceName} was defeated — ${cond.type} cleared from ${cu.unit.name}!`,
+        message: `${sourceName} was defeated — ${cond.type} cleared from ${cu.unit.name}!`
+      });
+    }
+  }
 }
 
 /**

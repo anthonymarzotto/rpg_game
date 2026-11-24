@@ -9,6 +9,7 @@ import { getEffectiveEvasion } from './effectiveVitals';
 import { createRecruit } from '../units/unitFactory';
 import { combatLogger } from './combatLogger';
 import { evaluateEncounterOutcome } from './objectives';
+import { purgeConditionsFromDefeatedSource } from './conditions';
 
 /**
  * Collects all hex keys currently covered by active Shrapnel Rubble rough terrain hazards.
@@ -208,6 +209,7 @@ export function resolvePendingBombardmentsOnTurnStart(
             targetCu.isDefeated = true;
             state.arena.removeUnit(targetCu.unit.id);
             combatLogger.logDefeat(state, { cu: targetCu });
+            purgeConditionsFromDefeatedSource(state, targetCu.unit.id);
           }
         }
 

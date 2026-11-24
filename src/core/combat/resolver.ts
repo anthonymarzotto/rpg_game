@@ -46,7 +46,7 @@ import { resolveUnitLoadout, LoadoutLookupProviders } from '../units/loadout';
 import { getClassPackage, getAbilityById, getPassiveById } from '../../data/packages';
 import { PassiveTriggerHook } from '../types/passive';
 import { evaluateTargetAuras } from './auras';
-import { getConditionDefinition, evaluateFrontArcDetection } from './conditions';
+import { getConditionDefinition, evaluateFrontArcDetection, purgeConditionsFromDefeatedSource } from './conditions';
 import { getBastionZocHexKeys, evaluateZoneOfControl, hasBastionRangedCover } from './bastionStance';
 import { resolveAerialVaultLandingHex } from './aerialVault';
 import { applyConditionToUnit } from './effects/conditionHandler';
@@ -625,6 +625,7 @@ export function applyCombatEvents(
         if (cu.currentHp === 0) {
           cu.isDefeated = true;
           state.arena.removeUnit(event.targetUnitId);
+          purgeConditionsFromDefeatedSource(state, event.targetUnitId);
         }
       }
     } else if (event.type === 'DISPLACEMENT') {
@@ -712,6 +713,7 @@ export function executeAbility(
     if (actorCu.currentHp === 0) {
       actorCu.isDefeated = true;
       state.arena.removeUnit(actorUnitId);
+      purgeConditionsFromDefeatedSource(state, actorUnitId);
     }
   }
 
@@ -1166,9 +1168,11 @@ export function executeAbility(
   const targetPos = targetCu
     ? state.arena.getUnitPosition(targetCu.unit.id)
     : targetCoord;
-  const actorElevation = (attackOriginCoord ? state.arena.getElevation(attackOriginCoord) : 0) + (actorCu.virtualElevation ?? 0);
-  const targetElevation = (targetPos ? state.arena.getElevation(targetPos) : 0) + (targetCu?.virtualElevation ?? 0);
-  const elevationDelta = actorElevation - targetElevation;
+  const physicalActorElevation = attackOriginCoord ? state.arena.getElevation(attackOriginCoord) : 0;
+  const physicalTargetElevation = targetPos ? state.arena.getElevation(targetPos) : 0;
+  const physicalElevationDelta = physicalActorElevation - physicalTargetElevation;
+  const elevationDelta =
+    physicalElevationDelta + (actorCu.virtualElevation ?? 0) - (targetCu?.virtualElevation ?? 0);
   const elevMod = calculateElevationAttackModifier(
     actorCu,
     elevationDelta,
@@ -1181,7 +1185,7 @@ export function executeAbility(
       advantage: rollAdvantage,
       rollBonus: conditionalRollBonus,
       rollPenalty: auraEval.attackRollPenalty,
-      elevationDelta
+      elevationDelta: physicalElevationDelta
     });
 
     // Single-attack consumption of EXPOSED: condition is consumed upon being attacked

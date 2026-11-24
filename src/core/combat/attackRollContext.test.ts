@@ -218,4 +218,36 @@ describe('evaluateAttackRollContext', () => {
     const sum = context.modifierBreakdown!.reduce((acc, c) => acc + c.value, 0);
     expect(sum).toBe(context.netModifier);
   });
+
+  it('counts +1 virtualElevation exactly once (+2 High Ground, NORMAL roll, no Advantage) (B.18)', () => {
+    const arena = createRadialArena(3);
+    const dragoon = createRecruit('dragoon', 'Dragoon', { faction: 'PLAYER' });
+    (dragoon as any).baseAttributes = { force: 2, finesse: 2, focus: 0 };
+    const grunt = createRecruit('grunt', 'Grunt', { faction: 'ENEMY' });
+    (grunt as any).effectiveVitals = { ...grunt.effectiveVitals, evasion: 14 };
+
+    arena.setUnitPosition('dragoon', { q: 0, r: 0 });
+    arena.setUnitPosition('grunt', { q: 1, r: 0 });
+
+    const state = createCombatState(arena, [dragoon, grunt], 'dragoon');
+    const actorCu = state.units.get('dragoon')!;
+    const targetCu = state.units.get('grunt')!;
+    actorCu.virtualElevation = 1;
+
+    const ctxImplicit = evaluateAttackRollContext(actorCu, targetCu, BASIC_ATTACK, { state });
+    expect(ctxImplicit.finalAdvantage).toBe('NORMAL');
+    expect(ctxImplicit.netModifier).toBe(4); // 2 finesse + 2 high ground
+    expect(ctxImplicit.modifierBreakdown).toContainEqual({
+      label: 'High Ground',
+      value: 2,
+      source: 'ELEVATION'
+    });
+
+    const ctxPhysical = evaluateAttackRollContext(actorCu, targetCu, BASIC_ATTACK, {
+      state,
+      elevationDelta: 0
+    });
+    expect(ctxPhysical.finalAdvantage).toBe('NORMAL');
+    expect(ctxPhysical.netModifier).toBe(4);
+  });
 });

@@ -3,7 +3,12 @@ import { getEffectiveSpeed } from './effectiveVitals';
 import { ACTION_ECONOMY_CONFIG } from '../config/balance';
 import { evaluateEncounterOutcome } from './objectives';
 import { onTurnStartPassives } from './passives';
-import { getConditionDefinition, evaluateFrontArcDetection, tickUnitConditions } from './conditions';
+import {
+  getConditionDefinition,
+  evaluateFrontArcDetection,
+  tickUnitConditions,
+  purgeConditionsFromDefeatedSource
+} from './conditions';
 import { Faction } from '../types/unit';
 import { combatLogger } from './combatLogger';
 import { accumulateZeroedInOnTurnEnd } from './zeroedIn';
@@ -172,6 +177,7 @@ export function advanceTurnClock(state: CombatState): string {
         cu: nextActive,
         condition: lethalCondition
       });
+      purgeConditionsFromDefeatedSource(state, nextActive.unit.id);
       state.outcome = evaluateEncounterOutcome(state.objectives, state);
 
       if (state.outcome !== 'IN_PROGRESS') {
@@ -316,8 +322,8 @@ export function endActiveTurn(
   // Decrement TURN_END conditions (e.g. CHARMED, BLINDED, HENOSIS, MORTAL_EBB) and resolve onRemoved / onExpireApplyCondition generically
   tickUnitConditions(activeCombatUnit, 'TURN_END', state);
 
-  if (activeCombatUnit.passives?.some((p) => p.unspentApVirtualHeight)) {
-    activeCombatUnit.virtualElevation = Math.min(1, Math.max(0, unspent));
+  if (activeCombatUnit.passives?.some((p) => p.unspentApVirtualHeight) && unspent > 0) {
+    activeCombatUnit.virtualElevation = Math.min(1, Math.max(activeCombatUnit.virtualElevation ?? 0, unspent));
   }
 
   const nextActive = advanceTurnClock(state);

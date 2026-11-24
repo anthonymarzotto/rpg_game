@@ -15,6 +15,7 @@ import { AbilityCompactSummary, AbilityHoverTooltipBody } from '../common/Abilit
 import {
   formatConditionBadge,
   formatModifierBadge,
+  formatVirtualElevationBadge,
   FormattedConditionBadge,
   FormattedModifierBadge,
   ConditionTooltipInfo
@@ -50,9 +51,65 @@ export function getPassiveIcon(passiveId: string): string {
       return '🧿';
     case 'soul_carapace':
       return '💀';
+    case 'coiled_apex':
+      return '🐉';
     default:
       return '✦';
   }
+}
+
+function getPassiveChipState(
+  cu: CombatUnit,
+  passive: PassiveTrait
+): { isReady: boolean; counterText?: string } {
+  if (passive.id === 'momentum') {
+    const moved = cu.hexesMovedThisTurn ?? 0;
+    return {
+      isReady: moved >= 2,
+      counterText: `(${Math.min(moved, 2)}/2)`
+    };
+  }
+  if (passive.id === 'coiled_apex') {
+    const virt = cu.virtualElevation ?? 0;
+    return {
+      isReady: virt > 0,
+      counterText: virt > 0 ? `(+${virt} Height)` : undefined
+    };
+  }
+  return { isReady: false };
+}
+
+function renderUnitStatusBadges(
+  cu: CombatUnit,
+  prefix: string,
+  getUnitName: (id: string) => string
+) {
+  const hasConditions = Boolean(cu.activeConditions && cu.activeConditions.length > 0);
+  const hasModifiers = cu.activeModifiers.length > 0;
+  const hasVirtualHeight = (cu.virtualElevation ?? 0) > 0;
+  if (!hasConditions && !hasModifiers && !hasVirtualHeight) {
+    return null;
+  }
+
+  return (
+    <div className="active-modifiers-row">
+      {hasVirtualHeight && (
+        <ConditionBadgeItem
+          key={`${prefix}-virtual-elev`}
+          badge={formatVirtualElevationBadge(cu.virtualElevation!)}
+          testId={`${prefix}-virtual-elevation`}
+        />
+      )}
+      {cu.activeConditions?.map((cond, idx) => {
+        const badge = formatConditionBadge(cond, getUnitName);
+        return <ConditionBadgeItem key={`${prefix}-cond-${idx}`} badge={badge} testId={`${prefix}-cond-${idx}`} />;
+      })}
+      {cu.activeModifiers.map((mod, idx) => {
+        const badge = formatModifierBadge(mod);
+        return <ConditionBadgeItem key={`${prefix}-mod-${idx}`} badge={badge} testId={`${prefix}-mod-${idx}`} />;
+      })}
+    </div>
+  );
 }
 
 export function PassiveTooltipContent({
@@ -65,7 +122,12 @@ export function PassiveTooltipContent({
   readonly testId?: string;
 }) {
   const icon = getPassiveIcon(passive.id);
-  const tagText = passive.id === 'momentum' ? 'ADVANTAGE READY' : 'READY';
+  const tagText =
+    passive.id === 'momentum'
+      ? 'ADVANTAGE READY'
+      : passive.id === 'coiled_apex'
+        ? 'COILED (+1 HEIGHT)'
+        : 'READY';
   return (
     <div className="passive-hover-tooltip" role="tooltip" data-testid={testId}>
       <div className="tooltip-title-row">
@@ -257,11 +319,7 @@ export function UnitStatusCard({
           <div className="hud-passives-row">
             <span className="passives-row-label">PASSIVES:</span>
             {activeCu.passives.map((p) => {
-              const isReady = p.id === 'momentum' && (activeCu.hexesMovedThisTurn ?? 0) >= 2;
-              const counterText =
-                p.id === 'momentum'
-                  ? `(${Math.min(activeCu.hexesMovedThisTurn ?? 0, 2)}/2)`
-                  : undefined;
+              const { isReady, counterText } = getPassiveChipState(activeCu, p);
               return (
                 <PassiveBadgeItem
                   key={p.id}
@@ -276,19 +334,7 @@ export function UnitStatusCard({
         )}
 
         {/* Active Conditions & Modifiers (if present) */}
-        {((activeCu.activeConditions && activeCu.activeConditions.length > 0) ||
-          activeCu.activeModifiers.length > 0) && (
-          <div className="active-modifiers-row">
-            {activeCu.activeConditions?.map((cond, idx) => {
-              const badge = formatConditionBadge(cond, getUnitName);
-              return <ConditionBadgeItem key={`cond-${idx}`} badge={badge} testId={`cond-${idx}`} />;
-            })}
-            {activeCu.activeModifiers.map((mod, idx) => {
-              const badge = formatModifierBadge(mod);
-              return <ConditionBadgeItem key={`mod-${idx}`} badge={badge} testId={`mod-${idx}`} />;
-            })}
-          </div>
-        )}
+        {renderUnitStatusBadges(activeCu, 'active', getUnitName)}
       </div>
 
       {/* 2. Target Hover Preview Card */}
@@ -300,6 +346,15 @@ export function UnitStatusCard({
               <span className="los-badge blocked">✖ Obstructed</span>
             ) : (
               <div className="preview-badges-row">
+                {(activeCu.virtualElevation ?? 0) > 0 && (
+                  <span
+                    className="advantage-indicator-badge"
+                    title="Coiled Apex: Virtual Height grants +2 Attack Roll and +2 Apex Strike Damage on this attack"
+                    data-testid="target-preview-coiled-apex"
+                  >
+                    🐉 Coiled Apex (+{activeCu.virtualElevation} Height, +2 Dmg)
+                  </span>
+                )}
                 {targetPreview.elevationVantageRange !== undefined && targetPreview.elevationVantageRange > 0 && (
                   <span className="advantage-indicator-badge vantage" title={`High Ground Vantage extends ability reach by +${targetPreview.elevationVantageRange} hexes`}>
                     ✦ Vantage (+{targetPreview.elevationVantageRange} Range)
@@ -320,20 +375,7 @@ export function UnitStatusCard({
           <div className="preview-target-name">{targetPreview.targetName}</div>
 
           {/* Active Conditions & Modifiers on Target (if present) */}
-          {hoveredUnitCu &&
-            ((hoveredUnitCu.activeConditions && hoveredUnitCu.activeConditions.length > 0) ||
-              hoveredUnitCu.activeModifiers.length > 0) && (
-            <div className="active-modifiers-row">
-              {hoveredUnitCu.activeConditions?.map((cond, idx) => {
-                const badge = formatConditionBadge(cond, getUnitName);
-                return <ConditionBadgeItem key={`targ-cond-${idx}`} badge={badge} testId={`targ-cond-${idx}`} />;
-              })}
-              {hoveredUnitCu.activeModifiers.map((mod, idx) => {
-                const badge = formatModifierBadge(mod);
-                return <ConditionBadgeItem key={`targ-mod-${idx}`} badge={badge} testId={`targ-mod-${idx}`} />;
-              })}
-            </div>
-          )}
+          {hoveredUnitCu && renderUnitStatusBadges(hoveredUnitCu, 'targ', getUnitName)}
 
           {targetPreview.isBlockedLoS ? (
             <div className="preview-blocked-msg">{targetPreview.blockReason}</div>
@@ -416,11 +458,7 @@ export function UnitStatusCard({
             <div className="hud-passives-row">
               <span className="passives-row-label">PASSIVES:</span>
               {inspectedCu.passives.map((p) => {
-                const isReady = p.id === 'momentum' && (inspectedCu.hexesMovedThisTurn ?? 0) >= 2;
-                const counterText =
-                  p.id === 'momentum'
-                    ? `(${Math.min(inspectedCu.hexesMovedThisTurn ?? 0, 2)}/2)`
-                    : undefined;
+                const { isReady, counterText } = getPassiveChipState(inspectedCu, p);
                 return (
                   <PassiveBadgeItem
                     key={p.id}
@@ -435,19 +473,7 @@ export function UnitStatusCard({
           )}
 
           {/* Active Conditions & Modifiers on Inspected Unit */}
-          {((inspectedCu.activeConditions && inspectedCu.activeConditions.length > 0) ||
-            inspectedCu.activeModifiers.length > 0) && (
-            <div className="active-modifiers-row">
-              {inspectedCu.activeConditions?.map((cond, idx) => {
-                const badge = formatConditionBadge(cond, getUnitName);
-                return <ConditionBadgeItem key={`insp-cond-${idx}`} badge={badge} testId={`insp-cond-${idx}`} />;
-              })}
-              {inspectedCu.activeModifiers.map((mod, idx) => {
-                const badge = formatModifierBadge(mod);
-                return <ConditionBadgeItem key={`insp-mod-${idx}`} badge={badge} testId={`insp-mod-${idx}`} />;
-              })}
-            </div>
-          )}
+          {renderUnitStatusBadges(inspectedCu, 'insp', getUnitName)}
 
           <div className="preview-details-grid">
             <div>

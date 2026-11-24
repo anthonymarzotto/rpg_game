@@ -189,3 +189,26 @@ export function formatModifierBadge(mod: ActiveModifier): FormattedModifierBadge
 
   return { text, isDebuff, title, tooltip };
 }
+
+/**
+ * Produces structured data and formatting for an armed Coiled Apex virtual height buff badge.
+ */
+export function formatVirtualElevationBadge(virtualElevation: number): FormattedModifierBadge {
+  const level = Math.max(1, virtualElevation);
+  const icon = '🐉 ';
+  const hitBonus = level >= 2 ? 'Advantage on Attack Roll' : '+2 Attack Roll';
+  const defPenalty = level >= 2 ? 'Enemy Disadvantage' : '-2 Incoming Enemy Hit';
+  const ruleText = `Coiled Apex: Grants +${level} Virtual Height (${hitBonus}, +2 Apex Strike Damage, ${defPenalty}) until your next attack roll resolves.`;
+  const text = `${icon}COILED APEX (+${level} Height)`;
+
+  const tooltip: ConditionTooltipInfo = {
+    icon: icon.trim(),
+    name: 'Coiled Apex',
+    durationText: 'Until next attack',
+    ruleText
+  };
+
+  const title = `${tooltip.name} (${tooltip.durationText}): ${ruleText}`;
+
+  return { text, isDebuff: false, title, tooltip };
+}

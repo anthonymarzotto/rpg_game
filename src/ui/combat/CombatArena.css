@@ -1835,6 +1835,31 @@
   display: flex;
 }
 
+.effect-badge-tooltip {
+  white-space: normal;
+}
+
+.effect-badge-tooltip .attack-roll-component-row {
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.effect-badge-tooltip .comp-label {
+  flex-shrink: 0;
+}
+
+.effect-badge-tooltip .comp-val {
+  white-space: normal;
+  text-align: right;
+  overflow-wrap: break-word;
+}
+
+.effect-badge-tooltip .attack-roll-formula-summary {
+  white-space: normal;
+  text-align: left;
+  overflow-wrap: break-word;
+}
+
 .effect-badge-tooltip.portal-floating {
   border: 1px solid rgba(148, 163, 184, 0.4);
 }

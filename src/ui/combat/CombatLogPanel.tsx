@@ -584,7 +584,8 @@ export function presentEffectOutcome(outcome: EffectOutcome): EffectOutcomePrese
         pillText: outcome.label,
         tone: 'context',
         tooltipTitle: title,
-        tooltipRows: outcome.detail ? [{ label: 'Effect', value: outcome.detail, tone: 'neutral' }] : []
+        tooltipRows: [],
+        tooltipSummary: outcome.detail
       };
     }
   }
@@ -1628,18 +1629,30 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
               }
 
               if (entry.type === 'CONDITION_BROKEN') {
-                const isStealth = entry.condition.toUpperCase() === 'STEALTH';
-                const isChallenged = entry.condition.toUpperCase() === 'CHALLENGED';
-                const badgeText = isStealth
-                  ? '👤 STEALTH BROKEN'
-                  : isChallenged
-                    ? '⚔️ CHALLENGE DEFIED'
-                    : `⚡ ${entry.condition} BROKEN`;
-                const contextNote = isStealth
-                  ? 'Concealment lost due to taking damage!'
-                  : isChallenged
-                    ? 'Defied the challenge and became EXPOSED!'
-                    : `${entry.condition} effect removed.`;
+                const condUpper = entry.condition.toUpperCase();
+                const isStealth = condUpper === 'STEALTH';
+                const isChallenged = condUpper === 'CHALLENGED';
+                const isSourceDefeated = entry.reason === 'source_defeated';
+                const badgeText = isSourceDefeated
+                  ? condUpper === 'CHALLENGED'
+                    ? '⚔️ CHALLENGED CLEARED'
+                    : condUpper === 'CHARMED'
+                      ? '💘 CHARMED CLEARED'
+                      : condUpper === 'HENOSIS'
+                        ? '✨ HENOSIS CLEARED'
+                        : `⚡ ${condUpper} CLEARED`
+                  : isStealth
+                    ? '👤 STEALTH BROKEN'
+                    : isChallenged
+                      ? '⚔️ CHALLENGE DEFIED'
+                      : `⚡ ${entry.condition} BROKEN`;
+                const contextNote = isSourceDefeated
+                  ? entry.rawMessage || `${condUpper} cleared because its source unit was defeated.`
+                  : isStealth
+                    ? 'Concealment lost due to taking damage!'
+                    : isChallenged
+                      ? 'Defied the challenge and became EXPOSED!'
+                      : `${entry.condition} effect removed.`;
 
                 return (
                   <div
@@ -1656,7 +1669,7 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                     </div>
 
                     <div className="log-card-secondary log-condition-footer">
-                      <span className="secondary-icon">{isChallenged ? '⚠️' : '💥'}</span>
+                      <span className="secondary-icon">{isSourceDefeated ? '✨' : isChallenged ? '⚠️' : '💥'}</span>
                       <span className="secondary-text">{contextNote}</span>
                     </div>
                   </div>

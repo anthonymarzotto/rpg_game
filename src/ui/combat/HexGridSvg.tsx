@@ -12,7 +12,7 @@ import {
   getExtrudedPrismWalls
 } from './elevationGeometry';
 import { MovePathPreview } from './useCombatSimulation';
-import { formatConditionBadge, formatModifierBadge } from './conditionBadges';
+import { formatConditionBadge, formatModifierBadge, formatVirtualElevationBadge } from './conditionBadges';
 import { ConditionTooltipContent } from './UnitStatusCard';
 import { computeArenaCamera, PanOffset } from './cameraGeometry';
 
@@ -69,6 +69,9 @@ function StandeeStatusBubble({
 }: StandeeStatusBubbleProps) {
   const badges = useMemo(() => {
     return [
+      ...((cu.virtualElevation ?? 0) > 0
+        ? [formatVirtualElevationBadge(cu.virtualElevation!)]
+        : []),
       ...(cu.activeConditions ?? []).map((c) =>
         formatConditionBadge(c, (id) => state.units.get(id)?.unit.name ?? id)
       ),
@@ -76,7 +79,7 @@ function StandeeStatusBubble({
         formatModifierBadge(m)
       )
     ];
-  }, [cu.activeConditions, cu.activeModifiers, state.units]);
+  }, [cu.activeConditions, cu.activeModifiers, cu.virtualElevation, state.units]);
 
   return (
     <g
@@ -833,6 +836,7 @@ export function HexGridSvg({
                           c.type === 'TELEMETRY' ? '📡' : '✨'
               ),
               ...((cu.zeroedInStacks ?? 0) > 0 ? ['🔭'] : []),
+              ...((cu.virtualElevation ?? 0) > 0 ? ['🐉'] : []),
               ...(cu.activeModifiers ?? []).map((m) =>
                 m.stat === 'move' && m.value < 0 ? '❄️' :
                   m.stat === 'move' && m.value > 0 ? '💨' :

@@ -6,6 +6,10 @@
 
 ## 🔨 In Progress
 - [X] **3.5**: **Theurge** (`#79`, Tier 4: `1F, 0R, 3M`), `79_human_male`.
+- [X] **B.15**: If a unit is Challenged and the challenging unit dies, the Challenged status should clear (also covering `CHARMED` and `HENOSIS` with Combat Log cards).
+- [X] **B.17**: Combat Log: "Graze Mitigation" breaks out of its tooltip container.
+- [X] **B.18**: I don't think "Coiled Apex" is working right. When my Dragoon skips a turn and then gets their next turn there doesn't appear to be any buffs.
+- [X] **B.19**: Theurge token isn't visible.
 
 ---
 
@@ -31,11 +35,7 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 ## 🐛 Bugs
 - [ ] **B.3**: Active turn halo is generally not clearing well. Hard to pinpoint exactly what's going on, but I'm on turn 7 and 4 units have a halo.
 - [ ] **B.4**: When an enemy uses Smoke Veil I can still see them.
-- [ ] **B.15**: If a unit is Challenged and the challenging unit dies, the Challenged status should clear.
 - [ ] **B.16**: In Trial: Status pill hover effect goes under the Initiative track.
-- [ ] **B.17**: Combat Log: "Graze Mitigation" breaks out of its tooltip container.
-- [ ] **B.18**: I don't think "Coiled Apex" is working right. When my Dragoon skips a turn and then gets their next turn there doesn't appear to be any buffs.
-- [ ] **B.19**: Theurge token isn't visible.
 
 ---
 

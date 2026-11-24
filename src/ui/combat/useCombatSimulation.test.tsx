@@ -618,6 +618,24 @@ describe('useCombatSimulation movePreview & fall hazard detection', () => {
     capturedHook!.handleEndTurn();
     expect(capturedHook!.floatingTexts.some((ft) => ft.text === 'Turn End')).toBe(true);
     expect(capturedHook!.floatingTexts.some((ft) => ft.text === '+0 Initiative')).toBe(false);
+
+    // 3. With Coiled Apex passive and >= 1 AP unspent, ending turn emits "Coiled Apex (+1 Height)"
+    const p1Cu = capturedHook!.state.units.get('p1')!;
+    capturedHook!.state.activeUnitId = 'p1';
+    p1Cu.currentAp = 2;
+    p1Cu.virtualElevation = 0;
+    (p1Cu as any).passives = [
+      {
+        id: 'coiled_apex',
+        name: 'Coiled Apex',
+        description: 'Coiled Readiness',
+        hook: 'ALWAYS',
+        unspentApVirtualHeight: true,
+        lowerElevationDamageBonus: 2
+      }
+    ];
+    capturedHook!.handleEndTurn();
+    expect(capturedHook!.floatingTexts.some((ft) => ft.text === 'Coiled Apex (+1 Height)')).toBe(true);
   });
 
   it('emits "My Turn!" on player turn start and unit name on hostile turn start', () => {

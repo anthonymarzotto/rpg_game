@@ -373,5 +373,43 @@ describe('UnitStatusCard Component', () => {
       expect(html).toContain('Starlight Lens');
       expect(html).toContain('Blood Frenzy');
     });
+
+    it('surfaces armed Coiled Apex virtual height on passive chip, buff pill, inspected card, and target preview (B.18)', () => {
+      const coiledPassive = {
+        id: 'coiled_apex',
+        name: 'Coiled Apex',
+        description: 'Grants Apex Strike and Coiled Readiness.',
+        hook: 'ALWAYS' as const,
+        unspentApVirtualHeight: true,
+        lowerElevationDamageBonus: 2
+      };
+      const activeCu = createMockCombatUnit({
+        virtualElevation: 1,
+        passives: [coiledPassive]
+      });
+      const pinnedCu = createMockCombatUnit({
+        unit: createRecruit('p2', 'Pinned Dragoon'),
+        virtualElevation: 1,
+        passives: [coiledPassive]
+      });
+
+      const previewHtml = renderToStaticMarkup(
+        <UnitStatusCard activeCu={activeCu} targetPreview={createMockTargetPreview('NORMAL')} />
+      );
+      expect(previewHtml).toContain('passive-chip-coiled_apex');
+      expect(previewHtml).toContain('ready-glow');
+      expect(previewHtml).toContain('(+1 Height)');
+      expect(previewHtml).toContain('COILED (+1 HEIGHT)');
+      expect(previewHtml).toContain('active-virtual-elevation');
+      expect(previewHtml).toContain('🐉 COILED APEX (+1 Height)');
+      expect(previewHtml).toContain('target-preview-coiled-apex');
+      expect(previewHtml).toContain('🐉 Coiled Apex (+1 Height, +2 Dmg)');
+
+      const pinnedHtml = renderToStaticMarkup(
+        <UnitStatusCard activeCu={activeCu} targetPreview={null} pinnedUnitCu={pinnedCu} />
+      );
+      expect(pinnedHtml).toContain('inspected-passive-chip-coiled_apex');
+      expect(pinnedHtml).toContain('insp-virtual-elevation');
+    });
   });
 });

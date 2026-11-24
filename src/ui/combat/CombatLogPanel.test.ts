@@ -928,6 +928,66 @@ describe('parseCombatLogMessage', () => {
       expect(html).toContain('Defied the challenge and became EXPOSED!');
     });
 
+    it('renders source_defeated CONDITION_BROKEN entries with cleared badges rather than CHALLENGE DEFIED (B.15)', () => {
+      const entries: CombatLogEntry[] = [
+        {
+          turnNumber: 4,
+          actorUnitId: 'enemy-1',
+          faction: 'ENEMY',
+          actionId: 'condition_removed',
+          message: 'Garrick was defeated — CHALLENGED cleared from Goblin!',
+          metadata: {
+            type: 'CONDITION_BROKEN',
+            actor: 'Goblin',
+            condition: 'CHALLENGED',
+            reason: 'source_defeated',
+            text: 'Garrick was defeated — CHALLENGED cleared from Goblin!'
+          }
+        },
+        {
+          turnNumber: 5,
+          actorUnitId: 'enemy-2',
+          faction: 'ENEMY',
+          actionId: 'condition_removed',
+          message: 'Sylvia was defeated — CHARMED cleared from Orc!',
+          metadata: {
+            type: 'CONDITION_BROKEN',
+            actor: 'Orc',
+            condition: 'CHARMED',
+            reason: 'source_defeated',
+            text: 'Sylvia was defeated — CHARMED cleared from Orc!'
+          }
+        },
+        {
+          turnNumber: 6,
+          actorUnitId: 'player-2',
+          faction: 'PLAYER',
+          actionId: 'condition_removed',
+          message: 'Aurelia was defeated — HENOSIS cleared from Knight!',
+          metadata: {
+            type: 'CONDITION_BROKEN',
+            actor: 'Knight',
+            condition: 'HENOSIS',
+            reason: 'source_defeated',
+            text: 'Aurelia was defeated — HENOSIS cleared from Knight!'
+          }
+        }
+      ];
+
+      const html = renderToStaticMarkup(
+        React.createElement(CombatLogPanel, {
+          logEntries: entries,
+          turnNumber: 6
+        })
+      );
+
+      expect(html).toContain('⚔️ CHALLENGED CLEARED');
+      expect(html).toContain('💘 CHARMED CLEARED');
+      expect(html).toContain('✨ HENOSIS CLEARED');
+      expect(html).not.toContain('CHALLENGE DEFIED');
+      expect(html).toContain('Garrick was defeated — CHALLENGED cleared from Goblin!');
+    });
+
     it('renders attack-roll-tooltip on log-roll-chip when attackRollBreakdown is present (B.13)', () => {
       const entry: CombatLogEntry = {
         turnNumber: 3,
@@ -1201,6 +1261,19 @@ describe('parseCombatLogMessage', () => {
       expect(html).toContain('Burn 2t');
       expect(html).toContain('effect-pill-displacement');
       expect(html).toContain('Knockback (2, 0)');
+      expect(html).toContain('Graze Mitigation');
+      expect(html).toContain('attack-roll-formula-summary');
+      expect(html).toContain('Graze hit prevented secondary effect(s).');
+
+      const grazePres = presentEffectOutcome({
+        kind: 'CONTEXT',
+        context: 'GRAZE_NEGATED',
+        label: 'Graze: Secondary Negated',
+        detail: 'Secondary effect(s) negated due to Graze hit outcome'
+      });
+      expect(grazePres.tooltipTitle).toBe('Graze Mitigation');
+      expect(grazePres.tooltipRows).toEqual([]);
+      expect(grazePres.tooltipSummary).toBe('Secondary effect(s) negated due to Graze hit outcome');
     });
 
     it('renders HENOSIS and MORTAL_EBB condition pills and tooltips cleanly', () => {

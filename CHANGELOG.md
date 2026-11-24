@@ -2,6 +2,14 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.23.1] - 2026-11-23
+
+### Combat & Visual Bug Fixes
+- **Source-Bound Status Cleanup**: Active **Challenged**, **Charmed**, and **Henosis** effects now clear immediately if the combatant who applied them is defeated—releasing charmed units back to their original side, ending vessel blessings without triggering *Mortal Ebb*, and recording a cleared status card in the Combat Log.
+- **Coiled Apex Visibility & Accuracy**: Armed *Coiled Apex* virtual height now displays on the Dragoon's status card, overhead token bubble, target preview, and turn-end floating text, persists across non-attacking turns until the next attack, and grants the intended +2 high-ground hit bonus without unintentionally granting Advantage.
+- **Combat Log Tooltip Wrapping**: Long effect descriptions in Combat Log tooltips—such as *Graze Mitigation*—now wrap cleanly inside the tooltip frame instead of overflowing horizontally.
+- **Theurge Token Visibility**: Fixed a display issue that prevented the Tier 4 Theurge's pixel sprite from appearing on the battlefield and across UI cards.
+
 ## [0.23.0] - 2026-11-23
 
 ### New Tier 4 Class: Theurge

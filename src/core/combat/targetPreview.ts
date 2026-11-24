@@ -301,15 +301,14 @@ export function computeAbilityMetrics(
     (actorCu.passives ?? []).some((p) => p.id === 'momentum');
   const hasTacticalAdvantage = isFlankAdvantage || isChallengedAdvantage || isMomentumAdvantage;
 
-  // Evaluate centralized attack roll context
+  // Evaluate centralized attack roll context (pass physical delta; evaluateAttackRollContext applies virtualElevation once)
   const strikeElev = state.arena.getElevation(strikeOrigin);
-  const strikeElevDelta =
-    strikeElev + (actorCu.virtualElevation ?? 0) - (targetElevation + (targetCu.virtualElevation ?? 0));
+  const physicalStrikeElevDelta = strikeElev - targetElevation;
   const rollContext = evaluateAttackRollContext(actorCu, targetCu, effectiveAbility, {
     state,
     originCoord: strikeOrigin,
     targetCoord,
-    elevationDelta: strikeElevDelta,
+    elevationDelta: physicalStrikeElevDelta,
     rollBonus: conditionalRollBonus,
     advantage: hasTacticalAdvantage ? 'ADVANTAGE' : undefined
   });

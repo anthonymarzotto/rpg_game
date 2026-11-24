@@ -413,4 +413,50 @@ describe('Target Preview Calculation', () => {
     expect(computeTargetPreview(state, 'actor', deadzoneShot, { q: 1, r: 0 })).toBeNull();
     expect(computeTargetPreview(state, 'actor', deadzoneShot, { q: 3, r: 0 })).not.toBeNull();
   });
+
+  it('evaluates +1 virtualElevation once in target preview (+2 hit bonus without Advantage, +2 Apex Strike damage) (B.18)', () => {
+    const arena = createRadialArena(3);
+    const dragoon = createRecruit('dragoon', 'Dragoon', { faction: 'PLAYER' });
+    (dragoon as any).baseAttributes = { force: 2, finesse: 2, focus: 0 };
+    const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+    (enemy as any).effectiveVitals = { ...enemy.effectiveVitals, evasion: 14, armor: 1 };
+
+    arena.setUnitPosition('dragoon', { q: 0, r: 0 });
+    arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+    const state = createCombatState(arena, [dragoon, enemy], 'dragoon');
+    const dragoonCu = state.units.get('dragoon')!;
+    (dragoonCu as any).passives = [
+      {
+        id: 'coiled_apex',
+        name: 'Coiled Apex',
+        description: 'Apex Strike and Coiled Readiness',
+        hook: 'ALWAYS',
+        unspentApVirtualHeight: true,
+        lowerElevationDamageBonus: 2
+      }
+    ];
+    dragoonCu.virtualElevation = 1;
+
+    const strike: Ability = {
+      id: 'test_strike',
+      name: 'Strike',
+      description: 'Strike',
+      apCost: 1,
+      range: 1,
+      targetType: 'SINGLE_TARGET',
+      defenseTarget: 'EVASION',
+      attackModifierAttribute: 'finesse',
+      damageType: 'PHYSICAL',
+      effects: [{ type: 'DAMAGE', damageProfile: { count: 1, sides: 6, modifierAttribute: 'force' } }]
+    };
+
+    const preview = computeTargetPreview(state, 'dragoon', strike, { q: 1, r: 0 });
+    expect(preview).not.toBeNull();
+    // Finesse 2 + High Ground 2 = +4 vs Evasion 14 -> needed 10 -> 55% normal hit chance (NOT Advantage 79.75%)
+    expect(preview!.rollAdvantage).toBe('NORMAL');
+    expect(preview!.toHitChance).toBe(55);
+    // 1d6 + 2 force + 2 Apex Strike - 1 armor = 4 .. 9
+    expect(preview!.damageRange).toBe('4 – 9 (Soak: 1)');
+  });
 });

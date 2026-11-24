@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
 import { Unit } from '../../core/types/unit';
 import { HEX_DIRECTIONS } from '../../core/grid/hex';
 import {
+  AVAILABLE_PIXEL_TOKENS,
+  PIXEL_ROTATIONS,
   resolveTokenAssetPath,
   resolvePixelTokenBase,
   isPixelAsset,
@@ -490,6 +494,41 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       expect(getClassBadgePalette('Witch')).toEqual(CLASS_BADGE_PALETTES.witch);
       expect(getClassBadgePalette('unknown_class')).toEqual(CLASS_BADGE_PALETTES.novice);
       expect(getClassBadgePalette(undefined)).toEqual(CLASS_BADGE_PALETTES.novice);
+    });
+  });
+
+  describe('Exact-Case Pixel Asset Disk Parity (B.19)', () => {
+    it('verifies every whitelisted pixel token has exact-case Idle/rotations/*.png files on disk', () => {
+      const pixelRoot = path.resolve(process.cwd(), 'public', 'assets', 'tokens', 'pixel');
+      const rootEntries = new Set(fs.readdirSync(pixelRoot));
+
+      for (const tokenId of AVAILABLE_PIXEL_TOKENS) {
+        expect(rootEntries.has(tokenId), `Missing exact-case folder ${tokenId}`).toBe(true);
+
+        const tokenDir = path.join(pixelRoot, tokenId);
+        const tokenSubdirs = new Set(fs.readdirSync(tokenDir));
+        expect(
+          tokenSubdirs.has('Idle'),
+          `Token ${tokenId} must have exact-case 'Idle' directory (found: ${Array.from(tokenSubdirs).join(', ')})`
+        ).toBe(true);
+
+        const idleDir = path.join(tokenDir, 'Idle');
+        const idleSubdirs = new Set(fs.readdirSync(idleDir));
+        expect(
+          idleSubdirs.has('rotations'),
+          `Token ${tokenId}/Idle must have exact-case 'rotations' directory`
+        ).toBe(true);
+
+        const rotationsDir = path.join(idleDir, 'rotations');
+        const rotationFiles = new Set(fs.readdirSync(rotationsDir));
+        for (const rot of PIXEL_ROTATIONS) {
+          const filename = `${rot}.png`;
+          expect(
+            rotationFiles.has(filename),
+            `Token ${tokenId}/Idle/rotations missing exact-case ${filename}`
+          ).toBe(true);
+        }
+      }
     });
   });
 });

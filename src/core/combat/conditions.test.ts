@@ -1,9 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { CONDITION_REGISTRY, getConditionDefinition, evaluateFrontArcDetection } from './conditions';
+import {
+  CONDITION_REGISTRY,
+  getConditionDefinition,
+  evaluateFrontArcDetection,
+  purgeConditionsFromDefeatedSource
+} from './conditions';
 import { getEffectiveArmor, getEffectiveWard, getEffectiveMove, getEffectiveSpeed, getEffectiveStat } from './effectiveVitals';
 import { applyConditionToUnit } from './effects/conditionHandler';
 import { endActiveTurn } from './turnClock';
-import { createCombatState } from './resolver';
+import { createCombatState, executeAbility } from './resolver';
+import { resolvePendingBombardmentsOnTurnStart } from './battlefieldZones';
+import { DiceRoller } from './dice';
 import { createRadialArena } from '../grid/templates';
 import { HEX_DIRECTIONS } from '../grid/hex';
 import { ActiveCondition, CombatUnit } from './types';
@@ -424,6 +431,233 @@ describe('Condition Registry', () => {
       endActiveTurn(state, 3);
       expect(allyCu.activeConditions.some((c) => c.type === 'MORTAL_EBB')).toBe(false);
       expect(getEffectiveStat(allyCu, 'attackRoll')).toBe(0);
+    });
+  });
+
+  describe('Source-Defeated Condition Cleanup (B.15)', () => {
+    const highRoller: DiceRoller = {
+      rollD20: () => 20,
+      rollDice: (count, sides) => count * sides,
+      rollD20Detailed: (adv) => ({
+        rolls: adv === 'NORMAL' ? [20] : [20, 20],
+        kept: 20
+      }),
+      rollIndividualDice: (count, sides) => Array.from({ length: count }, () => sides)
+    };
+
+    const lethalStrike: Ability = {
+      id: 'lethal_strike',
+      name: 'Lethal Strike',
+      description: 'Heavy physical strike',
+      apCost: 1,
+      range: 1,
+      targetType: 'SINGLE_TARGET',
+      defenseTarget: 'EVASION',
+      attackModifierAttribute: 'force',
+      damageType: 'PHYSICAL',
+      effects: [
+        {
+          type: 'DAMAGE',
+          damageProfile: { count: 2, sides: 6, modifierAttribute: 'force' }
+        }
+      ]
+    };
+
+    it('marks CHALLENGED, CHARMED, and HENOSIS with clearWhenSourceDefeated: true', () => {
+      expect(CONDITION_REGISTRY.CHALLENGED.clearWhenSourceDefeated).toBe(true);
+      expect(CONDITION_REGISTRY.CHARMED.clearWhenSourceDefeated).toBe(true);
+      expect(CONDITION_REGISTRY.HENOSIS.clearWhenSourceDefeated).toBe(true);
+      expect(CONDITION_REGISTRY.BURN.clearWhenSourceDefeated).toBeUndefined();
+      expect(CONDITION_REGISTRY.POISON.clearWhenSourceDefeated).toBeUndefined();
+      expect(CONDITION_REGISTRY.EXPOSED.clearWhenSourceDefeated).toBeUndefined();
+      expect(CONDITION_REGISTRY.MORTAL_EBB.clearWhenSourceDefeated).toBeUndefined();
+    });
+
+    it('purgeConditionsFromDefeatedSource removes source-bound conditions, runs onRemoved without MORTAL_EBB, preserves other sources, and logs CONDITION_BROKEN', () => {
+      const arena = createRadialArena(3);
+      const knight = createRecruit('knight', 'Garrick', { faction: 'PLAYER' });
+      const phil = createRecruit('phil', 'Sylvia', { faction: 'PLAYER' });
+      const theurge = createRecruit('theurge', 'Aurelia', { faction: 'PLAYER' });
+      const ally = createRecruit('ally', 'Alden', { faction: 'PLAYER' });
+      const bandit = createRecruit('bandit', 'Bandit', { faction: 'ENEMY' });
+      const orc = createRecruit('orc', 'Orc', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('knight', { q: 0, r: 0 });
+      arena.setUnitPosition('phil', { q: 1, r: 0 });
+      arena.setUnitPosition('theurge', { q: -1, r: 0 });
+      arena.setUnitPosition('ally', { q: -1, r: 1 });
+      arena.setUnitPosition('bandit', { q: 0, r: 1 });
+      arena.setUnitPosition('orc', { q: 1, r: 1 });
+
+      const state = createCombatState(arena, [knight, phil, theurge, ally, bandit, orc], 'knight');
+      const allyCu = state.units.get('ally')!;
+      const banditCu = state.units.get('bandit')!;
+      const orcCu = state.units.get('orc')!;
+
+      applyConditionToUnit(banditCu, 'CHALLENGED', 2, 'knight');
+      applyConditionToUnit(banditCu, 'BURN', 2, 'knight', 2);
+      applyConditionToUnit(orcCu, 'CHARMED', 2, 'knight', undefined, 'PLAYER');
+      applyConditionToUnit(allyCu, 'HENOSIS', 2, 'knight');
+      // Condition from a different living source must remain intact
+      applyConditionToUnit(allyCu, 'CHALLENGED', 2, 'orc');
+
+      expect(orcCu.faction).toBe('PLAYER');
+
+      purgeConditionsFromDefeatedSource(state, 'knight');
+
+      expect(banditCu.activeConditions.some((c) => c.type === 'CHALLENGED')).toBe(false);
+      // DoT condition from defeated knight stays active
+      expect(banditCu.activeConditions.some((c) => c.type === 'BURN')).toBe(true);
+      // CHARMED reverted orc faction back to ENEMY
+      expect(orcCu.activeConditions.some((c) => c.type === 'CHARMED')).toBe(false);
+      expect(orcCu.faction).toBe('ENEMY');
+      // HENOSIS cleared WITHOUT applying MORTAL_EBB
+      expect(allyCu.activeConditions.some((c) => c.type === 'HENOSIS')).toBe(false);
+      expect(allyCu.activeConditions.some((c) => c.type === 'MORTAL_EBB')).toBe(false);
+      // Condition from living orc stays
+      expect(allyCu.activeConditions.some((c) => c.type === 'CHALLENGED' && c.sourceUnitId === 'orc')).toBe(true);
+
+      const clearedLogs = state.combatLog.filter(
+        (e) => e.metadata?.type === 'CONDITION_BROKEN' && e.metadata.reason === 'source_defeated'
+      );
+      expect(clearedLogs).toHaveLength(3);
+    });
+
+    it('clears CHALLENGED, CHARMED (reverting faction), and HENOSIS (no MORTAL_EBB) when source dies via attack damage', () => {
+      const arena = createRadialArena(3);
+      const source = createRecruit('source', 'Source Hero', { faction: 'PLAYER' });
+      const ally = createRecruit('ally', 'Allied Knight', { faction: 'PLAYER' });
+      const killer = createRecruit('killer', 'Killer', { faction: 'ENEMY' });
+      const bystander = createRecruit('bystander', 'Bystander', { faction: 'ENEMY' });
+      const thirdEnemy = createRecruit('third', 'Third', { faction: 'PLAYER' });
+
+      arena.setUnitPosition('source', { q: 0, r: 0 });
+      arena.setUnitPosition('ally', { q: -1, r: 0 });
+      arena.setUnitPosition('killer', { q: 1, r: 0 });
+      arena.setUnitPosition('bystander', { q: 2, r: 0 });
+      arena.setUnitPosition('third', { q: 1, r: 1 });
+
+      const state = createCombatState(arena, [source, ally, killer, bystander, thirdEnemy], 'killer');
+      const sourceCu = state.units.get('source')!;
+      const allyCu = state.units.get('ally')!;
+      const killerCu = state.units.get('killer')!;
+      const bystanderCu = state.units.get('bystander')!;
+      sourceCu.currentHp = 1;
+
+      applyConditionToUnit(killerCu, 'CHALLENGED', 2, 'source');
+      applyConditionToUnit(bystanderCu, 'CHARMED', 2, 'source', undefined, 'PLAYER');
+      applyConditionToUnit(allyCu, 'HENOSIS', 2, 'source');
+
+      expect(bystanderCu.faction).toBe('PLAYER');
+
+      executeAbility(state, 'killer', lethalStrike, { targetUnitId: 'source' }, highRoller);
+
+      expect(sourceCu.isDefeated).toBe(true);
+      expect(killerCu.activeConditions.some((c) => c.type === 'CHALLENGED')).toBe(false);
+      expect(bystanderCu.activeConditions.some((c) => c.type === 'CHARMED')).toBe(false);
+      expect(bystanderCu.faction).toBe('ENEMY');
+      expect(allyCu.activeConditions.some((c) => c.type === 'HENOSIS')).toBe(false);
+      expect(allyCu.activeConditions.some((c) => c.type === 'MORTAL_EBB')).toBe(false);
+
+      // Subsequent attack by previously-challenged unit against another target suffers no CHALLENGED Disadvantage or EXPOSED
+      const followUp = executeAbility(state, 'killer', lethalStrike, { targetUnitId: 'third' }, highRoller);
+      expect(followUp.type).toBe('ATTACK');
+      if (followUp.type === 'ATTACK') {
+        expect(followUp.details.diceBreakdown?.advantage).toBe('NORMAL');
+      }
+      expect(killerCu.activeConditions.some((c) => c.type === 'EXPOSED')).toBe(false);
+    });
+
+    it('clears source-bound conditions when source dies via self-sacrifice hpCost', () => {
+      const arena = createRadialArena(3);
+      const berserker = createRecruit('zerk', 'Berserker', { faction: 'PLAYER' });
+      const bandit = createRecruit('bandit', 'Bandit', { faction: 'ENEMY' });
+      arena.setUnitPosition('zerk', { q: 0, r: 0 });
+      arena.setUnitPosition('bandit', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [berserker, bandit], 'zerk');
+      const zerkCu = state.units.get('zerk')!;
+      const banditCu = state.units.get('bandit')!;
+      zerkCu.currentHp = 2;
+
+      applyConditionToUnit(banditCu, 'CHALLENGED', 2, 'zerk');
+
+      const sacrificeAbility: Ability = {
+        ...lethalStrike,
+        id: 'sacrifice_strike',
+        name: 'Blood Sacrifice',
+        hpCost: 2
+      };
+
+      executeAbility(state, 'zerk', sacrificeAbility, { targetUnitId: 'bandit' }, highRoller);
+
+      expect(zerkCu.isDefeated).toBe(true);
+      expect(banditCu.activeConditions.some((c) => c.type === 'CHALLENGED')).toBe(false);
+    });
+
+    it('clears source-bound conditions when source dies via turn-start DoT damage', () => {
+      const arena = createRadialArena(3);
+      const knight = createRecruit('knight', 'Knight', { faction: 'PLAYER' });
+      const ally = createRecruit('ally', 'Ally', { faction: 'PLAYER' });
+      const bandit = createRecruit('bandit', 'Bandit', { faction: 'ENEMY' });
+      arena.setUnitPosition('knight', { q: 0, r: 0 });
+      arena.setUnitPosition('ally', { q: -1, r: 0 });
+      arena.setUnitPosition('bandit', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [knight, ally, bandit], 'ally');
+      const knightCu = state.units.get('knight')!;
+      const banditCu = state.units.get('bandit')!;
+      knightCu.currentHp = 2;
+      knightCu.initiativeGauge = 200;
+
+      applyConditionToUnit(knightCu, 'BURN', 2, 'bandit', 3);
+      applyConditionToUnit(banditCu, 'CHALLENGED', 2, 'knight');
+
+      endActiveTurn(state, 0);
+
+      expect(knightCu.isDefeated).toBe(true);
+      expect(banditCu.activeConditions.some((c) => c.type === 'CHALLENGED')).toBe(false);
+    });
+
+    it('clears source-bound conditions when source dies via delayed bombardment detonation', () => {
+      const arena = createRadialArena(4);
+      const bombardier = createRecruit('bombardier', 'Bombardier', { faction: 'ENEMY' });
+      const victim = createRecruit('victim', 'Knight', { faction: 'PLAYER' });
+      const bandit = createRecruit('bandit', 'Bandit', { faction: 'ENEMY' });
+      arena.setUnitPosition('bombardier', { q: 0, r: 0 });
+      arena.setUnitPosition('victim', { q: 2, r: 0 });
+      arena.setUnitPosition('bandit', { q: 3, r: 0 });
+
+      const state = createCombatState(arena, [bombardier, victim, bandit], 'bombardier');
+      const victimCu = state.units.get('victim')!;
+      const banditCu = state.units.get('bandit')!;
+      victimCu.currentHp = 1;
+
+      applyConditionToUnit(banditCu, 'CHALLENGED', 2, 'victim');
+
+      state.pendingBombardments = [
+        {
+          id: 'barrage-1',
+          sourceUnitId: 'bombardier',
+          sourceUnitName: 'Bombardier',
+          sourceFaction: 'ENEMY',
+          abilityId: 'siege_barrage',
+          abilityName: 'Siege Barrage',
+          centerCoord: { q: 2, r: 0 },
+          hexCoords: [{ q: 2, r: 0 }],
+          damageProfile: { count: 2, sides: 6, modifierAttribute: 'force' },
+          attackModifierAttribute: 'finesse',
+          snapshotForce: 4,
+          snapshotFinesse: 4,
+          snapshotFocus: 0,
+          snapshotZeroedInStacks: 0
+        }
+      ];
+
+      resolvePendingBombardmentsOnTurnStart(state, 'bombardier', highRoller);
+
+      expect(victimCu.isDefeated).toBe(true);
+      expect(banditCu.activeConditions.some((c) => c.type === 'CHALLENGED')).toBe(false);
     });
   });
 });

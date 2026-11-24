@@ -406,6 +406,11 @@ describe('Tier 4 Dragoon Core Mechanics', () => {
       dragoonCu.currentAp = 4;
       endActiveTurn(state);
       expect(dragoonCu.virtualElevation).toBe(1);
+
+      // Persists across a subsequent non-attacking turn ending with 0 AP until an attack is resolved
+      dragoonCu.currentAp = 0;
+      endActiveTurn(state);
+      expect(dragoonCu.virtualElevation).toBe(1);
     });
 
     it('applies defensive penalty to attacker roll when defending with Virtual Height', () => {
@@ -435,8 +440,9 @@ describe('Tier 4 Dragoon Core Mechanics', () => {
       dragoonCu.virtualElevation = 1;
       const dice = new MockDiceRoller({ d20Rolls: [15] });
       const roll1 = resolveAttackRoll(enemyCu, dragoonCu, dummyAbility, dice, { state });
-      // Elevation delta is enemy(0) - dragoon(1) = -1 -> -2 penalty
-      expect(roll1.modifierBreakdown?.some((m) => m.label === 'Low Ground')).toBe(true);
+      // Elevation delta is enemy(0) - dragoon(1) = -1 -> -2 penalty (not Disadvantage)
+      expect(roll1.advantage).toBe('NORMAL');
+      expect(roll1.modifierBreakdown?.some((m) => m.label === 'Low Ground' && m.value === -2)).toBe(true);
       expect(roll1.modifier).toBeLessThan(0);
 
       // Dragoon has Virtual Height = 2 -> Low ground disadvantage
@@ -482,6 +488,12 @@ describe('Tier 4 Dragoon Core Mechanics', () => {
 
       expect(res.type).toBe('ATTACK');
       if (res.type === 'ATTACK') {
+        expect(res.details.diceBreakdown?.advantage).toBe('NORMAL');
+        expect(res.details.diceBreakdown?.modifierBreakdown).toContainEqual({
+          label: 'High Ground',
+          value: 2,
+          source: 'ELEVATION'
+        });
         const dmgEvent = res.details.events.find((e) => e.type === 'DAMAGE') as any;
         expect(dmgEvent).toBeDefined();
         // Base roll 4 + Apex Strike 2 = 6 damage

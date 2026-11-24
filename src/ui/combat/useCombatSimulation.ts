@@ -1183,8 +1183,15 @@ export function useCombatSimulation({
     }
     if (phase !== 'PLAYER_ACTION' || !activeCu) return;
     const unspent = activeCu.currentAp;
+    const willArmCoiledApex =
+      unspent > 0 &&
+      (activeCu.virtualElevation ?? 0) < 1 &&
+      Boolean(activeCu.passives?.some((p) => p.unspentApVirtualHeight));
     if (unspent > 0) {
       addFloatingText(`+${unspent * 20} Initiative`, 'buff', activeCoord ?? { q: 0, r: 0 });
+      if (willArmCoiledApex) {
+        addFloatingText('Coiled Apex (+1 Height)', 'buff', activeCoord ?? { q: 0, r: 0 });
+      }
     } else {
       addFloatingText('Turn End', 'buff', activeCoord ?? { q: 0, r: 0 });
     }

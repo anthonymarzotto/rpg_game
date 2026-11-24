@@ -565,6 +565,31 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
     expect(html).toContain('Must attack Alden');
   });
 
+  it('renders Coiled Apex dragon icon and tooltip inside standee status bubble when virtualElevation > 0 (B.18)', () => {
+    const { state } = setupTestState();
+    const p1Cu = state.units.get('p1')!;
+    p1Cu.virtualElevation = 1;
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('data-testid="standee-status-bubble-p1"');
+    expect(html).toContain('🐉');
+    expect(html).toContain('Coiled Apex');
+    expect(html).toContain('Grants +1 Virtual Height');
+  });
+
   it('renders floating combat text with high-contrast stroke outline and elevated anchor', () => {
     const { state } = setupTestState();
     const floaters = [
