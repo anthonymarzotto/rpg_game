@@ -36,12 +36,19 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **B.3**: Active turn halo is generally not clearing well. Hard to pinpoint exactly what's going on, but I'm on turn 7 and 4 units have a halo.
 - [ ] **B.4**: When an enemy uses Smoke Veil I can still see them.
 - [ ] **B.16**: In Trial: Status pill hover effect goes under the Initiative track.
+- [ ] **B.20**: The Dragoon's Dragon Dive and Wyrmflame Breath currently exclude friendly units. They should follow standard AoE rules and hit friendly units if they are present.
 
 ---
 
 ## 💡 Ideas
 - [ ] **I.1**: Persist the last trial's combat log. Can help with identifying all kinds of things like AI behaviour enhancements.
 - [ ] **I.2**: Post match ratings/stats for units. I saw this happen in a Trial debug session.
+- [ ] **I.3**: Some sort of scoring vs. what the AI would choose. This could be live in a window or post-trial as a review. Possible uses would be helping players to better outcomes, or helping refine the AI heuristics.
+- [ ] **I.4**: Better onboarding/tutorial. A friend of mine was pretty lost to start. 
+   - Hard to tell units apart when same class.
+   - Something about using "50 for a new character, but I'm not sure how to get a new character". This might refer to Threat. On the next Trial he could use units up to 50 more threat?
+   - "Distribute evenly" is really not an optimal way to spread XP in this game. Ideally its dump as much in to one stat per unit to get them to their next level.
+   - He didn't know to click "Move" to take a Move action. "Its typically a default."
 
 ---
 
