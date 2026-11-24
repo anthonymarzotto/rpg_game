@@ -32,7 +32,7 @@ The system SHALL compute the target encounter threat budget anchored directly to
 - **THEN** the system adds a +70 hostile bonus threat to the stage deployment budget representing a Tier-4 adversary bonus
 
 ### Requirement: Procedural Enemy Composition
-The system SHALL assemble an enemy combatant roster whose total threat budget matches the target encounter budget, selecting from verified class packages across Novices (10 threat), Tier-1 classes (25 threat), Tier-2 classes (40 threat), Tier-3 hybrid classes (55 threat), and Tier-4 specialized classes (70 threat). The system SHALL dynamically spend the threat budget on multiple units of the highest appropriate tiers for the stage rather than capping the squad at one unit per tier, and SHALL NOT enforce an arbitrary 4-unit squad cap on enemy forces.
+The system SHALL assemble an enemy combatant roster whose total threat budget matches the target encounter budget, selecting from verified class packages across Novices (10 threat), Tier-1 classes (25 threat), Tier-2 classes (40 threat), Tier-3 hybrid classes (55 threat), and Tier-4 specialized classes (70 threat, including Shield-bearer, Dragoon, Ballistician, Philanderer, Theurge, and Arcanist). The system SHALL dynamically spend the threat budget on multiple units of the highest appropriate tiers for the stage rather than capping the squad at one unit per tier, and SHALL NOT enforce an arbitrary 4-unit squad cap on enemy forces.
 
 #### Scenario: Generating enemy squad for recruit party
 - **WHEN** generating a Stage 1 encounter for 3 Level-0 Novices
@@ -52,7 +52,7 @@ The system SHALL assemble an enemy combatant roster whose total threat budget ma
 
 #### Scenario: Generating enemy squad with Tier-4 adversaries
 - **WHEN** generating an encounter with a threat budget of 70 or higher (e.g. Stage 5+ or dedicated high-threat trials)
-- **THEN** the generated enemy squad can incorporate Tier-4 adversaries (Shield-bearer, Dragoon) matching the stage budget
+- **THEN** the generated enemy squad can incorporate Tier-4 adversaries (Shield-bearer, Dragoon, Ballistician, Philanderer, Theurge, Arcanist) matching the stage budget
 
 #### Scenario: Generating multi-unit Tier-1 enemy squad
 - **WHEN** generating an encounter for Stage 2 with a calibrated threat budget of 75 to 85 points
@@ -74,8 +74,12 @@ The system SHALL initialize generated Tier-1, Tier-2, Tier-3, and Tier-4 enemy u
 - **THEN** the unit progression receives 1 Rogue and 2 Mage archetype advancements, unlocks Witch in its constellation, and equips domain abilities and passives derived from its Focus and Finesse lineage
 
 #### Scenario: Initializing a Tier-4 enemy
-- **WHEN** `createEnemyUnit` creates an enemy unit with class `shield-bearer` or `dragoon`
-- **THEN** the unit progression receives 4 archetype advancements matching class requirements (e.g. 3 Fighter and 1 Rogue for Shield-bearer, 3 Fighter and 1 Mage for Dragoon) and derives loadout options from unlocked lineage
+- **WHEN** `createEnemyUnit` creates an enemy unit with class `shield-bearer`, `dragoon`, or `arcanist`
+- **THEN** the unit progression receives 4 archetype advancements matching class requirements (e.g. 3 Fighter and 1 Rogue for Shield-bearer, 3 Fighter and 1 Mage for Dragoon, 1 Rogue and 3 Mage for Arcanist) and derives loadout options from unlocked lineage
+
+#### Scenario: Initializing an Arcanist enemy
+- **WHEN** `createEnemyUnit` creates an enemy unit with class `arcanist`
+- **THEN** the unit progression receives 0 Fighter, 1 Rogue, and 3 Mage archetype advancements, unlocks Arcanist in its constellation, equips `Refractive Array`, `Adaptive Formula`, `Distributive Proof`, and `Exclusion Matrix`, and derives wildcard options from its unlocked Mage/Rogue lineage
 
 ### Requirement: Procedural Arena and Obstacle Generation
 The system SHALL generate an arena of radius 3, 4, or 5 containing 2 to 4 non-walkable obstacle hexes and procedural multi-peak terraced elevation (h in [0, 3], default peaks h=2), ensuring guaranteed traversable pathfinding connectivity (without impassable single-step rises of Delta h >= 3) between player deployment hexes in the West and enemy deployment hexes in the East. The arena radius SHALL be dynamically determined: Radius 3 for Stage 1, Radius 4 minimum for Stage 2 and beyond, and expanding to Radius 5 (91 hexes) when the combined total of deployed player and enemy units is 7 or greater.

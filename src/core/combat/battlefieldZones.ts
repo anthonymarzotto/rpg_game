@@ -5,7 +5,7 @@ import { Ability } from '../types/ability';
 import { DiceRoller, SeededDiceRoller } from './dice';
 import { resolveAttackRoll } from './attackRoll';
 import { resolveDamage } from './damageEngine';
-import { getEffectiveEvasion } from './effectiveVitals';
+import { getEffectiveEvasion, hasFriendlyAoEExclusion, isFriendlyUnit } from './effectiveVitals';
 import { createRecruit } from '../units/unitFactory';
 import { combatLogger } from './combatLogger';
 import { evaluateEncounterOutcome } from './objectives';
@@ -160,11 +160,13 @@ export function resolvePendingBombardmentsOnTurnStart(
     const affectedUnitIds: string[] = [];
     let totalDamage = 0;
 
+    const excludeAllies = hasFriendlyAoEExclusion(snapshotActor);
     for (const hex of b.hexCoords) {
       const unitId = state.arena.getUnitAt(hex);
       if (!unitId) continue;
       const targetCu = state.units.get(unitId);
       if (!targetCu || targetCu.isDefeated || targetCu.currentHp <= 0) continue;
+      if (excludeAllies && isFriendlyUnit(snapshotActor, targetCu)) continue;
 
       const rollResult = resolveAttackRoll(snapshotActor, targetCu, syntheticAbility, effectiveRoller, {
         state,

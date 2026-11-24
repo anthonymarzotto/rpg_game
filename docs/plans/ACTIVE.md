@@ -5,6 +5,7 @@
 ---
 
 ## 🔨 In Progress
+- [X] **3.6**: **Arcanist** (`#96`, Tier 4: `0F, 1R, 3M`), `96_human_male`.
 - [X] **3.5**: **Theurge** (`#79`, Tier 4: `1F, 0R, 3M`), `79_human_male`.
 - [X] **B.15**: If a unit is Challenged and the challenging unit dies, the Challenged status should clear (also covering `CHARMED` and `HENOSIS` with Combat Log cards).
 - [X] **B.17**: Combat Log: "Graze Mitigation" breaks out of its tooltip container.
@@ -14,10 +15,6 @@
 ---
 
 ## 🎯 Next Up
-
-### 3. Tier 4 Class Kits & Token Integration
-Sketch and author class package (signature ability, 2 domain abilities, passive trait, AI heuristic profile, and badge palette) and whitelist tokens for the following new classes:
-- [ ] **3.6**: **Arcanist** (`#96`, Tier 4: `0F, 1R, 3M`), `96_human_male`.
 
 ### 4. No penalty for unit retreat/death
 When a unit is defeated in the arena, there's no penalty. Permadeath is too punishing for right now and is a point on the Roadmap to flesh out, but some sort of punishment seems warranted.

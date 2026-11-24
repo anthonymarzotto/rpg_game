@@ -1,4 +1,5 @@
-import { CombatUnit, ModifiableCombatStat } from './types';
+import { CombatState, CombatUnit, ModifiableCombatStat } from './types';
+import { Ability } from '../types/ability';
 import { getPassiveStatModifier } from './passives';
 import { getConditionStatModifier } from './conditions';
 import { isBastionStanceActive } from './bastionStance';
@@ -69,4 +70,60 @@ export function getEffectiveEvasion(cu: CombatUnit): number {
 
 export function getEffectiveResolve(cu: CombatUnit): number {
   return getEffectiveStat(cu, 'resolve');
+}
+
+/**
+ * Returns true if two combat units belong to the same faction.
+ */
+export function isFriendlyUnit(
+  actorCu: CombatUnit | undefined,
+  targetCu: CombatUnit | undefined
+): boolean {
+  if (!actorCu || !targetCu) return false;
+  const actorFaction = actorCu.faction ?? actorCu.unit.faction;
+  const targetFaction = targetCu.faction ?? targetCu.unit.faction;
+  return Boolean(actorFaction && targetFaction && actorFaction === targetFaction);
+}
+
+/**
+ * Returns true if the unit possesses an active passive granting friendly-fire AoE exclusion
+ * (e.g. Arcanist's Exclusion Matrix).
+ */
+export function hasFriendlyAoEExclusion(cu?: CombatUnit): boolean {
+  return Boolean(cu?.passives?.some((p) => p.excludeFriendlyAoE));
+}
+
+/**
+ * Returns true if an ability is classified as magical for LoS and passive filters.
+ */
+export function isMagicalAbility(ability: Ability): boolean {
+  return ability.damageType === 'MAGICAL' || ability.archetypeTag === 'MAGE';
+}
+
+/**
+ * Builds the Line-of-Sight unit screening predicate for a given actor and ability:
+ * - Stealthed intermediate units never screen LoS.
+ * - Friendly intermediate units do not screen LoS for magical abilities when the actor
+ *   possesses a passive with `ignoresAllyLoS: true`.
+ */
+export function createLoSScreeningPredicate(
+  state: CombatState,
+  actorCu: CombatUnit,
+  ability: Ability
+): (unitId: string) => boolean {
+  const ignoreAllies =
+    Boolean(actorCu.passives?.some((p) => p.ignoresAllyLoS)) &&
+    isMagicalAbility(ability);
+
+  return (unitId: string): boolean => {
+    const intermediateCu = state.units.get(unitId);
+    if (!intermediateCu) return true;
+    if (intermediateCu.activeConditions?.some((c) => c.type === 'STEALTH')) {
+      return false;
+    }
+    if (ignoreAllies && isFriendlyUnit(actorCu, intermediateCu)) {
+      return false;
+    }
+    return true;
+  };
 }

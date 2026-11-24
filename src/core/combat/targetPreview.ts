@@ -1,10 +1,13 @@
 import { Ability } from '../types/ability';
-import { HexCoord, hexDistance, CombatArc, getCombatArc, getHexesInRange, hexEquals, getForwardConeHexes, getDirectionBetween } from '../grid/hex';
+import { HexCoord, hexDistance, CombatArc, getCombatArc, getHexesInRange, getHexNeighbors, hexEquals, getForwardConeHexes, getDirectionBetween } from '../grid/hex';
 import { CombatState } from './types';
 import { TriadAttributes } from '../types/stats';
 import {
   getEffectiveArmor,
-  getEffectiveWard
+  getEffectiveWard,
+  createLoSScreeningPredicate,
+  hasFriendlyAoEExclusion,
+  isFriendlyUnit
 } from './effectiveVitals';
 import { canExecuteAbility, formatLoSObstructionReason } from './validator';
 import { isFlankOrRear } from './flanking';
@@ -108,8 +111,19 @@ export function computeAbilityMetrics(
   // If not a HEX target and there's no unit, we cannot target
   if (!targetUnitId && !isHexTarget) return null;
 
-  const targetCu = targetUnitId ? state.units.get(targetUnitId) : undefined;
-  if (targetUnitId && (!targetCu || targetCu.isDefeated)) return null;
+  const rawTargetCu = targetUnitId ? state.units.get(targetUnitId) : undefined;
+  if (targetUnitId && (!rawTargetCu || rawTargetCu.isDefeated)) return null;
+
+  const excludeAllies =
+    hasFriendlyAoEExclusion(actorCu) ||
+    Boolean(effectiveAbility.effects?.some((e) => e.type === 'ALLY_REFRACTION'));
+  const isSparedCenterAlly =
+    isHexTarget &&
+    effectiveAbility.damageType !== 'NONE' &&
+    Boolean(rawTargetCu) &&
+    excludeAllies &&
+    isFriendlyUnit(actorCu, rawTargetCu);
+  const targetCu = isSparedCenterAlly ? undefined : rawTargetCu;
 
   const actorElevation = state.arena.getElevation(effectiveOrigin);
   const targetElevation = state.arena.getElevation(targetCoord);
@@ -154,8 +168,7 @@ export function computeAbilityMetrics(
   const obstruction = isAerialVault || isIndirectArtillery
     ? null
     : state.arena.getLineOfSightObstruction(effectiveOrigin, targetCoord, {
-        isUnitScreening: (unitId) =>
-          !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
+        isUnitScreening: createLoSScreeningPredicate(state, actorCu, effectiveAbility)
       });
   const hasLoS = obstruction === null;
   const blockReason = obstruction ? formatLoSObstructionReason(state, obstruction) : undefined;
@@ -184,8 +197,8 @@ export function computeAbilityMetrics(
       if (!secUnitId || secUnitId === actorUnitId) continue;
       const secCu = state.units.get(secUnitId);
       if (!secCu || secCu.isDefeated || secCu.currentHp <= 0) continue;
-      const isAlly = (secCu.unit.faction ?? secCu.faction) === (actorCu.unit.faction ?? actorCu.faction);
-      if ((isAerialVault || isCone) && isAlly) continue;
+      const isAlly = isFriendlyUnit(actorCu, secCu);
+      if ((isAerialVault || isCone || excludeAllies) && isAlly) continue;
 
       const secElevDelta = state.arena.getElevation(strikeOrigin) - state.arena.getElevation(hex);
       const splashRollContext = evaluateAttackRollContext(actorCu, secCu, effectiveAbility, {
@@ -292,6 +305,57 @@ export function computeAbilityMetrics(
         conditionalRollBonus += challengedEffect.attackRollBonus;
       }
       bonusDamageProfile = challengedEffect.bonusDamage;
+    }
+  }
+
+  const distributiveEffect = effectiveAbility.effects?.find((e) => e.type === 'DISTRIBUTIVE_PROOF');
+  if (distributiveEffect && targetCu) {
+    let adjacentTargetAllies = 0;
+    for (const neighbor of getHexNeighbors(targetCoord)) {
+      const occId = state.arena.getUnitAt(neighbor);
+      if (!occId || occId === targetCu.unit.id) continue;
+      const occCu = state.units.get(occId);
+      if (occCu && !occCu.isDefeated && occCu.currentHp > 0 && isFriendlyUnit(targetCu, occCu)) {
+        adjacentTargetAllies++;
+      }
+    }
+    if (adjacentTargetAllies === 0 && distributiveEffect.bonusDamage) {
+      bonusDamageProfile = distributiveEffect.bonusDamage;
+    } else if (adjacentTargetAllies >= 1) {
+      const distProfile = distributiveEffect.damageProfile ?? { count: 1, sides: 4 };
+      for (const neighbor of getHexNeighbors(targetCoord)) {
+        const occId = state.arena.getUnitAt(neighbor);
+        if (!occId || occId === actorUnitId || occId === targetCu.unit.id) continue;
+        const adjCu = state.units.get(occId);
+        if (!adjCu || adjCu.isDefeated || adjCu.currentHp <= 0) continue;
+        const isAlly = isFriendlyUnit(actorCu, adjCu);
+        if (excludeAllies && isAlly) continue;
+        const adjElevDelta = state.arena.getElevation(strikeOrigin) - state.arena.getElevation(neighbor);
+        const adjRollContext = evaluateAttackRollContext(actorCu, adjCu, effectiveAbility, {
+          state,
+          originCoord: strikeOrigin,
+          targetCoord: neighbor,
+          elevationDelta: adjElevDelta
+        });
+        const adjToHit = Math.round(adjRollContext.hitProbability * 100);
+        const adjMitigation = getEffectiveWard(adjCu);
+        const dMin = Math.max(1, distProfile.count - adjMitigation);
+        const dMax = Math.max(1, distProfile.count * distProfile.sides - adjMitigation);
+        const avgHit = Math.max(1, distProfile.count * ((distProfile.sides + 1) / 2) - adjMitigation);
+        const expDmg = Math.round((adjToHit / 100) * avgHit * 10) / 10;
+        splashUnits.push({
+          targetUnitId: adjCu.unit.id,
+          targetName: adjCu.unit.name,
+          toHitChance: adjToHit,
+          targetDefense: adjRollContext.targetDefense,
+          defenseType: adjRollContext.defenseType,
+          minDamage: dMin,
+          maxDamage: dMax,
+          expectedDamage: expDmg,
+          mitigation: adjMitigation,
+          isAlly
+        });
+      }
     }
   }
 

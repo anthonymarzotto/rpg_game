@@ -1,4 +1,4 @@
-import { Ability, AbilityEffect } from '../types/ability';
+import { Ability, AbilityEffect, DefenseTarget } from '../types/ability';
 import { EffectiveAbility } from '../types/modifier';
 import { CombatState, CombatUnit, HitOutcome, AttackModifierComponent } from './types';
 export type { AttackModifierComponent } from './types';
@@ -279,6 +279,29 @@ function evaluateActorRollModifiers(
  * conditions via the declarative registry, elevation difference (including spatial lookahead),
  * protective auras, advantage/disadvantage determination, and exact d20 hit probability.
  */
+/**
+ * Resolves the target's effective defense score and display label for a given DefenseTarget.
+ * For `LOWER_DEFENSE`, compares effective Evasion and effective Resolve and returns the lower value,
+ * preferring `Resolve` on an exact tie.
+ */
+export function resolveTargetDefense(
+  targetCu: CombatUnit,
+  defenseTarget: DefenseTarget
+): { readonly value: number; readonly label: 'Evasion' | 'Resolve' } {
+  if (defenseTarget === 'EVASION') {
+    return { value: getEffectiveEvasion(targetCu), label: 'Evasion' };
+  }
+  if (defenseTarget === 'LOWER_DEFENSE') {
+    const evasion = getEffectiveEvasion(targetCu);
+    const resolve = getEffectiveResolve(targetCu);
+    if (evasion < resolve) {
+      return { value: evasion, label: 'Evasion' };
+    }
+    return { value: resolve, label: 'Resolve' };
+  }
+  return { value: getEffectiveResolve(targetCu), label: 'Resolve' };
+}
+
 export function evaluateAttackRollContext(
   actorCu: CombatUnit,
   targetCu: CombatUnit,
@@ -396,11 +419,9 @@ export function evaluateAttackRollContext(
 
   // 8. Defense target & net modifier
   const netModifier = baseModifier + totalBonus - totalPenalty;
-  const targetDefense =
-    ability.defenseTarget === 'EVASION'
-      ? getEffectiveEvasion(targetCu)
-      : getEffectiveResolve(targetCu);
-  const defenseType = ability.defenseTarget === 'EVASION' ? 'Evasion' : 'Resolve';
+  const resolvedDefense = resolveTargetDefense(targetCu, ability.defenseTarget);
+  const targetDefense = resolvedDefense.value;
+  const defenseType = resolvedDefense.label;
 
   // 9. Exact d20 probability math clamped between 5% and 95%
   const neededRoll = Math.max(1, Math.min(20, targetDefense - netModifier));

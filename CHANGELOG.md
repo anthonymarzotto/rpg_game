@@ -2,6 +2,15 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.24.0] - 2026-11-24
+
+### New Tier 4 Class: Arcanist
+- **Geometric & Mathematical Spellcaster**: Introduced the **Arcanist** (Tier 4: 0 Fighter, 1 Rogue, 3 Mage), completing the Tier 4 class roster with a dedicated pixel sprite and deep-arcane-violet-and-emerald class badge. The Arcanist wields precision geometry to weave spells cleanly around teammates and exploit structural flaws in enemy formations.
+- **Exclusion Matrix Passive**: Friendly units never block Line of Sight for your magical abilities, and your hostile area-of-effect attacks and splashes never harm or debuff friendly units—allowing you to drop area spells directly onto engaged teammates without friendly fire.
+- **Refractive Array (Signature)**: Projects a geometric blast across a 1-hex radius dealing magical damage against Resolve. Allies caught inside the blast are spared, and each spared ally refracts an extra magical strike onto enemies inside the blast, spreading across the lowest-health foes first.
+- **Adaptive Formula**: Fires a calibrated arcane bolt that automatically tests whichever of the target's Evasion or Resolve is lower, updating dynamically as you hover over different foes on the battlefield.
+- **Distributive Proof**: Channels a branching equation against Resolve—against an isolated foe with no adjacent allies, leaves them **Exposed** for 1 turn on hit; against a clustered foe with adjacent allies, distributes magical splash damage to surrounding units.
+
 ## [0.23.1] - 2026-11-23
 
 ### Combat & Visual Bug Fixes

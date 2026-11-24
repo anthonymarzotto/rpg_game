@@ -130,4 +130,8 @@ export interface PassiveTrait {
   readonly lowerElevationDamageBonus?: number;
   /** If true, accumulates Zeroed In stacks on stationary turn end (+1 Range, +1 Attack Roll, -1 Evasion per stack, max 3; +1 AoE Radius at 3 stacks) */
   readonly stationaryCalibration?: boolean;
+  /** If true, hostile AoEs, splashes, cones, and delayed bombardments never harm or debuff friendly units */
+  readonly excludeFriendlyAoE?: boolean;
+  /** If true, friendly units never obstruct Line of Sight for magical abilities */
+  readonly ignoresAllyLoS?: boolean;
 }

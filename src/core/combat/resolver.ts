@@ -4,6 +4,7 @@ import {
   HexDirection,
   HEX_DIRECTIONS,
   getHexesInRange,
+  getHexNeighbors,
   hexEquals,
   hexDistance,
   getDirectionBetween,
@@ -24,7 +25,12 @@ import {
   EffectOutcome
 } from './types';
 import { canMove, canExecuteAbility } from './validator';
-import { getEffectiveMove, getEffectiveSpeed, getEffectiveEvasion, getEffectiveResolve } from './effectiveVitals';
+import {
+  getEffectiveMove,
+  getEffectiveSpeed,
+  hasFriendlyAoEExclusion,
+  isFriendlyUnit
+} from './effectiveVitals';
 import { clearZeroedInStacks } from './zeroedIn';
 import { getRoughTerrainHexKeys } from './battlefieldZones';
 import { getEffectiveAbility } from './modifiers';
@@ -35,6 +41,7 @@ import { advanceTurnClock, predictTurnOrder } from './turnClock';
 import {
   resolveAttackRoll,
   resolveGroundAttackRoll,
+  resolveTargetDefense,
   calculateElevationAttackModifier,
   AttackRollResult
 } from './attackRoll';
@@ -1053,13 +1060,23 @@ export function executeAbility(
   }
 
   // 2. Damaging Attack Resolution
-  const targetUnitId = effectiveAbility.targetType === 'HEX'
+  const rawTargetUnitId = effectiveAbility.targetType === 'HEX'
     ? (targetCoord ? state.arena.getUnitAt(targetCoord) : undefined)
     : target?.targetUnitId;
-  const targetCu = targetUnitId ? state.units.get(targetUnitId) : undefined;
-  if (!targetCu && effectiveAbility.targetType !== 'HEX') {
+  const rawTargetCu = rawTargetUnitId ? state.units.get(rawTargetUnitId) : undefined;
+  if (!rawTargetCu && effectiveAbility.targetType !== 'HEX') {
     throw new Error(`Target combat unit ${target?.targetUnitId} not found in state.`);
   }
+  const excludeFriendlyAoE =
+    hasFriendlyAoEExclusion(actorCu) ||
+    Boolean(effectiveAbility.effects?.some((e) => e.type === 'ALLY_REFRACTION'));
+  const isSparedCenterAlly =
+    effectiveAbility.targetType === 'HEX' &&
+    effectiveAbility.damageType !== 'NONE' &&
+    Boolean(rawTargetCu) &&
+    excludeFriendlyAoE &&
+    isFriendlyUnit(actorCu, rawTargetCu);
+  const targetCu = isSparedCenterAlly ? undefined : rawTargetCu;
 
   const events: CombatEvent[] = [];
   let attackOriginCoord = actorCoord;
@@ -1150,6 +1167,24 @@ export function executeAbility(
         conditionalRollBonus += challengedEffect.attackRollBonus;
       }
       bonusDamageProfile = challengedEffect.bonusDamage;
+    }
+  }
+
+  const distributiveEffect = effectiveAbility.effects?.find((e) => e.type === 'DISTRIBUTIVE_PROOF');
+  let distributiveMode: 'ISOLATED' | 'CLUSTERED' | undefined;
+  if (distributiveEffect && targetCu && targetCoord) {
+    let adjacentTargetAllies = 0;
+    for (const neighbor of getHexNeighbors(targetCoord)) {
+      const occId = state.arena.getUnitAt(neighbor);
+      if (!occId || occId === targetCu.unit.id) continue;
+      const occCu = state.units.get(occId);
+      if (occCu && !occCu.isDefeated && occCu.currentHp > 0 && isFriendlyUnit(targetCu, occCu)) {
+        adjacentTargetAllies++;
+      }
+    }
+    distributiveMode = adjacentTargetAllies === 0 ? 'ISOLATED' : 'CLUSTERED';
+    if (distributiveMode === 'ISOLATED' && distributiveEffect.bonusDamage) {
+      bonusDamageProfile = distributiveEffect.bonusDamage;
     }
   }
 
@@ -1266,14 +1301,11 @@ export function executeAbility(
       if (secondaryUnitId && secondaryUnitId !== actorCu.unit.id) {
         const splashCu = state.units.get(secondaryUnitId);
         if (splashCu && !splashCu.isDefeated && splashCu.currentHp > 0) {
-          if ((vaultEffect || isCone) && actorCu.faction && splashCu.faction && actorCu.faction === splashCu.faction) {
+          if ((vaultEffect || isCone || excludeFriendlyAoE) && isFriendlyUnit(actorCu, splashCu)) {
             continue;
           }
           // Secondary unit contests the spellcast attack roll against their defense
-          const splashDefense =
-            effectiveAbility.defenseTarget === 'EVASION'
-              ? getEffectiveEvasion(splashCu)
-              : getEffectiveResolve(splashCu);
+          const splashDefense = resolveTargetDefense(splashCu, effectiveAbility.defenseTarget).value;
 
           let splashOutcome: HitOutcome = 'MISS';
           if (rollResult.totalScore >= splashDefense) {
@@ -1380,7 +1412,212 @@ export function executeAbility(
     }
   }
 
-  // Dispatch secondary effects via pluggable registry (excluding primary DAMAGE which was resolved above)
+  // Ally Refraction Resolution (e.g. Arcanist Refractive Array)
+  const refractionEffect = effectiveAbility.effects?.find((e) => e.type === 'ALLY_REFRACTION');
+  if (refractionEffect && aoeHexes.length > 0) {
+    const projectedHp = new Map<string, number>();
+    const enemiesInBlast: CombatUnit[] = [];
+    const sparedAllies: CombatUnit[] = [];
+    const seenIds = new Set<string>();
+
+    for (const hex of aoeHexes) {
+      const occId = state.arena.getUnitAt(hex);
+      if (!occId || seenIds.has(occId)) continue;
+      seenIds.add(occId);
+      const occCu = state.units.get(occId);
+      if (!occCu || occCu.isDefeated || occCu.currentHp <= 0) continue;
+
+      if (isFriendlyUnit(actorCu, occCu)) {
+        if (occId !== actorCu.unit.id) {
+          sparedAllies.push(occCu);
+        }
+      } else {
+        enemiesInBlast.push(occCu);
+        const priorDmg = events
+          .filter((e): e is Extract<CombatEvent, { type: 'DAMAGE' }> => e.type === 'DAMAGE' && e.targetUnitId === occId)
+          .reduce((sum, e) => sum + e.amount, 0);
+        projectedHp.set(occId, Math.max(0, occCu.currentHp - priorDmg));
+      }
+    }
+
+    const refractHitsReceived = new Map<string, number>();
+    const refractProfile = refractionEffect.damageProfile ?? { count: 1, sides: 4, modifierAttribute: 'focus' as const };
+    const refractDamageEffect: AbilityEffect = {
+      type: 'DAMAGE',
+      damageProfile: refractProfile
+    };
+
+    for (let i = 0; i < sparedAllies.length; i++) {
+      const livingCandidates = enemiesInBlast.filter((e) => (projectedHp.get(e.unit.id) ?? 0) > 0);
+      if (livingCandidates.length === 0) break;
+
+      livingCandidates.sort((a, b) => {
+        const hitsDiff = (refractHitsReceived.get(a.unit.id) ?? 0) - (refractHitsReceived.get(b.unit.id) ?? 0);
+        if (hitsDiff !== 0) return hitsDiff;
+        const hpDiff = (projectedHp.get(a.unit.id) ?? 0) - (projectedHp.get(b.unit.id) ?? 0);
+        if (hpDiff !== 0) return hpDiff;
+        return a.unit.id.localeCompare(b.unit.id);
+      });
+
+      const recipientCu = livingCandidates[0];
+      refractHitsReceived.set(recipientCu.unit.id, (refractHitsReceived.get(recipientCu.unit.id) ?? 0) + 1);
+
+      const refractDefense = resolveTargetDefense(recipientCu, effectiveAbility.defenseTarget).value;
+      let refractOutcome: HitOutcome = 'MISS';
+      if (rollResult.totalScore >= refractDefense) {
+        refractOutcome = 'SOLID_HIT';
+      } else if (rollResult.totalScore >= refractDefense - COMBAT_RESOLUTION_CONFIG.grazeMargin) {
+        refractOutcome = 'GRAZE';
+      }
+
+      if (refractOutcome !== 'MISS') {
+        const refractHasCover = hasBastionRangedCover(state, recipientCu, attackOriginCoord, effectiveAbility);
+        const refractDmg = resolveDamage(
+          refractOutcome,
+          effectiveAbility,
+          actorCu,
+          recipientCu,
+          diceRoller,
+          undefined,
+          refractDamageEffect,
+          { hasRangedCover: refractHasCover }
+        );
+        const nextHp = Math.max(0, (projectedHp.get(recipientCu.unit.id) ?? recipientCu.currentHp) - refractDmg.damageDealt);
+        projectedHp.set(recipientCu.unit.id, nextHp);
+        const damageType = effectiveAbility.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL';
+        if (refractDmg.damageDealt > 0) {
+          events.push({
+            type: 'DAMAGE',
+            targetUnitId: recipientCu.unit.id,
+            amount: refractDmg.damageDealt,
+            damageType,
+            reason: 'SPLASH',
+            label: 'REFRACT',
+            sourceUnitId: actorCu.unit.id,
+            isCrit: false
+          });
+        }
+        splashOutcomes.push({
+          kind: 'COLLATERAL_HIT',
+          sourceLabel: 'Refract',
+          targetName: recipientCu.unit.name,
+          damage: refractDmg.damageDealt,
+          damageType,
+          hitOutcome: refractOutcome,
+          defenseTarget: refractDefense,
+          targetHp: nextHp,
+          targetMaxHp: recipientCu.unit.effectiveVitals.maxHp
+        });
+      } else {
+        splashOutcomes.push({
+          kind: 'COLLATERAL_HIT',
+          sourceLabel: 'Refract',
+          targetName: recipientCu.unit.name,
+          damage: 0,
+          hitOutcome: 'MISS',
+          defenseTarget: refractDefense
+        });
+        events.push({
+          type: 'MISS',
+          targetUnitId: recipientCu.unit.id,
+          reason: 'SPLASH'
+        });
+      }
+    }
+  }
+
+  // Distributive Proof Resolution (Isolated -> EXPOSED on Hit/Crit; Clustered -> 1d4 adjacent splash)
+  if (distributiveEffect && targetCu && targetCoord) {
+    if (
+      distributiveMode === 'ISOLATED' &&
+      (rollResult.hitOutcome === 'SOLID_HIT' || rollResult.hitOutcome === 'CRITICAL_HIT')
+    ) {
+      const condType = distributiveEffect.conditionType ?? 'EXPOSED';
+      const dur = distributiveEffect.durationTurns ?? 1;
+      const condRes = applyConditionToUnit(targetCu, condType, dur, actorCu.unit.id);
+      events.push(condRes.event);
+      splashOutcomes.push({
+        kind: 'CONDITION',
+        condition: condType,
+        durationTurns: condRes.condition.durationTurns
+      });
+    } else if (distributiveMode === 'CLUSTERED') {
+      const distProfile = distributiveEffect.damageProfile ?? { count: 1, sides: 4 };
+      const distDamageEffect: AbilityEffect = {
+        type: 'DAMAGE',
+        damageProfile: distProfile
+      };
+      for (const neighbor of getHexNeighbors(targetCoord)) {
+        const adjId = state.arena.getUnitAt(neighbor);
+        if (!adjId || adjId === actorCu.unit.id || adjId === targetCu.unit.id) continue;
+        const adjCu = state.units.get(adjId);
+        if (!adjCu || adjCu.isDefeated || adjCu.currentHp <= 0) continue;
+        if (excludeFriendlyAoE && isFriendlyUnit(actorCu, adjCu)) continue;
+
+        const adjDefense = resolveTargetDefense(adjCu, effectiveAbility.defenseTarget).value;
+        let adjOutcome: HitOutcome = 'MISS';
+        if (rollResult.totalScore >= adjDefense) {
+          adjOutcome = 'SOLID_HIT';
+        } else if (rollResult.totalScore >= adjDefense - COMBAT_RESOLUTION_CONFIG.grazeMargin) {
+          adjOutcome = 'GRAZE';
+        }
+
+        if (adjOutcome !== 'MISS') {
+          const adjHasCover = hasBastionRangedCover(state, adjCu, attackOriginCoord, effectiveAbility);
+          const adjDmg = resolveDamage(
+            adjOutcome,
+            effectiveAbility,
+            actorCu,
+            adjCu,
+            diceRoller,
+            undefined,
+            distDamageEffect,
+            { hasRangedCover: adjHasCover }
+          );
+          const damageType = effectiveAbility.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL';
+          if (adjDmg.damageDealt > 0) {
+            events.push({
+              type: 'DAMAGE',
+              targetUnitId: adjCu.unit.id,
+              amount: adjDmg.damageDealt,
+              damageType,
+              reason: 'SPLASH',
+              label: 'DISTRIBUTE',
+              sourceUnitId: actorCu.unit.id,
+              isCrit: false
+            });
+          }
+          splashOutcomes.push({
+            kind: 'COLLATERAL_HIT',
+            sourceLabel: 'Distribute',
+            targetName: adjCu.unit.name,
+            damage: adjDmg.damageDealt,
+            damageType,
+            hitOutcome: adjOutcome,
+            defenseTarget: adjDefense,
+            targetHp: Math.max(0, adjCu.currentHp - adjDmg.damageDealt),
+            targetMaxHp: adjCu.unit.effectiveVitals.maxHp
+          });
+        } else {
+          splashOutcomes.push({
+            kind: 'COLLATERAL_HIT',
+            sourceLabel: 'Distribute',
+            targetName: adjCu.unit.name,
+            damage: 0,
+            hitOutcome: 'MISS',
+            defenseTarget: adjDefense
+          });
+          events.push({
+            type: 'MISS',
+            targetUnitId: adjCu.unit.id,
+            reason: 'SPLASH'
+          });
+        }
+      }
+    }
+  }
+
+  // Dispatch secondary effects via pluggable registry (excluding primary DAMAGE and geometric effects resolved above)
   const effectResult = executeAbilityEffects(
     effectiveAbility,
     {
@@ -1393,7 +1630,7 @@ export function executeAbility(
       diceRoller
     },
     defaultEffectRegistry,
-    (e) => e.type !== 'DAMAGE'
+    (e) => e.type !== 'DAMAGE' && e.type !== 'ALLY_REFRACTION' && e.type !== 'DISTRIBUTIVE_PROOF'
   );
 
   events.push(...effectResult.events);

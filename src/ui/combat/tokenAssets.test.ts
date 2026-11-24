@@ -482,10 +482,20 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       expect(getClassBadgePalette('novice')).toEqual(CLASS_BADGE_PALETTES.novice);
     });
 
-    it('returns dedicated palette colors for Tier 4 Shield-bearer and Dragoon', () => {
+    it('returns dedicated palette colors for Tier 4 Shield-bearer, Dragoon, and Arcanist', () => {
       expect(getClassBadgePalette('shield-bearer')).toEqual({ primary: '#334155', border: '#10b981' });
       expect(getClassBadgePalette('shieldbearer')).toEqual({ primary: '#334155', border: '#10b981' });
       expect(getClassBadgePalette('dragoon')).toEqual({ primary: '#312e81', border: '#e11d48' });
+      expect(getClassBadgePalette('arcanist')).toEqual({ primary: '#5b21b6', border: '#10b981' });
+      const arcanist = createMockUnit({
+        gender: 'male',
+        race: 'human',
+        loadout: { activeClassId: 'arcanist', wildcardAbilityIds: [], wildcardPassiveIds: [] }
+      });
+      expect(resolvePixelTokenBase(arcanist)).toBe('96_human_male');
+      expect(resolveTokenAssetPath(arcanist, HEX_DIRECTIONS.EAST)).toBe(
+        '/assets/tokens/pixel/96_human_male/Idle/rotations/east.png'
+      );
     });
 
     it('handles case-insensitivity and falls back to novice palette for unknown or undefined classes', () => {

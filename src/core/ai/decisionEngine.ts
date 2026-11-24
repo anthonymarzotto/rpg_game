@@ -1,6 +1,6 @@
 import { CombatState, CombatUnit, AbilityResolution } from '../combat/types';
-import { HexCoord, hexDistance, hexEquals, getCombatArc, getForwardConeHexes, getDirectionBetween, getHexesInRange, toHexKey } from '../grid/hex';
-import { getEffectiveMove } from '../combat/effectiveVitals';
+import { HexCoord, hexDistance, hexEquals, getCombatArc, getForwardConeHexes, getDirectionBetween, getHexesInRange, getHexNeighbors, toHexKey } from '../grid/hex';
+import { getEffectiveMove, hasFriendlyAoEExclusion, isFriendlyUnit, createLoSScreeningPredicate } from '../combat/effectiveVitals';
 import { getBastionZocHexKeys } from '../combat/bastionStance';
 import { getRoughTerrainHexKeys, getPendingBombardmentHexKeys } from '../combat/battlefieldZones';
 import { hasZeroedInPassive } from '../combat/zeroedIn';
@@ -185,11 +185,41 @@ export function decideNextActionWithTrace(
         const threat = scoreTargetThreat(targetCu, weights.threatWeight ?? 1.0);
         const defiance = scoreChallengeDefiancePenalty(cu, targetCu, kill.score > 0);
 
+        // Distributive Proof tactical bonus (Isolated Exposed setup vs Clustered adjacent splash)
+        let distributiveBonus = 0;
+        let distributiveReason = '';
+        if (effectiveAbility.effects?.some((e) => e.type === 'DISTRIBUTIVE_PROOF')) {
+          let adjacentTargetAllies = 0;
+          for (const neighbor of getHexNeighbors(targetCoord)) {
+            const occId = state.arena.getUnitAt(neighbor);
+            if (!occId || occId === targetCu.unit.id) continue;
+            const occCu = state.units.get(occId);
+            if (occCu && !occCu.isDefeated && occCu.currentHp > 0 && isFriendlyUnit(targetCu, occCu)) {
+              adjacentTargetAllies++;
+            }
+          }
+          if (adjacentTargetAllies === 0) {
+            if (!targetCu.activeConditions?.some((c) => c.type === 'EXPOSED')) {
+              distributiveBonus += 10.0;
+              distributiveReason = 'Isolated target (Exposed)';
+            }
+          } else if (metrics.splashUnits && metrics.splashUnits.length > 0) {
+            const hostileSplash = metrics.splashUnits.filter((s) => !s.isAlly);
+            const alliedSplash = metrics.splashUnits.filter((s) => s.isAlly);
+            const splashVal = hostileSplash.reduce((sum, s) => sum + s.expectedDamage * weights.expectedDamageWeight, 0);
+            const allyPen = hasFriendlyAoEExclusion(cu) ? 0 : alliedSplash.length * 25.0;
+            distributiveBonus += splashVal - allyPen;
+            if (hostileSplash.length > 0) {
+              distributiveReason = `Clustered distribute (${hostileSplash.length} adj. foe${hostileSplash.length === 1 ? '' : 's'})`;
+            }
+          }
+        }
+
         const effectiveDamage = kill.score + damageScore + vulnScore;
         const hasPrimaryValue = effectiveDamage > 0 || utility.score > 0;
         const effectiveFlank = effectiveDamage > 0 ? flank.score : 0;
         const effectiveThreat = hasPrimaryValue ? threat.score : 0;
-        const rawScore = effectiveDamage + effectiveFlank + focusScore + standoff + utility.score + effectiveThreat - defiance.penalty;
+        const rawScore = effectiveDamage + effectiveFlank + focusScore + standoff + utility.score + effectiveThreat + distributiveBonus - defiance.penalty;
         const totalScore = hasPrimaryValue ? Math.max(0, rawScore) : 0;
 
         if (totalScore <= 0) continue;
@@ -197,6 +227,7 @@ export function decideNextActionWithTrace(
         const reasons: string[] = [];
         if (effectiveThreat > 0 && threat.reason) reasons.push(threat.reason);
         if (utility.reason) reasons.push(utility.reason);
+        if (distributiveReason) reasons.push(distributiveReason);
         if (kill.reason) reasons.push(kill.reason);
         if (effectiveFlank > 0 && flank.reason) reasons.push(flank.reason);
         if (defiance.penalty > 0 && defiance.reason) reasons.push(defiance.reason);
@@ -258,12 +289,13 @@ export function decideNextActionWithTrace(
             const isHighValueBarrage = caughtHostiles >= 2 || trappedHostiles > 0;
             const expectedUnitDmg = 9 + cu.unit.baseAttributes.force;
             const dmgScale = isHighValueBarrage ? 1.15 : 0.45;
+            const barrageFriendlyPenalty = hasFriendlyAoEExclusion(cu) ? 0 : caughtAllies * 25.0;
             const totalScore =
               caughtHostiles * expectedUnitDmg * weights.expectedDamageWeight * dmgScale +
               (caughtHostiles > 1 ? (caughtHostiles - 1) * 16.0 : 0) +
               trappedHostiles * 14.0 +
               (isHighValueBarrage ? paintedHostiles * 10.0 : 0) -
-              caughtAllies * 25.0;
+              barrageFriendlyPenalty;
 
             if (totalScore > 0) {
               candidateActions.push({
@@ -299,14 +331,26 @@ export function decideNextActionWithTrace(
             const metrics = computeAbilityMetrics(state, actorUnitId, ability, candHex, currentCoord);
             if (!metrics || !metrics.hasLoS) continue;
 
-            // Evaluate caught allies for severe friendly fire penalty (-25 per ally)
+            // Evaluate caught allies for friendly fire penalty (0 when Exclusion Matrix / ALLY_REFRACTION applies)
+            const hasAllyRefraction = Boolean(effectiveAbility.effects?.some((e) => e.type === 'ALLY_REFRACTION'));
+            const excludeAllies = hasFriendlyAoEExclusion(cu) || hasAllyRefraction;
             const centerCu = metrics.targetUnitId ? state.units.get(metrics.targetUnitId) : undefined;
-            const isCenterAlly = centerCu
-              ? (centerCu.unit.faction ?? centerCu.faction) === (cu.unit.faction ?? cu.faction)
-              : false;
+            const isCenterAlly = centerCu ? isFriendlyUnit(cu, centerCu) : false;
             const alliedSplashCount = (metrics.splashUnits ?? []).filter((s) => s.isAlly).length;
             const totalCaughtAllies = (isCenterAlly ? 1 : 0) + alliedSplashCount;
-            const friendlyFirePenalty = totalCaughtAllies * 25.0;
+            const friendlyFirePenalty = excludeAllies ? 0 : totalCaughtAllies * 25.0;
+
+            let sparedAlliesInBlast = 0;
+            if (hasAllyRefraction && (effectiveAbility.aoeRadius ?? 0) > 0) {
+              for (const bHex of getHexesInRange(candHex, effectiveAbility.aoeRadius!)) {
+                const occId = state.arena.getUnitAt(bHex);
+                if (!occId || occId === actorUnitId) continue;
+                const occCu = state.units.get(occId);
+                if (occCu && !occCu.isDefeated && occCu.currentHp > 0 && isFriendlyUnit(cu, occCu)) {
+                  sparedAlliesInBlast++;
+                }
+              }
+            }
 
             const hostileSplash = (metrics.splashUnits ?? []).filter((s) => !s.isAlly);
             const isCenterHostile = centerCu && !isCenterAlly && !centerCu.isDefeated;
@@ -344,6 +388,15 @@ export function decideNextActionWithTrace(
               }
             }
 
+            if (hasAllyRefraction && sparedAlliesInBlast > 0) {
+              const avgEnemyExpDmg =
+                hostileSplash.length > 0
+                  ? hostileSplash.reduce((sum, s) => sum + s.expectedDamage, 0) / hostileSplash.length
+                  : Math.max(1, (2.5 + cu.unit.baseAttributes.focus) * 0.65);
+              totalScore += sparedAlliesInBlast * (avgEnemyExpDmg * weights.expectedDamageWeight + 8.0);
+              reasons.push(`Refract ${sparedAlliesInBlast} spared ally strike${sparedAlliesInBlast === 1 ? '' : 's'}`);
+            }
+
             if (totalHostiles > 1) {
               totalScore += (totalHostiles - 1) * 12.0;
               reasons.push(`Catch ${totalHostiles} targets in blast`);
@@ -357,7 +410,7 @@ export function decideNextActionWithTrace(
             totalScore += standoff;
 
             totalScore -= friendlyFirePenalty;
-            if (totalCaughtAllies > 0) {
+            if (friendlyFirePenalty > 0) {
               reasons.push(`Friendly fire penalty (-${friendlyFirePenalty})`);
             }
 
@@ -795,14 +848,28 @@ export function decideNextActionWithTrace(
               );
               if (!metrics || !metrics.hasLoS) continue;
 
+              const hasAllyRefraction = Boolean(effectiveAbility.effects?.some((e) => e.type === 'ALLY_REFRACTION'));
+              const excludeAllies = hasFriendlyAoEExclusion(cu) || hasAllyRefraction;
               const alliedSplashCount = (metrics.splashUnits ?? []).filter((s) => s.isAlly).length;
-              const friendlyFirePenalty = alliedSplashCount * 25.0;
+              const friendlyFirePenalty = excludeAllies ? 0 : alliedSplashCount * 25.0;
+
+              let refractionLookaheadBonus = 0;
+              if (hasAllyRefraction && (effectiveAbility.aoeRadius ?? 0) > 0) {
+                for (const bHex of getHexesInRange(targetCoord, effectiveAbility.aoeRadius!)) {
+                  const occId = state.arena.getUnitAt(bHex);
+                  if (!occId || occId === actorUnitId) continue;
+                  const occCu = state.units.get(occId);
+                  if (occCu && !occCu.isDefeated && occCu.currentHp > 0 && isFriendlyUnit(cu, occCu)) {
+                    refractionLookaheadBonus += (2.5 + cu.unit.baseAttributes.focus) * 0.65 * weights.expectedDamageWeight + 8.0;
+                  }
+                }
+              }
 
               const damageScore = metrics.expectedDamage * weights.expectedDamageWeight;
               const kill = scoreFinishingBlow(targetCu, metrics.expectedDamage, weights.killBonus);
               const focusScore = scoreFocusFire(targetCu, weights.focusFireWeight);
               const isolationPenalty = computeIsolationPenalty(state, cu, candCoord, kill.score > 0);
-              const moveNetScore = damageScore + kill.score + focusScore - friendlyFirePenalty - isolationPenalty - 2;
+              const moveNetScore = damageScore + kill.score + focusScore + refractionLookaheadBonus - friendlyFirePenalty - isolationPenalty - 2;
 
               if (moveNetScore > 0 && (!bestAttackFromCand || moveNetScore > bestAttackFromCand.score)) {
                 bestAttackFromCand = {
@@ -937,9 +1004,12 @@ export function decideNextActionWithTrace(
           // Ranged Sniper/Support evaluates how close candCoord is to preferredStandoffRange
           const currentDev = Math.abs(currentDist - weights.preferredStandoffRange);
           const candDev = Math.abs(candDist - weights.preferredStandoffRange);
+          const primaryRangedAbility = cu.abilities.find((a) => a.range >= 2 && a.damageType !== 'NONE') ?? cu.abilities[0];
           const hasLoS = state.arena.hasLineOfSight(candCoord, targetCoord, {
-            isUnitScreening: (unitId) =>
-              !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
+            isUnitScreening: primaryRangedAbility
+              ? createLoSScreeningPredicate(state, cu, primaryRangedAbility)
+              : (unitId) =>
+                  !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
           });
           if (candDev < currentDev) {
             let rawScore = 0;

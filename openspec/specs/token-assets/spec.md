@@ -6,11 +6,15 @@ Provides centralized resolution, preloading, and display styling for unit pixel 
 ## Requirements
 
 ### Requirement: Pixel Token Asset Whitelist and Resolution
-The system SHALL resolve pixel sprite token paths for all authored classes across Novice, Tier-1, Tier-2, Tier-3, and Tier-4 classes (Warrior, Cavalier, Knight, Berserker, Highwayman, Warlock, Thief, Infiltrator, Cat-burglar, Witch, Sorcerer, Wizard, and Shield-bearer) using 8-directional idle rotation assets, falling back to male variant or vector fallback when specific sprite sets are unavailable.
+The system SHALL resolve pixel sprite token paths for all authored classes across Novice, Tier-1, Tier-2, Tier-3, and Tier-4 classes (Warrior, Cavalier, Knight, Berserker, Highwayman, Warlock, Thief, Infiltrator, Cat-burglar, Witch, Sorcerer, Wizard, Shield-bearer, Dragoon, Ballistician, Philanderer, Theurge, and Arcanist) using 8-directional idle rotation assets, falling back to male variant or vector fallback when specific sprite sets are unavailable.
 
 #### Scenario: Resolving Tier-4 Shield-bearer pixel tokens
 - **WHEN** `resolveTokenAssetPath` is called for a unit whose active class is Shield-bearer
 - **THEN** the system resolves the corresponding pixel sprite URL from `/assets/tokens/pixel/05_human_male` matching the unit's facing direction
+
+#### Scenario: Resolving Tier-4 Arcanist pixel tokens
+- **WHEN** `resolveTokenAssetPath` is called for a unit whose active class is Arcanist
+- **THEN** the system resolves the corresponding pixel sprite URL from `/assets/tokens/pixel/96_human_male/Idle/rotations/<direction>.png` matching the unit's facing direction
 
 #### Scenario: Resolving Tier-3 hybrid pixel tokens
 - **WHEN** `resolveTokenAssetPath` is called for a unit whose active class is Cavalier, Berserker, Highwayman, Warlock, or Witch
@@ -26,6 +30,10 @@ The system SHALL provide distinct, accessible primary and border color palettes 
 #### Scenario: Resolving badge palette for Tier-4 Shield-bearer
 - **WHEN** `getClassBadgePalette` is requested for `shield-bearer`
 - **THEN** the system returns the class's dedicated Slate Iron primary (`#334155`) and Emerald border (`#10b981`) hex colors
+
+#### Scenario: Resolving badge palette for Tier-4 Arcanist
+- **WHEN** `getClassBadgePalette` is requested for `arcanist`
+- **THEN** the system returns the class's dedicated Deep Arcane Violet primary (`#5b21b6`) and Geometric Emerald border (`#10b981`) hex colors
 
 #### Scenario: Resolving badge palette for Tier-3 classes
 - **WHEN** `getClassBadgePalette` is requested for `cavalier`, `berserker`, `highwayman`, `warlock`, or `witch`

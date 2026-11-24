@@ -23,6 +23,7 @@ export const AVAILABLE_PIXEL_TOKENS = new Set<string>([
   '82_human_male',  // Infiltrator
   '83_human_male',  // Cat-burglar
   '84_human_male',  // Philanderer
+  '96_human_male',  // Arcanist
   '97_human_male',  // Witch
   '98_human_male',  // Sorcerer
   '99_human_male',  // Wizard
@@ -51,7 +52,8 @@ export const CLASS_BADGE_PALETTES: Record<string, { primary: string; border: str
   dragoon: { primary: '#312e81', border: '#e11d48' }, // Deep Dragon Violet / Radiant Crimson
   ballistician: { primary: '#065f46', border: '#e11d48' }, // Engineer Emerald / Safety Crimson
   philanderer: { primary: '#9f1239', border: '#f43f5e' }, // Velvet Rose / Rose Crimson
-  theurge: { primary: '#1e3a8a', border: '#f59e0b' } // Empyrean Azure / Celestial Gold
+  theurge: { primary: '#1e3a8a', border: '#f59e0b' }, // Empyrean Azure / Celestial Gold
+  arcanist: { primary: '#5b21b6', border: '#10b981' } // Deep Arcane Violet / Geometric Emerald
 };
 
 /**

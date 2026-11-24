@@ -1,7 +1,7 @@
 import { HexCoord, hexDistance, getHexLine, getHexesInRange } from '../grid/hex';
 import { Ability } from '../types/ability';
 import { CombatState, CombatUnit, ValidationResult } from './types';
-import { getEffectiveMove } from './effectiveVitals';
+import { getEffectiveMove, createLoSScreeningPredicate } from './effectiveVitals';
 import { getEffectiveAbility } from './modifiers';
 import { getConditionDefinition, hasTelemetryMark } from './conditions';
 import { getBastionZocHexKeys } from './bastionStance';
@@ -311,8 +311,7 @@ export function canExecuteAbility(
     );
     if (isDamaging && !isTeleport && !isIndirectArtillery && dist > 1) {
       const obstruction = state.arena.getLineOfSightObstruction(actorCoord, destCoord, {
-        isUnitScreening: (unitId) =>
-          !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
+        isUnitScreening: createLoSScreeningPredicate(state, cu, effectiveAbility)
       });
       if (obstruction) {
         return { valid: false, reason: formatLoSObstructionReason(state, obstruction) };
@@ -435,8 +434,7 @@ export function canExecuteAbility(
       }
     } else {
       const obstruction = state.arena.getLineOfSightObstruction(actorCoord, targetCoord, {
-        isUnitScreening: (unitId) =>
-          !state.units.get(unitId)?.activeConditions?.some((c) => c.type === 'STEALTH')
+        isUnitScreening: createLoSScreeningPredicate(state, cu, effectiveAbility)
       });
       if (obstruction) {
         return { valid: false, reason: formatLoSObstructionReason(state, obstruction) };

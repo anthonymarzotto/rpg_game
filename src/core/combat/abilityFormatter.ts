@@ -59,6 +59,7 @@ const STAT_LABELS: Record<string, string> = {
 const DEFENSE_LABELS: Record<string, string> = {
   EVASION: 'EVA',
   RESOLVE: 'RES',
+  LOWER_DEFENSE: 'Lower (EVA/RES)',
   NONE: ''
 };
 
@@ -375,6 +376,28 @@ export function formatAbilityEffectClause(
         undefined
       );
     }
+
+    case 'ALLY_REFRACTION': {
+      const dmgStr = effect.damageProfile
+        ? formatDiceProfile(effect.damageProfile, effect.flatDamage)
+        : '1d4 + FOC';
+      return buildClause(
+        `Spares allies in blast; each spared ally redirects a ${dmgStr} magical strike onto lowest-HP enemies in blast (spreading round-robin)`,
+        undefined
+      );
+    }
+
+    case 'DISTRIBUTIVE_PROOF': {
+      const splashStr = effect.damageProfile ? formatDiceProfile(effect.damageProfile) : '1d4';
+      const dur = formatTurns(effect.durationTurns ?? 1);
+      const isoClause = effect.bonusDamage
+        ? `+${formatDiceProfile(effect.bonusDamage)} bonus damage and inflicts Exposed (${dur}) on hit`
+        : `inflicts Exposed (${dur}) on hit`;
+      return buildClause(
+        `Isolated (0 adj. allies): ${isoClause}. Clustered (1+ adj. allies): splashes ${splashStr} magical damage to adjacent units`,
+        undefined
+      );
+    }
   }
 }
 
@@ -463,6 +486,10 @@ function formatCompactEffectTag(effect: AbilityEffect): string | null {
       return 'Delayed Barrage';
     case 'SHRAPNEL_RUBBLE':
       return 'Reveal + Rubble';
+    case 'ALLY_REFRACTION':
+      return 'Ally Refract';
+    case 'DISTRIBUTIVE_PROOF':
+      return 'Isolated/Clustered';
   }
 }
 

@@ -3,7 +3,7 @@ import { TriadAttributes } from './stats';
 import { AIProfile } from './ai';
 
 export type AbilityTargetType = 'SINGLE_TARGET' | 'SELF' | 'ALLY' | 'HEX';
-export type DefenseTarget = 'EVASION' | 'RESOLVE' | 'NONE';
+export type DefenseTarget = 'EVASION' | 'RESOLVE' | 'LOWER_DEFENSE' | 'NONE';
 export type DamageType = 'PHYSICAL' | 'MAGICAL' | 'NONE';
 
 /**
@@ -55,7 +55,9 @@ export type AbilityEffectType =
   | 'AERIAL_VAULT'    // Aerial jump over obstacles landing adjacent to target
   | 'LINE_PIERCE'     // Piercing thrust penetrating secondary rear target
   | 'DELAYED_BOMBARDMENT' // Marks a hex cluster for delayed artillery impact at next turn start
-  | 'SHRAPNEL_RUBBLE'; // Strips stealth and blankets hexes in rough terrain (+2 MP entry cost)
+  | 'SHRAPNEL_RUBBLE' // Strips stealth and blankets hexes in rough terrain (+2 MP entry cost)
+  | 'ALLY_REFRACTION' // Spared allies inside an AoE blast redirect extra strikes onto enemies in the blast
+  | 'DISTRIBUTIVE_PROOF'; // Isolated target takes bonus damage + EXPOSED; clustered target splashes adjacent units
 
 export type EffectTargetScope = 'TARGET' | 'SELF' | 'ALLIES';
 export type EffectApplyCondition = 'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY' | 'HIT_ONLY' | 'GRAZE_ONLY';
