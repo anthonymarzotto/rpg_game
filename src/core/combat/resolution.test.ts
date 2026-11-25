@@ -1372,5 +1372,346 @@ describe('Attack & Ability Resolution Outcomes', () => {
       expect(allyCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
     });
   });
+
+  describe('Shard Timing Lifecycle, Multi-Target Delivery & Normalized Displacements', () => {
+    it('grants Stealth after Sneak Attack with Shadow Shard without granting Stealth Advantage on the attack itself', async () => {
+      const { ASTRAL_AUGMENT_SHARDS } = await import('../progression/harmonization');
+      const { getEffectiveAbility } = await import('./modifiers');
+
+      const arena = createRadialArena(3);
+      const thief = createRecruit('thief', 'Lyra', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Guard', { faction: 'ENEMY' });
+      arena.setUnitPosition('thief', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [thief, enemy], 'thief');
+      const thiefCu = state.units.get('thief')!;
+      const enemyCu = state.units.get('enemy')!;
+      enemyCu.facing = HEX_DIRECTIONS.WEST; // facing thief (frontal, no flank)
+
+      const shadowedSneak = getEffectiveAbility(SNEAK_ATTACK, [
+        ASTRAL_AUGMENT_SHARDS.shadow_shard.modifier
+      ]);
+
+      const dice = new MockDiceRoller({ d20Rolls: [14], damageRolls: [3] });
+      const res = executeAbility(state, 'thief', shadowedSneak, { targetUnitId: 'enemy' }, dice);
+
+      expect(res.type).toBe('ATTACK');
+      if (res.type === 'ATTACK') {
+        expect(res.details.diceBreakdown?.advantage).toBe('NORMAL');
+      }
+      // Shadow Shard ran POST_ACTION after onAfterAction cleanup -> actor ends in STEALTH!
+      expect(thiefCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
+    });
+
+    it('breaks pre-existing Stealth during onAfterAction and re-applies fresh Stealth via Shadow Shard POST_ACTION', async () => {
+      const { ASTRAL_AUGMENT_SHARDS } = await import('../progression/harmonization');
+      const { getEffectiveAbility } = await import('./modifiers');
+
+      const arena = createRadialArena(3);
+      const thief = createRecruit('thief', 'Lyra', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Guard', { faction: 'ENEMY' });
+      arena.setUnitPosition('thief', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [thief, enemy], 'thief');
+      const thiefCu = state.units.get('thief')!;
+      thiefCu.activeConditions.push({ type: 'STEALTH', durationTurns: 2, sourceUnitId: 'thief' });
+
+      const shadowedSneak = getEffectiveAbility(SNEAK_ATTACK, [
+        ASTRAL_AUGMENT_SHARDS.shadow_shard.modifier
+      ]);
+
+      const dice = new MockDiceRoller({ d20Rolls: [5, 16], damageRolls: [4] });
+      const res = executeAbility(state, 'thief', shadowedSneak, { targetUnitId: 'enemy' }, dice);
+
+      expect(res.type).toBe('ATTACK');
+      if (res.type === 'ATTACK') {
+        expect(res.details.diceBreakdown?.advantage).toBe('ADVANTAGE');
+      }
+      // Fresh Stealth from Shadow Shard (duration 1) survives after old Stealth broke
+      const activeStealth = thiefCu.activeConditions.find((c) => c.type === 'STEALTH');
+      expect(activeStealth).toBeDefined();
+      expect(activeStealth?.durationTurns).toBe(1);
+    });
+
+    it('supports 2-shard Sneak Attack + Recoil Shard + Shadow Shard disengage into Stealth at distance 2', async () => {
+      const { ASTRAL_AUGMENT_SHARDS } = await import('../progression/harmonization');
+      const { getEffectiveAbility } = await import('./modifiers');
+
+      const arena = createRadialArena(3);
+      const thief = createRecruit('thief', 'Lyra', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Guard', { faction: 'ENEMY' });
+      arena.setUnitPosition('thief', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [thief, enemy], 'thief');
+      const thiefCu = state.units.get('thief')!;
+
+      const comboSneak = getEffectiveAbility(SNEAK_ATTACK, [
+        ASTRAL_AUGMENT_SHARDS.recoil_shard.modifier,
+        ASTRAL_AUGMENT_SHARDS.shadow_shard.modifier
+      ]);
+
+      const dice = new MockDiceRoller({ d20Rolls: [16], damageRolls: [3] });
+      executeAbility(state, 'thief', comboSneak, { targetUnitId: 'enemy' }, dice);
+
+      // Stepped back 1 hex to (-1, 0), distance 2 from enemy at (1, 0), and Stealthed
+      expect(arena.getUnitPosition('thief')).toEqual({ q: -1, r: 0 });
+      expect(thiefCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
+    });
+
+    it('supports 2-shard Sneak Attack + Impact Shard + Shadow Shard pushing enemy to distance 2 and cloaking', async () => {
+      const { ASTRAL_AUGMENT_SHARDS } = await import('../progression/harmonization');
+      const { getEffectiveAbility } = await import('./modifiers');
+
+      const arena = createRadialArena(3);
+      const thief = createRecruit('thief', 'Lyra', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Guard', { faction: 'ENEMY' });
+      arena.setUnitPosition('thief', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [thief, enemy], 'thief');
+      const thiefCu = state.units.get('thief')!;
+
+      const comboSneak = getEffectiveAbility(SNEAK_ATTACK, [
+        ASTRAL_AUGMENT_SHARDS.impact_shard.modifier,
+        ASTRAL_AUGMENT_SHARDS.shadow_shard.modifier
+      ]);
+
+      const dice = new MockDiceRoller({ d20Rolls: [16], damageRolls: [3] });
+      executeAbility(state, 'thief', comboSneak, { targetUnitId: 'enemy' }, dice);
+
+      expect(arena.getUnitPosition('enemy')).toEqual({ q: 2, r: 0 });
+      expect(thiefCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
+    });
+
+    it('normalizes RETREAT_STEP to 1 hex on ranged Recoil Shard attacks and PENETRATE_STEP on range-extended Trample', async () => {
+      const { ASTRAL_AUGMENT_SHARDS } = await import('../progression/harmonization');
+      const { getEffectiveAbility } = await import('./modifiers');
+      const { SIGHTING_BOLT } = await import('../../data/packages/ballistician');
+
+      // 1) Ranged Sighting Bolt (range 2-4) + Recoil Shard at distance 3 -> steps back 1 hex to (-1, 0)
+      const arena = createRadialArena(4);
+      const rogue = createRecruit('rogue', 'Scout', { faction: 'PLAYER' });
+      const target = createRecruit('target', 'Goblin', { faction: 'ENEMY' });
+      arena.setUnitPosition('rogue', { q: 0, r: 0 });
+      arena.setUnitPosition('target', { q: 3, r: 0 });
+
+      const state = createCombatState(arena, [rogue, target], 'rogue');
+      const rangedRecoil = getEffectiveAbility(SIGHTING_BOLT, [
+        ASTRAL_AUGMENT_SHARDS.recoil_shard.modifier
+      ]);
+
+      const dice = new MockDiceRoller({ d20Rolls: [16], damageRolls: [3] });
+      executeAbility(state, 'rogue', rangedRecoil, { targetUnitId: 'target' }, dice);
+      expect(arena.getUnitPosition('rogue')).toEqual({ q: -1, r: 0 });
+
+      // 2) Range-extended Strike (Astral Reach + Trample Shard) at distance 2 -> lands 1 hex past target at (3, 0)
+      const arena2 = createRadialArena(4);
+      const fighter = createRecruit('fighter', 'Knight', { faction: 'PLAYER' });
+      const foe = createRecruit('foe', 'Orc', { faction: 'ENEMY' });
+      arena2.setUnitPosition('fighter', { q: 0, r: 0 });
+      arena2.setUnitPosition('foe', { q: 2, r: 0 });
+
+      const state2 = createCombatState(arena2, [fighter, foe], 'fighter');
+      const reachTrample = getEffectiveAbility(STRIKE, [
+        ASTRAL_AUGMENT_SHARDS.astral_reach.modifier,
+        ASTRAL_AUGMENT_SHARDS.trample_shard.modifier
+      ]);
+
+      const dice2 = new MockDiceRoller({ d20Rolls: [16], damageRolls: [4] });
+      executeAbility(state2, 'fighter', reachTrample, { targetUnitId: 'foe' }, dice2);
+      expect(arena2.getUnitPosition('fighter')).toEqual({ q: 3, r: 0 });
+    });
+
+    it('delivers Venom Shard to every hit enemy in Arcane Blast while respecting Graze and Miss', async () => {
+      const { ASTRAL_AUGMENT_SHARDS } = await import('../progression/harmonization');
+      const { getEffectiveAbility } = await import('./modifiers');
+
+      const arena = createRadialArena(4);
+      const mage = createRecruit('mage', 'Lyra', { faction: 'PLAYER' });
+      const enemyHit = createRecruit('hit', 'Goblin Hit', { faction: 'ENEMY' });
+      const enemyGraze = createRecruit('graze', 'Goblin Graze', { faction: 'ENEMY' });
+      const enemyMiss = createRecruit('miss', 'Goblin Miss', { faction: 'ENEMY' });
+      (enemyHit as any).effectiveVitals = { ...enemyHit.effectiveVitals, resolve: 10, maxHp: 30 };
+      (enemyGraze as any).effectiveVitals = { ...enemyGraze.effectiveVitals, resolve: 13, maxHp: 30 };
+      (enemyMiss as any).effectiveVitals = { ...enemyMiss.effectiveVitals, resolve: 18, maxHp: 30 };
+
+      arena.setUnitPosition('mage', { q: -2, r: 0 });
+      // Target empty center hex (0, 0) surrounded by all 3 enemies
+      arena.setUnitPosition('hit', { q: 1, r: 0 });
+      arena.setUnitPosition('graze', { q: 0, r: 1 });
+      arena.setUnitPosition('miss', { q: 0, r: -1 });
+
+      const state = createCombatState(arena, [mage, enemyHit, enemyGraze, enemyMiss], 'mage');
+      const mageCu = state.units.get('mage')!;
+      mageCu.currentAp = 2;
+
+      const venomBlast = getEffectiveAbility(ARCANE_BLAST, [
+        ASTRAL_AUGMENT_SHARDS.venom_shard.modifier
+      ]);
+
+      // Spellcast total = 12 (vs hit Res 10 -> SOLID_HIT, vs graze Res 13 -> GRAZE, vs miss Res 18 -> MISS)
+      const dice = new MockDiceRoller({ d20Rolls: [12], damageRolls: [4, 4] });
+      executeAbility(state, 'mage', venomBlast, { coord: { q: 0, r: 0 } }, dice);
+
+      expect(state.units.get('hit')!.activeConditions.some((c) => c.type === 'POISON')).toBe(true);
+      expect(state.units.get('graze')!.activeConditions.some((c) => c.type === 'POISON')).toBe(false);
+      expect(state.units.get('miss')!.activeConditions.some((c) => c.type === 'POISON')).toBe(false);
+    });
+
+    it('applies Hold-Up Shard CTB delay to every hit AoE target while granting self CTB boost only once', async () => {
+      const { ASTRAL_AUGMENT_SHARDS } = await import('../progression/harmonization');
+      const { getEffectiveAbility } = await import('./modifiers');
+
+      const arena = createRadialArena(4);
+      const mage = createRecruit('mage', 'Lyra', { faction: 'PLAYER' });
+      const enemyA = createRecruit('enemyA', 'Orc A', { faction: 'ENEMY' });
+      const enemyB = createRecruit('enemyB', 'Orc B', { faction: 'ENEMY' });
+      (enemyA as any).effectiveVitals = { ...enemyA.effectiveVitals, resolve: 10, maxHp: 30 };
+      (enemyB as any).effectiveVitals = { ...enemyB.effectiveVitals, resolve: 10, maxHp: 30 };
+
+      arena.setUnitPosition('mage', { q: -2, r: 0 });
+      arena.setUnitPosition('enemyA', { q: 0, r: 0 });
+      arena.setUnitPosition('enemyB', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [mage, enemyA, enemyB], 'mage');
+      const mageCu = state.units.get('mage')!;
+      const cuA = state.units.get('enemyA')!;
+      const cuB = state.units.get('enemyB')!;
+      mageCu.currentAp = 2;
+      mageCu.initiativeGauge = 20;
+      cuA.initiativeGauge = 50;
+      cuB.initiativeGauge = 50;
+
+      const holdupBlast = getEffectiveAbility(ARCANE_BLAST, [
+        ASTRAL_AUGMENT_SHARDS.holdup_shard.modifier
+      ]);
+
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [3, 3] });
+      executeAbility(state, 'mage', holdupBlast, { coord: { q: 0, r: 0 } }, dice);
+
+      // Both enemies delayed by 15 ticks
+      expect(cuA.initiativeGauge).toBe(35);
+      expect(cuB.initiativeGauge).toBe(35);
+      // Caster boosted by +10 exactly once (not +20)
+      expect(mageCu.initiativeGauge).toBe(30);
+    });
+
+    it('applies Shadow Shard POST_ACTION Stealth on Shrapnel Canister launch', async () => {
+      const { ASTRAL_AUGMENT_SHARDS } = await import('../progression/harmonization');
+      const { getEffectiveAbility } = await import('./modifiers');
+      const { SHRAPNEL_CANISTER } = await import('../../data/packages/ballistician');
+
+      const arena = createRadialArena(4);
+      const ball = createRecruit('ball', 'Ballistician', { faction: 'PLAYER' });
+      arena.setUnitPosition('ball', { q: -2, r: 0 });
+      const state = createCombatState(arena, [ball], 'ball');
+      const ballCu = state.units.get('ball')!;
+
+      const shadowCanister = getEffectiveAbility(SHRAPNEL_CANISTER, [
+        ASTRAL_AUGMENT_SHARDS.shadow_shard.modifier
+      ]);
+
+      executeAbility(state, 'ball', shadowCanister, { coord: { q: 1, r: 0 } });
+      expect(state.hexHazards).toHaveLength(1);
+      expect(ballCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
+    });
+
+    it('excludes PRE_ACTION effects from ON_RESOLVE/POST_ACTION and runs zone ON_RESOLVE self-buffs before POST_ACTION', async () => {
+      const { ASTRAL_AUGMENT_SHARDS } = await import('../progression/harmonization');
+      const { getEffectiveAbility } = await import('./modifiers');
+      const { SHRAPNEL_CANISTER } = await import('../../data/packages/ballistician');
+
+      // 1) An effect explicitly tagged PRE_ACTION must NOT execute during ON_RESOLVE or POST_ACTION
+      const arena = createRadialArena(3);
+      const hero = createRecruit('hero', 'Hero', { faction: 'PLAYER' });
+      const enemy = createRecruit('enemy', 'Enemy', { faction: 'ENEMY' });
+      arena.setUnitPosition('hero', { q: 0, r: 0 });
+      arena.setUnitPosition('enemy', { q: 1, r: 0 });
+      const state = createCombatState(arena, [hero, enemy], 'hero');
+      const enemyCu = state.units.get('enemy')!;
+
+      const abilityWithPreAction: Ability = {
+        ...STRIKE,
+        id: 'pre_action_test',
+        effects: [
+          ...STRIKE.effects,
+          {
+            type: 'CONDITION',
+            conditionType: 'POISON',
+            durationTurns: 2,
+            timing: 'PRE_ACTION'
+          }
+        ]
+      };
+      const dice = new MockDiceRoller({ d20Rolls: [16], damageRolls: [3] });
+      executeAbility(state, 'hero', abilityWithPreAction, { targetUnitId: 'enemy' }, dice);
+      expect(enemyCu.activeConditions.some((c) => c.type === 'POISON')).toBe(false);
+
+      // 2) Zone launch with Shadow (POST_ACTION) socketed BEFORE Bastion (ON_RESOLVE) still runs Bastion before Shadow
+      const arena2 = createRadialArena(4);
+      const ball = createRecruit('ball', 'Ballistician', { faction: 'PLAYER' });
+      arena2.setUnitPosition('ball', { q: -2, r: 0 });
+      const state2 = createCombatState(arena2, [ball], 'ball');
+      const ballCu = state2.units.get('ball')!;
+
+      const dualCanister = getEffectiveAbility(SHRAPNEL_CANISTER, [
+        ASTRAL_AUGMENT_SHARDS.shadow_shard.modifier,
+        ASTRAL_AUGMENT_SHARDS.bastion_shard.modifier
+      ]);
+      const launchRes = executeAbility(state2, 'ball', dualCanister, { coord: { q: 1, r: 0 } });
+      expect(ballCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
+      expect(ballCu.activeModifiers.some((m) => m.stat === 'armor' && m.value === 2)).toBe(true);
+      expect(launchRes.type).toBe('SUPPORT');
+      if (launchRes.type === 'SUPPORT') {
+        const armorIdx = launchRes.events.findIndex((e) => e.type === 'STATUS_APPLIED' && e.modifier?.stat === 'armor');
+        const stealthIdx = launchRes.events.findIndex((e) => e.type === 'STATUS_APPLIED' && e.condition?.type === 'STEALTH');
+        expect(armorIdx).toBeGreaterThanOrEqual(0);
+        expect(stealthIdx).toBeGreaterThan(armorIdx);
+      }
+    });
+
+    it('removes a splash target defeated by AoE damage before resolving a subsequent knockback into their vacated hex', async () => {
+      const { ASTRAL_AUGMENT_SHARDS } = await import('../progression/harmonization');
+      const { getEffectiveAbility } = await import('./modifiers');
+
+      const arena = createRadialArena(4);
+      const mage = createRecruit('mage', 'Lyra', { faction: 'PLAYER' });
+      const frontEnemy = createRecruit('front', 'Survivor', { faction: 'ENEMY' });
+      const backEnemy = createRecruit('back', 'Fragile', { faction: 'ENEMY' });
+      (frontEnemy as any).effectiveVitals = { ...frontEnemy.effectiveVitals, maxHp: 30, resolve: 10, ward: 0 };
+      (backEnemy as any).effectiveVitals = { ...backEnemy.effectiveVitals, maxHp: 3, resolve: 10, ward: 0 };
+
+      // Mage at (-2, 0), blast center at (0, 0) (empty)
+      // frontEnemy at (0, 0) center target (survives), backEnemy at (1, 0) (dies to splash)
+      // Push direction from (-2, 0) through (0, 0) is (1, 0) — vacated by backEnemy's lethal splash!
+      arena.setUnitPosition('mage', { q: -2, r: 0 });
+      arena.setUnitPosition('front', { q: 0, r: 0 });
+      arena.setUnitPosition('back', { q: 1, r: 0 });
+
+      const state = createCombatState(arena, [mage, frontEnemy, backEnemy], 'mage');
+      const mageCu = state.units.get('mage')!;
+      const frontCu = state.units.get('front')!;
+      const backCu = state.units.get('back')!;
+      mageCu.currentAp = 2;
+      frontCu.currentHp = 30;
+      backCu.currentHp = 3;
+
+      const impactBlast = getEffectiveAbility(ARCANE_BLAST, [
+        ASTRAL_AUGMENT_SHARDS.impact_shard.modifier
+      ]);
+
+      // Primary deals 4 dmg (front survives at 26 HP), splash deals 4 dmg (back dies -> removed from (1, 0))
+      const dice = new MockDiceRoller({ d20Rolls: [15], damageRolls: [4, 4] });
+      executeAbility(state, 'mage', impactBlast, { coord: { q: 0, r: 0 } }, dice);
+
+      expect(backCu.isDefeated).toBe(true);
+      // Front enemy cleanly knocked into the vacated (1, 0) hex without colliding with the dead backEnemy!
+      expect(arena.getUnitPosition('front')).toEqual({ q: 1, r: 0 });
+      expect(frontCu.currentHp).toBe(26);
+    });
+  });
 });
 

@@ -18,6 +18,28 @@ import { bloodFrenzyHandler } from './bloodFrenzyHandler';
 import { positionSwapHandler } from './positionSwapHandler';
 import { linePierceHandler } from './linePierceHandler';
 import { CombatEvent, EffectOutcome } from '../types';
+import {
+  EFFECT_METADATA,
+  getEffectMetadata,
+  getEffectTiming,
+  isSelfScopedEffect,
+  isPrimaryTargetRelativeSelfEffect,
+  isPrimaryTargetOnlyEffect,
+  isResolutionEffect,
+  resolveApplyOn
+} from './metadata';
+
+export {
+  EFFECT_METADATA,
+  getEffectMetadata,
+  getEffectTiming,
+  isSelfScopedEffect,
+  isPrimaryTargetRelativeSelfEffect,
+  isPrimaryTargetOnlyEffect,
+  isResolutionEffect,
+  resolveApplyOn
+};
+export type { EffectExecutionRole, EffectTypeMetadata } from './metadata';
 
 export const EFFECT_HANDLERS: Record<string, EffectHandler<any>> = {
   DAMAGE: damageHandler,
@@ -56,6 +78,19 @@ export const defaultEffectRegistry = {
 };
 
 /**
+ * Returns true when an effect should be dispatched through `executeAbilityEffects`:
+ * either its metadata role is `'RESOLUTION'` or a custom handler was dynamically
+ * registered for a `'ROLL_MODIFIER'` effect type.
+ */
+export function isDispatchableEffect(
+  effect: AbilityEffect,
+  registry = defaultEffectRegistry
+): boolean {
+  const role = getEffectMetadata(effect.type).role;
+  return role === 'RESOLUTION' || (role === 'ROLL_MODIFIER' && Boolean(registry.get(effect.type)));
+}
+
+/**
  * Dispatches atomic composable effects for an ability using the effect registry.
  * Respects effect targetScope and applyOn execution conditions.
  */
@@ -80,10 +115,7 @@ export function executeAbilityEffects(
     if (filter && !filter(effect)) {
       continue;
     }
-    const applyOn = effect.applyOn ?? (
-      effect.type === 'DAMAGE' ? 'HIT_OR_CRIT' :
-      effect.targetScope === 'SELF' ? 'ALWAYS' : 'HIT_OR_CRIT'
-    );
+    const applyOn = resolveApplyOn(effect);
 
     // Outcome check
     if (applyOn === 'CRIT_ONLY' && ctx.hitOutcome !== 'CRITICAL_HIT') {
@@ -121,9 +153,9 @@ export function executeAbilityEffects(
       continue;
     }
 
-    // Determine target based on targetScope
+    // Determine target based on targetScope (preserving primary target for primaryTargetRelativeSelf effects)
     let effectTargetCu = ctx.targetCu;
-    if (effect.targetScope === 'SELF' && effect.type !== 'RETREAT_STEP') {
+    if (isSelfScopedEffect(effect)) {
       effectTargetCu = ctx.actorCu;
     }
 

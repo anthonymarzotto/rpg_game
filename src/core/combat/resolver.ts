@@ -46,7 +46,18 @@ import {
   AttackRollResult
 } from './attackRoll';
 import { resolveDamage, resolveFallDamage, DamageResult } from './damageEngine';
-import { executeAbilityEffects, defaultEffectRegistry, EffectContext } from './effects';
+import {
+  executeAbilityEffects,
+  defaultEffectRegistry,
+  EffectContext,
+  getEffectMetadata,
+  getEffectTiming,
+  isSelfScopedEffect,
+  isPrimaryTargetOnlyEffect,
+  isDispatchableEffect,
+  resolveApplyOn
+} from './effects';
+import { applyCombatEvents, ApplyCombatEventsOptions, pickBestHitOutcome } from './eventApplication';
 import { evaluateRollPassives, onTurnStartPassives } from './passives';
 import { evaluateEncounterOutcome } from './objectives';
 import { resolveUnitLoadout, LoadoutLookupProviders } from '../units/loadout';
@@ -557,142 +568,75 @@ export function executeSetFacing(
 }
 
 
-export interface ApplyCombatEventsOptions {
-  readonly claimed?: boolean;
+export { applyCombatEvents };
+export type { ApplyCombatEventsOptions };
+
+export { isFlankOrRear } from './flanking';
+
+/**
+ * Executes and commits the POST_ACTION lifecycle phase once for an action.
+ */
+function runPostActionPhase(
+  state: CombatState,
+  ctx: EffectContext
+): { readonly events: readonly CombatEvent[]; readonly effects: readonly EffectOutcome[] } {
+  const res = executeAbilityEffects(
+    ctx.ability,
+    ctx,
+    defaultEffectRegistry,
+    (e) => getEffectTiming(e) === 'POST_ACTION' && isDispatchableEffect(e)
+  );
+  if (res.events.length > 0) {
+    applyCombatEvents(state, res.events, { claimed: true });
+  }
+  return {
+    events: res.events,
+    effects: res.effects ?? []
+  };
 }
 
 /**
- * Applies a stream of atomic combat events to the mutable battle state.
+ * Executes launch-turn self-scoped phases on battlefield zone abilities
+ * (unconditional ON_RESOLVE self-buffs strictly before POST_ACTION effects).
  */
-export function applyCombatEvents(
+function runLaunchSelfPhases(
   state: CombatState,
-  events: readonly CombatEvent[],
-  options?: ApplyCombatEventsOptions
-): void {
-  for (const event of events) {
-    if (event.type === 'DAMAGE') {
-      const cu = state.units.get(event.targetUnitId);
-      if (cu && !cu.isDefeated) {
-        cu.currentHp = Math.max(0, cu.currentHp - event.amount);
+  actorCu: CombatUnit,
+  effectiveAbility: Ability,
+  targetCoord: HexCoord,
+  diceRoller: DiceRoller
+): { readonly events: readonly CombatEvent[]; readonly effects: readonly EffectOutcome[] } {
+  const baseCtx: EffectContext = {
+    state,
+    actorCu,
+    targetCu: actorCu,
+    targetCoord,
+    ability: effectiveAbility,
+    hitOutcome: 'SOLID_HIT',
+    diceRoller
+  };
 
-        // Dispatch damage event to active conditions via onTakeDamage
-        if (event.amount > 0 && cu.activeConditions && cu.activeConditions.length > 0) {
-          cu.activeConditions = cu.activeConditions.filter((cond) => {
-            const def = getConditionDefinition(cond.type);
-            const reaction = def?.onTakeDamage?.(
-              cond,
-              cu,
-              {
-                damageAmount: event.amount,
-                damageType: event.damageType,
-                reason: event.reason,
-                sourceUnitId: event.sourceUnitId
-              },
-              state
-            );
-            if (reaction?.removeCondition) {
-              combatLogger.logConditionBroken(state, {
-                cu,
-                condition: cond.type,
-                reason: 'taking damage',
-                text: `${cond.type} broken by damage`,
-                message: `${cu.unit.name}'s ${cond.type} was broken by taking damage!`
-              });
-              return false;
-            }
-            return true;
-          });
-        }
-
-        // Automatic fallback logging for unclaimed damage events (e.g. ambient hazards, standalone falls/collisions)
-        if (!options?.claimed && !event.logged && event.amount > 0) {
-          if (event.reason === 'FALL') {
-            combatLogger.logEnvironment(state, {
-              cu,
-              hazardName: 'Ledge Plunge',
-              damage: event.amount,
-              detail: 'Direct Fall Impact Damage'
-            });
-          } else if (event.reason === 'COLLISION') {
-            combatLogger.logEnvironment(state, {
-              cu,
-              hazardName: 'Collision',
-              damage: event.amount,
-              detail: event.label ?? 'Collision Impact Damage'
-            });
-          } else if (event.reason === 'ENVIRONMENT') {
-            combatLogger.logEnvironment(state, {
-              cu,
-              hazardName: event.label ?? 'Environmental Hazard',
-              damage: event.amount
-            });
-          }
-        }
-
-        if (cu.currentHp === 0) {
-          cu.isDefeated = true;
-          state.arena.removeUnit(event.targetUnitId);
-          purgeConditionsFromDefeatedSource(state, event.targetUnitId);
-        }
-      }
-    } else if (event.type === 'DISPLACEMENT') {
-      const movedCu = state.units.get(event.unitId);
-      if (event.kind === 'SWAP') {
-        const otherUnitId = state.arena.getUnitAt(event.toCoord);
-        if (otherUnitId && otherUnitId !== event.unitId) {
-          state.arena.swapUnits(event.unitId, otherUnitId);
-          const otherCu = state.units.get(otherUnitId);
-          if (otherCu) clearZeroedInStacks(otherCu, true);
-        } else if (!otherUnitId) {
-          state.arena.setUnitPosition(event.unitId, event.toCoord);
-        }
-      } else {
-        state.arena.setUnitPosition(event.unitId, event.toCoord);
-      }
-      if (movedCu) {
-        clearZeroedInStacks(movedCu, true);
-      }
-    } else if (event.type === 'STATUS_APPLIED') {
-      const cu = state.units.get(event.targetUnitId);
-      if (cu && !cu.isDefeated) {
-        if (event.modifier) {
-          const existing = cu.activeModifiers.find(
-            (m) => m.stat === event.modifier!.stat && m.value === event.modifier!.value
-          );
-          if (existing) {
-            existing.durationTurns = Math.max(existing.durationTurns, event.modifier.durationTurns);
-          } else {
-            cu.activeModifiers.push(event.modifier);
-          }
-        }
-        if (event.condition) {
-          const existing = cu.activeConditions.find(
-            (c) => c === event.condition || (c.type === event.condition!.type && c.sourceUnitId === event.condition!.sourceUnitId)
-          );
-          if (existing) {
-            existing.durationTurns = Math.max(existing.durationTurns, event.condition.durationTurns);
-          } else {
-            cu.activeConditions.push(event.condition);
-          }
-        }
-      }
-    } else if (event.type === 'CONDITION_APPLIED') {
-      const cu = state.units.get(event.targetUnitId);
-      if (cu && !cu.isDefeated) {
-        const existing = cu.activeConditions.find(
-          (c) => c === event.condition || (c.type === event.condition.type && c.sourceUnitId === event.condition.sourceUnitId)
-        );
-        if (existing) {
-          existing.durationTurns = Math.max(existing.durationTurns, event.condition.durationTurns);
-        } else {
-          cu.activeConditions.push(event.condition);
-        }
-      }
-    }
+  const onResolveRes = executeAbilityEffects(
+    effectiveAbility,
+    baseCtx,
+    defaultEffectRegistry,
+    (e) =>
+      getEffectTiming(e) === 'ON_RESOLVE' &&
+      isDispatchableEffect(e) &&
+      isSelfScopedEffect(e) &&
+      resolveApplyOn(e) === 'ALWAYS'
+  );
+  if (onResolveRes.events.length > 0) {
+    applyCombatEvents(state, onResolveRes.events, { claimed: true });
   }
-}
 
-export { isFlankOrRear } from './flanking';
+  const postRes = runPostActionPhase(state, baseCtx);
+
+  return {
+    events: [...onResolveRes.events, ...postRes.events],
+    effects: [...(onResolveRes.effects ?? []), ...postRes.effects]
+  };
+}
 
 /**
  * Resolves an ability execution including to-hit roll, damage, mitigation,
@@ -775,6 +719,12 @@ export function executeAbility(
     const affectedHexes = getHexesInRange(targetCoord, blastRadius).filter((c) => state.arena.hasTile(c));
     const damageProfile = delayedBombardmentEffect.damageProfile ?? { count: 2, sides: 8, modifierAttribute: 'force' };
     const bombardmentId = `bombard_${actorUnitId}_${state.turnNumber}_${(state.pendingBombardments?.length ?? 0) + 1}`;
+    const onHitEffects = (effectiveAbility.effects ?? []).filter((e) => {
+      const meta = getEffectMetadata(e.type);
+      if (getEffectTiming(e) !== 'ON_RESOLVE') return false;
+      if (meta.role !== 'RESOLUTION' && meta.role !== 'ROLL_MODIFIER') return false;
+      return !(isSelfScopedEffect(e) && resolveApplyOn(e) === 'ALWAYS');
+    });
 
     state.pendingBombardments = [
       ...(state.pendingBombardments ?? []),
@@ -787,7 +737,13 @@ export function executeAbility(
         abilityName: effectiveAbility.name,
         centerCoord: { q: targetCoord.q, r: targetCoord.r },
         hexCoords: affectedHexes.map((c) => ({ q: c.q, r: c.r })),
+        ...(actorCoord ? { snapshotOriginCoord: { q: actorCoord.q, r: actorCoord.r } } : {}),
         damageProfile,
+        ...(delayedBombardmentEffect.flatDamage !== undefined ? { flatDamage: delayedBombardmentEffect.flatDamage } : {}),
+        damageType: effectiveAbility.damageType === 'MAGICAL' ? 'MAGICAL' : 'PHYSICAL',
+        defenseTarget: effectiveAbility.defenseTarget !== 'NONE' ? effectiveAbility.defenseTarget : 'EVASION',
+        ...(effectiveAbility.attackRollBonus !== undefined ? { attackRollBonus: effectiveAbility.attackRollBonus } : {}),
+        ...(onHitEffects.length > 0 ? { onHitEffects } : {}),
         attackModifierAttribute: effectiveAbility.attackModifierAttribute ?? 'finesse',
         snapshotFinesse: actorCu.unit.baseAttributes.finesse,
         snapshotForce: actorCu.unit.baseAttributes.force,
@@ -795,6 +751,10 @@ export function executeAbility(
         snapshotZeroedInStacks: actorCu.zeroedInStacks ?? 0
       }
     ];
+
+    // Execute launch-turn unconditional SELF ON_RESOLVE buffs strictly before POST_ACTION effects
+    const launchSelfRes = runLaunchSelfPhases(state, actorCu, effectiveAbility, targetCoord, diceRoller);
+    const launchExtraText = formatEffectOutcomes(launchSelfRes.effects);
 
     combatLogger.logUtility(state, {
       actorCu,
@@ -806,15 +766,16 @@ export function executeAbility(
           context: 'ELEVATION',
           label: 'Barrage Marked',
           detail: `${affectedHexes.length} hexes targeted for detonation next turn`
-        }
+        },
+        ...(launchSelfRes.effects ?? [])
       ],
-      message: `${actorCu.unit.name} launched ${effectiveAbility.name} at (${targetCoord.q}, ${targetCoord.r}) — ${affectedHexes.length} hexes marked for detonation next turn!`
+      message: `${actorCu.unit.name} launched ${effectiveAbility.name} at (${targetCoord.q}, ${targetCoord.r}) — ${affectedHexes.length} hexes marked for detonation next turn!${launchExtraText ? ` ${launchExtraText}` : ''}`
     });
 
     return {
       type: 'SUPPORT',
       targetUnitIds: [],
-      events: []
+      events: launchSelfRes.events
     };
   }
 
@@ -853,6 +814,10 @@ export function executeAbility(
       }
     ];
 
+    // Execute launch-turn unconditional SELF ON_RESOLVE buffs strictly before POST_ACTION effects
+    const launchSelfRes = runLaunchSelfPhases(state, actorCu, effectiveAbility, targetCoord, diceRoller);
+    const launchExtraText = formatEffectOutcomes(launchSelfRes.effects);
+
     const revealClause =
       revealedNames.length > 0 ? ` Revealed ${revealedNames.join(', ')} from Stealth!` : '';
 
@@ -868,15 +833,16 @@ export function executeAbility(
           entries: [{ stat: 'Move Cost', value: `+${extraMoveCost} MP` }],
           durationTurns,
           ...(revealedNames.length > 0 ? { note: `Revealed: ${revealedNames.join(', ')}` } : {})
-        }
+        },
+        ...(launchSelfRes.effects ?? [])
       ],
-      message: `${actorCu.unit.name} deployed ${effectiveAbility.name} at (${targetCoord.q}, ${targetCoord.r}), blanketing ${affectedHexes.length} hexes in rough terrain (+${extraMoveCost} MP, ${durationTurns} turns).${revealClause}`
+      message: `${actorCu.unit.name} deployed ${effectiveAbility.name} at (${targetCoord.q}, ${targetCoord.r}), blanketing ${affectedHexes.length} hexes in rough terrain (+${extraMoveCost} MP, ${durationTurns} turns).${revealClause}${launchExtraText ? ` ${launchExtraText}` : ''}`
     });
 
     return {
       type: 'SUPPORT',
       targetUnitIds: revealedUnitIds,
-      events: []
+      events: launchSelfRes.events
     };
   }
 
@@ -928,27 +894,80 @@ export function executeAbility(
       const allEvents: CombatEvent[] = [];
       const combinedEffects: EffectOutcome[] = [];
       const seenEffectKeys = new Set<string>();
-      for (const tCu of targetCus) {
-        const effResult = executeAbilityEffects(effectiveAbility, {
-          state,
-          actorCu,
-          targetCu: tCu,
-          targetCoord: centerCoord,
-          ability: effectiveAbility,
-          hitOutcome: 'SOLID_HIT',
-          diceRoller
-        });
-        allEvents.push(...effResult.events);
-        for (const outcome of effResult.effects ?? []) {
+      const pushUniqueEffects = (outcomes?: readonly EffectOutcome[]) => {
+        for (const outcome of outcomes ?? []) {
           const key = JSON.stringify(outcome);
           if (!seenEffectKeys.has(key)) {
             seenEffectKeys.add(key);
             combinedEffects.push(outcome);
           }
         }
+      };
+
+      // Target-scoped ON_RESOLVE effects per affected unit
+      for (const tCu of targetCus) {
+        const effResult = executeAbilityEffects(
+          effectiveAbility,
+          {
+            state,
+            actorCu,
+            targetCu: tCu,
+            targetCoord: centerCoord,
+            ability: effectiveAbility,
+            hitOutcome: 'SOLID_HIT',
+            diceRoller
+          },
+          defaultEffectRegistry,
+          (e) =>
+            getEffectTiming(e) === 'ON_RESOLVE' &&
+            isDispatchableEffect(e) &&
+            !isSelfScopedEffect(e) &&
+            !isPrimaryTargetOnlyEffect(e)
+        );
+        if (effResult.events.length > 0) {
+          allEvents.push(...effResult.events);
+          applyCombatEvents(state, effResult.events, { claimed: true });
+        }
+        pushUniqueEffects(effResult.effects);
       }
 
-      applyCombatEvents(state, allEvents, { claimed: true });
+      // Self-scoped ON_RESOLVE effects once per action
+      const selfOnResolve = executeAbilityEffects(
+        effectiveAbility,
+        {
+          state,
+          actorCu,
+          targetCu: actorCu,
+          targetCoord: centerCoord,
+          ability: effectiveAbility,
+          hitOutcome: 'SOLID_HIT',
+          diceRoller
+        },
+        defaultEffectRegistry,
+        (e) =>
+          getEffectTiming(e) === 'ON_RESOLVE' &&
+          isDispatchableEffect(e) &&
+          isSelfScopedEffect(e)
+      );
+      if (selfOnResolve.events.length > 0) {
+        allEvents.push(...selfOnResolve.events);
+        applyCombatEvents(state, selfOnResolve.events, { claimed: true });
+      }
+      pushUniqueEffects(selfOnResolve.effects);
+
+      // POST_ACTION effects once after resolution
+      const postRes = runPostActionPhase(state, {
+        state,
+        actorCu,
+        targetCu: actorCu,
+        targetCoord: centerCoord,
+        ability: effectiveAbility,
+        hitOutcome: 'SOLID_HIT',
+        diceRoller
+      });
+      allEvents.push(...postRes.events);
+      pushUniqueEffects(postRes.effects);
+
       state.outcome = evaluateEncounterOutcome(state.objectives, state);
 
       const externalTargets = targetCus.filter((c) => c.unit.id !== actorCu.unit.id);
@@ -993,7 +1012,24 @@ export function executeAbility(
     const targetId = target?.targetUnitId ?? actorUnitId;
     const targetCu = requireCombatUnit(state, targetId);
 
-    const effectResult = executeAbilityEffects(effectiveAbility, {
+    const effectResult = executeAbilityEffects(
+      effectiveAbility,
+      {
+        state,
+        actorCu,
+        targetCu,
+        targetCoord: target?.coord,
+        ability: effectiveAbility,
+        hitOutcome: 'SOLID_HIT',
+        diceRoller
+      },
+      defaultEffectRegistry,
+      (e) => getEffectTiming(e) === 'ON_RESOLVE' && isDispatchableEffect(e)
+    );
+
+    applyCombatEvents(state, effectResult.events, { claimed: true });
+
+    const postActionResult = runPostActionPhase(state, {
       state,
       actorCu,
       targetCu,
@@ -1003,10 +1039,15 @@ export function executeAbility(
       diceRoller
     });
 
-    applyCombatEvents(state, effectResult.events, { claimed: true });
+    const combinedSingleEvents = [...effectResult.events, ...postActionResult.events];
+    const combinedSingleEffects: EffectOutcome[] = [
+      ...(effectResult.effects ?? []),
+      ...(postActionResult.effects ?? [])
+    ];
+
     state.outcome = evaluateEncounterOutcome(state.objectives, state);
 
-    const statusEvent = effectResult.events.find(
+    const statusEvent = combinedSingleEvents.find(
       (e): e is Extract<CombatEvent, { type: 'STATUS_APPLIED' }> => e.type === 'STATUS_APPLIED'
     );
     const appliedModifier = statusEvent?.modifier ?? {
@@ -1021,12 +1062,12 @@ export function executeAbility(
       effectiveAbility.targetType === 'ALLY' ||
       (isSelfTarget ? true : (actorCu.faction && targetCu.faction ? actorCu.faction === targetCu.faction : false));
 
-    const damageEvents = effectResult.events.filter(
+    const damageEvents = combinedSingleEvents.filter(
       (e): e is Extract<CombatEvent, { type: 'DAMAGE' }> => e.type === 'DAMAGE'
     );
     const totalDamage = damageEvents.reduce((acc, d) => acc + d.amount, 0);
     const isHostile = !isFriendlyTargeting || totalDamage > 0;
-    const effectSummaryText = formatEffectOutcomes(effectResult.effects);
+    const effectSummaryText = formatEffectOutcomes(combinedSingleEffects);
 
     const targetClause = isSelfTarget ? '' : ` on ${targetCu.unit.name}`;
     if (isHostile) {
@@ -1037,7 +1078,7 @@ export function executeAbility(
         damageTotal: totalDamage > 0 ? String(totalDamage) : undefined,
         targetHp: totalDamage > 0 ? targetCu.currentHp : undefined,
         targetMaxHp: totalDamage > 0 ? targetCu.unit.effectiveVitals.maxHp : undefined,
-        effects: effectResult.effects,
+        effects: combinedSingleEffects.length > 0 ? combinedSingleEffects : undefined,
         affectedUnitIds: isSelfTarget ? [actorCu.unit.id] : [actorCu.unit.id, targetCu.unit.id],
         message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${effectSummaryText ? ` ${effectSummaryText}` : ''}`
       });
@@ -1046,7 +1087,7 @@ export function executeAbility(
         actorCu,
         ability: effectiveAbility,
         targetCu: isSelfTarget ? undefined : targetCu,
-        effects: effectResult.effects,
+        effects: combinedSingleEffects.length > 0 ? combinedSingleEffects : undefined,
         message: `${actorCu.unit.name} used ${effectiveAbility.name}${targetClause}.${effectSummaryText ? ` ${effectSummaryText}` : ''}`
       });
     }
@@ -1055,7 +1096,7 @@ export function executeAbility(
       type: 'BUFF',
       targetUnitId: targetId,
       modifierApplied: appliedModifier,
-      events: effectResult.events
+      events: combinedSingleEvents
     };
   }
 
@@ -1081,8 +1122,10 @@ export function executeAbility(
   const events: CombatEvent[] = [];
   let attackOriginCoord = actorCoord;
 
-  // RUSH_CHARGE straight-line dash into contact
-  const rushEffect = effectiveAbility.effects?.find((e) => e.type === 'RUSH_CHARGE');
+  // PRE_ACTION: RUSH_CHARGE straight-line dash into contact
+  const rushEffect = effectiveAbility.effects?.find(
+    (e) => getEffectTiming(e) === 'PRE_ACTION' && e.type === 'RUSH_CHARGE'
+  );
   if (rushEffect && targetCu) {
     const actorPos = state.arena.getUnitPosition(actorUnitId);
     const targetPos = state.arena.getUnitPosition(targetCu.unit.id);
@@ -1109,8 +1152,10 @@ export function executeAbility(
     }
   }
 
-  // AERIAL_VAULT leap to rear arc (Far Hex) or Near Hex fallback
-  const vaultEffect = effectiveAbility.effects?.find((e) => e.type === 'AERIAL_VAULT');
+  // PRE_ACTION: AERIAL_VAULT leap to rear arc (Far Hex) or Near Hex fallback
+  const vaultEffect = effectiveAbility.effects?.find(
+    (e) => getEffectTiming(e) === 'PRE_ACTION' && e.type === 'AERIAL_VAULT'
+  );
   if (vaultEffect && targetCu) {
     const actorPos = state.arena.getUnitPosition(actorUnitId);
     const targetPos = state.arena.getUnitPosition(targetCu.unit.id);
@@ -1135,6 +1180,9 @@ export function executeAbility(
       }
     }
   }
+
+  // PRE_ACTION movements already updated arena positions; track cursor so subsequent events apply exactly once
+  let appliedEventsCursor = events.length;
 
   // Tactical condition evaluation (e.g. Sneak Attack)
   let rollAdvantage: RollAdvantage = 'NORMAL';
@@ -1284,6 +1332,15 @@ export function executeAbility(
   // Secondary AoE Splash / Cone Resolution
   const isCone = Boolean(effectiveAbility.coneTemplate);
   const splashOutcomes: EffectOutcome[] = [];
+  const splashHitEntries: {
+    readonly cu: CombatUnit;
+    readonly outcome: HitOutcome;
+    readonly coord: HexCoord;
+    readonly damageDealt: number;
+    readonly damageType: 'PHYSICAL' | 'MAGICAL';
+    readonly defenseTarget: number;
+    outcomeIndex?: number;
+  }[] = [];
   const splashLabel = effectiveAbility.splashLabel ?? (isCone ? 'BREATH' : 'SPLASH');
   const splashTitle = splashLabel.charAt(0).toUpperCase() + splashLabel.slice(1).toLowerCase();
   const splashOrigin = vaultEffect ? attackOriginCoord : targetCoord;
@@ -1335,35 +1392,6 @@ export function executeAbility(
               splashEffect,
               { hasRangedCover: splashHasCover }
             );
-            const coneConditions: {
-              readonly condition: ConditionType;
-              readonly durationTurns: number;
-              readonly damagePerTurn?: number;
-            }[] = [];
-            if (isCone) {
-              for (const eff of effectiveAbility.effects ?? []) {
-                if (eff.type === 'CONDITION' && eff.conditionType) {
-                  const condRes = applyConditionToUnit(
-                    splashCu,
-                    eff.conditionType,
-                    eff.durationTurns ?? 2,
-                    actorCu.unit.id,
-                    eff.magnitude
-                  );
-                  events.push(condRes.event);
-                  const isDot = eff.conditionType === 'BURN' || eff.conditionType === 'POISON';
-                  const dmgPerTurn = isDot
-                    ? (condRes.condition.damagePerTurn ??
-                      (eff.magnitude !== undefined && eff.magnitude > 0 ? eff.magnitude : 2))
-                    : undefined;
-                  coneConditions.push({
-                    condition: eff.conditionType,
-                    durationTurns: condRes.condition.durationTurns,
-                    ...(dmgPerTurn !== undefined ? { damagePerTurn: dmgPerTurn } : {})
-                  });
-                }
-              }
-            }
 
             const damageType = effectiveAbility.damageType === 'PHYSICAL' ? 'PHYSICAL' : 'MAGICAL';
             if (splashDmg.damageDealt > 0) {
@@ -1378,7 +1406,9 @@ export function executeAbility(
                 isCrit: false
               });
             }
-            if (splashDmg.damageDealt > 0 || coneConditions.length > 0) {
+            let outcomeIndex: number | undefined;
+            if (splashDmg.damageDealt > 0) {
+              outcomeIndex = splashOutcomes.length;
               splashOutcomes.push({
                 kind: 'COLLATERAL_HIT',
                 sourceLabel: splashTitle,
@@ -1388,10 +1418,18 @@ export function executeAbility(
                 hitOutcome: splashOutcome,
                 defenseTarget: splashDefense,
                 targetHp: Math.max(0, splashCu.currentHp - splashDmg.damageDealt),
-                targetMaxHp: splashCu.unit.effectiveVitals.maxHp,
-                ...(coneConditions.length > 0 ? { conditions: coneConditions } : {})
+                targetMaxHp: splashCu.unit.effectiveVitals.maxHp
               });
             }
+            splashHitEntries.push({
+              cu: splashCu,
+              outcome: splashOutcome,
+              coord: hex,
+              damageDealt: splashDmg.damageDealt,
+              damageType,
+              defenseTarget: splashDefense,
+              outcomeIndex
+            });
           } else {
             splashOutcomes.push({
               kind: 'COLLATERAL_HIT',
@@ -1617,23 +1655,149 @@ export function executeAbility(
     }
   }
 
-  // Dispatch secondary effects via pluggable registry (excluding primary DAMAGE and geometric effects resolved above)
-  const effectResult = executeAbilityEffects(
+  // Commit primary, splash, refraction, and distributive damage/status events once before ON_RESOLVE infusions
+  // so units defeated by damage are removed from the arena before subsequent knockbacks calculate occupancy.
+  if (events.length > appliedEventsCursor) {
+    applyCombatEvents(state, events.slice(appliedEventsCursor), { claimed: true });
+    appliedEventsCursor = events.length;
+  }
+
+  const commitEvents = (batch: readonly CombatEvent[]): void => {
+    if (batch.length === 0) return;
+    events.push(...batch);
+    applyCombatEvents(state, batch, { claimed: true });
+    appliedEventsCursor = events.length;
+  };
+
+  // Dispatch ON_RESOLVE effects via pluggable registry:
+  // 1) Target-scoped ON_RESOLVE effects execute per hit target sequentially (center + living AoE/Cone splash targets)
+  // 2) Self-scoped ON_RESOLVE effects execute at most once per action based on best hit outcome
+  const isTargetOnResolveEffect = (e: AbilityEffect): boolean =>
+    getEffectTiming(e) === 'ON_RESOLVE' &&
+    isDispatchableEffect(e) &&
+    !isSelfScopedEffect(e);
+
+  const primaryEffectOutcomes: EffectOutcome[] = [];
+  let knockbackResult: any = undefined;
+  let wallSlamDamage: number | undefined = undefined;
+  let fallDamage: number | undefined = undefined;
+
+  if (targetCu) {
+    const primaryRes = executeAbilityEffects(
+      effectiveAbility,
+      {
+        state,
+        actorCu,
+        targetCu,
+        targetCoord,
+        ability: effectiveAbility,
+        hitOutcome: rollResult.hitOutcome,
+        diceRoller
+      },
+      defaultEffectRegistry,
+      (e) =>
+        isTargetOnResolveEffect(e) &&
+        (!targetCu.isDefeated || isPrimaryTargetOnlyEffect(e))
+    );
+    commitEvents(primaryRes.events);
+    knockbackResult = primaryRes.knockbackResult;
+    wallSlamDamage = primaryRes.wallSlamDamage;
+    fallDamage = primaryRes.fallDamage;
+    if (primaryRes.effects) {
+      primaryEffectOutcomes.push(...primaryRes.effects);
+    }
+  }
+
+  for (const entry of splashHitEntries) {
+    if (entry.cu.isDefeated) {
+      continue;
+    }
+    const splashRes = executeAbilityEffects(
+      effectiveAbility,
+      {
+        state,
+        actorCu,
+        targetCu: entry.cu,
+        targetCoord: entry.coord,
+        ability: effectiveAbility,
+        hitOutcome: entry.outcome,
+        diceRoller
+      },
+      defaultEffectRegistry,
+      (e) => isTargetOnResolveEffect(e) && !isPrimaryTargetOnlyEffect(e)
+    );
+    commitEvents(splashRes.events);
+
+    const entryConditions: {
+      readonly condition: ConditionType;
+      readonly durationTurns: number;
+      readonly damagePerTurn?: number;
+    }[] = [];
+    for (const outcome of splashRes.effects ?? []) {
+      if (outcome.kind === 'CONDITION') {
+        entryConditions.push({
+          condition: outcome.condition,
+          durationTurns: outcome.durationTurns,
+          ...(outcome.damagePerTurn !== undefined ? { damagePerTurn: outcome.damagePerTurn } : {})
+        });
+      } else if (!(outcome.kind === 'CONTEXT' && outcome.context === 'GRAZE_NEGATED')) {
+        primaryEffectOutcomes.push(outcome);
+      }
+    }
+
+    if (entryConditions.length > 0) {
+      if (entry.outcomeIndex !== undefined) {
+        const existing = splashOutcomes[entry.outcomeIndex];
+        if (existing && existing.kind === 'COLLATERAL_HIT') {
+          splashOutcomes[entry.outcomeIndex] = {
+            ...existing,
+            conditions: [...(existing.conditions ?? []), ...entryConditions]
+          };
+        }
+      } else {
+        splashOutcomes.push({
+          kind: 'COLLATERAL_HIT',
+          sourceLabel: splashTitle,
+          targetName: entry.cu.unit.name,
+          damage: entry.damageDealt,
+          damageType: entry.damageType,
+          hitOutcome: entry.outcome,
+          defenseTarget: entry.defenseTarget,
+          targetHp: entry.cu.currentHp,
+          targetMaxHp: entry.cu.unit.effectiveVitals.maxHp,
+          conditions: entryConditions
+        });
+      }
+    }
+  }
+
+  const allTargetOutcomes: HitOutcome[] = [
+    ...(targetCu ? [rollResult.hitOutcome] : []),
+    ...splashHitEntries.map((s) => s.outcome)
+  ];
+  const bestHitOutcome = pickBestHitOutcome(allTargetOutcomes);
+
+  const selfOnResolveRes = executeAbilityEffects(
     effectiveAbility,
     {
       state,
       actorCu,
-      targetCu,
+      targetCu: actorCu,
       targetCoord,
       ability: effectiveAbility,
-      hitOutcome: rollResult.hitOutcome,
+      hitOutcome: bestHitOutcome,
       diceRoller
     },
     defaultEffectRegistry,
-    (e) => e.type !== 'DAMAGE' && e.type !== 'ALLY_REFRACTION' && e.type !== 'DISTRIBUTIVE_PROOF'
+    (e) =>
+      getEffectTiming(e) === 'ON_RESOLVE' &&
+      isDispatchableEffect(e) &&
+      isSelfScopedEffect(e)
   );
-
-  events.push(...effectResult.events);
+  commitEvents(selfOnResolveRes.events);
+  if (selfOnResolveRes.effects) {
+    primaryEffectOutcomes.push(...selfOnResolveRes.effects);
+  }
 
   // Trigger ON_HIT passives (e.g. Soul Carapace) on successful hits
   if (targetCu && rollResult.hitOutcome !== 'MISS') {
@@ -1643,7 +1807,7 @@ export function executeAbility(
       diceRoller,
       hitOutcome: rollResult.hitOutcome
     });
-    events.push(...hitEvents);
+    commitEvents(hitEvents);
   }
 
   // Trigger ON_CRIT passives (e.g. Wild Surge) on critical hits
@@ -1654,11 +1818,8 @@ export function executeAbility(
       diceRoller,
       hitOutcome: rollResult.hitOutcome
     });
-    events.push(...critEvents);
+    commitEvents(critEvents);
   }
-
-  // Apply all events to state
-  applyCombatEvents(state, events, { claimed: true });
 
   // When a unit is hit with an attack, their facing direction updates to face the attack (or away if FORCE_FACING_AWAY)
   if (
@@ -1736,6 +1897,19 @@ export function executeAbility(
     actorCu.activeConditions = actorCu.activeConditions.filter((c) => !conditionsToRemove.has(c));
   }
 
+  // Execute POST_ACTION effects after onAfterAction cleanup (e.g. Shadow Shard grants Stealth after attack)
+  const postActionRes = runPostActionPhase(state, {
+    state,
+    actorCu,
+    targetCu,
+    targetCoord,
+    ability: effectiveAbility,
+    hitOutcome: bestHitOutcome,
+    diceRoller
+  });
+  events.push(...postActionRes.events);
+  primaryEffectOutcomes.push(...postActionRes.effects);
+
   // Evaluate encounter outcome
   state.outcome = evaluateEncounterOutcome(state.objectives, state);
 
@@ -1763,7 +1937,7 @@ export function executeAbility(
   }
 
   const secondaryOutcomes: EffectOutcome[] = [
-    ...(effectResult.effects ?? []),
+    ...primaryEffectOutcomes,
     ...splashOutcomes
   ];
   const attackEffects: EffectOutcome[] = [...contextOutcomes, ...secondaryOutcomes];
@@ -1861,9 +2035,9 @@ export function executeAbility(
       damageDealt: totalDamageDealt,
       damageBreakdown: damageResult.damageBreakdown,
       effectsApplied: effectiveAbility.effects,
-      knockbackResult: effectResult.knockbackResult,
-      wallSlamDamage: effectResult.wallSlamDamage,
-      fallDamage: effectResult.fallDamage,
+      knockbackResult,
+      wallSlamDamage,
+      fallDamage,
       events,
       diceBreakdown
     }

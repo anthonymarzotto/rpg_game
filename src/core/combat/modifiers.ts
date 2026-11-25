@@ -292,7 +292,7 @@ export function getEffectiveAbility(
       const patchLabels: string[] = [];
 
       effects = effects.map((eff) => {
-        if (eff.type !== 'DAMAGE') return eff;
+        if (eff.type !== 'DAMAGE' && eff.type !== 'DELAYED_BOMBARDMENT') return eff;
         let updatedEff = { ...eff };
         let effPatched = false;
 

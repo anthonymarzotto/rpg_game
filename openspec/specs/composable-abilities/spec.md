@@ -7,9 +7,11 @@ Provides a composable atomic effect pipeline and declarative ability modifier en
 ## Requirements
 
 ### Requirement: Composable Ability Effects Pipeline
-The combat engine SHALL model abilities as an execution envelope containing an array of atomic `AbilityEffect` objects rather than a single monolithic damage profile and secondary effect. Each effect SHALL declare its type, execution payload, optional `targetScope` (`'TARGET' | 'SELF' | 'ALLIES'`), optional `applyOn` trigger condition (`'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY'`), optional tactical execution condition (`condition: 'FLANK_OR_REAR' | 'TARGET_CHALLENGED'`), optional `bonusDamage` dice profile evaluated when the condition is satisfied, and optional to-hit modifiers including `grantsAdvantage`, `grantsDisadvantage`, `attackRollBonus`, and `attackRollPenalty`.
+The combat engine SHALL model abilities as an execution envelope containing an array of atomic `AbilityEffect` objects rather than a single monolithic damage profile and secondary effect. Each effect SHALL declare its type, execution payload, optional `targetScope` (`'TARGET' | 'SELF' | 'ALLIES'`), optional `applyOn` trigger condition (`'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY' | 'HIT_ONLY' | 'GRAZE_ONLY'`), optional tactical execution condition (`condition: 'FLANK_OR_REAR' | 'TARGET_CHALLENGED'`), optional `bonusDamage` dice profile evaluated when the condition is satisfied, and optional to-hit modifiers including `grantsAdvantage`, `grantsDisadvantage`, `attackRollBonus`, and `attackRollPenalty`.
 
-Displacement effects that move a unit across grid tiles—including `KNOCKBACK` and `RETREAT_STEP`—SHALL evaluate the elevation delta between origin and destination tiles. When displacement plunges off an elevated ledge ($\Delta h \le -2$), the system SHALL calculate raw fall impact damage ($|\Delta h| \times 4$) and resolve unmitigated fall damage against the displaced unit, dispatching a `DAMAGE` event with `reason: 'FALL'`. If a retreat step encounters an impassable elevation climb ($\Delta h > \text{maxClimbElevation}$) or an unwalkable obstacle, displacement SHALL be aborted unless the unit possesses a trait granting `canVaultOnRetreat`. Units with `canVaultOnRetreat` SHALL vault up onto the cliff top when the landing tile is walkable and unoccupied, or vault over an adjacent 1-hex obstacle onto the far-side hex if open.
+When a `CLEANSE` effect resolves against a target unit, the system SHALL purge all active negative status conditions (`POISON`, `BURN`, `EXPOSED`, `BLINDED`, `CHALLENGED`, `TELEMETRY`) from that unit while preserving `HENOSIS`, `MORTAL_EBB`, and `STEALTH`, emitting a structured outcome documenting the purged conditions.
+
+Displacement effects that move a unit across grid tiles—including `KNOCKBACK`, `PULL`, and `RETREAT_STEP`—SHALL evaluate the elevation delta between origin and destination tiles. When displacement plunges off an elevated ledge ($\Delta h \le -2$), the system SHALL calculate raw fall impact damage ($|\Delta h| \times 4$) and resolve unmitigated fall damage against the displaced unit, dispatching a `DAMAGE` event with `reason: 'FALL'`. When a `PULL` effect resolves against a target at distance 2 or greater, the system SHALL step the target 1 hex along the line toward the actor (`getHexLine`) provided that destination hex is walkable, unoccupied, and does not exceed standard climb elevation ($\Delta h \le \text{maxClimbElevation}$), unless the target possesses displacement immunity. If a retreat step encounters an impassable elevation climb ($\Delta h > \text{maxClimbElevation}$) or an unwalkable obstacle, displacement SHALL be aborted unless the unit possesses a trait granting `canVaultOnRetreat`. Units with `canVaultOnRetreat` SHALL vault up onto the cliff top when the landing tile is walkable and unoccupied, or vault over an adjacent 1-hex obstacle onto the far-side hex if open.
 
 #### Scenario: Multi-effect execution on hit
 - **WHEN** an ability with both a physical damage effect and a knockback effect scores a solid hit against an enemy
@@ -22,6 +24,20 @@ Displacement effects that move a unit across grid tiles—including `KNOCKBACK` 
 #### Scenario: Secondary effects negated on graze
 - **WHEN** an attack with `applyOn: 'HIT_OR_CRIT'` secondary effects (e.g. poison condition or knockback) scores a Graze outcome
 - **THEN** the damage effect resolves at half value and all secondary effects are negated
+
+#### Scenario: Graze-only effect triggers exclusively on Graze outcome
+- **WHEN** a contested ability declares an effect with `applyOn: 'GRAZE_ONLY'` (such as `Billet-Doux` applying `EXPOSED` on a Graze) and the roll results in a `GRAZE`
+- **THEN** the `GRAZE_ONLY` effect is executed while `HIT_ONLY`, `HIT_OR_CRIT`, and `CRIT_ONLY` effects are skipped
+
+#### Scenario: Cleanse effect purges negative status conditions while preserving Mortal Ebb
+- **WHEN** an ability with a `CLEANSE` effect resolves on an allied unit afflicted with `POISON`, `EXPOSED`, and `MORTAL_EBB`
+- **THEN** `POISON` and `EXPOSED` are removed from the unit
+- **THEN** `MORTAL_EBB` remains on the unit
+
+#### Scenario: Pull effect draws target 1 hex toward actor and evaluates fall damage
+- **WHEN** an ability with a `PULL` effect (`magnitude: 1`) hits a target at distance 2 or 3 whose next step along the line toward the actor is walkable and unoccupied
+- **THEN** the target is displaced 1 hex toward the actor and a `DISPLACEMENT` event with `kind: 'PULL'` is emitted
+- **THEN** if the pulled step drops down a ledge with $\Delta h \le -2$, the target suffers Fall Impact Damage unless immune to fall damage
 
 #### Scenario: Ability effect imposes disadvantage on attack roll
 - **WHEN** an attack ability effect specifies `grantsDisadvantage: true`
@@ -301,4 +317,116 @@ The composable ability pipeline SHALL additionally support atomic effect types `
 #### Scenario: Formatter renders readable clauses for LOWER_DEFENSE, ALLY_REFRACTION, and DISTRIBUTIVE_PROOF
 - **WHEN** the ability formatter formats `Refractive Array`, `Adaptive Formula`, or `Distributive Proof`
 - **THEN** it produces human-readable stat strip pills and effect clauses (such as `+FOC vs Lower (EVA/RES)`, ally refraction redirect rules, and isolated vs clustered equations) without exposing raw internal enum strings
+
+### Requirement: Explicit Effect Execution Timing Lifecycle
+The combat engine SHALL support an explicit execution timing phase on each `AbilityEffect` (`timing?: 'PRE_ACTION' | 'ON_RESOLVE' | 'POST_ACTION'`, defaulting to `'ON_RESOLVE'`).
+
+During ability execution, the engine SHALL resolve effects in strict lifecycle phase order:
+1. **`PRE_ACTION`**: Pre-roll positioning or setup effects executed before the attack roll (e.g. `RUSH_CHARGE`, `AERIAL_VAULT`).
+2. **Attack Roll & Damage**: Primary attack roll, primary damage, and AoE/cone defense contests and damage.
+3. **`ON_RESOLVE`**: Standard primary/secondary effects evaluated against each hit target (respecting `applyOn` and Graze negation) and once-per-action `SELF`-scoped `ON_RESOLVE` effects.
+4. **Event Application & Hit-Reaction Facing**: Commit damage, displacements, and statuses to combat state, then update surviving hit targets' facing toward the attack origin (or away when `FORCE_FACING_AWAY` is present).
+5. **Post-Action Condition Hooks (`onAfterAction`)**: On contested attack actions, evaluate pre-existing active conditions on the actor (such as breaking pre-existing `STEALTH` on attack or applying `EXPOSED` for defying `CHALLENGED`).
+6. **`POST_ACTION`**: Execute and commit all effects declaring `timing: 'POST_ACTION'` after `onAfterAction` cleanup completes on contested attacks, and after `ON_RESOLVE` completes on non-attack utilities/buffs, teleports, and battlefield zone abilities (`DELAYED_BOMBARDMENT`, `SHRAPNEL_RUBBLE`).
+
+`Shadow Shard` SHALL declare `timing: 'POST_ACTION'` on its self-targeted `STEALTH` effect. The deterministic ability description formatter SHALL render `POST_ACTION` effects with an explicit `After Action` trigger label.
+
+#### Scenario: Shadow Shard on an attack grants Stealth after the attack completes
+- **WHEN** a unit executes `Sneak Attack` augmented with `Shadow Shard` against an enemy
+- **THEN** the attack roll does not receive Stealth Advantage from `Shadow Shard`
+- **THEN** any pre-existing `STEALTH` on the actor is broken during `onAfterAction`
+- **THEN** `Shadow Shard`'s `POST_ACTION` effect executes afterward and leaves the actor with active `STEALTH` for 1 turn
+
+#### Scenario: Two-shard combo pairs Recoil Shard with Shadow Shard to disengage into Stealth
+- **WHEN** a unit executes `Sneak Attack` augmented with both `Recoil Shard` (`ON_RESOLVE`) and `Shadow Shard` (`POST_ACTION`) and scores a solid hit against an adjacent enemy
+- **THEN** `Recoil Shard` steps the actor 1 hex away from the target (to distance 2) during `ON_RESOLVE`
+- **THEN** hit-reaction facing turns the target toward the attack origin
+- **THEN** `Shadow Shard` grants `STEALTH` during `POST_ACTION` while the actor is at distance 2 (outside the victim's distance-1 front-arc detection)
+
+#### Scenario: Post-action self-buff executes on battlefield zone abilities
+- **WHEN** a unit executes `Siege Barrage` (`DELAYED_BOMBARDMENT`) or `Shrapnel Canister` (`SHRAPNEL_RUBBLE`) augmented with `Shadow Shard`, `Bastion Shard`, or `Anchorite Shard`
+- **THEN** the bombardment zone or shrapnel rubble is placed on the arena
+- **THEN** the actor immediately receives the shard's `POST_ACTION` or unconditional `SELF` buff on the launch turn
+
+#### Scenario: Formatter displays After Action label for POST_ACTION effects
+- **WHEN** the ability formatter formats an ability augmented with `Shadow Shard` (`timing: 'POST_ACTION'`)
+- **THEN** the generated effect clause renders with trigger label `After Action` (e.g., `After Action: Grants Stealth to self (1 turn)`)
+
+### Requirement: Multi-Target AoE, Cone & Delayed Bombardment Shard Delivery
+When an ability resolves against multiple units via AoE blast (`aoeRadius >= 1`), directional Cone (`coneTemplate: true`), or delayed bombardment detonation (`DELAYED_BOMBARDMENT`), the combat engine SHALL deliver all target-scoped `ON_RESOLVE` effects (including socketed hostile shard infusions such as `POISON`, `BURN`, `KNOCKBACK`, `SLOW`, `CTB_DELAY`, `STAT_MODIFIER`, `CONDITION`, and `FORCE_FACING`) to every eligible hit unit individually, respecting each unit's own `HitOutcome` (`SOLID_HIT` / `CRITICAL_HIT` apply `HIT_OR_CRIT` effects; `GRAZE` negates secondary non-damage effects; `MISS` applies none).
+
+`SELF`-scoped `ON_RESOLVE` effects (such as `Aegis Shard`, `Warding Shard`, `Flourish Shard`, `Carapace Shard`, `Fury Shard`'s self-Evasion penalty, or `Hold-Up Shard`'s self-CTB boost) SHALL execute at most once per ability action (triggering for `HIT_OR_CRIT` whenever at least one target scores a Solid Hit or Critical Hit) and SHALL NEVER be applied to enemy targets inside an AoE or Cone loop.
+
+Declarative damage patches (`diceStep`, `diceCount`, `flatDamage`) SHALL patch `DELAYED_BOMBARDMENT` effects in addition to `DAMAGE` effects. When launching a `DELAYED_BOMBARDMENT`, the pending bombardment record SHALL snapshot effective shard overrides (`damageType`, `defenseTarget`, `attackRollBonus`, `flatDamage`, `CRIT_BOOST`) and hostile target-scoped `ON_RESOLVE` effects so they resolve against every hit unit upon detonation.
+
+Displacement handlers for `RETREAT_STEP` and `PENETRATE_STEP` SHALL normalize their displacement direction vector to a single 1-hex step along the hex direction between actor and target so ranged attacks (such as ranged `Recoil Shard` / `Buckshot Shard`) and range-extended melee attacks (such as `Astral Reach` + `Trample Shard`) always step by 1 hex rather than the full actor-to-target distance.
+
+#### Scenario: Venom Shard on Arcane Blast poisons every hit enemy in the blast
+- **WHEN** a unit executes `Arcane Blast` augmented with `Venom Shard` targeting an empty hex adjacent to Enemy A (Solid Hit), Enemy B (Graze), and Enemy C (Miss)
+- **THEN** Enemy A takes splash damage and receives `POISON` for 2 turns
+- **THEN** Enemy B takes grazed splash damage and does not receive `POISON`
+- **THEN** Enemy C takes 0 damage and does not receive `POISON`
+
+#### Scenario: Shadow Shard on Wyrmflame Breath cloaks only the caster and never enemies
+- **WHEN** a Dragoon executes `Wyrmflame Breath` augmented with `Shadow Shard` hitting two enemies in the forward cone
+- **THEN** neither enemy receives `STEALTH`
+- **THEN** the Dragoon receives `STEALTH` after the attack resolves
+
+#### Scenario: Self-scoped on-hit shard triggers once on multi-target AoE hit
+- **WHEN** a unit executes `Arcane Blast` augmented with `Hold-Up Shard` or `Aegis Shard` and hits two enemies in the blast
+- **THEN** both hit enemies suffer `CTB_DELAY` (for `Hold-Up Shard`)
+- **THEN** the caster receives the self-scoped bonus (`+10` CTB or `+1 Armor`) exactly once for the action
+
+#### Scenario: Siege Barrage carries Power, Aether, and hostile infusion shards to detonation
+- **WHEN** a Ballistician launches `Siege Barrage` augmented with `Force Shard` (`+2` flat damage) and `Pyre Shard` (Burn on hit/crit), and Enemy A is hit when the bombardment detonates next turn
+- **THEN** Enemy A takes the patched bombardment damage including `+2` flat damage
+- **THEN** Enemy A receives `BURN` (2 dmg/turn, 2 turns) upon detonation
+
+#### Scenario: Ranged attack with Recoil Shard steps back exactly 1 hex
+- **WHEN** an actor executes a range-3 single-target attack (such as `Throw Dart` or `Sighting Bolt`) augmented with `Recoil Shard` against an enemy 3 hexes away and scores a Solid Hit
+- **THEN** the actor steps back exactly 1 hex away from the target along the normalized direction vector rather than jumping 3 hexes
+
+### Requirement: Metadata-Driven Effect Lifecycle Phases and Unified Event Application
+The combat engine SHALL classify every effect type through centralized declarative metadata defining its default execution phase (`PRE_ACTION`, `ON_RESOLVE`, or `POST_ACTION`), execution role (roll modifier, primary damage, geometric dispatch, zone deployment, or standard resolution), targeting semantics, and whether it supports target-scoped resolution delivery.
+
+During ability execution:
+1. Effects whose resolved phase is `PRE_ACTION` (including `RUSH_CHARGE` and `AERIAL_VAULT`, or any effect explicitly declaring `timing: 'PRE_ACTION'`) SHALL execute exclusively before the attack roll and SHALL NOT be dispatched during `ON_RESOLVE` or `POST_ACTION`.
+2. Self-scoped effects SHALL be identified consistently across direct ability resolution and delayed bombardment detonation from declared `targetScope: 'SELF'` data (including `Smoke Veil`) and shared metadata helpers rather than hard-coded per-condition or per-effect checks.
+3. Actor-displacing effects that reference the primary target coordinate (such as `RETREAT_STEP`) SHALL execute at most once per action against the primary target rather than repeating for every splash hit in a multi-target action.
+4. Post-action condition hooks (`onAfterAction`, such as breaking pre-existing `STEALTH` on attack or applying `EXPOSED` when defying `CHALLENGED`) SHALL run after event application on contested attack actions and before `POST_ACTION` effects. Non-attack buffs, teleports, and battlefield zone launches SHALL execute `ON_RESOLVE` effects strictly before `POST_ACTION` effects without invoking attack-only `onAfterAction` hooks.
+5. Direct ability execution and delayed bombardment detonation SHALL share a single combat event application pipeline so all damage (including collision, fall, and infusion damage) invokes `onTakeDamage` condition reactions (such as breaking `STEALTH`), swap displacements, and defeat cleanup identically.
+6. Multi-target `ON_RESOLVE` resolution SHALL apply damage and displacement events sequentially per target through the shared event application pipeline rather than mutating arena coordinates early and re-applying them later, ensuring units defeated by primary or splash damage are removed from the arena before subsequent knockbacks resolve occupancy.
+
+#### Scenario: PRE_ACTION effects never leak into ON_RESOLVE or POST_ACTION
+- **WHEN** an ability declares an effect with `timing: 'PRE_ACTION'` (or a pre-roll positioning effect such as `RUSH_CHARGE` or `AERIAL_VAULT`) alongside `ON_RESOLVE` and `POST_ACTION` effects
+- **THEN** the `PRE_ACTION` effect is excluded from both `ON_RESOLVE` and `POST_ACTION` dispatch passes
+
+#### Scenario: Zone launch executes ON_RESOLVE self-buffs strictly before POST_ACTION effects
+- **WHEN** a unit executes `Siege Barrage` or `Shrapnel Canister` augmented with both an `ON_RESOLVE` unconditional self-buff (`Bastion Shard`) and a `POST_ACTION` self-buff (`Shadow Shard`) regardless of socket order
+- **THEN** the `ON_RESOLVE` self-buff executes and commits before the `POST_ACTION` self-buff
+
+#### Scenario: Bombardment infusion collision damage breaks Stealth via shared event application
+- **WHEN** a Stealthed enemy takes collision or fall damage triggered by an `Impact Shard` infusion on a detonating `Siege Barrage`
+- **THEN** the shared event application pipeline invokes `onTakeDamage` hooks and breaks the victim's `STEALTH`
+
+#### Scenario: Defeated splash victim does not block a subsequent AoE knockback
+- **WHEN** an `Arcane Blast` augmented with `Impact Shard` deals lethal splash damage to Enemy A standing directly behind Enemy B, and Enemy B survives and is knocked back into Enemy A's hex
+- **THEN** Enemy A's defeat removes them from the arena before Enemy B's knockback calculates occupancy
+- **THEN** Enemy B is displaced cleanly into the vacated hex without colliding with the already-defeated Enemy A
+
+#### Scenario: Non-attack utility preserves Stealth while still running POST_ACTION effects
+- **WHEN** a Stealthed unit executes a non-attack utility or teleport (such as `Shadow Step` or `Smoke Veil`)
+- **THEN** attack-only `onAfterAction` hooks do not strip `STEALTH`
+- **THEN** any `POST_ACTION` shard effect still executes after `ON_RESOLVE`
+
+### Requirement: Snapshotted Origin for Delayed Bombardment Displacements
+When a `DELAYED_BOMBARDMENT` ability is launched, the pending bombardment record SHALL snapshot the launcher's hex coordinate at launch time. When the bombardment detonates on a later turn, target-scoped displacement infusions (such as `Impact Shard` or `Repelling Shard`) SHALL compute push direction away from the snapshotted launch coordinate rather than querying the launcher's live arena position.
+
+#### Scenario: Siege Barrage with Impact Shard pushes from launch position after launcher moves
+- **WHEN** a Ballistician at `(-3, 0)` launches `Siege Barrage` augmented with `Impact Shard` onto `(0, 0)`, then moves to `(0, 3)` before detonation
+- **THEN** upon detonation, a hit enemy at `(0, 0)` is knocked back 1 hex away from `(-3, 0)` (toward `(1, 0)`) rather than away from `(0, 3)`
+
+#### Scenario: Siege Barrage with Impact Shard still knocks back enemies if launcher is defeated before detonation
+- **WHEN** a Ballistician at `(-3, 0)` launches `Siege Barrage` augmented with `Impact Shard` and is defeated before the bombardment detonates
+- **THEN** upon detonation, a hit enemy at `(0, 0)` is still knocked back 1 hex away from `(-3, 0)` despite the launcher no longer occupying the arena
 

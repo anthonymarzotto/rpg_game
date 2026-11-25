@@ -14,7 +14,7 @@ export const pullHandler: EffectHandler = {
       return { events: [] };
     }
 
-    const actorCoord = state.arena.getUnitPosition(actorCu.unit.id);
+    const actorCoord = ctx.originCoord ?? state.arena.getUnitPosition(actorCu.unit.id);
     const targetCoord = state.arena.getUnitPosition(targetCu.unit.id);
     if (!actorCoord || !targetCoord) {
       return { events: [] };

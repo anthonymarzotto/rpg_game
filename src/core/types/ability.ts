@@ -3,6 +3,7 @@ import { TriadAttributes } from './stats';
 import { AIProfile } from './ai';
 
 export type AbilityTargetType = 'SINGLE_TARGET' | 'SELF' | 'ALLY' | 'HEX';
+export type AbilityIntent = 'HOSTILE' | 'FRIENDLY' | 'SELF';
 export type DefenseTarget = 'EVASION' | 'RESOLVE' | 'LOWER_DEFENSE' | 'NONE';
 export type DamageType = 'PHYSICAL' | 'MAGICAL' | 'NONE';
 
@@ -61,6 +62,7 @@ export type AbilityEffectType =
 
 export type EffectTargetScope = 'TARGET' | 'SELF' | 'ALLIES';
 export type EffectApplyCondition = 'ALWAYS' | 'HIT_OR_CRIT' | 'CRIT_ONLY' | 'HIT_ONLY' | 'GRAZE_ONLY';
+export type EffectTiming = 'PRE_ACTION' | 'ON_RESOLVE' | 'POST_ACTION';
 export type AbilityCondition = 'FLANK_OR_REAR' | 'TARGET_CHALLENGED';
 
 /**
@@ -102,6 +104,8 @@ export interface AbilityEffect {
   readonly targetScope?: EffectTargetScope;
   /** Trigger condition determining when effect executes (defaults to HIT_OR_CRIT for attacks/secondary, ALWAYS for self-buffs) */
   readonly applyOn?: EffectApplyCondition;
+  /** Execution lifecycle phase for this effect (defaults to ON_RESOLVE) */
+  readonly timing?: EffectTiming;
   readonly magnitude?: number;
   /**
    * Optional floating combat text override (`string`), suppression (`null`), or `{ actor?, target? }` split.
@@ -186,6 +190,8 @@ export interface Ability {
   /** Maximum targeting distance in hexes */
   readonly range: number;
   readonly targetType: AbilityTargetType;
+  /** Optional explicit tactical intent; required for non-damaging HEX abilities (defaults safely to non-hostile) */
+  readonly intent?: AbilityIntent;
   readonly defenseTarget: DefenseTarget;
   /** Triad attribute contributing to the d20 attack roll (e.g. 'finesse' for physical, 'focus' for spells) */
   readonly attackModifierAttribute?: keyof TriadAttributes;
@@ -210,4 +216,23 @@ export interface Ability {
   readonly sameElevationOnly?: boolean;
   /** Optional declarative AI behavioral and combo sequencing hints */
   readonly aiHint?: AbilityAIHint;
+}
+
+/**
+ * Resolves the tactical intent of an Ability.
+ * Explicit `ability.intent` takes precedence; otherwise damaging abilities and
+ * `SINGLE_TARGET` utilities resolve to `'HOSTILE'`, `'ALLY'` resolves to `'FRIENDLY'`,
+ * and `'SELF'` or unannotated non-damaging `'HEX'` abilities default safely to `'SELF'`.
+ */
+export function resolveAbilityIntent(ability: Ability): AbilityIntent {
+  if (ability.intent) {
+    return ability.intent;
+  }
+  if (ability.damageType !== 'NONE' || ability.targetType === 'SINGLE_TARGET') {
+    return 'HOSTILE';
+  }
+  if (ability.targetType === 'ALLY') {
+    return 'FRIENDLY';
+  }
+  return 'SELF';
 }

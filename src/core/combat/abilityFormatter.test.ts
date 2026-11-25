@@ -191,4 +191,14 @@ describe('abilityFormatter', () => {
     const reachPill = formatted.statPills.find((p) => p.id === 'reach');
     expect(reachPill?.label).toBe('Range 2–4');
   });
+
+  it('formats POST_ACTION effects (e.g. Shadow Shard on Sneak Attack) with After Action trigger label', async () => {
+    const { ASTRAL_AUGMENT_SHARDS } = await import('../progression/harmonization');
+    const augmented = getEffectiveAbility(SNEAK_ATTACK, [ASTRAL_AUGMENT_SHARDS.shadow_shard.modifier]);
+    const formatted = formatAbilityDescription(augmented);
+    const stealthClause = formatted.effectClauses.find((c) => c.text.includes('Grants Stealth to self'));
+    expect(stealthClause).toBeDefined();
+    expect(stealthClause?.triggerLabel).toBe('After Action');
+    expect(stealthClause?.tier).toBe('SHARD');
+  });
 });

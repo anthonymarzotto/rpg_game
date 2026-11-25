@@ -8,7 +8,7 @@ export const cleaveHandler: EffectHandler = {
   apply(effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
     const { state, actorCu, targetCu, ability, diceRoller } = ctx;
     const actorPos = state.arena.getUnitPosition(actorCu.unit.id);
-    const targetPos = targetCu ? state.arena.getUnitPosition(targetCu.unit.id) : undefined;
+    const targetPos = (targetCu ? state.arena.getUnitPosition(targetCu.unit.id) : undefined) ?? ctx.targetCoord;
 
     if (!actorPos || !targetPos || !targetCu) {
       return { events: [] };

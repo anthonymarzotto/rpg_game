@@ -5,12 +5,28 @@ import {
   getAvailableAttunements,
   applyWayfarerAttunement,
   ASTRAL_AUGMENT_SHARDS,
+  ALL_ASTRAL_SHARDS,
+  evaluateShardCompatibility,
   getShardById,
   getEligibleDomainUnlocks,
   AstralShardId
 } from './harmonization';
 import { getEffectiveAbility } from '../combat/modifiers';
-import { STRIKE } from '../../data/packages';
+import {
+  STRIKE,
+  SNEAK_ATTACK,
+  SHADOW_STEP,
+  MINOR_WARD,
+  ARCANE_BLAST,
+  SMOKE_VEIL,
+  EXPOSE_WEAKNESS,
+  LEAD_THE_CHARGE,
+  WYRMFLAME_BREATH,
+  SIEGE_BARRAGE,
+  SHRAPNEL_CANISTER,
+  SIGHTING_BOLT,
+  FLASH_POWDER
+} from '../../data/packages';
 import { RECRUIT_BASE_VITALS } from '../config/balance';
 import { DerivedCombatVitals } from '../types/stats';
 import { Unit } from '../types/unit';
@@ -348,6 +364,159 @@ describe('harmonization domain engine', () => {
       expect(shard.modifier.appendEffects?.[0].statModifiers?.armor).toBe(1);
       expect(shard.modifier.appendEffects?.[0].statModifiers?.resolve).toBe(1);
       expect(shard.modifier.appendEffects?.[0].targetScope).toBe('SELF');
+    });
+
+    it('verifies Shadow Shard uses POST_ACTION timing on its self Stealth effect', () => {
+      const shard = ASTRAL_AUGMENT_SHARDS.shadow_shard;
+      expect(shard.compatibility).toBe('ANY');
+      expect(shard.modifier.appendEffects?.[0].conditionType).toBe('STEALTH');
+      expect(shard.modifier.appendEffects?.[0].targetScope).toBe('SELF');
+      expect(shard.modifier.appendEffects?.[0].timing).toBe('POST_ACTION');
+    });
+
+    it('evaluates compatibility accurately across all 33 shards and representative ability families', () => {
+      // Every registered shard has an explicit compatibility preset
+      expect(ALL_ASTRAL_SHARDS).toHaveLength(33);
+      for (const shard of ALL_ASTRAL_SHARDS) {
+        expect(shard.compatibility).toBeDefined();
+      }
+
+      // 1. Damage scaling & hit self-buffs require damaging attacks
+      for (const id of [
+        'starlight_lens',
+        'force_shard',
+        'keen_shard',
+        'momentum_shard',
+        'bloodbound_shard',
+        'fury_shard',
+        'aegis_shard',
+        'warding_shard',
+        'flourish_shard',
+        'carapace_shard'
+      ] as const) {
+        const shard = ASTRAL_AUGMENT_SHARDS[id];
+        expect(evaluateShardCompatibility(shard, SNEAK_ATTACK).compatible).toBe(true);
+        expect(evaluateShardCompatibility(shard, ARCANE_BLAST).compatible).toBe(true);
+        expect(evaluateShardCompatibility(shard, SIEGE_BARRAGE).compatible).toBe(true);
+        expect(evaluateShardCompatibility(shard, WYRMFLAME_BREATH).compatible).toBe(true);
+        expect(evaluateShardCompatibility(shard, MINOR_WARD).compatible).toBe(false);
+        expect(evaluateShardCompatibility(shard, SMOKE_VEIL).compatible).toBe(false);
+        expect(evaluateShardCompatibility(shard, SHADOW_STEP).compatible).toBe(false);
+        expect(evaluateShardCompatibility(shard, EXPOSE_WEAKNESS).compatible).toBe(false);
+        expect(evaluateShardCompatibility(shard, SHRAPNEL_CANISTER).compatible).toBe(false);
+      }
+
+      // 2. Aether Shard requires physical damaging attack
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.aether_shard, SNEAK_ATTACK).compatible).toBe(true);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.aether_shard, SIEGE_BARRAGE).compatible).toBe(true);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.aether_shard, ARCANE_BLAST).compatible).toBe(false);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.aether_shard, MINOR_WARD).compatible).toBe(false);
+
+      // 3. Astral Reach requires range >= 1 and non-cone
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.astral_reach, SNEAK_ATTACK).compatible).toBe(true);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.astral_reach, SHADOW_STEP).compatible).toBe(true);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.astral_reach, MINOR_WARD).compatible).toBe(true);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.astral_reach, SMOKE_VEIL).compatible).toBe(false);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.astral_reach, WYRMFLAME_BREATH).compatible).toBe(false);
+
+      // 4. Supernova Flare requires hostile AoE (damaging AoE attacks + hostile utility AoEs, excluding cones & friendly auras)
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.supernova_flare, ARCANE_BLAST).compatible).toBe(true);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.supernova_flare, SIEGE_BARRAGE).compatible).toBe(true);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.supernova_flare, FLASH_POWDER).compatible).toBe(true);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.supernova_flare, SHRAPNEL_CANISTER).compatible).toBe(true);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.supernova_flare, SNEAK_ATTACK).compatible).toBe(false);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.supernova_flare, SHADOW_STEP).compatible).toBe(false);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.supernova_flare, WYRMFLAME_BREATH).compatible).toBe(false);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.supernova_flare, LEAD_THE_CHARGE).compatible).toBe(false);
+
+      // 5. Hostile infusions require hostile target ability (blocking SELF, ALLY, TELEPORT, SHRAPNEL_RUBBLE)
+      for (const id of [
+        'impact_shard',
+        'venom_shard',
+        'pyre_shard',
+        'static_shard',
+        'mire_shard',
+        'vanguard_shard',
+        'confrontation_shard',
+        'hex_shard',
+        'toll_shard',
+        'repelling_shard',
+        'concussion_shard',
+        'holdup_shard'
+      ] as const) {
+        const shard = ASTRAL_AUGMENT_SHARDS[id];
+        expect(evaluateShardCompatibility(shard, SNEAK_ATTACK).compatible).toBe(true);
+        expect(evaluateShardCompatibility(shard, ARCANE_BLAST).compatible).toBe(true);
+        expect(evaluateShardCompatibility(shard, WYRMFLAME_BREATH).compatible).toBe(true);
+        expect(evaluateShardCompatibility(shard, SIEGE_BARRAGE).compatible).toBe(true);
+        expect(evaluateShardCompatibility(shard, EXPOSE_WEAKNESS).compatible).toBe(true);
+        expect(evaluateShardCompatibility(shard, FLASH_POWDER).compatible).toBe(true);
+        expect(evaluateShardCompatibility(shard, SMOKE_VEIL).compatible).toBe(false);
+        expect(evaluateShardCompatibility(shard, MINOR_WARD).compatible).toBe(false);
+        expect(evaluateShardCompatibility(shard, SHADOW_STEP).compatible).toBe(false);
+        expect(evaluateShardCompatibility(shard, SHRAPNEL_CANISTER).compatible).toBe(false);
+      }
+
+      // 6. Melee geometry (Cleave, Trample) strictly melee single-target damaging attacks
+      for (const id of ['cleave_shard', 'trample_shard'] as const) {
+        const shard = ASTRAL_AUGMENT_SHARDS[id];
+        expect(evaluateShardCompatibility(shard, SNEAK_ATTACK).compatible).toBe(true);
+        expect(evaluateShardCompatibility(shard, SIGHTING_BOLT).compatible).toBe(false);
+        expect(evaluateShardCompatibility(shard, ARCANE_BLAST).compatible).toBe(false);
+        expect(evaluateShardCompatibility(shard, EXPOSE_WEAKNESS).compatible).toBe(false);
+      }
+
+      // 7. Recoil & Buckshot allow both melee and ranged single-target damaging attacks
+      for (const id of ['recoil_shard', 'buckshot_shard'] as const) {
+        const shard = ASTRAL_AUGMENT_SHARDS[id];
+        expect(evaluateShardCompatibility(shard, SNEAK_ATTACK).compatible).toBe(true);
+        expect(evaluateShardCompatibility(shard, SIGHTING_BOLT).compatible).toBe(true);
+        expect(evaluateShardCompatibility(shard, ARCANE_BLAST).compatible).toBe(false);
+        expect(evaluateShardCompatibility(shard, MINOR_WARD).compatible).toBe(false);
+      }
+
+      // 8. Interchange requires single-unit ability (SINGLE_TARGET or ALLY, non-AoE, non-Cone)
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.interchange_shard, SNEAK_ATTACK).compatible).toBe(true);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.interchange_shard, MINOR_WARD).compatible).toBe(true);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.interchange_shard, EXPOSE_WEAKNESS).compatible).toBe(true);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.interchange_shard, SMOKE_VEIL).compatible).toBe(false);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.interchange_shard, ARCANE_BLAST).compatible).toBe(false);
+      expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.interchange_shard, SHADOW_STEP).compatible).toBe(false);
+
+      // 9. Universal self-buffs work on every ability family
+      for (const id of ['shadow_shard', 'bastion_shard', 'anchorite_shard'] as const) {
+        const shard = ASTRAL_AUGMENT_SHARDS[id];
+        for (const ab of [SNEAK_ATTACK, SMOKE_VEIL, MINOR_WARD, SHADOW_STEP, ARCANE_BLAST, SIEGE_BARRAGE, SHRAPNEL_CANISTER]) {
+          expect(evaluateShardCompatibility(shard, ab).compatible).toBe(true);
+        }
+      }
+    });
+
+    it('rejects hostile infusions and Supernova Flare on friendly or unannotated ground-targeted HEX AoEs', () => {
+      const friendlyGroundAoe = {
+        id: 'sanctuary_circle',
+        name: 'Sanctuary Circle',
+        description: 'Blesses allies in a target area.',
+        apCost: 1,
+        range: 3,
+        aoeRadius: 1,
+        targetType: 'HEX' as const,
+        intent: 'FRIENDLY' as const,
+        defenseTarget: 'NONE' as const,
+        damageType: 'NONE' as const,
+        effects: [{ type: 'ARMOR_BUFF' as const, magnitude: 2, durationTurns: 1 }]
+      };
+      const unannotatedGroundAoe = {
+        ...friendlyGroundAoe,
+        id: 'unannotated_circle',
+        intent: undefined
+      };
+
+      for (const ab of [friendlyGroundAoe, unannotatedGroundAoe]) {
+        expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.venom_shard, ab).compatible).toBe(false);
+        expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.supernova_flare, ab).compatible).toBe(false);
+        expect(evaluateShardCompatibility(ASTRAL_AUGMENT_SHARDS.shadow_shard, ab).compatible).toBe(true);
+      }
     });
   });
 

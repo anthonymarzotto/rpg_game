@@ -274,4 +274,77 @@ describe('Off-Node Progression Integration: Centroid Path & Slot Augments', () =
     const targetCu = combatState.units.get(enemyDummy.id)!;
     expect(targetCu.activeConditions.some((c) => c.type === 'POISON')).toBe(true);
   });
+
+  it('auto-prunes incompatible shards at the campaign boundary across class switch, wildcard swap, and passive-only edits while validateUnitLoadout remains strict', async () => {
+    const { validateUnitLoadout } = await import('../units/loadout');
+    let campaign = createCampaign({ seed: 99 });
+    const baseHero = campaign.roster[0];
+
+    // Prepare hero with Knight + Thief unlocked and legacy incompatible shard socketed
+    const heroWithLegacyShards = {
+      ...baseHero,
+      progression: {
+        ...baseHero.progression,
+        currentLevel: 2,
+        constellation: ['thief', 'knight'],
+        unlockedAbilityIds: ['minor_ward']
+      },
+      loadout: {
+        activeClassId: 'knight', // slot 0 = Lead the Charge (SELF, NONE)
+        wildcardAbilityIds: ['minor_ward'], // slot 3 = Minor Ward (ALLY, NONE)
+        wildcardPassiveIds: [],
+        earnedShards: ['shadow_shard', 'keen_shard', 'aether_shard'],
+        slotAugments: {
+          0: ['shadow_shard', 'keen_shard'], // keen_shard incompatible with Lead the Charge
+          3: ['aether_shard']                // aether_shard incompatible with Minor Ward
+        }
+      }
+    };
+
+    campaign = {
+      ...campaign,
+      roster: campaign.roster.map((u) => (u.id === baseHero.id ? heroWithLegacyShards : u))
+    };
+
+    // validateUnitLoadout directly remains strictly rejecting
+    const strictValidation = validateUnitLoadout(heroWithLegacyShards, heroWithLegacyShards.loadout, {
+      getPackage: getClassPackage,
+      getAbility: getAbilityById
+    });
+    expect(strictValidation.valid).toBe(false);
+
+    // 1) Passive-only edit via updateCampUnitLoadout auto-prunes legacy incompatible shards cleanly
+    const afterPassiveEdit = updateCampUnitLoadout(campaign, baseHero.id, {
+      ...heroWithLegacyShards.loadout,
+      wildcardPassiveIds: ['momentum']
+    });
+    const updatedHero1 = afterPassiveEdit.roster.find((u) => u.id === baseHero.id)!;
+    expect(updatedHero1.loadout.wildcardPassiveIds).toEqual(['momentum']);
+    expect(updatedHero1.loadout.slotAugments).toEqual({ 0: ['shadow_shard'] });
+
+    // 2) Class switch to Thief (slot 0 = Sneak Attack), socket Keen Shard, then switch back to Knight -> Keen Shard pruned, Shadow Shard kept
+    const asThief = updateCampUnitLoadout(afterPassiveEdit, baseHero.id, {
+      ...updatedHero1.loadout,
+      activeClassId: 'thief',
+      slotAugments: { 0: ['shadow_shard', 'keen_shard'] }
+    });
+    const backToKnight = updateCampUnitLoadout(asThief, baseHero.id, {
+      ...asThief.roster.find((u) => u.id === baseHero.id)!.loadout,
+      activeClassId: 'knight'
+    });
+    expect(backToKnight.roster.find((u) => u.id === baseHero.id)!.loadout.slotAugments).toEqual({
+      0: ['shadow_shard']
+    });
+
+    // 3) Clearing wildcard ability removes shard from emptied slot 3
+    const withSlot3Shard = updateCampUnitLoadout(backToKnight, baseHero.id, {
+      ...backToKnight.roster.find((u) => u.id === baseHero.id)!.loadout,
+      slotAugments: { 3: ['shadow_shard'] }
+    });
+    const afterClearingWildcard = updateCampUnitLoadout(withSlot3Shard, baseHero.id, {
+      ...withSlot3Shard.roster.find((u) => u.id === baseHero.id)!.loadout,
+      wildcardAbilityIds: []
+    });
+    expect(afterClearingWildcard.roster.find((u) => u.id === baseHero.id)!.loadout.slotAugments).toEqual({});
+  });
 });

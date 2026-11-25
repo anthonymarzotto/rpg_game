@@ -3,6 +3,7 @@ import { createRecruit } from './unitFactory';
 import {
   resolveUnitLoadout,
   validateUnitLoadout,
+  pruneIncompatibleSlotAugments,
   NOVICE_CLASS_ID,
   NOVICE_PASSIVE_ID
 } from './loadout';
@@ -342,11 +343,12 @@ describe('Unit Loadout Validation Rules', () => {
       }
     };
 
-    // Valid socketing
+    // Valid socketing (slot 0 = Power Strike, slot 3 = quick_thrust)
     const validResult = validateUnitLoadout(
       heroWithShards,
       {
         ...heroWithShards.loadout,
+        wildcardAbilityIds: ['quick_thrust'],
         slotAugments: {
           0: ['starlight_lens', 'impact_shard'],
           3: ['astral_reach']
@@ -355,6 +357,51 @@ describe('Unit Loadout Validation Rules', () => {
       providers
     );
     expect(validResult.valid).toBe(true);
+
+    // Reject socketing on empty wildcard slot
+    const emptySlotResult = validateUnitLoadout(
+      heroWithShards,
+      {
+        ...heroWithShards.loadout,
+        wildcardAbilityIds: [],
+        slotAugments: {
+          3: ['astral_reach']
+        }
+      },
+      providers
+    );
+    expect(emptySlotResult.valid).toBe(false);
+    expect(emptySlotResult.reason).toContain('no equipped ability');
+
+    // Reject incompatible shard on non-AoE single-target attack (Supernova Flare on Warrior Power Strike)
+    const incompatResult = validateUnitLoadout(
+      heroWithShards,
+      {
+        ...heroWithShards.loadout,
+        earnedShards: [...(heroWithShards.loadout.earnedShards ?? []), 'supernova_flare'],
+        slotAugments: {
+          0: ['supernova_flare']
+        }
+      },
+      providers
+    );
+    expect(incompatResult.valid).toBe(false);
+    expect(incompatResult.reason).toContain('incompatible');
+
+    // Reject damaging shard on non-damaging utility (Starlight Lens on Minor Ward)
+    const nonDamagingResult = validateUnitLoadout(
+      { ...heroWithShards, starterAbilityIds: [...heroWithShards.starterAbilityIds, 'minor_ward'] },
+      {
+        ...heroWithShards.loadout,
+        wildcardAbilityIds: ['minor_ward'],
+        slotAugments: {
+          3: ['starlight_lens']
+        }
+      },
+      providers
+    );
+    expect(nonDamagingResult.valid).toBe(false);
+    expect(nonDamagingResult.reason).toContain('incompatible');
 
     // Reject unearned shard
     const unearnedResult = validateUnitLoadout(
@@ -424,5 +471,68 @@ describe('Unit Loadout Validation Rules', () => {
     // Wildcard ability in slot 3 (index 0 of wildcardAbilities) should have +1 range
     const wildcard0 = resolved.wildcardAbilities[0];
     expect(wildcard0.range).toBe(2); // base Slash is 1, with astral_reach it's 2!
+  });
+
+  it('pruneIncompatibleSlotAugments preserves compatible shards and auto-unsockets incompatible ones on class/wildcard swap', () => {
+    const hybridHero: Unit = {
+      ...baseWarrior,
+      progression: {
+        ...baseWarrior.progression,
+        currentLevel: 2,
+        constellation: ['thief', 'knight']
+      },
+      loadout: {
+        activeClassId: 'knight', // slot 0 is Lead the Charge (SELF, NONE, aoeRadius 3)
+        wildcardAbilityIds: [],  // slot 3 is now empty
+        wildcardPassiveIds: [],
+        earnedShards: ['shadow_shard', 'keen_shard', 'astral_reach'],
+        slotAugments: {
+          0: ['shadow_shard', 'keen_shard'], // shadow_shard stays, keen_shard removed
+          3: ['astral_reach']                // slot 3 empty -> removed
+        }
+      }
+    };
+
+    const { slotAugments, removedShardIds } = pruneIncompatibleSlotAugments(
+      hybridHero,
+      hybridHero.loadout,
+      providers
+    );
+
+    expect(slotAugments).toEqual({ 0: ['shadow_shard'] });
+    expect(removedShardIds).toEqual(['keen_shard', 'astral_reach']);
+
+    const validation = validateUnitLoadout(
+      hybridHero,
+      { ...hybridHero.loadout, slotAugments },
+      providers
+    );
+    expect(validation.valid).toBe(true);
+  });
+
+  it('defensively skips incompatible shards from legacy saves during resolveUnitLoadout while still applying compatible shards', () => {
+    const legacyHero: Unit = {
+      ...baseWarrior,
+      starterAbilityIds: [...baseWarrior.starterAbilityIds, 'minor_ward'],
+      loadout: {
+        activeClassId: 'warrior',
+        wildcardAbilityIds: ['minor_ward'],
+        wildcardPassiveIds: [],
+        earnedShards: ['aether_shard', 'shadow_shard'],
+        slotAugments: {
+          // Legacy incompatible Aether Shard + compatible Shadow Shard on Minor Ward (ALLY, NONE)
+          3: ['aether_shard', 'shadow_shard']
+        }
+      }
+    };
+
+    const resolved = resolveUnitLoadout(legacyHero, providers);
+    const resolvedWard = resolved.wildcardAbilities[0];
+    expect(resolvedWard.id).toBe('minor_ward');
+    // Aether Shard skipped: damageType and defenseTarget remain NONE
+    expect(resolvedWard.damageType).toBe('NONE');
+    expect(resolvedWard.defenseTarget).toBe('NONE');
+    // Shadow Shard still applied
+    expect(resolvedWard.effects.some((e) => e.type === 'CONDITION' && e.conditionType === 'STEALTH')).toBe(true);
   });
 });

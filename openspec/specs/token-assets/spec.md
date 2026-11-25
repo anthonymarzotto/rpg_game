@@ -12,6 +12,14 @@ The system SHALL resolve pixel sprite token paths for all authored classes acros
 - **WHEN** `resolveTokenAssetPath` is called for a unit whose active class is Shield-bearer
 - **THEN** the system resolves the corresponding pixel sprite URL from `/assets/tokens/pixel/05_human_male` matching the unit's facing direction
 
+#### Scenario: Resolving Tier-4 Philanderer pixel tokens
+- **WHEN** `resolveTokenAssetPath` is called for a unit whose active class is Philanderer
+- **THEN** the system resolves the corresponding pixel sprite URL from `/assets/tokens/pixel/84_human_male` matching the unit's facing direction
+
+#### Scenario: Resolving Tier-4 Theurge pixel tokens
+- **WHEN** `resolveTokenAssetPath` is called for a unit whose active class is Theurge
+- **THEN** the system resolves the corresponding pixel sprite URL from `/assets/tokens/pixel/79_human_male` matching the unit's facing direction
+
 #### Scenario: Resolving Tier-4 Arcanist pixel tokens
 - **WHEN** `resolveTokenAssetPath` is called for a unit whose active class is Arcanist
 - **THEN** the system resolves the corresponding pixel sprite URL from `/assets/tokens/pixel/96_human_male/Idle/rotations/<direction>.png` matching the unit's facing direction
@@ -30,6 +38,14 @@ The system SHALL provide distinct, accessible primary and border color palettes 
 #### Scenario: Resolving badge palette for Tier-4 Shield-bearer
 - **WHEN** `getClassBadgePalette` is requested for `shield-bearer`
 - **THEN** the system returns the class's dedicated Slate Iron primary (`#334155`) and Emerald border (`#10b981`) hex colors
+
+#### Scenario: Resolving badge palette for Tier-4 Philanderer
+- **WHEN** `getClassBadgePalette` is requested for `philanderer`
+- **THEN** the system returns the class's dedicated Velvet Rose primary (`#9f1239`) and Rose Crimson border (`#f43f5e`) hex colors
+
+#### Scenario: Resolving badge palette for Tier-4 Theurge
+- **WHEN** `getClassBadgePalette` is requested for `theurge`
+- **THEN** the system returns the class's dedicated Empyrean Azure primary (`#1e3a8a`) and Celestial Gold border (`#f59e0b`) hex colors
 
 #### Scenario: Resolving badge palette for Tier-4 Arcanist
 - **WHEN** `getClassBadgePalette` is requested for `arcanist`

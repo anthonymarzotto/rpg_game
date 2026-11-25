@@ -19,12 +19,16 @@ import { ConstellationSvg } from '../pyramid/ConstellationSvg';
 import { POINTS_BY_ID, getOffNodeWaypoint, parseCoordKey } from '../pyramid/geometry';
 import {
   getShardById,
+  evaluateShardCompatibility,
   getAvailableAttunements,
   WAYFARER_ATTUNEMENTS,
   WayfarerAttunementId,
   AstralAugmentShard
 } from '../../core/progression/harmonization';
-import { resolveUnitLoadout } from '../../core/units/loadout';
+import {
+  resolveUnitLoadout,
+  getSlotBaseAbilities
+} from '../../core/units/loadout';
 import { CLASS_REGISTRY } from '../../data/classes';
 import { getClassPackage, getAbilityById, getPassiveById, MOMENTUM } from '../../data/packages';
 import { OffNodeChoiceModal } from './OffNodeChoiceModal';
@@ -49,6 +53,7 @@ export interface HeroProgressionDrawerProps {
   readonly initialHoveredClassId?: string | null;
   readonly initialHoveredWaypointKey?: string | null;
   readonly initialSelectedWaypointKey?: string | null;
+  readonly initialLoadoutError?: string | null;
 }
 
 function getNeededArchetype(
@@ -75,6 +80,39 @@ function resolveClassDef(classId: string): ClassDefinition | undefined {
   return POINTS_BY_ID.get(classId)?.cls;
 }
 
+export type DrawerLoadoutCommitResult =
+  | { readonly ok: true; readonly nextCampaign: CampaignState }
+  | { readonly ok: false; readonly error: string };
+
+/**
+ * Pure helper applying a partial loadout update from the Hero Progression Drawer through
+ * `updateCampUnitLoadout` (which auto-prunes incompatible shards) and capturing any
+ * validation rejection message for inline UI display.
+ */
+export function commitHeroLoadoutChange(
+  campaign: CampaignState,
+  hero: Unit,
+  changed: Partial<UnitLoadout>
+): DrawerLoadoutCommitResult {
+  const nextLoadout: UnitLoadout = {
+    activeClassId: changed.activeClassId ?? hero.loadout.activeClassId,
+    wildcardAbilityIds: changed.wildcardAbilityIds ?? hero.loadout.wildcardAbilityIds,
+    wildcardPassiveIds: changed.wildcardPassiveIds ?? hero.loadout.wildcardPassiveIds,
+    earnedShards: changed.earnedShards ?? hero.loadout.earnedShards,
+    slotAugments: changed.slotAugments ?? hero.loadout.slotAugments
+  };
+
+  try {
+    const nextCampaign = updateCampUnitLoadout(campaign, hero.id, nextLoadout);
+    return { ok: true, nextCampaign };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err)
+    };
+  }
+}
+
 export function HeroProgressionDrawer({
   hero,
   campaign,
@@ -82,12 +120,14 @@ export function HeroProgressionDrawer({
   onUpdateCampaign,
   initialHoveredClassId,
   initialHoveredWaypointKey,
-  initialSelectedWaypointKey
+  initialSelectedWaypointKey,
+  initialLoadoutError
 }: HeroProgressionDrawerProps) {
   const [hoveredClassId, setHoveredClassId] = useState<string | null>(initialHoveredClassId ?? null);
   const [hoveredWaypointKey, setHoveredWaypointKey] = useState<string | null>(initialHoveredWaypointKey ?? null);
   const [selectedWaypointKey, setSelectedWaypointKey] = useState<string | null>(initialSelectedWaypointKey ?? null);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(initialSelectedWaypointKey ? null : hero.loadout.activeClassId);
+  const [loadoutError, setLoadoutError] = useState<string | null>(initialLoadoutError ?? null);
   const [pendingOffNode, setPendingOffNode] = useState<{
     readonly archetype: Archetype;
     readonly targetPoints: ArchetypePoints;
@@ -102,6 +142,7 @@ export function HeroProgressionDrawer({
       prevHeroIdRef.current = hero.id;
       setIsRenaming(false);
       setDraftName(hero.name);
+      setLoadoutError(null);
     } else if (!isRenaming) {
       setDraftName(hero.name);
     }
@@ -304,29 +345,32 @@ export function HeroProgressionDrawer({
     [campaign, hero.id, pendingOffNode, onUpdateCampaign]
   );
 
-  // Handle loadout updates
+  const baseSlotAbilities = useMemo(
+    () =>
+      getSlotBaseAbilities(hero, hero.loadout, {
+        getPackage: getClassPackage,
+        getAbility: getAbilityById
+      }),
+    [hero]
+  );
+
+  // Handle loadout updates (delegating incompatible-shard pruning to updateCampUnitLoadout)
   const handleUpdateLoadout = useCallback(
     (changed: Partial<UnitLoadout>) => {
-      const nextLoadout: UnitLoadout = {
-        activeClassId: changed.activeClassId ?? hero.loadout.activeClassId,
-        wildcardAbilityIds: changed.wildcardAbilityIds ?? hero.loadout.wildcardAbilityIds,
-        wildcardPassiveIds: changed.wildcardPassiveIds ?? hero.loadout.wildcardPassiveIds,
-        earnedShards: changed.earnedShards ?? hero.loadout.earnedShards,
-        slotAugments: changed.slotAugments ?? hero.loadout.slotAugments
-      };
-
-      try {
-        const nextState = updateCampUnitLoadout(campaign, hero.id, nextLoadout);
-        onUpdateCampaign(nextState);
+      const res = commitHeroLoadoutChange(campaign, hero, changed);
+      if (res.ok) {
+        setLoadoutError(null);
+        onUpdateCampaign(res.nextCampaign);
         if (changed.activeClassId) {
           setSelectedClassId(changed.activeClassId);
           setSelectedWaypointKey(null);
         }
-      } catch (err) {
-        console.warn('Loadout update rejected', err);
+      } else {
+        setLoadoutError(res.error);
+        console.warn('Loadout update rejected', res.error);
       }
     },
-    [campaign, hero.id, hero.loadout, onUpdateCampaign]
+    [campaign, hero, onUpdateCampaign]
   );
 
   // Socket a shard into an ability slot (0..4)
@@ -334,13 +378,18 @@ export function HeroProgressionDrawer({
     (slotIdx: number, shardId: string) => {
       const currentSlotShards = hero.loadout.slotAugments?.[slotIdx] ?? [];
       if (currentSlotShards.length >= 2) return;
+      const slotAbility = baseSlotAbilities[slotIdx];
+      const shard = getShardById(shardId);
+      if (!slotAbility || !shard || !evaluateShardCompatibility(shard, slotAbility).compatible) {
+        return;
+      }
       const nextSlotAugments = {
         ...hero.loadout.slotAugments,
         [slotIdx]: [...currentSlotShards, shardId]
       };
       handleUpdateLoadout({ slotAugments: nextSlotAugments });
     },
-    [hero.loadout.slotAugments, handleUpdateLoadout]
+    [hero.loadout.slotAugments, baseSlotAbilities, handleUpdateLoadout]
   );
 
   // Unsocket a shard from an ability slot
@@ -483,6 +532,7 @@ export function HeroProgressionDrawer({
 
   const renderSlotSockets = (slotIdx: number) => {
     const slotShards = hero.loadout.slotAugments?.[slotIdx] ?? [];
+    const slotAbility = baseSlotAbilities[slotIdx];
     const allSocketed = new Set(Object.values(hero.loadout.slotAugments ?? {}).flat());
     const availableToSocket = (hero.loadout.earnedShards ?? []).filter((sid) => !allSocketed.has(sid));
 
@@ -521,9 +571,15 @@ export function HeroProgressionDrawer({
             <option value="">◇ Socket Shard ({availableToSocket.length} avail)</option>
             {availableToSocket.map((sid) => {
               const s = getShardById(sid);
+              const compat =
+                s && slotAbility
+                  ? evaluateShardCompatibility(s, slotAbility)
+                  : { compatible: false, reason: 'Equip an ability first' };
               return (
-                <option key={sid} value={sid}>
-                  {s?.icon} {s?.name}
+                <option key={sid} value={sid} disabled={!compat.compatible}>
+                  {compat.compatible
+                    ? `${s?.icon} ${s?.name}`
+                    : `🔒 ${s?.icon} ${s?.name} (${compat.reason})`}
                 </option>
               );
             })}
@@ -1159,6 +1215,24 @@ export function HeroProgressionDrawer({
           <div className="drawer-right-col">
             <div className="drawer-loadout-section" data-testid="drawer-loadout-section">
               <span className="drawer-section-title font-ui">Combat Manifest</span>
+
+              {loadoutError && (
+                <div
+                  className="drawer-loadout-error font-ui"
+                  role="alert"
+                  data-testid="loadout-error-banner"
+                >
+                  <span>{loadoutError}</span>
+                  <button
+                    type="button"
+                    className="drawer-loadout-error-dismiss"
+                    onClick={() => setLoadoutError(null)}
+                    aria-label="Dismiss loadout error"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
 
               {/* Active Class */}
               <div className="drawer-loadout-field">

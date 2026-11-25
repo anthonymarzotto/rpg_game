@@ -11,7 +11,7 @@ export const linePierceHandler: EffectHandler = {
       return { events: [] };
     }
     const actorPos = state.arena.getUnitPosition(actorCu.unit.id);
-    const targetPos = targetCu ? state.arena.getUnitPosition(targetCu.unit.id) : undefined;
+    const targetPos = (targetCu ? state.arena.getUnitPosition(targetCu.unit.id) : undefined) ?? ctx.targetCoord;
 
     if (!actorPos || !targetPos || !targetCu) {
       return { events: [] };

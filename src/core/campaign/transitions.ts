@@ -4,13 +4,14 @@ import { UnitLoadout } from '../types/loadout';
 import { InBattleXp } from '../combat/types';
 import { LEVEL_XP_THRESHOLDS } from '../config/balance';
 import { computeDerivedVitals } from '../units/vitals';
-import { validateUnitLoadout } from '../units/loadout';
+import { validateUnitLoadout, pruneIncompatibleSlotAugments } from '../units/loadout';
 import { advanceArchetypeLevel, MAX_LEVEL } from '../progression/pyramid';
 import { applyWayfarerAttunement, WayfarerAttunementId } from '../progression/harmonization';
+import { Ability } from '../types/ability';
 import { ClassPackage } from '../types/classPackage';
 import { ClassRegistry } from '../progression/registry';
 import { CLASS_REGISTRY } from '../../data/classes';
-import { getClassPackage } from '../../data/packages';
+import { getClassPackage, getAbilityById } from '../../data/packages';
 import { CampaignState } from './types';
 import { EncounterDefinition } from '../combat/encounter';
 import { generateStageEncounter, getDeploymentZones, placeSquadTactically } from './encounterGenerator';
@@ -305,21 +306,30 @@ export function updateCampUnitLoadout(
   state: CampaignState,
   unitId: string,
   loadout: UnitLoadout,
-  packageProvider: (classId: string) => ClassPackage | undefined = getClassPackage
+  packageProvider: (classId: string) => ClassPackage | undefined = getClassPackage,
+  abilityProvider: (abilityId: string) => Ability | undefined = getAbilityById
 ): CampaignState {
   const unit = state.roster.find((u) => u.id === unitId);
   if (!unit) {
     throw new Error(`Unit ${unitId} not found in campaign roster.`);
   }
 
-  const validation = validateUnitLoadout(unit, loadout, { getPackage: packageProvider });
+  const providers = { getPackage: packageProvider, getAbility: abilityProvider };
+  const normalizedLoadout: UnitLoadout = loadout.slotAugments
+    ? {
+        ...loadout,
+        slotAugments: pruneIncompatibleSlotAugments(unit, loadout, providers).slotAugments
+      }
+    : loadout;
+
+  const validation = validateUnitLoadout(unit, normalizedLoadout, providers);
   if (!validation.valid) {
     throw new Error(`Invalid loadout for unit ${unitId}: ${validation.reason}`);
   }
 
   const updatedUnit: Unit = {
     ...unit,
-    loadout: { ...loadout }
+    loadout: { ...normalizedLoadout }
   };
 
   const updatedRoster = state.roster.map((u) => (u.id === unitId ? updatedUnit : u));

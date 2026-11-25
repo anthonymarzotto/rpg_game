@@ -2,6 +2,15 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.25.0] - 2026-11-25
+
+### Astral Augment Shard Compatibility & Timing
+- **After-Action Stealth Timing**: Socketing **Shadow Shard** onto attacks (such as *Sneak Attack*) now cleanly triggers *after* the attack resolves—breaking any prior Stealth during the strike and cloaking your hero afterward, opening up hit-and-vanish synergies when paired with a second disengagement shard like *Recoil Shard* or *Impact Shard*. Ability tooltips now clearly label post-action effects as **After Action**.
+- **Clear Shard Compatibility Rules**: Every Astral Augment Shard now enforces sensible compatibility with the ability in its slot (for example, damage shards require damaging attacks, *Aether Shard* requires physical attacks, *Supernova Flare* requires hostile area-of-effect abilities, *Cleave* and *Trample* require melee single-target attacks, and universal shards like *Shadow*, *Bastion*, and *Anchorite* work on any skill).
+- **Camp Socketing Guidance, Legacy Protection & Feedback**: Incompatible shards still appear in each slot's socketing menu as disabled entries with a concise reason explaining what the shard needs. Switching active classes or editing loadouts automatically returns any incompatible shards to your hero's shard inventory while keeping compatible shards socketed, older saves automatically ignore incompatible shards in battle, and rejected loadout changes now display a clear inline notice in the Hero Progression Drawer.
+- **Multi-Target Area, Cone & Barrage Infusions**: On-hit shard infusions (such as *Venom*, *Pyre*, *Impact*, *Hex*, *Toll*, and *Static*) now apply to every enemy struck inside area-of-effect blasts, cone attacks, and *Siege Barrage* detonations while respecting per-target Graze and Miss outcomes (including *Wyrmflame Breath*'s Burn now following the standard Graze rule). Fallen area targets vacate their hex immediately before knockbacks resolve, self-buff shards on area abilities trigger once per action without leaking onto cone enemies, and *Siege Barrage* knockbacks reliably push from the original launch position, prevent double-hits within a volley, and break Stealth on collision or fall damage.
+- **1-Hex Ranged Recoil**: *Recoil Shard* and *Buckshot Shard* now work cleanly on ranged single-target attacks as well as melee strikes, always stepping your hero back by exactly 1 hex.
+
 ## [0.24.0] - 2026-11-24
 
 ### New Tier 4 Class: Arcanist

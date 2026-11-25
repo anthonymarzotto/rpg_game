@@ -511,11 +511,18 @@ export interface PendingBombardment {
   readonly abilityName: string;
   readonly centerCoord: HexCoord;
   readonly hexCoords: readonly HexCoord[];
+  /** Launcher's hex coordinate snapshotted at launch time for deterministic detonation displacements */
+  readonly snapshotOriginCoord?: HexCoord;
   readonly damageProfile: {
     readonly count: number;
     readonly sides: number;
     readonly modifierAttribute?: 'force' | 'finesse' | 'focus';
   };
+  readonly flatDamage?: number;
+  readonly damageType?: 'PHYSICAL' | 'MAGICAL';
+  readonly defenseTarget?: 'EVASION' | 'RESOLVE' | 'LOWER_DEFENSE';
+  readonly attackRollBonus?: number;
+  readonly onHitEffects?: readonly AbilityEffect[];
   readonly attackModifierAttribute: 'force' | 'finesse' | 'focus';
   readonly snapshotFinesse: number;
   readonly snapshotForce: number;

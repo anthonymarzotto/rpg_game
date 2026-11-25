@@ -1,4 +1,5 @@
 export * from './types';
+export * from './metadata';
 export * from './registry';
 export * from './knockbackHandler';
 export * from './pullHandler';

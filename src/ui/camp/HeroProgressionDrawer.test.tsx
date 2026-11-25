@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { HeroProgressionDrawer } from './HeroProgressionDrawer';
+import { HeroProgressionDrawer, commitHeroLoadoutChange } from './HeroProgressionDrawer';
 import { ConstellationSvg } from '../pyramid/ConstellationSvg';
 import { Unit } from '../../core/types/unit';
 import { UnitProgression } from '../../core/types/class';
@@ -792,6 +792,114 @@ describe('HeroProgressionDrawer Component', () => {
         />
       );
       expect(htmlAuthored).not.toContain('data-testid="scanner-unauthored-badge"');
+    });
+  });
+
+  describe('Shard Compatibility Dropdown & Auto-Unsocketing', () => {
+    it('renders incompatible shards as disabled options with incompatibility reasons while keeping compatible shards enabled', () => {
+      const hero = makeMockUnit({
+        progression: {
+          unitId: 'hero-1',
+          currentLevel: 2,
+          constellation: ['infiltrator'],
+          accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+          archetypePoints: { fighter: 0, rogue: 2, mage: 0 }
+        },
+        loadout: {
+          // Infiltrator: slot 0 = Expose Weakness (hostile utility), slot 1 = Smoke Veil (SELF, NONE), slot 2 = Toxic Shiv (melee physical)
+          activeClassId: 'infiltrator',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: [],
+          earnedShards: ['starlight_lens', 'shadow_shard', 'supernova_flare']
+        }
+      });
+      const campaign = makeMockCampaign(hero);
+
+      const html = renderToStaticMarkup(
+        <HeroProgressionDrawer
+          hero={hero}
+          campaign={campaign}
+          onClose={vi.fn()}
+          onUpdateCampaign={vi.fn()}
+        />
+      );
+
+      // Extract slot 1 (Smoke Veil: SELF, non-damaging) select markup
+      const slot1Match = html.match(/data-testid="select-socket-shard-1"[\s\S]*?<\/select>/);
+      expect(slot1Match).not.toBeNull();
+      const slot1Html = slot1Match![0];
+
+      // Shadow Shard is enabled (no disabled attribute)
+      expect(slot1Html).toContain('<option value="shadow_shard">');
+      // Starlight Lens & Supernova Flare are disabled with concise reasons
+      expect(slot1Html).toMatch(/<option value="starlight_lens" disabled="">[^<]*Requires damaging attack/);
+      expect(slot1Html).toMatch(/<option value="supernova_flare" disabled="">[^<]*Requires hostile AoE ability/);
+    });
+
+    it('allows passive edits on a hero with a legacy incompatible shard (auto-pruning it) and surfaces rejection messages on invalid edits', () => {
+      const legacyHero = makeMockUnit({
+        progression: {
+          unitId: 'hero-1',
+          currentLevel: 2,
+          constellation: ['knight'],
+          accumulatedXp: { fighter: 0, rogue: 0, mage: 0 },
+          archetypePoints: { fighter: 2, rogue: 0, mage: 0 }
+        },
+        loadout: {
+          // Knight slot 0 is Lead the Charge (SELF, NONE): keen_shard is legacy-incompatible, shadow_shard is compatible
+          activeClassId: 'knight',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: [],
+          earnedShards: ['shadow_shard', 'keen_shard'],
+          slotAugments: { 0: ['shadow_shard', 'keen_shard'] }
+        }
+      });
+      const campaign = makeMockCampaign(legacyHero);
+
+      // 1) Editing passive on legacy incompatible loadout succeeds without deadlock and prunes keen_shard
+      const passiveUpdate = commitHeroLoadoutChange(campaign, legacyHero, {
+        wildcardPassiveIds: ['momentum']
+      });
+      expect(passiveUpdate.ok).toBe(true);
+      if (passiveUpdate.ok) {
+        const updatedHero = passiveUpdate.nextCampaign.roster[0];
+        expect(updatedHero.loadout.wildcardPassiveIds).toEqual(['momentum']);
+        expect(updatedHero.loadout.slotAugments).toEqual({ 0: ['shadow_shard'] });
+      }
+
+      // 2) Submitting an invalid loadout edit captures the rejection message and renders it in the inline alert banner
+      const invalidUpdate = commitHeroLoadoutChange(campaign, legacyHero, {
+        activeClassId: 'dragoon' // locked class
+      });
+      expect(invalidUpdate.ok).toBe(false);
+      if (!invalidUpdate.ok) {
+        expect(invalidUpdate.error).toContain('dragoon');
+
+        const htmlError = renderToStaticMarkup(
+          <HeroProgressionDrawer
+            hero={legacyHero}
+            campaign={campaign}
+            onClose={vi.fn()}
+            onUpdateCampaign={vi.fn()}
+            initialLoadoutError={invalidUpdate.error}
+          />
+        );
+        expect(htmlError).toContain('data-testid="loadout-error-banner"');
+        expect(htmlError).toContain('class="drawer-loadout-error font-ui"');
+        expect(htmlError).toContain('role="alert"');
+        expect(htmlError).toContain('dragoon');
+      }
+
+      // 3) Clean drawer omits the error banner
+      const htmlClean = renderToStaticMarkup(
+        <HeroProgressionDrawer
+          hero={legacyHero}
+          campaign={campaign}
+          onClose={vi.fn()}
+          onUpdateCampaign={vi.fn()}
+        />
+      );
+      expect(htmlClean).not.toContain('data-testid="loadout-error-banner"');
     });
   });
 });

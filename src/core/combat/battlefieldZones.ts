@@ -1,15 +1,24 @@
-import { CombatEvent, CombatState, CombatUnit, EffectOutcome, PendingBombardment } from './types';
+import { CombatEvent, CombatState, CombatUnit, EffectOutcome, HitOutcome, PendingBombardment } from './types';
 import { toHexKey } from '../grid/hex';
 import { Faction } from '../types/unit';
-import { Ability } from '../types/ability';
+import { AbilityEffect, ConditionType } from '../types/ability';
+import { EffectiveAbility } from '../types/modifier';
 import { DiceRoller, SeededDiceRoller } from './dice';
-import { resolveAttackRoll } from './attackRoll';
+import { resolveAttackRoll, resolveTargetDefense } from './attackRoll';
 import { resolveDamage } from './damageEngine';
-import { getEffectiveEvasion, hasFriendlyAoEExclusion, isFriendlyUnit } from './effectiveVitals';
+import { hasFriendlyAoEExclusion, isFriendlyUnit } from './effectiveVitals';
+import {
+  executeAbilityEffects,
+  defaultEffectRegistry,
+  getEffectTiming,
+  isSelfScopedEffect,
+  isPrimaryTargetOnlyEffect,
+  isDispatchableEffect
+} from './effects';
+import { applyCombatEvents, pickBestHitOutcome } from './eventApplication';
 import { createRecruit } from '../units/unitFactory';
 import { combatLogger } from './combatLogger';
 import { evaluateEncounterOutcome } from './objectives';
-import { purgeConditionsFromDefeatedSource } from './conditions';
 
 /**
  * Collects all hex keys currently covered by active Shrapnel Rubble rough terrain hazards.
@@ -134,7 +143,10 @@ export function resolvePendingBombardmentsOnTurnStart(
       activeConditions: []
     };
 
-    const syntheticAbility: Ability = {
+    const damageType: 'PHYSICAL' | 'MAGICAL' = b.damageType ?? 'PHYSICAL';
+    const defenseTarget = b.defenseTarget ?? 'EVASION';
+    const carriedEffects: readonly AbilityEffect[] = b.onHitEffects ?? [];
+    const syntheticAbility: EffectiveAbility = {
       id: b.abilityId,
       name: b.abilityName,
       description: 'Delayed siege bombardment impact.',
@@ -145,25 +157,34 @@ export function resolvePendingBombardmentsOnTurnStart(
       aoeRadius: 1,
       ignoresElevationPenalty: true,
       targetType: 'HEX',
-      defenseTarget: 'EVASION',
+      defenseTarget,
       attackModifierAttribute: b.attackModifierAttribute,
-      damageType: 'PHYSICAL',
+      damageType,
       effects: [
         {
           type: 'DAMAGE',
-          damageProfile: b.damageProfile
-        }
-      ]
+          damageProfile: b.damageProfile,
+          ...(b.flatDamage !== undefined ? { flatDamage: b.flatDamage } : {})
+        },
+        ...carriedEffects
+      ],
+      attributions: [],
+      appliedModifierIds: [],
+      ...(b.attackRollBonus !== undefined ? { attackRollBonus: b.attackRollBonus } : {})
     };
 
     const hitOutcomes: EffectOutcome[] = [];
+    const extraOutcomes: EffectOutcome[] = [];
     const affectedUnitIds: string[] = [];
     let totalDamage = 0;
+    let bestHitOutcome: HitOutcome = 'MISS';
 
     const excludeAllies = hasFriendlyAoEExclusion(snapshotActor);
+    const seenUnitIds = new Set<string>();
     for (const hex of b.hexCoords) {
       const unitId = state.arena.getUnitAt(hex);
-      if (!unitId) continue;
+      if (!unitId || seenUnitIds.has(unitId)) continue;
+      seenUnitIds.add(unitId);
       const targetCu = state.units.get(unitId);
       if (!targetCu || targetCu.isDefeated || targetCu.currentHp <= 0) continue;
       if (excludeAllies && isFriendlyUnit(snapshotActor, targetCu)) continue;
@@ -181,6 +202,9 @@ export function resolvePendingBombardmentsOnTurnStart(
       }
 
       affectedUnitIds.push(targetCu.unit.id);
+      bestHitOutcome = pickBestHitOutcome([bestHitOutcome, rollResult.hitOutcome]);
+
+      const targetDefenseVal = resolveTargetDefense(targetCu, defenseTarget).value;
 
       if (rollResult.hitOutcome !== 'MISS') {
         const dmg = resolveDamage(
@@ -193,25 +217,64 @@ export function resolvePendingBombardmentsOnTurnStart(
           syntheticAbility.effects[0]
         );
         if (dmg.damageDealt > 0) {
-          targetCu.currentHp = Math.max(0, targetCu.currentHp - dmg.damageDealt);
           totalDamage += dmg.damageDealt;
-          allEvents.push({
+          const dmgEvent: CombatEvent = {
             type: 'DAMAGE',
             targetUnitId: targetCu.unit.id,
             amount: dmg.damageDealt,
-            damageType: 'PHYSICAL',
+            damageType,
             reason: 'SPLASH',
             label: 'BARRAGE',
             sourceUnitId: b.sourceUnitId,
             isCrit: rollResult.hitOutcome === 'CRITICAL_HIT',
             coord: { q: hex.q, r: hex.r }
-          });
+          };
+          applyCombatEvents(state, [dmgEvent], { claimed: true, logDefeats: true });
+          allEvents.push(dmgEvent);
+        }
 
-          if (targetCu.currentHp <= 0) {
-            targetCu.isDefeated = true;
-            state.arena.removeUnit(targetCu.unit.id);
-            combatLogger.logDefeat(state, { cu: targetCu });
-            purgeConditionsFromDefeatedSource(state, targetCu.unit.id);
+        // Dispatch carried hostile target-scoped ON_RESOLVE shard infusions on living hit targets
+        const targetConditions: {
+          readonly condition: ConditionType;
+          readonly durationTurns: number;
+          readonly damagePerTurn?: number;
+        }[] = [];
+        const detonationOriginCoord =
+          b.snapshotOriginCoord ?? state.arena.getUnitPosition(b.sourceUnitId);
+        if (!targetCu.isDefeated && carriedEffects.length > 0) {
+          const infusionRes = executeAbilityEffects(
+            syntheticAbility,
+            {
+              state,
+              actorCu: snapshotActor,
+              targetCu,
+              targetCoord: hex,
+              originCoord: detonationOriginCoord,
+              ability: syntheticAbility,
+              hitOutcome: rollResult.hitOutcome,
+              diceRoller: effectiveRoller
+            },
+            defaultEffectRegistry,
+            (e) =>
+              getEffectTiming(e) === 'ON_RESOLVE' &&
+              isDispatchableEffect(e) &&
+              !isSelfScopedEffect(e) &&
+              !isPrimaryTargetOnlyEffect(e)
+          );
+          if (infusionRes.events.length > 0) {
+            applyCombatEvents(state, infusionRes.events, { claimed: true, logDefeats: true });
+            allEvents.push(...infusionRes.events);
+          }
+          for (const out of infusionRes.effects ?? []) {
+            if (out.kind === 'CONDITION') {
+              targetConditions.push({
+                condition: out.condition,
+                durationTurns: out.durationTurns,
+                ...(out.damagePerTurn !== undefined ? { damagePerTurn: out.damagePerTurn } : {})
+              });
+            } else if (!(out.kind === 'CONTEXT' && out.context === 'GRAZE_NEGATED')) {
+              extraOutcomes.push(out);
+            }
           }
         }
 
@@ -220,11 +283,12 @@ export function resolvePendingBombardmentsOnTurnStart(
           sourceLabel: 'Barrage',
           targetName: targetCu.unit.name,
           damage: dmg.damageDealt,
-          damageType: 'PHYSICAL',
+          damageType,
           hitOutcome: rollResult.hitOutcome,
-          defenseTarget: getEffectiveEvasion(targetCu),
+          defenseTarget: targetDefenseVal,
           targetHp: targetCu.currentHp,
-          targetMaxHp: targetCu.unit.effectiveVitals.maxHp
+          targetMaxHp: targetCu.unit.effectiveVitals.maxHp,
+          ...(targetConditions.length > 0 ? { conditions: targetConditions } : {})
         });
       } else {
         allEvents.push({
@@ -239,18 +303,47 @@ export function resolvePendingBombardmentsOnTurnStart(
           sourceLabel: 'Barrage',
           targetName: targetCu.unit.name,
           damage: 0,
-          damageType: 'PHYSICAL',
+          damageType,
           hitOutcome: 'MISS',
-          defenseTarget: getEffectiveEvasion(targetCu),
+          defenseTarget: targetDefenseVal,
           targetHp: targetCu.currentHp,
           targetMaxHp: targetCu.unit.effectiveVitals.maxHp
         });
       }
     }
 
+    // Trigger any carried HIT_OR_CRIT SELF-scoped shard buffs once on the living launcher
+    if (
+      ownerCu &&
+      !ownerCu.isDefeated &&
+      carriedEffects.some((e) => getEffectTiming(e) === 'ON_RESOLVE' && isDispatchableEffect(e) && isSelfScopedEffect(e))
+    ) {
+      const selfRes = executeAbilityEffects(
+        syntheticAbility,
+        {
+          state,
+          actorCu: ownerCu,
+          targetCu: ownerCu,
+          targetCoord: b.centerCoord,
+          ability: syntheticAbility,
+          hitOutcome: bestHitOutcome,
+          diceRoller: effectiveRoller
+        },
+        defaultEffectRegistry,
+        (e) => getEffectTiming(e) === 'ON_RESOLVE' && isDispatchableEffect(e) && isSelfScopedEffect(e)
+      );
+      if (selfRes.events.length > 0) {
+        applyCombatEvents(state, selfRes.events, { claimed: true, logDefeats: true });
+        allEvents.push(...selfRes.events);
+      }
+      if (selfRes.effects) {
+        extraOutcomes.push(...selfRes.effects);
+      }
+    }
+
     const loggedEffects: EffectOutcome[] =
       hitOutcomes.length > 0
-        ? hitOutcomes
+        ? [...hitOutcomes, ...extraOutcomes]
         : [
             {
               kind: 'CONTEXT',

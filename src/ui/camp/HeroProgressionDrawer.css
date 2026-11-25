@@ -1069,6 +1069,34 @@
   color: #ef4444;
 }
 
+.drawer-loadout-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.65rem;
+  margin-bottom: 0.5rem;
+  border-radius: 6px;
+  background: rgba(185, 28, 28, 0.2);
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  color: #fecaca;
+  font-size: 0.78rem;
+}
+
+.drawer-loadout-error-dismiss {
+  background: transparent;
+  border: none;
+  color: #fecaca;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0 0.2rem;
+  line-height: 1;
+}
+
+.drawer-loadout-error-dismiss:hover {
+  color: #fff;
+}
+
 /* Mobile & Tablet Fallback */
 @media (max-width: 980px) {
   .hero-drawer-content {

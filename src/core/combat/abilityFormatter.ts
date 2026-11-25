@@ -78,6 +78,7 @@ function getEffectTriggerLabel(
   effect: AbilityEffect,
   ability: Ability
 ): string | undefined {
+  if (effect.timing === 'POST_ACTION') return 'After Action';
   if (effect.condition === 'FLANK_OR_REAR') return 'Flank/Rear';
   if (effect.condition === 'TARGET_CHALLENGED') return 'Vs Challenged';
 

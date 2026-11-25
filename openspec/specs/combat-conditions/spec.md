@@ -6,10 +6,10 @@ Provides core combat engine support for status conditions, Damage-over-Time tick
 ## Requirements
 
 ### Requirement: Active Condition Tracking
-The system SHALL maintain an active condition collection on each combat unit where each condition specifies a valid condition type (`POISON`, `BURN`, `CHALLENGED`, `STEALTH`, `EXPOSED`), duration in turns, and a mandatory `sourceUnitId` representing the originating unit. When applying a condition that is already present on a target, the system SHALL resolve the conflict according to the condition's registered stacking policy:
-- `OVERRIDE_SOURCE`: Overwrite `sourceUnitId` with the new applying actor, refresh duration to the new duration, and preserve single-condition status (used by `CHALLENGED` for taunt steal).
+The system SHALL maintain an active condition collection on each combat unit where each condition specifies a valid condition type (`POISON`, `BURN`, `CHALLENGED`, `STEALTH`, `EXPOSED`, `TELEMETRY`, `CHARMED`, `BLINDED`, `HENOSIS`, `MORTAL_EBB`), duration in turns, and a mandatory `sourceUnitId` representing the originating unit. Each registered condition definition SHALL declaratively specify its stacking policy, duration tick timing (`'TURN_START'`, `'TURN_END'`, or `'NEVER'`), optional flat combat stat modifiers (`statModifiers`), optional status-purification eligibility (`purgeableByCleanse`), optional per-caster active instance cap (`maxActivePerSource`), optional incompatible target conditions (`blockedByTargetConditions`), and optional automatic follow-up condition on natural expiration (`onExpireApplyCondition`). When applying a condition that is already present on a target, the system SHALL resolve the conflict according to the condition's registered stacking policy:
+- `OVERRIDE_SOURCE`: Overwrite `sourceUnitId` with the new applying actor, refresh duration to the new duration, and preserve single-condition status (used by `CHALLENGED` for taunt steal, `CHARMED` for charm allegiance override, and `HENOSIS`).
 - `STACK_INTENSITY`: Increment `damagePerTurn` up to a configured ceiling (8) and refresh duration to `Math.max(existing, new)` (used by `POISON` and `BURN`).
-- `REFRESH_DURATION`: Keep existing properties and refresh duration to `Math.max(existing, new)` (used by `STEALTH` and `EXPOSED`).
+- `REFRESH_DURATION`: Keep existing properties and refresh duration to `Math.max(existing, new)` (used by `STEALTH`, `EXPOSED`, `TELEMETRY`, `BLINDED`, and `MORTAL_EBB`).
 
 #### Scenario: Condition application with attribution
 - **WHEN** an ability applies a condition to a target unit that does not currently possess that condition
@@ -56,13 +56,13 @@ The system SHALL evaluate all active conditions at the beginning of a unit's com
 - **THEN** the unit is marked as defeated immediately and their turn terminates without granting AP
 
 ### Requirement: Behavioral Condition Enforcement
-The system SHALL enforce tactical and behavioral constraints imposed by active conditions through declarative condition registry lifecycle hooks: `canBeTargeted` for targeting validation, `onOutgoingAttackRoll` and `onIncomingAttackRoll` for roll advantage/disadvantage, `onAfterAction` for condition removal and secondary status triggers upon combat actions, and `onTakeDamage` for condition removal upon taking damage.
+The system SHALL enforce tactical and behavioral constraints imposed by active conditions through declarative condition registry metadata and lifecycle hooks: `canBeTargeted`, `maxActivePerSource`, and `blockedByTargetConditions` for targeting validation; `statModifiers`, `onOutgoingAttackRoll`, and `onIncomingAttackRoll` for derived stat deltas, roll advantage/disadvantage, and flat attack roll bonuses/penalties; `tickTiming`, `onExpireApplyCondition`, and `onRemoved` for turn-start/turn-end duration ticking and automatic condition transitions; `onAfterAction` for condition removal and secondary status triggers upon combat actions; and `onTakeDamage` for condition removal upon taking damage.
 
 For the `STEALTH` condition:
 - The system SHALL reject hostile single-target abilities directed at a stealthed enemy.
 - The system SHALL grant Advantage on outgoing attack rolls and remove `STEALTH` via `onAfterAction` when the stealthed unit executes an attack.
 - The system SHALL remove `STEALTH` via `onTakeDamage` when the stealthed unit suffers direct attack damage, AoE splash damage, or fire damage (`damageType: 'MAGICAL'` from `BURN`). Turn-start damage from `POISON` DoT SHALL NOT remove `STEALTH`.
-- When an active unit begins their combat turn, if an opposing stealthed unit is within range 1 and positioned within the active unit's `FRONT` combat arc, the system SHALL remove `STEALTH` from that stealthed unit ("Spotted!"). The detected unit SHALL preserve its existing facing. If the stealthed unit is positioned within the active unit's `REAR` or `FLANK` combat arc, `STEALTH` SHALL NOT be removed by proximity.
+- When an active unit that is NOT afflicted with `BLINDED` begins their combat turn (or moves), if an opposing stealthed unit is within range 1 and positioned within the active unit's `FRONT` combat arc, the system SHALL remove `STEALTH` from that stealthed unit ("Spotted!"). The detected unit SHALL preserve its existing facing. If the stealthed unit is positioned within the active unit's `REAR` or `FLANK` combat arc, or if the detector unit is afflicted with `BLINDED`, `STEALTH` SHALL NOT be removed by proximity.
 
 For the `CHALLENGED` condition:
 - The system SHALL impose Disadvantage on outgoing attack rolls when attacking any target other than the challenger (`sourceUnitId`).
@@ -71,6 +71,27 @@ For the `CHALLENGED` condition:
 For the `EXPOSED` condition:
 - The system SHALL grant Advantage on incoming attack rolls made against a unit with the `EXPOSED` condition.
 - When an incoming attack resolves against an `EXPOSED` unit, the system SHALL consume and remove the `EXPOSED` condition immediately, regardless of whether the attack results in a Solid Hit, Critical Hit, Graze, or Miss.
+
+For the `CHARMED` condition:
+- Applying `CHARMED` SHALL switch the target unit's active combat `faction` to match the applying actor's combat `faction` (`'PLAYER'` or `'ENEMY'`) for the duration of the condition.
+- `CHARMED` SHALL persist through incoming damage without breaking early.
+- Because interactive vs AI turn sequencing follows the active unit's current combat `faction`, an enemy unit charmed to `'PLAYER'` SHALL be controlled directly by the player during its turn, while a player unit charmed to `'ENEMY'` SHALL be controlled by the AI turn sequencer during its turn.
+- When `CHARMED` expires at the end of the charmed unit's turn (or is otherwise removed via `onRemoved`), the unit's active combat `faction` SHALL revert to its original base faction (`unit.faction`).
+- Encounter victory and defeat evaluation (`FACTION_DEFEATED`) and post-trial player squad XP summaries SHALL evaluate each unit's original base faction (`unit.faction`) so charming the final remaining enemy does not prematurely end the encounter.
+
+For the `BLINDED` condition:
+- The system SHALL impose Disadvantage on all outgoing attack rolls made by a unit afflicted with `BLINDED`.
+- The system SHALL clamp the effective maximum targeting range of all abilities used by a `BLINDED` unit to at most `1` hex (`Math.min(effectiveRange, 1)`), preventing targeting of units or hexes at distance 2 or greater.
+- A unit afflicted with `BLINDED` SHALL NOT detect or reveal adjacent `STEALTH` units in their `FRONT` combat arc at turn start or during movement.
+
+For the `HENOSIS` and `MORTAL_EBB` conditions:
+- `HENOSIS` SHALL declare `tickTiming: 'TURN_END'`, `maxActivePerSource: 1`, `blockedByTargetConditions: ['MORTAL_EBB']`, `statModifiers: { attackRoll: 2, armor: 2, ward: 2, move: 1, speed: 1 }`, and `onExpireApplyCondition: { type: 'MORTAL_EBB', durationTurns: 1 }`.
+- A unit with `HENOSIS` SHALL receive `+2` to outgoing Attack Rolls, `+2 Armor`, `+2 Ward`, `+1 Move`, and `+1 Speed`.
+- Because `HENOSIS` declares `maxActivePerSource: 1`, ability validation SHALL reject any ability applying `HENOSIS` while any living unit on the battlefield already holds `HENOSIS` from the same `sourceUnitId`.
+- When `HENOSIS` expires at the end of the bearer's turn (`durationTurns` reaches 0), its `onExpireApplyCondition` metadata SHALL automatically apply `MORTAL_EBB` for 1 turn (`sourceUnitId` preserved from `HENOSIS`).
+- `MORTAL_EBB` SHALL declare `tickTiming: 'TURN_END'`, `purgeableByCleanse: false`, and `statModifiers: { attackRoll: -1, armor: -1, ward: -1, move: -1, speed: -1 }`.
+- A unit with `MORTAL_EBB` SHALL receive `-1` to outgoing Attack Rolls, `-1 Armor`, `-1 Ward`, `-1 Move`, and `-1 Speed` (with effective Move and Speed floored at 1 and Armor and Ward floored at 0), and because `HENOSIS` declares `blockedByTargetConditions: ['MORTAL_EBB']`, the unit SHALL NOT be a valid target for `Henosis`.
+- `MORTAL_EBB` SHALL decrement and expire at the end of the bearer's turn and SHALL NOT be removed by status purification effects (`CLEANSE`).
 
 #### Scenario: Stealth prevents single-target hostile targeting
 - **WHEN** an enemy attempts to execute a single-target ability targeting a unit with the `STEALTH` condition
@@ -94,13 +115,17 @@ For the `EXPOSED` condition:
 - **THEN** the condition's `onTakeDamage` hook leaves the `STEALTH` condition active
 
 #### Scenario: Ending turn in enemy front arc reveals stealth on enemy turn start
-- **WHEN** a stealthed unit is positioned at range 1 in an enemy's `FRONT` combat arc when that enemy begins their combat turn
+- **WHEN** a stealthed unit is positioned at range 1 in an unblinded enemy's `FRONT` combat arc when that enemy begins their combat turn
 - **THEN** the enemy spots the unit and `STEALTH` is removed
 - **THEN** the revealed unit's facing is preserved
 
 #### Scenario: Ending turn in enemy rear or flank arc maintains stealth
 - **WHEN** a stealthed unit is positioned at range 1 in an enemy's `REAR` or `FLANK` combat arc when that enemy begins their combat turn
 - **THEN** the stealthed unit remains hidden in the enemy's blind spot and `STEALTH` is preserved
+
+#### Scenario: Blinded unit cannot detect stealthed unit in front arc
+- **WHEN** a stealthed unit is positioned at range 1 in the `FRONT` combat arc of an enemy afflicted with `BLINDED` when that enemy begins their turn or moves
+- **THEN** the `BLINDED` enemy fails to spot the stealthed unit and `STEALTH` remains active
 
 #### Scenario: Challenged condition imposes Disadvantage
 - **WHEN** a unit with an active `CHALLENGED` condition attacks a target that is NOT the challenger (`sourceUnitId`)
@@ -125,6 +150,26 @@ For the `EXPOSED` condition:
 - **WHEN** any unit executes an attack against a target with the `EXPOSED` condition
 - **THEN** the attack roll evaluates with Advantage
 - **THEN** upon resolving the attack roll, the `EXPOSED` condition is consumed and removed from the target regardless of hit or miss
+
+#### Scenario: Charmed enemy switches to player faction for duration and restores faction on expiry
+- **WHEN** a player unit applies `CHARMED` for 1 turn to an enemy unit
+- **THEN** the enemy unit's active combat `faction` immediately becomes `'PLAYER'`
+- **THEN** taking damage while `CHARMED` does not remove `CHARMED`
+- **THEN** when the charmed unit completes its turn and `CHARMED` expires, its active combat `faction` reverts to `'ENEMY'`
+
+#### Scenario: Charming the last surviving enemy does not prematurely end the encounter
+- **WHEN** only one living enemy unit remains in the arena and a player unit applies `CHARMED` to that enemy
+- **THEN** encounter outcome evaluation (`FACTION_DEFEATED`) continues to return `'IN_PROGRESS'` because the unit's original base faction is still `'ENEMY'` and the unit is not defeated
+
+#### Scenario: Blinded unit suffers outgoing Disadvantage and has maximum range clamped to 1
+- **WHEN** a unit afflicted with `BLINDED` attempts to target a unit or hex at distance 2 or greater, or executes an attack at distance 1
+- **THEN** targeting validation rejects targets at distance 2 or greater because effective ability range is clamped to 1
+- **THEN** any attack executed at distance 1 evaluates with Disadvantage
+
+#### Scenario: Henosis boosts combat vitals and transitions to Mortal Ebb on expiry via condition definition metadata
+- **WHEN** a unit has `HENOSIS` with `durationTurns: 1` and finishes its active turn
+- **THEN** while `HENOSIS` is active, the condition's declarative `statModifiers` increase the unit's effective Attack Roll by `+2`, Armor by `+2`, Ward by `+2`, Move by `+1`, and Speed by `+1`
+- **THEN** upon ending its turn, `HENOSIS` expires (`tickTiming: 'TURN_END'`) and its declarative `onExpireApplyCondition` applies `MORTAL_EBB` for 1 turn, reducing effective Attack Roll by `-1`, Armor by `-1`, Ward by `-1`, Move by `-1`, and Speed by `-1` until the end of its next turn
 
 ### Requirement: CTB Gauge Manipulation & Pre-Encounter Setup
 The system SHALL support direct adjustments to a unit's CTB initiative gauge during combat and provide a pre-encounter setup pass allowing passives and scenario modifiers to seed starting initiative or conditions.

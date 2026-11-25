@@ -41,6 +41,7 @@ export const SHADOW_STEP: Ability = {
   range: 2,
   sameElevationOnly: true,
   targetType: 'HEX',
+  intent: 'SELF',
   defenseTarget: 'NONE',
   damageType: 'NONE',
   effects: [

@@ -2,7 +2,8 @@ import { Archetype, ArchetypePoints, WayfarerAttunementId } from '../types/class
 import { DerivedCombatVitals } from '../types/stats';
 import { AbilityModifier } from '../types/modifier';
 import { Unit } from '../types/unit';
-import { Ability } from '../types/ability';
+import { Ability, resolveAbilityIntent } from '../types/ability';
+import { getEffectMetadata } from '../combat/effects/metadata';
 import { ClassPackage } from '../types/classPackage';
 import { ClassRegistry } from './registry';
 import { CLASS_REGISTRY, CLASS_CATALOG } from '../../data/classes';
@@ -153,10 +154,27 @@ export type AstralShardId =
   | 'concussion_shard'
   | 'anchorite_shard';
 
+export type ShardCompatibilityPreset =
+  | 'ANY'
+  | 'DAMAGING_ATTACK'
+  | 'PHYSICAL_ATTACK'
+  | 'RANGED_OR_MELEE_NON_CONE'
+  | 'HOSTILE_AOE'
+  | 'HOSTILE_TARGETING'
+  | 'MELEE_SINGLE_TARGET'
+  | 'SINGLE_TARGET_ATTACK'
+  | 'SINGLE_UNIT';
+
+export interface ShardCompatibilityResult {
+  readonly compatible: boolean;
+  readonly reason?: string;
+}
+
 export interface AstralAugmentShard {
   readonly id: AstralShardId;
   readonly name: string;
   readonly category: 'POWER' | 'GEOMETRY' | 'INFUSION';
+  readonly compatibility: ShardCompatibilityPreset;
   readonly description: string;
   readonly icon: string;
   readonly modifier: AbilityModifier;
@@ -167,6 +185,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'starlight_lens',
     name: 'Starlight Lens',
     category: 'POWER',
+    compatibility: 'DAMAGING_ATTACK',
     description: 'Upgrades damage die tier by 1 step (e.g. 1d6 -> 1d8, 1d8 -> 1d10)',
     icon: '💥',
     modifier: {
@@ -182,6 +201,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'force_shard',
     name: 'Force Shard',
     category: 'POWER',
+    compatibility: 'DAMAGING_ATTACK',
     description: 'Infuses raw physical force (+2 flat bonus damage to damage effects)',
     icon: '💪',
     modifier: {
@@ -197,6 +217,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'keen_shard',
     name: 'Keen Shard',
     category: 'POWER',
+    compatibility: 'DAMAGING_ATTACK',
     description: 'Sharpens critical edge (scores critical hits on natural 19-20)',
     icon: '✨',
     modifier: {
@@ -214,6 +235,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'astral_reach',
     name: 'Astral Reach',
     category: 'GEOMETRY',
+    compatibility: 'RANGED_OR_MELEE_NON_CONE',
     description: 'Extends target range by +1 hex',
     icon: '🎯',
     modifier: {
@@ -229,6 +251,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'supernova_flare',
     name: 'Supernova Flare',
     category: 'GEOMETRY',
+    compatibility: 'HOSTILE_AOE',
     description: 'Expands area-of-effect radius by +1 hex',
     icon: '🌀',
     modifier: {
@@ -244,6 +267,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'recoil_shard',
     name: 'Recoil Shard',
     category: 'GEOMETRY',
+    compatibility: 'SINGLE_TARGET_ATTACK',
     description: 'Grants evasive recoil (user steps back 1 hex freely on hit/crit)',
     icon: '👟',
     modifier: {
@@ -262,6 +286,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'impact_shard',
     name: 'Impact Shard',
     category: 'INFUSION',
+    compatibility: 'HOSTILE_TARGETING',
     description: 'Infuses kinetic knockback (pushes target 1 hex on hit/crit)',
     icon: '🔨',
     modifier: {
@@ -281,6 +306,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'venom_shard',
     name: 'Venom Shard',
     category: 'INFUSION',
+    compatibility: 'HOSTILE_TARGETING',
     description: 'Infuses deadly venom (inflicts Poison condition for 2 turns on hit/crit)',
     icon: '🧪',
     modifier: {
@@ -301,6 +327,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'pyre_shard',
     name: 'Pyre Shard',
     category: 'INFUSION',
+    compatibility: 'HOSTILE_TARGETING',
     description: 'Infuses searing flames (inflicts Burn condition for 2 turns on hit/crit)',
     icon: '🔥',
     modifier: {
@@ -322,6 +349,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'static_shard',
     name: 'Static Shard',
     category: 'INFUSION',
+    compatibility: 'HOSTILE_TARGETING',
     description: 'Infuses temporal static (delays target CTB clock by 15 ticks on hit/crit)',
     icon: '⏳',
     modifier: {
@@ -341,6 +369,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'mire_shard',
     name: 'Mire Shard',
     category: 'INFUSION',
+    compatibility: 'HOSTILE_TARGETING',
     description: 'Infuses chilling frost (slows target movement by 1 hex for 1 turn on hit/crit)',
     icon: '❄️',
     modifier: {
@@ -361,6 +390,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'vanguard_shard',
     name: 'Vanguard Shard',
     category: 'INFUSION',
+    compatibility: 'HOSTILE_TARGETING',
     description: 'Infuses taunting challenge (inflicts Challenged condition for 1 turn on hit/crit)',
     icon: '⚔️',
     modifier: {
@@ -381,7 +411,8 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'shadow_shard',
     name: 'Shadow Shard',
     category: 'INFUSION',
-    description: 'Infuses elusive cloaking (grants Stealth to self for 1 turn upon executing ability)',
+    compatibility: 'ANY',
+    description: 'Infuses elusive cloaking (grants Stealth to self for 1 turn after executing ability)',
     icon: '🌫️',
     modifier: {
       id: 'shard_shadow_shard',
@@ -393,7 +424,8 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
           conditionType: 'STEALTH',
           durationTurns: 1,
           targetScope: 'SELF',
-          applyOn: 'ALWAYS'
+          applyOn: 'ALWAYS',
+          timing: 'POST_ACTION'
         }
       ]
     }
@@ -402,6 +434,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'confrontation_shard',
     name: 'Confrontation Shard',
     category: 'INFUSION',
+    compatibility: 'HOSTILE_TARGETING',
     description: 'Forces target to face actor on hit/crit (denying flank/rear advantage)',
     icon: '🔄',
     modifier: {
@@ -420,6 +453,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'aegis_shard',
     name: 'Aegis Shard',
     category: 'INFUSION',
+    compatibility: 'DAMAGING_ATTACK',
     description: 'Reinforces personal defenses (+1 Armor to self for 1 turn on hit/crit)',
     icon: '🛡️',
     modifier: {
@@ -441,6 +475,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'warding_shard',
     name: 'Warding Shard',
     category: 'INFUSION',
+    compatibility: 'DAMAGING_ATTACK',
     description: 'Conjures arcane shielding (+1 Ward to self for 1 turn on hit/crit)',
     icon: '💠',
     modifier: {
@@ -462,6 +497,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'aether_shard',
     name: 'Aether Shard',
     category: 'INFUSION',
+    compatibility: 'PHYSICAL_ATTACK',
     description: 'Infuses arcane essence (converts damage type to Magical, targeting Resolve)',
     icon: '🔮',
     modifier: {
@@ -478,6 +514,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'trample_shard',
     name: 'Trample Shard',
     category: 'GEOMETRY',
+    compatibility: 'MELEE_SINGLE_TARGET',
     description: 'Grants penetrating charge (advances through target to the rear hex on hit/crit)',
     icon: '🏇',
     modifier: {
@@ -496,6 +533,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'flourish_shard',
     name: 'Flourish Shard',
     category: 'INFUSION',
+    compatibility: 'DAMAGING_ATTACK',
     description: 'Grants evasive flair (+2 Evasion to self for 1 turn on hit/crit)',
     icon: '🪶',
     modifier: {
@@ -520,6 +558,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'momentum_shard',
     name: 'Momentum Shard',
     category: 'POWER',
+    compatibility: 'DAMAGING_ATTACK',
     description: 'Builds aggressive momentum (+2 Attack Roll and +1 flat damage to damage effects)',
     icon: '⚡',
     modifier: {
@@ -538,6 +577,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'cleave_shard',
     name: 'Cleave Shard',
     category: 'GEOMETRY',
+    compatibility: 'MELEE_SINGLE_TARGET',
     description: 'Infuses sweeping fury (deals 1 splash damage to adjacent frontal foes on hit/crit)',
     icon: '🪓',
     modifier: {
@@ -557,6 +597,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'bloodbound_shard',
     name: 'Bloodbound Shard',
     category: 'POWER',
+    compatibility: 'DAMAGING_ATTACK',
     description: 'Sacrifices vitality for brutality (+2 HP cost for +1 damage die tier and +2 flat damage)',
     icon: '🩸',
     modifier: {
@@ -576,6 +617,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'fury_shard',
     name: 'Fury Shard',
     category: 'POWER',
+    compatibility: 'DAMAGING_ATTACK',
     description: 'Reckless onslaught (+1 damage die count, but reduces self Evasion by -2 for 1 turn on hit/crit)',
     icon: '💀',
     modifier: {
@@ -603,6 +645,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'carapace_shard',
     name: 'Carapace Shard',
     category: 'INFUSION',
+    compatibility: 'DAMAGING_ATTACK',
     description: 'Absorbs residual soul energy (+1 Armor and +1 Ward to self for 1 turn on hit/crit)',
     icon: '🛡️',
     modifier: {
@@ -628,6 +671,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'repelling_shard',
     name: 'Repelling Shard',
     category: 'INFUSION',
+    compatibility: 'HOSTILE_TARGETING',
     description: 'Infuses repelling force (pushes target 1 hex and delays CTB by 15 ticks on hit/crit)',
     icon: '🌀',
     modifier: {
@@ -652,6 +696,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'hex_shard',
     name: 'Hex Shard',
     category: 'INFUSION',
+    compatibility: 'HOSTILE_TARGETING',
     description: 'Afflicts target defenses (-2 Ward and -1 Resolve for 2 turns on hit/crit)',
     icon: '👁️',
     modifier: {
@@ -676,6 +721,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'toll_shard',
     name: 'Toll Shard',
     category: 'INFUSION',
+    compatibility: 'HOSTILE_TARGETING',
     description: 'Extorts target protection (-2 Armor for 2 turns on hit/crit)',
     icon: '🪙',
     modifier: {
@@ -699,6 +745,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'buckshot_shard',
     name: 'Buckshot Shard',
     category: 'GEOMETRY',
+    compatibility: 'SINGLE_TARGET_ATTACK',
     description: 'Point-blank blast recoil (pushes target 1 hex and user steps back 1 hex on hit/crit)',
     icon: '💥',
     modifier: {
@@ -722,6 +769,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'holdup_shard',
     name: 'Hold-Up Shard',
     category: 'INFUSION',
+    compatibility: 'HOSTILE_TARGETING',
     description: 'Hijacks tempo (delays target CTB by 15 ticks and boosts user CTB by 10 ticks on hit/crit)',
     icon: '🎭',
     modifier: {
@@ -747,6 +795,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'bastion_shard',
     name: 'Bastion Shard',
     category: 'INFUSION',
+    compatibility: 'ANY',
     description: 'Plants an immovable phalanx perimeter (+2 Armor to self, locks Move to 0, and establishes Zone of Control for 1 turn upon executing ability)',
     icon: '🏰',
     modifier: {
@@ -774,6 +823,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'interchange_shard',
     name: 'Interchange Shard',
     category: 'GEOMETRY',
+    compatibility: 'SINGLE_UNIT',
     description: 'Transposes coordinates with target (swaps positions with target on hit/crit or ally ability execution)',
     icon: '🔀',
     modifier: {
@@ -793,6 +843,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'concussion_shard',
     name: 'Concussion Shard',
     category: 'INFUSION',
+    compatibility: 'HOSTILE_TARGETING',
     description: 'Jarring bludgeon daze (reduces target Move by -1 and Speed by -2 for 2 turns on hit/crit)',
     icon: '💫',
     modifier: {
@@ -817,6 +868,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     id: 'anchorite_shard',
     name: 'Anchorite Shard',
     category: 'POWER',
+    compatibility: 'ANY',
     description: 'Unshakable grounding (grants immunity to displacement, +1 Armor, and +1 Resolve for 1 turn upon executing ability)',
     icon: '⚓',
     modifier: {
@@ -844,6 +896,74 @@ export const ALL_ASTRAL_SHARDS: readonly AstralAugmentShard[] = Object.values(AS
 
 export function getShardById(id: string): AstralAugmentShard | undefined {
   return (ASTRAL_AUGMENT_SHARDS as Record<string, AstralAugmentShard>)[id];
+}
+
+/**
+ * Evaluates whether an Astral Augment Shard can legally be socketed onto a base Ability,
+ * returning a deterministic boolean and concise human-readable reason when incompatible.
+ */
+export function evaluateShardCompatibility(
+  shard: AstralAugmentShard,
+  ability: Ability
+): ShardCompatibilityResult {
+  const isDamaging = ability.damageType !== 'NONE';
+  const isCone = Boolean(ability.coneTemplate);
+  const hasAoe = (ability.aoeRadius ?? 0) >= 1;
+  const isHostile = resolveAbilityIntent(ability) === 'HOSTILE';
+  const deliversTargetEffects = !(ability.effects ?? []).some(
+    (e) => getEffectMetadata(e.type).deliversTargetEffects === false
+  );
+
+  switch (shard.compatibility) {
+    case 'ANY':
+      return { compatible: true };
+
+    case 'DAMAGING_ATTACK':
+      return isDamaging
+        ? { compatible: true }
+        : { compatible: false, reason: 'Requires damaging attack' };
+
+    case 'PHYSICAL_ATTACK':
+      return ability.damageType === 'PHYSICAL'
+        ? { compatible: true }
+        : { compatible: false, reason: 'Requires physical attack' };
+
+    case 'RANGED_OR_MELEE_NON_CONE':
+      if (isCone) {
+        return { compatible: false, reason: 'Cannot augment cone abilities' };
+      }
+      return ability.range >= 1
+        ? { compatible: true }
+        : { compatible: false, reason: 'Requires range 1+' };
+
+    case 'HOSTILE_AOE':
+      if (isCone) {
+        return { compatible: false, reason: 'Cannot augment cone abilities' };
+      }
+      return hasAoe && isHostile
+        ? { compatible: true }
+        : { compatible: false, reason: 'Requires hostile AoE ability' };
+
+    case 'HOSTILE_TARGETING':
+      return isHostile && deliversTargetEffects
+        ? { compatible: true }
+        : { compatible: false, reason: 'Requires hostile target ability' };
+
+    case 'MELEE_SINGLE_TARGET':
+      return isDamaging && ability.targetType === 'SINGLE_TARGET' && ability.range === 1 && !hasAoe && !isCone
+        ? { compatible: true }
+        : { compatible: false, reason: 'Requires melee single-target attack' };
+
+    case 'SINGLE_TARGET_ATTACK':
+      return isDamaging && ability.targetType === 'SINGLE_TARGET' && !hasAoe && !isCone
+        ? { compatible: true }
+        : { compatible: false, reason: 'Requires single-target attack' };
+
+    case 'SINGLE_UNIT':
+      return (ability.targetType === 'SINGLE_TARGET' || ability.targetType === 'ALLY') && !hasAoe && !isCone
+        ? { compatible: true }
+        : { compatible: false, reason: 'Requires single-unit ability' };
+  }
 }
 
 /**

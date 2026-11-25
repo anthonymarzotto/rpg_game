@@ -425,5 +425,113 @@ describe('Ballistician Mechanics: Zeroed In & TELEMETRY', () => {
       expect(state.pendingBombardments).toHaveLength(0);
       expect(enemyCu.currentHp).toBe(19);
     });
+
+    it('carries Force, Aether, and Pyre shards to detonation while applying Shadow Shard immediately on launch', async () => {
+      const { ASTRAL_AUGMENT_SHARDS } = await import('../../progression/harmonization');
+      const { getEffectiveAbility } = await import('../modifiers');
+
+      const arena = createRadialArena(5);
+      const ball = createRecruit('ball', 'Ballistician', { faction: 'PLAYER' });
+      (ball as any).baseAttributes = { force: 2, finesse: 4, focus: 0 };
+      const enemy = createRecruit('enemy', 'Target', { faction: 'ENEMY' });
+      (enemy as any).effectiveVitals = { ...enemy.effectiveVitals, maxHp: 40, evasion: 18, resolve: 10, armor: 5, ward: 1 };
+      arena.setUnitPosition('ball', { q: -3, r: 0 });
+      arena.setUnitPosition('enemy', { q: 0, r: 0 });
+
+      const state = createCombatState(arena, [ball, enemy], 'ball');
+      const ballCu = state.units.get('ball')!;
+      const enemyCu = state.units.get('enemy')!;
+      enemyCu.currentHp = 40;
+
+      // Augment Siege Barrage with Force (+2 flat), Aether (MAGICAL vs RESOLVE), Pyre (BURN on hit), and Shadow (POST_ACTION STEALTH)
+      const augmentedBarrage = getEffectiveAbility(SIEGE_BARRAGE_TEST, [
+        ASTRAL_AUGMENT_SHARDS.force_shard.modifier,
+        ASTRAL_AUGMENT_SHARDS.aether_shard.modifier,
+        ASTRAL_AUGMENT_SHARDS.pyre_shard.modifier,
+        ASTRAL_AUGMENT_SHARDS.shadow_shard.modifier
+      ]);
+
+      executeAbility(state, 'ball', augmentedBarrage, { coord: { q: 0, r: 0 } });
+
+      // Shadow Shard cloaks launcher immediately on launch turn
+      expect(ballCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
+      expect(state.pendingBombardments).toHaveLength(1);
+
+      // Detonate: d20=10 + 4 finesse = 14 >= Resolve 10 (hits via Aether despite Evasion 18!)
+      // Damage: 10 roll + 2 force + 2 Force Shard - 1 Ward = 13 magical damage (bypasses Armor 5!)
+      const roller = new MockDiceRoller({ d20Rolls: [10], damageRolls: [10] });
+      const events = resolvePendingBombardmentsOnTurnStart(state, 'ball', roller);
+      expect(events.some((e) => e.type === 'DAMAGE' && e.targetUnitId === 'enemy' && e.damageType === 'MAGICAL' && e.amount === 13)).toBe(true);
+      expect(enemyCu.currentHp).toBe(27);
+      // Pyre Shard inflicted BURN on detonation
+      expect(enemyCu.activeConditions.some((c) => c.type === 'BURN')).toBe(true);
+    });
+
+    it('pushes away from snapshotted launch position with Impact Shard even after launcher moves or is defeated, and breaks Stealth on collision damage', async () => {
+      const { ASTRAL_AUGMENT_SHARDS } = await import('../../progression/harmonization');
+      const { getEffectiveAbility } = await import('../modifiers');
+
+      // Scenario A: Launcher moves after firing; knockback still pushes away from launch coord (-3, 0) -> (+1, 0)
+      const arena = createRadialArena(5);
+      const ball = createRecruit('ball', 'Ballistician', { faction: 'PLAYER' });
+      (ball as any).baseAttributes = { force: 2, finesse: 4, focus: 0 };
+      const enemy = createRecruit('enemy', 'Target', { faction: 'ENEMY' });
+      (enemy as any).effectiveVitals = { ...enemy.effectiveVitals, maxHp: 40, evasion: 10, armor: 0 };
+      arena.setUnitPosition('ball', { q: -3, r: 0 });
+      arena.setUnitPosition('enemy', { q: 0, r: 0 });
+
+      const state = createCombatState(arena, [ball, enemy], 'ball');
+      const enemyCu = state.units.get('enemy')!;
+      enemyCu.currentHp = 40;
+
+      const impactBarrage = getEffectiveAbility(SIEGE_BARRAGE_TEST, [
+        ASTRAL_AUGMENT_SHARDS.impact_shard.modifier
+      ]);
+
+      executeAbility(state, 'ball', impactBarrage, { coord: { q: 0, r: 0 } });
+      // Ballistician relocates to (0, 3) before detonation
+      arena.setUnitPosition('ball', { q: 0, r: 3 });
+
+      const roller = new MockDiceRoller({ d20Rolls: [14], damageRolls: [4] });
+      resolvePendingBombardmentsOnTurnStart(state, 'ball', roller);
+      // Knockback direction from (-3, 0) through (0, 0) is EAST -> (1, 0), NOT north from (0, 3)!
+      expect(arena.getUnitPosition('enemy')).toEqual({ q: 1, r: 0 });
+
+      // Scenario B: Launcher is defeated before detonation AND enemy is knocked into a bystander with STEALTH -> collision damage breaks bystander STEALTH
+      const arena2 = createRadialArena(5);
+      const ball2 = createRecruit('ball2', 'Ballistician', { faction: 'PLAYER' });
+      (ball2 as any).baseAttributes = { force: 2, finesse: 4, focus: 0 };
+      const enemyA = createRecruit('enemyA', 'Front', { faction: 'ENEMY' });
+      const enemyB = createRecruit('enemyB', 'Stealthed Bystander', { faction: 'ENEMY' });
+      (enemyA as any).effectiveVitals = { ...enemyA.effectiveVitals, maxHp: 40, evasion: 10, armor: 0 };
+      (enemyB as any).effectiveVitals = { ...enemyB.effectiveVitals, maxHp: 40, evasion: 10, armor: 0 };
+      arena2.setUnitPosition('ball2', { q: -3, r: 0 });
+      arena2.setUnitPosition('enemyA', { q: 0, r: 0 });
+      // Place stealthed bystander outside blast (radius 1 around (0,0) covers (1,0), so put enemyA at (1,0) and bystander at (2,0)!)
+      arena2.setUnitPosition('enemyA', { q: 1, r: 0 });
+      arena2.setUnitPosition('enemyB', { q: 2, r: 0 });
+
+      const state2 = createCombatState(arena2, [ball2, enemyA, enemyB], 'ball2');
+      const ball2Cu = state2.units.get('ball2')!;
+      const enemyACu = state2.units.get('enemyA')!;
+      const enemyBCu = state2.units.get('enemyB')!;
+      enemyACu.currentHp = 40;
+      enemyBCu.currentHp = 40;
+      enemyBCu.activeConditions.push({ type: 'STEALTH', durationTurns: 2, sourceUnitId: 'enemyB' });
+
+      executeAbility(state2, 'ball2', impactBarrage, { coord: { q: 0, r: 0 } });
+      // Defeat and remove launcher from the arena before detonation
+      ball2Cu.isDefeated = true;
+      ball2Cu.currentHp = 0;
+      arena2.removeUnit('ball2');
+      // Force fallback countdown to detonate on enemyA's turn
+      state2.pendingBombardments![0].defeatedFallbackTurns = 1;
+
+      const roller2 = new MockDiceRoller({ d20Rolls: [14], damageRolls: [4] });
+      resolvePendingBombardmentsOnTurnStart(state2, 'enemyA', roller2);
+      // Enemy A collided into Enemy B at (2, 0), dealing collateral collision damage that broke Enemy B's STEALTH!
+      expect(enemyBCu.currentHp).toBeLessThan(40);
+      expect(enemyBCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(false);
+    });
   });
 });

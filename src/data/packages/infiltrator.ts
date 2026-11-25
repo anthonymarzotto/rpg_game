@@ -39,6 +39,7 @@ export const SMOKE_VEIL: Ability = {
     {
       type: 'CONDITION',
       conditionType: 'STEALTH',
+      targetScope: 'SELF',
       magnitude: 0,
       durationTurns: 1
     }

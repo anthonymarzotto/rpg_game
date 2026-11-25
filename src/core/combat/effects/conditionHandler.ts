@@ -80,9 +80,9 @@ export const conditionHandler: EffectHandler = {
   apply(effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
     const { actorCu, targetCu, ability, state } = ctx;
 
-    // Resolve target unit: self-targeting or stealth defaults to actor; otherwise targetCu
+    // Resolve target unit: self-targeted abilities or SELF-scoped effects default to actor; otherwise targetCu
     let targetUnit = targetCu;
-    if (ability.targetType === 'SELF' || effect.conditionType === 'STEALTH') {
+    if (ability.targetType === 'SELF' || effect.targetScope === 'SELF') {
       targetUnit = actorCu;
     }
 

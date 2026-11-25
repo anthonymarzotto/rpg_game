@@ -14,9 +14,11 @@ When a unit advances to an off-node level (a coordinate in the 100-class lattice
    - **Wayfarer's Zenith** (Tri-Centroid at Levels 3 & 6): $+4$ Max HP, $+1$ Armor, $+1$ Ward, $+1$ Speed, $+1$ Evasion, $+1$ Resolve.
 2. **Step 2: Milestone Specialization**: The player SHALL select one of two strategic advancements:
    - **Domain Skill Unlock**: Deterministically select 1 unlearned domain ability from the advancing archetype's domain pool where $\text{Tier} \le \text{Current Unit Level}$, adding it to the hero's permanent Wildcard ability pool.
-   - **Astral Augment Shard**: Select 1 socketable `AstralAugmentShard` module (e.g. *Starlight Lens*, *Astral Reach*, *Supernova Flare*, *Impact Shard*, *Venom Shard*, or *Static Shard*). Shards are assigned to an **Ability Slot** (0..4) in the hero's combat loadout, up to a maximum of **2 shards per slot**, augmenting whichever ability occupies that slot.
+   - **Astral Augment Shard**: Select 1 socketable `AstralAugmentShard` module (e.g. *Starlight Lens*, *Astral Reach*, *Supernova Flare*, *Impact Shard*, *Venom Shard*, or *Static Shard*). Shards are assigned to compatible **Ability Slots** (0..4) in the hero's combat loadout, up to a maximum of **2 shards per slot**, augmenting whichever compatible ability occupies that slot.
 
 The system SHALL record the player's choices as a first-class provenance entry in `milestoneSelections[coordKey]` on the unit's progression record, capturing `attunementId` and the chosen `reward` (`ABILITY` with `abilityId` or `SHARD` with `shardId`).
+
+When a unit's equipped ability in a slot changes in Camp (via switching active class or swapping a wildcard ability), any socketed shard that remains compatible with the newly equipped ability SHALL remain bound to that slot, while any socketed shard that is incompatible with the newly equipped ability (or left in an empty wildcard slot) SHALL automatically be unsocketed back into the unit's unassigned shard inventory.
 
 #### Scenario: Selecting a Wayfarer Attunement on off-node level-up
 - **WHEN** a Level 1 Warrior `(1, 0, 0)` advances with Rogue XP to Level 2 `(1, 1, 0)` and the player selects *Wayfarer's Stride*
@@ -36,11 +38,16 @@ The system SHALL record the player's choices as a first-class provenance entry i
 
 #### Scenario: Earning and socketing an Astral Augment Shard to an ability slot
 - **WHEN** a player completes Step 1 and chooses the Astral Augment Shard option
-- **THEN** the player selects an augment shard, adding it to the hero's loadout inventory, which can be socketed into any ability slot (0..4, max 2 shards per slot)
+- **THEN** the player selects an augment shard, adding it to the hero's loadout inventory, which can be socketed into any compatible ability slot (0..4, max 2 shards per slot)
 
 #### Scenario: Swapping an ability in an augmented slot preserves socketed shards
-- **WHEN** an ability slot holding an *Astral Reach* shard has its equipped ability changed in Camp
+- **WHEN** an ability slot holding an *Astral Reach* shard has its equipped ability changed in Camp to another compatible ability (with `range >= 1` and non-cone)
 - **THEN** the socketed shard remains bound to that slot and dynamically applies its +1 Range modifier to the newly equipped ability
+
+#### Scenario: Swapping an ability in an augmented slot auto-unsockets incompatible shards
+- **WHEN** an ability slot holding both *Shadow Shard* (universal) and *Keen Shard* (requires damaging attack) has its equipped ability changed from `Sneak Attack` to `Lead the Charge` (`SELF` non-damaging aura)
+- **THEN** *Shadow Shard* remains socketed in that slot and applies to `Lead the Charge`
+- **THEN** *Keen Shard* is automatically unsocketed from that slot and returned to the unit's unassigned shard inventory
 
 ### Requirement: Luminous Waypoint Constellation Integration
 The Constellation Star Chart SHALL calculate and render illuminated **Starlight Waypoints** at the exact barycentric coordinates for off-node points along triangle facet edges. When unlocked, the constellation laser path SHALL route through the waypoint.
@@ -67,3 +74,54 @@ The progression system SHALL compute a dynamic "Wayfarer Rank" based on the tota
 #### Scenario: Computing hero title with off-node rank
 - **WHEN** a hero with an active Warrior class reaches Level 2 at `(1, 1, 0)` (1 off-node milestone)
 - **THEN** their display title updates to `Warrior • Wayfarer I`
+
+### Requirement: Declarative Astral Augment Shard Compatibility & Strict Validation
+Every registered `AstralAugmentShard` SHALL declare structural ability compatibility criteria evaluated by a deterministic pure compatibility check against the base `Ability` occupying a loadout slot, returning both a boolean result and a concise human-readable incompatibility reason when ineligible:
+- **Damage Scaling** (`starlight_lens`, `force_shard`, `keen_shard`, `momentum_shard`, `bloodbound_shard`, `fury_shard`): requires a damaging attack (`damageType !== 'NONE'`).
+- **Arcane Conversion** (`aether_shard`): requires a physical damaging attack (`damageType === 'PHYSICAL'`).
+- **Range Geometry** (`astral_reach`): requires a non-cone ability with `range >= 1`.
+- **Hostile AoE Geometry** (`supernova_flare`): requires a non-cone hostile AoE ability (`aoeRadius >= 1` and either `damageType !== 'NONE'` or hostile `targetType === 'HEX'` utility such as `Flash Powder` or `Shrapnel Canister`, excluding friendly `SELF` auras).
+- **Hostile Infusions** (`impact_shard`, `venom_shard`, `pyre_shard`, `static_shard`, `mire_shard`, `vanguard_shard`, `confrontation_shard`, `hex_shard`, `toll_shard`, `repelling_shard`, `concussion_shard`, `holdup_shard`): requires a hostile-targeting ability (damaging attacks, single-target hostile utilities, hostile AoE utilities that target units, and delayed bombardments; excludes `SELF`, `ALLY`, `TELEPORT`, and `SHRAPNEL_RUBBLE`).
+- **Melee Geometry** (`cleave_shard`, `trample_shard`): requires a melee single-target damaging attack (`damageType !== 'NONE'`, `targetType === 'SINGLE_TARGET'`, `range === 1`, no `aoeRadius`, no `coneTemplate`).
+- **Single-Target Recoil Geometry** (`recoil_shard`, `buckshot_shard`): requires a single-target damaging attack (`damageType !== 'NONE'`, `targetType === 'SINGLE_TARGET'`, no `aoeRadius`, no `coneTemplate`), permitting both melee and ranged attacks.
+- **Unit Swap** (`interchange_shard`): requires a single-unit ability (`targetType === 'SINGLE_TARGET'` or `targetType === 'ALLY'`, no `aoeRadius`, no `coneTemplate`).
+- **Hit-Triggered Self-Buffs** (`aegis_shard`, `warding_shard`, `flourish_shard`, `carapace_shard`): requires a damaging attack (`damageType !== 'NONE'`).
+- **Universal Self-Buffs** (`shadow_shard`, `bastion_shard`, `anchorite_shard`): compatible with any ability.
+
+Loadout validation SHALL strictly reject any loadout containing a shard socketed into an empty slot or into a slot whose resolved base ability fails compatibility evaluation, returning a descriptive validation error without silent legacy fallback shims.
+
+#### Scenario: Rejecting incompatible shard during loadout validation
+- **WHEN** loadout validation evaluates a loadout with `Aether Shard` or `Venom Shard` socketed on `Minor Ward` (`ALLY`, `damageType: 'NONE'`) or `Supernova Flare` socketed on `Shadow Step` (`TELEPORT`)
+- **THEN** validation fails (`valid: false`) with a reason describing the incompatibility
+
+#### Scenario: Allowing Supernova Flare on damaging AoE attacks and hostile utility AoEs
+- **WHEN** shard compatibility evaluates `Supernova Flare` against `Arcane Blast`, `Siege Barrage`, `Flash Powder`, and `Shrapnel Canister`
+- **THEN** all four evaluate as compatible
+- **WHEN** shard compatibility evaluates `Supernova Flare` against `Sneak Attack`, `Shadow Step`, `Wyrmflame Breath`, and `Lead the Charge`
+- **THEN** all four evaluate as incompatible with descriptive reasons
+
+#### Scenario: Allowing Recoil Shard on ranged single-target attacks while restricting Cleave and Trample to melee
+- **WHEN** shard compatibility evaluates `Recoil Shard`, `Buckshot Shard`, `Cleave Shard`, and `Trample Shard` against `Sighting Bolt` (`range: 4`, `SINGLE_TARGET`, `PHYSICAL`)
+- **THEN** `Recoil Shard` and `Buckshot Shard` evaluate as compatible
+- **THEN** `Cleave Shard` and `Trample Shard` evaluate as incompatible (`Requires melee attack`)
+
+### Requirement: Intent-Driven Shard Compatibility and Domain-Boundary Enforcement
+Astral Augment Shard compatibility evaluation SHALL determine whether an ability is hostile from an explicit declarative intent contract (`'HOSTILE' | 'FRIENDLY' | 'SELF'`, declared explicitly on non-damaging ground-targeted `HEX` abilities and defaulting safely to non-hostile for unannotated non-damaging `HEX` abilities) and SHALL determine whether an ability supports hostile target infusions from centralized effect metadata capabilities rather than hard-coded effect-type exclusions.
+
+Automatic pruning of incompatible or empty-slot socketed shards SHALL be enforced at the campaign domain boundary (`updateCampUnitLoadout`) on every loadout update before strict loadout validation, returning any removed shards to the unit's unassigned shard inventory.
+
+Combat loadout resolution (`resolveUnitLoadout`) SHALL defensively skip any socketed shard that fails compatibility evaluation against the slot's base ability so legacy or externally modified saves containing incompatible shards never apply illegal modifiers during combat.
+
+#### Scenario: Unannotated friendly ground-targeted AoE rejects hostile infusion shards
+- **WHEN** shard compatibility evaluates `Venom Shard` or `Supernova Flare` against a non-damaging ground-targeted `HEX` AoE ability with `intent: 'FRIENDLY'` (or omitted `intent`)
+- **THEN** both shards evaluate as incompatible rather than treating every non-teleport `HEX` AoE as hostile
+
+#### Scenario: Campaign loadout transition auto-prunes incompatible shards regardless of caller
+- **WHEN** `updateCampUnitLoadout` is called directly to switch a hero's active class, change a wildcard ability, or update a wildcard passive on a unit whose loadout contains an incompatible shard
+- **THEN** incompatible shards are automatically pruned back into the unit's unassigned shard inventory before validation
+- **THEN** compatible shards remain socketed and the transition succeeds without throwing
+
+#### Scenario: Combat loadout resolution skips incompatible shards from legacy saves
+- **WHEN** `resolveUnitLoadout` hydrates combat abilities for a hero loaded from a legacy save that has `Aether Shard` socketed on `Minor Ward` (`ALLY`, `damageType: 'NONE'`) alongside `Shadow Shard` (`ANY`)
+- **THEN** `Aether Shard` is skipped and `Minor Ward` retains `damageType: 'NONE'` and `defenseTarget: 'NONE'`
+- **THEN** `Shadow Shard` still applies cleanly to `Minor Ward`

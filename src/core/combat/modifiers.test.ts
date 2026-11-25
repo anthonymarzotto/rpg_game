@@ -280,5 +280,44 @@ describe('Universal Ability Modifier Engine', () => {
       expect(eff.effects[1].sourceTier).toBe('SHARD');
       expect(eff.effects[1].sourceName).toBe('Venom Shard');
     });
+
+    it('patches DELAYED_BOMBARDMENT damageProfile and flatDamage with power shards', () => {
+      const barrage: Ability = {
+        id: 'siege_barrage',
+        name: 'Siege Barrage',
+        description: 'Delayed barrage',
+        apCost: 2,
+        minRange: 2,
+        range: 4,
+        aoeRadius: 1,
+        targetType: 'HEX',
+        defenseTarget: 'EVASION',
+        attackModifierAttribute: 'finesse',
+        damageType: 'PHYSICAL',
+        effects: [
+          {
+            type: 'DELAYED_BOMBARDMENT',
+            damageProfile: { count: 2, sides: 8, modifierAttribute: 'force' }
+          }
+        ]
+      };
+      const starlight: AbilityModifier = {
+        id: 'shard_starlight_lens',
+        name: 'Starlight Lens',
+        isPermanent: true,
+        effectPatches: { diceStep: 1 }
+      };
+      const forceShard: AbilityModifier = {
+        id: 'shard_force_shard',
+        name: 'Force Shard',
+        isPermanent: true,
+        effectPatches: { flatDamage: 2 }
+      };
+
+      const eff = getEffectiveAbility(barrage, [starlight, forceShard]);
+      expect(eff.effects[0].damageProfile?.sides).toBe(10);
+      expect(eff.effects[0].flatDamage).toBe(2);
+      expect(eff.attributions.some((a) => a.property === 'damageProfile')).toBe(true);
+    });
   });
 });

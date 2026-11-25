@@ -10,6 +10,7 @@ export const ROOFTOP_VAULT: Ability = {
   apCost: 1,
   range: 3,
   targetType: 'HEX',
+  intent: 'SELF',
   defenseTarget: 'NONE',
   damageType: 'NONE',
   effects: [
@@ -73,6 +74,7 @@ export const FLASH_POWDER: Ability = {
   range: 2,
   aoeRadius: 1,
   targetType: 'HEX',
+  intent: 'HOSTILE',
   defenseTarget: 'NONE',
   damageType: 'NONE',
   effects: [

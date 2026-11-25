@@ -9,6 +9,8 @@ export interface EffectContext {
   readonly actorCu: CombatUnit;
   readonly targetCu?: CombatUnit;
   readonly targetCoord?: HexCoord;
+  /** Optional explicit origin coordinate overriding actorCu's live arena position (e.g. delayed bombardment launch coord) */
+  readonly originCoord?: HexCoord;
   readonly ability: Ability;
   readonly hitOutcome: HitOutcome;
   readonly diceRoller: DiceRoller;

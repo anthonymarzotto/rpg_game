@@ -1,6 +1,6 @@
 import { EffectHandler, EffectContext, EffectExecutionResult } from './types';
 import { AbilityEffect, resolveEffectShout } from '../../types/ability';
-import { hexSubtract, hexAdd } from '../../grid/hex';
+import { hexAdd, hexEquals, getDirectionBetween, POINTY_HEX_DIRECTIONS } from '../../grid/hex';
 import { CombatEvent, EffectOutcome } from '../types';
 import { calculateRawFallDamage } from '../../grid/arena';
 import { resolveFallDamage } from '../damageEngine';
@@ -10,9 +10,9 @@ export const retreatHandler: EffectHandler = {
   apply(effect: AbilityEffect, ctx: EffectContext): EffectExecutionResult {
     const { state, actorCu, targetCu } = ctx;
     const actorCoord = state.arena.getUnitPosition(actorCu.unit.id);
-    const targetCoord = targetCu ? state.arena.getUnitPosition(targetCu.unit.id) : ctx.targetCoord;
+    const targetCoord = (targetCu ? state.arena.getUnitPosition(targetCu.unit.id) : undefined) ?? ctx.targetCoord;
 
-    if (!actorCoord || !targetCoord) {
+    if (!actorCoord || !targetCoord || hexEquals(actorCoord, targetCoord)) {
       return { events: [] };
     }
 
@@ -21,7 +21,7 @@ export const retreatHandler: EffectHandler = {
       return { events: [] };
     }
 
-    const retreatDir = hexSubtract(actorCoord, targetCoord);
+    const retreatDir = POINTY_HEX_DIRECTIONS[getDirectionBetween(targetCoord, actorCoord)];
     let retreatDest = hexAdd(actorCoord, retreatDir);
     let destTile = state.arena.getTile(retreatDest);
 

@@ -339,6 +339,46 @@ describe('Tier 4 Dragoon Core Mechanics', () => {
       }
     });
 
+    it('with Shadow Shard + Venom Shard cloaks only the Dragoon and poisons every hit enemy in the cone without stealthing enemies', async () => {
+      const { ASTRAL_AUGMENT_SHARDS } = await import('../../progression/harmonization');
+      const { getEffectiveAbility } = await import('../modifiers');
+
+      const arena = createRadialArena(3);
+      const dragoon = createRecruit('dragoon', 'Dragoon', { faction: 'PLAYER' });
+      (dragoon.baseAttributes as any).focus = 2;
+      const enemyA = createRecruit('enemyA', 'Enemy A (Apex)', { faction: 'ENEMY' });
+      const enemyB = createRecruit('enemyB', 'Enemy B (Fan)', { faction: 'ENEMY' });
+
+      arena.setUnitPosition('dragoon', { q: 0, r: 0 });
+      arena.setUnitPosition('enemyA', { q: 1, r: 0 });
+      arena.setUnitPosition('enemyB', { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [dragoon, enemyA, enemyB], 'dragoon');
+      const dragoonCu = state.units.get('dragoon')!;
+      dragoonCu.currentAp = 1;
+
+      const augmentedBreath = getEffectiveAbility(WYRMFLAME_BREATH, [
+        ASTRAL_AUGMENT_SHARDS.shadow_shard.modifier,
+        ASTRAL_AUGMENT_SHARDS.venom_shard.modifier
+      ]);
+
+      const dice = new MockDiceRoller({ d20Rolls: [16], damageRolls: [3, 3] });
+      executeAbility(state, 'dragoon', augmentedBreath, { coord: { q: 1, r: 0 } }, dice);
+
+      const enemyACu = state.units.get('enemyA')!;
+      const enemyBCu = state.units.get('enemyB')!;
+
+      // Dragoon gains Stealth POST_ACTION
+      expect(dragoonCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(true);
+      // Enemies NEVER gain Stealth, and both receive BURN + POISON
+      expect(enemyACu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(false);
+      expect(enemyBCu.activeConditions.some((c) => c.type === 'STEALTH')).toBe(false);
+      expect(enemyACu.activeConditions.some((c) => c.type === 'BURN')).toBe(true);
+      expect(enemyBCu.activeConditions.some((c) => c.type === 'BURN')).toBe(true);
+      expect(enemyACu.activeConditions.some((c) => c.type === 'POISON')).toBe(true);
+      expect(enemyBCu.activeConditions.some((c) => c.type === 'POISON')).toBe(true);
+    });
+
     it('populates attackRollBreakdown and cone Burn details when Wyrmflame Breath targets an empty apex hex', () => {
       const arena = createRadialArena(3);
       const dragoon = createRecruit('dragoon', 'Dragoon', { faction: 'PLAYER' });

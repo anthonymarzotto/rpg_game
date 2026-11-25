@@ -43,6 +43,7 @@ export const SHRAPNEL_CANISTER: Ability = {
   aoeRadius: 1,
   ignoresElevationPenalty: true,
   targetType: 'HEX',
+  intent: 'HOSTILE',
   defenseTarget: 'NONE',
   damageType: 'NONE',
   effects: [
