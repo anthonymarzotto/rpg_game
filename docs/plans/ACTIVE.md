@@ -23,20 +23,27 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 
 ---
 
-## 🎨 UX Updates
+## 🎨 UX Updates (Next: 28)
 - [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close (re-assess after pacing & clash stage update).
 - [ ] **UX.15**: Make Vanguard Squad area in Post Trial XP distribution dialog scrollable.
 - [ ] **UX.16**: More interesting Vanguard area. Maybe some sort of campfire with the unit sprites randomly gathered around. Maybe animated milling about?
 - [ ] **UX.26**: "The Enclave" should scroll vertically, not horizontally.
+- [ ] **UX.27**: Most Character Cards don't show the most relevant information.
+   - In the Vanguard I want to see important stats like Force/Finesse/Focus, Armor, Ward, Evasion, etc. The HP bar is much too prominent given that all units are full HP here. XP is not too important.
+   - In the Character Details dialog, here I do want to see more info about XP. It would also be nice to see all their stats in here as well.
+   - In a Trial, the Target Preview card does not show the target's HP even though many other cards here do. It also says "Soak" which could probably be more accurately Armor/Ward depending the type of attack.
+   - None of the Unit detail cards inside a Trial seem to show Force/Focus/Finesse.
+   - Need a general pass over all the places that we show unit stats and assess what really is important to see there.
 
 ---
 
-## 🐛 Bugs
+## 🐛 Bugs (Next: 23)
 - [ ] **B.3**: Active turn halo is generally not clearing well. Hard to pinpoint exactly what's going on, but I'm on turn 7 and 4 units have a halo.
 - [ ] **B.4**: When an enemy uses Smoke Veil I can still see them.
 - [ ] **B.16**: In Trial: Status pill hover effect goes under the Initiative track.
 - [ ] **B.20**: The Dragoon's Dragon Dive and Wyrmflame Breath currently exclude friendly units. They should follow standard AoE rules and hit friendly units if they are present.
 - [ ] **B.21**: Combat Log: Description text in Buff Status pill overflows (e.g. Stealth pill, "Conceals the unit...")
+- [ ] **B.22**: Combat Log: Some of the pills show "SOLID_HIT" rather than nicely formatted text.
 
 ---
 
