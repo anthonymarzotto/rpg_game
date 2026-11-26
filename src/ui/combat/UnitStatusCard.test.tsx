@@ -411,5 +411,45 @@ describe('UnitStatusCard Component', () => {
       expect(pinnedHtml).toContain('inspected-passive-chip-coiled_apex');
       expect(pinnedHtml).toContain('insp-virtual-elevation');
     });
+
+    it('surfaces Zeroed In calibration stacks on passive chip, buff pill, inspected card, and target preview', () => {
+      const zeroedInPassive = {
+        id: 'zeroed_in',
+        name: 'Zeroed In',
+        description: 'Gains stationary calibration stacks at turn end.',
+        hook: 'ALWAYS' as const,
+        stationaryCalibration: true
+      };
+      const activeCu = createMockCombatUnit({
+        zeroedInStacks: 3,
+        passives: [zeroedInPassive]
+      });
+      const pinnedCu = createMockCombatUnit({
+        unit: createRecruit('p2', 'Pinned Ballistician'),
+        zeroedInStacks: 2,
+        passives: [zeroedInPassive]
+      });
+
+      const previewHtml = renderToStaticMarkup(
+        <UnitStatusCard activeCu={activeCu} targetPreview={createMockTargetPreview('NORMAL')} />
+      );
+      expect(previewHtml).toContain('passive-chip-zeroed_in');
+      expect(previewHtml).toContain('ready-glow');
+      expect(previewHtml).toContain('(3/3)');
+      expect(previewHtml).toContain('MAX CALIBRATION (3/3)');
+      expect(previewHtml).toContain('active-zeroed-in');
+      expect(previewHtml).toContain('🔭 ZEROED IN (3/3)');
+      expect(previewHtml).toContain('+1 AoE Radius (Max Stacks)');
+      expect(previewHtml).toContain('target-preview-zeroed-in');
+      expect(previewHtml).toContain('🔭 Zeroed In (+3 Hit, +3 Rng, +1 AoE)');
+
+      const pinnedHtml = renderToStaticMarkup(
+        <UnitStatusCard activeCu={activeCu} targetPreview={null} pinnedUnitCu={pinnedCu} />
+      );
+      expect(pinnedHtml).toContain('inspected-passive-chip-zeroed_in');
+      expect(pinnedHtml).toContain('(2/3)');
+      expect(pinnedHtml).toContain('insp-zeroed-in');
+      expect(pinnedHtml).toContain('🔭 ZEROED IN (2/3)');
+    });
   });
 });

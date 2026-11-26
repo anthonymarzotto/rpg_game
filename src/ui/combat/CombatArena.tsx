@@ -622,6 +622,7 @@ export function CombatArena({
           />
         ) : (
           <ActionBar
+            state={state}
             activeCu={activeCu}
             actionMode={actionMode}
             selectedAbility={selectedAbility}

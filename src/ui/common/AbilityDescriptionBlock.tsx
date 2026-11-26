@@ -92,12 +92,14 @@ export interface AbilityHoverTooltipBodyProps {
   readonly ability: EffectiveAbility;
   readonly isWildcard?: boolean;
   readonly currentHp?: number;
+  readonly disabledReason?: string;
 }
 
 export function AbilityHoverTooltipBody({
   ability,
   isWildcard = false,
-  currentHp
+  currentHp,
+  disabledReason
 }: AbilityHoverTooltipBodyProps) {
   const attributions: readonly PropertyAttribution[] = ability.attributions ?? [];
   const isModified = attributions.length > 0;
@@ -137,6 +139,13 @@ export function AbilityHoverTooltipBody({
           ) : null}
         </span>
       </div>
+
+      {disabledReason && (
+        <div className="tooltip-disabled-reason" data-testid="tooltip-disabled-reason">
+          <span className="tooltip-disabled-icon">🔒</span>
+          <span>{disabledReason}</span>
+        </div>
+      )}
 
       <AbilityHybridBody ability={ability} showFlavor={true} />
 

@@ -1,4 +1,5 @@
-import { ActiveCondition, ActiveModifier } from '../../core/combat/types';
+import { ActiveCondition, ActiveModifier, CombatUnit } from '../../core/combat/types';
+import { MAX_ZEROED_IN_STACKS } from '../../core/combat/zeroedIn';
 
 export interface ConditionTooltipInfo {
   readonly icon: string;
@@ -211,4 +212,69 @@ export function formatVirtualElevationBadge(virtualElevation: number): Formatted
   const title = `${tooltip.name} (${tooltip.durationText}): ${ruleText}`;
 
   return { text, isDebuff: false, title, tooltip };
+}
+
+/**
+ * Produces structured data and formatting for active Zeroed In stationary calibration stacks (1..3).
+ */
+export function formatZeroedInBadge(stacks: number): FormattedModifierBadge {
+  const count = Math.max(1, Math.min(MAX_ZEROED_IN_STACKS, stacks));
+  const icon = '🔭 ';
+  const aoeClause =
+    count >= MAX_ZEROED_IN_STACKS
+      ? ', plus +1 AoE Radius (Max Stacks).'
+      : '. Reach 3 stacks for +1 AoE Radius.';
+  const ruleText = `Stationary Calibration: Grants +${count} Range on ranged abilities, +${count} Attack Roll, and -${count} Evasion${aoeClause} Moving, teleporting, or displacement clears all stacks.`;
+  const text = `${icon}ZEROED IN (${count}/${MAX_ZEROED_IN_STACKS})`;
+
+  const tooltip: ConditionTooltipInfo = {
+    icon: icon.trim(),
+    name: 'Zeroed In',
+    durationText: `${count}/${MAX_ZEROED_IN_STACKS} stacks (clears on move)`,
+    ruleText
+  };
+
+  const title = `${tooltip.name} (${tooltip.durationText}): ${ruleText}`;
+
+  return { text, isDebuff: false, title, tooltip };
+}
+
+export interface UnitStatusBadgeEntry {
+  readonly key: string;
+  readonly icon: string;
+  readonly badge: FormattedConditionBadge | FormattedModifierBadge;
+}
+
+/**
+ * Single UI aggregator collecting all visible combat status entries for a unit
+ * (passive states like Coiled Apex / Zeroed In, active conditions, and stat modifiers)
+ * so Character Cards and battlefield standee bubbles/tooltips stay synchronized.
+ */
+export function getUnitStatusBadges(
+  cu: CombatUnit,
+  getUnitName?: (id: string) => string
+): UnitStatusBadgeEntry[] {
+  const entries: UnitStatusBadgeEntry[] = [];
+
+  if ((cu.virtualElevation ?? 0) > 0) {
+    const badge = formatVirtualElevationBadge(cu.virtualElevation!);
+    entries.push({ key: 'virtual-elevation', icon: badge.tooltip.icon || '🐉', badge });
+  }
+
+  if ((cu.zeroedInStacks ?? 0) > 0) {
+    const badge = formatZeroedInBadge(cu.zeroedInStacks!);
+    entries.push({ key: 'zeroed-in', icon: badge.tooltip.icon || '🔭', badge });
+  }
+
+  (cu.activeConditions ?? []).forEach((cond, idx) => {
+    const badge = formatConditionBadge(cond, getUnitName);
+    entries.push({ key: `cond-${idx}`, icon: badge.tooltip.icon || '✨', badge });
+  });
+
+  (cu.activeModifiers ?? []).forEach((mod, idx) => {
+    const badge = formatModifierBadge(mod);
+    entries.push({ key: `mod-${idx}`, icon: badge.tooltip.icon || '✨', badge });
+  });
+
+  return entries;
 }

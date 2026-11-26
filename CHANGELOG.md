@@ -2,6 +2,18 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.25.2] - 2026-11-25
+
+### Zeroed In Visibility & Passive HUD Polish
+- **Zeroed In Character Card & Token Tooltips**: Active **Zeroed In** stacks now appear directly on your Ballistician's Character Card (active, inspected, pinned, and target views) and reveal their full mechanical breakdown—including current stacks, bonus Range, Attack Roll, Evasion penalty, and the 3-stack AoE radius boost—when hovering the telescope (`🔭`) status bubble above the unit on the battlefield.
+- **Live Passive Stack Counters & Turn-End Feedback**: The **Zeroed In** passive chip now displays its telescope icon, live `(1/3)`–`(3/3)` stack counter, and active glow in both the Character Card and Action Bar (alongside live **Coiled Apex** height indicators in the Action Bar), shows an active calibration badge in Target Preview while aiming, and emits a `Zeroed In (N/3)` turn-end callout whenever you end a turn stationary.
+
+## [0.25.1] - 2026-11-25
+
+### Battlefield Status Clarity & Action Bar Lockout Feedback
+- **Distinct Battlefield Status Icons**: Units afflicted with **Mortal Ebb** (`🕯️`), **Charmed** (`💘`), or **Blinded** (`🕶️`) now display their own icons and red debuff borders above their battlefield tokens instead of sharing the golden sparkle icon used for **Henosis**.
+- **Disabled Action Bar Lockout Explanations**: Abilities that cannot currently be cast—such as **Henosis** while your Theurge already has an active vessel, once-per-turn skills already used this turn (like *Blood Frenzy*, *Spell Sculpt*, and *Siege Barrage*), or abilities you lack AP for—are now disabled in the Action Bar. Hovering over a disabled skill still reveals its full description alongside a clear notice explaining why it is unavailable (including which ally currently holds *Henosis*).
+
 ## [0.25.0] - 2026-11-25
 
 ### Astral Augment Shard Compatibility & Timing

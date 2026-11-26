@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createRadialArena } from '../grid/templates';
 import { createRecruit } from '../units/unitFactory';
 import { createCombatState } from './resolver';
-import { canMove, canExecuteAbility, getAbilityRangeCoords } from './validator';
+import { canMove, canExecuteAbility, getAbilityRangeCoords, getAbilityCastLockoutReason } from './validator';
 import { applyConditionToUnit } from './effects/conditionHandler';
 import { Ability } from '../types/ability';
 import { CHALLENGING_SHOUT } from '../../data/packages/knight';
@@ -609,6 +609,86 @@ describe('Combat Validator', () => {
       }
       expect(canExecuteAbility(state, 'theurge', HENOSIS_ABILITY, { targetUnitId: 'allyB' }).valid).toBe(true);
       expect(canExecuteAbility(state, 'theurge', HENOSIS_ABILITY, { targetUnitId: 'theurge' }).valid).toBe(true);
+    });
+
+    it('keeps Henosis locked out for its caster when the active vessel is CHARMED and reports lockout reasons via getAbilityCastLockoutReason', () => {
+      const arena = createRadialArena(3);
+      const theurge = createRecruit('theurge', 'Iamblichus', { faction: 'PLAYER' });
+      const allyA = createRecruit('allyA', 'Alden', { faction: 'PLAYER' });
+      const allyB = createRecruit('allyB', 'Lyra', { faction: 'PLAYER' });
+      const enemyPhil = createRecruit('enemyPhil', 'Philanderer', { faction: 'ENEMY' });
+      arena.setUnitPosition('theurge', { q: 0, r: 0 });
+      arena.setUnitPosition('allyA', { q: 1, r: 0 });
+      arena.setUnitPosition('allyB', { q: 0, r: 1 });
+      arena.setUnitPosition('enemyPhil', { q: 2, r: 0 });
+
+      const state = createCombatState(arena, [theurge, allyA, allyB, enemyPhil], 'theurge');
+      const theurgeCu = state.units.get('theurge')!;
+      const allyACu = state.units.get('allyA')!;
+      theurgeCu.currentAp = 3;
+
+      const HENOSIS_ABILITY: Ability = {
+        id: 'henosis',
+        name: 'Henosis',
+        description: 'Divine vessel ascension.',
+        archetypeTag: 'MAGE',
+        apCost: 2,
+        range: 3,
+        targetType: 'ALLY',
+        defenseTarget: 'NONE',
+        damageType: 'NONE',
+        effects: [
+          {
+            type: 'CONDITION',
+            conditionType: 'HENOSIS',
+            durationTurns: 2,
+            applyOn: 'ALWAYS'
+          }
+        ]
+      };
+
+      const ONCE_PER_TURN_ABILITY: Ability = {
+        id: 'spell_sculpt',
+        name: 'Spell Sculpt',
+        description: 'Once per turn primer.',
+        archetypeTag: 'MAGE',
+        apCost: 1,
+        range: 0,
+        targetType: 'SELF',
+        defenseTarget: 'NONE',
+        damageType: 'NONE',
+        oncePerTurn: true,
+        effects: []
+      };
+
+      // Castable initially
+      expect(getAbilityCastLockoutReason(state, theurgeCu, HENOSIS_ABILITY)).toBeUndefined();
+      expect(getAbilityCastLockoutReason(state, theurgeCu, ONCE_PER_TURN_ABILITY)).toBeUndefined();
+
+      // Apply HENOSIS to allyA -> locked out naming Alden
+      applyConditionToUnit(allyACu, 'HENOSIS', 2, 'theurge');
+      expect(getAbilityCastLockoutReason(state, theurgeCu, HENOSIS_ABILITY)).toBe('Henosis is already active on Alden.');
+
+      // Enemy charms Alden (flips active faction to ENEMY) -> Henosis MUST remain locked out for theurge
+      applyConditionToUnit(allyACu, 'CHARMED', 1, 'enemyPhil', undefined, 'ENEMY');
+      expect(allyACu.faction).toBe('ENEMY');
+      const charmedLocked = canExecuteAbility(state, 'theurge', HENOSIS_ABILITY, { targetUnitId: 'allyB' });
+      expect(charmedLocked.valid).toBe(false);
+      if (!charmedLocked.valid) {
+        expect(charmedLocked.reason).toBe('Henosis is already active on Alden.');
+      }
+      expect(getAbilityCastLockoutReason(state, theurgeCu, HENOSIS_ABILITY)).toBe('Henosis is already active on Alden.');
+
+      // Once-per-turn lockout
+      theurgeCu.abilitiesUsedThisTurn = ['spell_sculpt'];
+      expect(getAbilityCastLockoutReason(state, theurgeCu, ONCE_PER_TURN_ABILITY)).toBe(
+        'Spell Sculpt can only be used once per turn.'
+      );
+
+      // Insufficient AP reason when no other lockout applies
+      allyACu.activeConditions = [];
+      theurgeCu.currentAp = 1;
+      expect(getAbilityCastLockoutReason(state, theurgeCu, HENOSIS_ABILITY)).toBe('Requires 2 AP (have 1).');
     });
   });
 });

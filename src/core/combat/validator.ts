@@ -19,23 +19,55 @@ function checkActiveSourceConditionCap(
     if (eff.type === 'CONDITION' && eff.conditionType) {
       const def = getConditionDefinition(eff.conditionType);
       if (def?.maxActivePerSource !== undefined) {
-        let activeCount = 0;
+        const activeHolders: string[] = [];
         for (const u of state.units.values()) {
           if (u.isDefeated || u.currentHp <= 0) continue;
           if (!state.arena.getUnitPosition(u.unit.id)) continue;
           if (u.activeConditions?.some((c) => c.type === eff.conditionType && c.sourceUnitId === actorUnitId)) {
-            activeCount += 1;
+            activeHolders.push(u.unit.name);
           }
         }
-        if (activeCount >= def.maxActivePerSource) {
+        if (activeHolders.length >= def.maxActivePerSource) {
           return {
             valid: false,
-            reason: `A divine vessel (${eff.conditionType}) is already active.`
+            reason: `${effectiveAbility.name} is already active on ${activeHolders.join(', ')}.`
           };
         }
       }
     }
   }
+  return undefined;
+}
+
+/**
+ * Evaluates caster-level ability availability (independent of target selection)
+ * for Action Bar button disabling and hover tooltip explanations.
+ * Returns a concise reason string if the ability cannot currently be cast, or undefined when castable.
+ */
+export function getAbilityCastLockoutReason(
+  state: CombatState | undefined,
+  actorCu: CombatUnit | undefined,
+  ability: Ability
+): string | undefined {
+  if (!actorCu || actorCu.isDefeated) {
+    return 'Unit is defeated or unavailable.';
+  }
+
+  const effectiveAbility = getEffectiveAbility(ability, actorCu.abilityModifiers);
+
+  if (effectiveAbility.oncePerTurn && actorCu.abilitiesUsedThisTurn?.includes(effectiveAbility.id)) {
+    return `${effectiveAbility.name} can only be used once per turn.`;
+  }
+
+  const sourceCapError = checkActiveSourceConditionCap(state, actorCu.unit.id, effectiveAbility);
+  if (sourceCapError && !sourceCapError.valid) {
+    return sourceCapError.reason;
+  }
+
+  if (actorCu.currentAp < effectiveAbility.apCost) {
+    return `Requires ${effectiveAbility.apCost} AP (have ${actorCu.currentAp}).`;
+  }
+
   return undefined;
 }
 

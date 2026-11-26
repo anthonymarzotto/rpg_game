@@ -5,6 +5,10 @@ import { Ability } from '../../core/types/ability';
 import { CombatUnit } from '../../core/combat/types';
 import { AbilityModifier } from '../../core/types/modifier';
 import { createRecruit } from '../../core/units/unitFactory';
+import { createRadialArena } from '../../core/grid/templates';
+import { createCombatState } from '../../core/combat/resolver';
+import { applyConditionToUnit } from '../../core/combat/effects/conditionHandler';
+import { HENOSIS } from '../../data/packages/theurge';
 
 function createMockCombatUnit(overrides: Partial<CombatUnit> = {}): CombatUnit {
   const baseAbility: Ability = {
@@ -158,5 +162,140 @@ describe('ActionBar Augment Indicators & Attributions', () => {
     expect(html).toContain('ability-stat-pill tier-shard');
     expect(html).toContain('1d6 -&gt; 1d8');
     expect(html).toContain('Bear Strength');
+  });
+
+  it('disables Henosis when an active vessel exists and displays the vessel name alongside full description in tooltip', () => {
+    const arena = createRadialArena(3);
+    const theurge = createRecruit('theurge', 'Iamblichus', { faction: 'PLAYER' });
+    const ally = createRecruit('ally', 'Alden', { faction: 'PLAYER' });
+    arena.setUnitPosition('theurge', { q: 0, r: 0 });
+    arena.setUnitPosition('ally', { q: 1, r: 0 });
+
+    const state = createCombatState(arena, [theurge, ally], 'theurge');
+    const theurgeCu = state.units.get('theurge')!;
+    const allyCu = state.units.get('ally')!;
+    const activeTheurgeCu: CombatUnit = {
+      ...theurgeCu,
+      currentAp: 3,
+      abilities: [HENOSIS]
+    };
+
+    applyConditionToUnit(allyCu, 'HENOSIS', 2, 'theurge');
+
+    const html = renderToStaticMarkup(
+      <ActionBar
+        state={state}
+        activeCu={activeTheurgeCu}
+        actionMode="IDLE"
+        selectedAbility={null}
+        onSelectAction={() => {}}
+        onEndTurn={() => {}}
+      />
+    );
+
+    expect(html).toMatch(/<button[^>]*ability-btn[^>]*disabled=""/);
+    expect(html).toContain('data-testid="tooltip-disabled-reason"');
+    expect(html).toContain('Henosis is already active on Alden.');
+    // Full ability description remains present in the hover tooltip
+    expect(html).toContain(HENOSIS.description);
+    expect(html).toContain('Bestows Henosis');
+  });
+
+  it('disables once-per-turn abilities after use and shows disabled reason alongside description', () => {
+    const oncePerTurnAbility: Ability = {
+      id: 'spell_sculpt',
+      name: 'Spell Sculpt',
+      description: 'Widens the next mage spell.',
+      archetypeTag: 'MAGE',
+      apCost: 1,
+      range: 0,
+      targetType: 'SELF',
+      defenseTarget: 'NONE',
+      damageType: 'NONE',
+      oncePerTurn: true,
+      effects: []
+    };
+
+    const activeCu = createMockCombatUnit({
+      currentAp: 3,
+      abilities: [oncePerTurnAbility],
+      abilitiesUsedThisTurn: ['spell_sculpt']
+    });
+
+    const html = renderToStaticMarkup(
+      <ActionBar
+        activeCu={activeCu}
+        actionMode="IDLE"
+        selectedAbility={null}
+        onSelectAction={() => {}}
+        onEndTurn={() => {}}
+      />
+    );
+
+    expect(html).toMatch(/<button[^>]*ability-btn[^>]*disabled=""/);
+    expect(html).toContain('data-testid="tooltip-disabled-reason"');
+    expect(html).toContain('Spell Sculpt can only be used once per turn.');
+    expect(html).toContain('Widens the next mage spell.');
+  });
+
+  it('disables ability when AP is insufficient and shows required AP reason in tooltip', () => {
+    const activeCu = createMockCombatUnit({ currentAp: 1 });
+
+    const html = renderToStaticMarkup(
+      <ActionBar
+        activeCu={activeCu}
+        actionMode="IDLE"
+        selectedAbility={null}
+        onSelectAction={() => {}}
+        onEndTurn={() => {}}
+      />
+    );
+
+    expect(html).toMatch(/<button[^>]*ability-btn[^>]*disabled=""/);
+    expect(html).toContain('data-testid="tooltip-disabled-reason"');
+    expect(html).toContain('Requires 2 AP (have 1).');
+    expect(html).toContain('Launch astral embers at a target.');
+  });
+
+  it('displays shared passive counters and ready glow in ActionBar passives tray for Zeroed In and Coiled Apex', () => {
+    const activeCu = createMockCombatUnit({
+      zeroedInStacks: 2,
+      virtualElevation: 1,
+      passives: [
+        {
+          id: 'zeroed_in',
+          name: 'Zeroed In',
+          description: 'Stationary calibration stacks.',
+          hook: 'ALWAYS',
+          stationaryCalibration: true
+        },
+        {
+          id: 'coiled_apex',
+          name: 'Coiled Apex',
+          description: 'Coiled Readiness.',
+          hook: 'ALWAYS',
+          unspentApVirtualHeight: true,
+          lowerElevationDamageBonus: 2
+        }
+      ]
+    });
+
+    const html = renderToStaticMarkup(
+      <ActionBar
+        activeCu={activeCu}
+        actionMode="IDLE"
+        selectedAbility={null}
+        onSelectAction={() => {}}
+        onEndTurn={() => {}}
+      />
+    );
+
+    expect(html).toContain('data-testid="action-bar-passive-zeroed_in"');
+    expect(html).toContain('🔭');
+    expect(html).toContain('2/3');
+    expect(html).toContain('CALIBRATED (2/3)');
+    expect(html).toContain('data-testid="action-bar-passive-coiled_apex"');
+    expect(html).toContain('+1 Hgt');
+    expect(html).toContain('COILED (+1 HEIGHT)');
   });
 });

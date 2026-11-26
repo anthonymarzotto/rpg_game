@@ -636,6 +636,24 @@ describe('useCombatSimulation movePreview & fall hazard detection', () => {
     ];
     capturedHook!.handleEndTurn();
     expect(capturedHook!.floatingTexts.some((ft) => ft.text === 'Coiled Apex (+1 Height)')).toBe(true);
+
+    // 4. With Zeroed In passive and stationary turn (even at 0 AP), ending turn emits "Zeroed In (1/3)"
+    capturedHook!.state.activeUnitId = 'p1';
+    p1Cu.currentAp = 0;
+    p1Cu.zeroedInStacks = 0;
+    p1Cu.movedThisTurn = false;
+    p1Cu.hexesMovedThisTurn = 0;
+    (p1Cu as any).passives = [
+      {
+        id: 'zeroed_in',
+        name: 'Zeroed In',
+        description: 'Stationary Calibration',
+        hook: 'ALWAYS',
+        stationaryCalibration: true
+      }
+    ];
+    capturedHook!.handleEndTurn();
+    expect(capturedHook!.floatingTexts.some((ft) => ft.text === 'Zeroed In (1/3)')).toBe(true);
   });
 
   it('emits "My Turn!" on player turn start and unit name on hostile turn start', () => {

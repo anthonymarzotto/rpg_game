@@ -12,6 +12,7 @@
 - [X] **B.18**: I don't think "Coiled Apex" is working right. When my Dragoon skips a turn and then gets their next turn there doesn't appear to be any buffs.
 - [X] **B.19**: Theurge token isn't visible.
 - [X] **Shard × Ability Compatibility & Timing**: Audit Astral Augment Shard interactions across all ability types; design effect timing triggers, compatibility/socketing rules, and resolver fixes (e.g. `Shadow Shard` + `Sneak Attack`).
+- [X] **B.22**: Henosis Action Bar lockout UX & arena token status icon clarity (`MORTAL_EBB`, `CHARMED`, `BLINDED` icons + disabled ability tooltip reasons).
 
 ---
 
@@ -36,7 +37,6 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
 - [ ] **B.16**: In Trial: Status pill hover effect goes under the Initiative track.
 - [ ] **B.20**: The Dragoon's Dragon Dive and Wyrmflame Breath currently exclude friendly units. They should follow standard AoE rules and hit friendly units if they are present.
 - [ ] **B.21**: Combat Log: Description text in Buff Status pill overflows (e.g. Stealth pill, "Conceals the unit...")
-- [ ] **B.22**: Henosis can be cast on other units while still active.
 
 ---
 

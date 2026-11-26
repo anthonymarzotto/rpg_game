@@ -590,6 +590,71 @@ describe('HexGridSvg 2.5D Elevation & Tactical Rendering', () => {
     expect(html).toContain('Grants +1 Virtual Height');
   });
 
+  it('renders Zeroed In telescope icon and rich calibration tooltip inside standee status bubble when zeroedInStacks > 0', () => {
+    const { state } = setupTestState();
+    const p1Cu = state.units.get('p1')!;
+    p1Cu.zeroedInStacks = 2;
+
+    const html = renderToStaticMarkup(
+      <HexGridSvg
+        state={state}
+        reachableCoords={[]}
+        abilityRangeCoords={[]}
+        candidateTargetCoords={[]}
+        hoveredCoord={null}
+        floatingTexts={[]}
+        targetPreview={null}
+        onTileClick={vi.fn()}
+        onTileHover={vi.fn()}
+      />
+    );
+
+    expect(html).toContain('data-testid="standee-status-bubble-p1"');
+    expect(html).toContain('🔭');
+    expect(html).toContain('Zeroed In');
+    expect(html).toContain('2/3 stacks (clears on move)');
+    expect(html).toContain('Grants +2 Range on ranged abilities, +2 Attack Roll, and -2 Evasion');
+  });
+
+  it('renders canonical standee status bubble icons and debuff borders for MORTAL_EBB, CHARMED, BLINDED, and HENOSIS', () => {
+    const cases: Array<{
+      type: 'MORTAL_EBB' | 'CHARMED' | 'BLINDED' | 'HENOSIS';
+      expectedIcon: string;
+      expectedStroke: string;
+    }> = [
+      { type: 'MORTAL_EBB', expectedIcon: '🕯️', expectedStroke: '#f87171' },
+      { type: 'CHARMED', expectedIcon: '💘', expectedStroke: '#f87171' },
+      { type: 'BLINDED', expectedIcon: '🕶️', expectedStroke: '#f87171' },
+      { type: 'HENOSIS', expectedIcon: '✨', expectedStroke: '#fbbf24' }
+    ];
+
+    for (const { type, expectedIcon, expectedStroke } of cases) {
+      const { state } = setupTestState();
+      const p1Cu = state.units.get('p1')!;
+      p1Cu.activeConditions = [{ type, durationTurns: 1, sourceUnitId: 'e1' }];
+
+      const html = renderToStaticMarkup(
+        <HexGridSvg
+          state={state}
+          reachableCoords={[]}
+          abilityRangeCoords={[]}
+          candidateTargetCoords={[]}
+          hoveredCoord={null}
+          floatingTexts={[]}
+          targetPreview={null}
+          onTileClick={vi.fn()}
+          onTileHover={vi.fn()}
+        />
+      );
+
+      const bubbleMatch = html.match(/data-testid="standee-status-bubble-p1"[\s\S]*?<\/g>/);
+      expect(bubbleMatch).not.toBeNull();
+      const bubbleHtml = bubbleMatch![0];
+      expect(bubbleHtml).toContain(`stroke="${expectedStroke}"`);
+      expect(bubbleHtml).toContain(`>${expectedIcon}<`);
+    }
+  });
+
   it('renders floating combat text with high-contrast stroke outline and elevated anchor', () => {
     const { state } = setupTestState();
     const floaters = [

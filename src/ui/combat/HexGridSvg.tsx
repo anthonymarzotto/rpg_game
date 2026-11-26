@@ -12,7 +12,7 @@ import {
   getExtrudedPrismWalls
 } from './elevationGeometry';
 import { MovePathPreview } from './useCombatSimulation';
-import { formatConditionBadge, formatModifierBadge, formatVirtualElevationBadge } from './conditionBadges';
+import { getUnitStatusBadges } from './conditionBadges';
 import { ConditionTooltipContent } from './UnitStatusCard';
 import { computeArenaCamera, PanOffset } from './cameraGeometry';
 
@@ -68,18 +68,10 @@ function StandeeStatusBubble({
   state
 }: StandeeStatusBubbleProps) {
   const badges = useMemo(() => {
-    return [
-      ...((cu.virtualElevation ?? 0) > 0
-        ? [formatVirtualElevationBadge(cu.virtualElevation!)]
-        : []),
-      ...(cu.activeConditions ?? []).map((c) =>
-        formatConditionBadge(c, (id) => state.units.get(id)?.unit.name ?? id)
-      ),
-      ...(cu.activeModifiers ?? []).map((m) =>
-        formatModifierBadge(m)
-      )
-    ];
-  }, [cu.activeConditions, cu.activeModifiers, cu.virtualElevation, state.units]);
+    return getUnitStatusBadges(cu, (id) => state.units.get(id)?.unit.name ?? id).map(
+      (entry) => entry.badge
+    );
+  }, [cu, cu.activeConditions, cu.activeModifiers, cu.virtualElevation, cu.zeroedInStacks, state.units]);
 
   return (
     <g
@@ -826,35 +818,9 @@ export function HexGridSvg({
             const candidateGlowFilter = isPlayer ? 'url(#tile-glow-cyan)' : 'url(#tile-glow-amber)';
 
             const isStealthed = (cu.activeConditions ?? []).some((c) => c.type === 'STEALTH');
-            const statusIcons: string[] = [
-              ...(cu.activeConditions ?? []).map((c) =>
-                c.type === 'STEALTH' ? '👤' :
-                  c.type === 'POISON' ? '🧪' :
-                    c.type === 'BURN' ? '🔥' :
-                      c.type === 'CHALLENGED' ? '⚔️' :
-                        c.type === 'EXPOSED' ? '🎯' :
-                          c.type === 'TELEMETRY' ? '📡' : '✨'
-              ),
-              ...((cu.zeroedInStacks ?? 0) > 0 ? ['🔭'] : []),
-              ...((cu.virtualElevation ?? 0) > 0 ? ['🐉'] : []),
-              ...(cu.activeModifiers ?? []).map((m) =>
-                m.stat === 'move' && m.value < 0 ? '❄️' :
-                  m.stat === 'move' && m.value > 0 ? '💨' :
-                    m.stat === 'armor' ? '🛡️' :
-                      m.stat === 'ward' ? '🔮' :
-                        m.stat === 'speed' ? '⚡' : '✨'
-              )
-            ];
-            const hasDebuff =
-              (cu.activeModifiers ?? []).some((m) => m.value < 0) ||
-              (cu.activeConditions ?? []).some(
-                (c) =>
-                  c.type === 'POISON' ||
-                  c.type === 'BURN' ||
-                  c.type === 'CHALLENGED' ||
-                  c.type === 'EXPOSED' ||
-                  c.type === 'TELEMETRY'
-              );
+            const statusEntries = getUnitStatusBadges(cu);
+            const statusIcons: string[] = statusEntries.map((entry) => entry.icon);
+            const hasDebuff = statusEntries.some((entry) => entry.badge.isDebuff);
             const statusBubbleStroke = isStealthed ? '#c084fc' : hasDebuff ? '#f87171' : '#fbbf24';
             const statusBubbleWidth = Math.max(statusIcons.length * 13 + 6, 20);
 

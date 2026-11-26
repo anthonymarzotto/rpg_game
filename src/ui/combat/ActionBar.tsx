@@ -1,11 +1,13 @@
 import { Ability } from '../../core/types/ability';
-import { CombatUnit } from '../../core/combat/types';
+import { CombatState, CombatUnit } from '../../core/combat/types';
 import { ActionMode } from './useCombatSimulation';
 import { getEffectiveAbility, resolvePropertyTier } from '../../core/combat/modifiers';
-import { getPassiveIcon, PassiveTooltipContent } from './UnitStatusCard';
+import { getAbilityCastLockoutReason } from '../../core/combat/validator';
+import { getPassiveIcon, getPassiveChipState, PassiveTooltipContent } from './UnitStatusCard';
 import { AbilityHoverTooltipBody } from '../common/AbilityDescriptionBlock';
 
 export interface ActionBarProps {
+  readonly state?: CombatState;
   readonly activeCu: CombatUnit | undefined;
   readonly actionMode: ActionMode;
   readonly selectedAbility: Ability | null;
@@ -14,6 +16,7 @@ export interface ActionBarProps {
 }
 
 export function ActionBar({
+  state,
   activeCu,
   actionMode,
   selectedAbility,
@@ -35,7 +38,8 @@ export function ActionBar({
     const isApDiscounted = effectiveAbility.apCost < ability.apCost;
     const isSelected =
       actionMode === 'ABILITY' && selectedAbility?.id === ability.id;
-    const hasAp = currentAp >= effectiveAbility.apCost;
+    const disabledReason = getAbilityCastLockoutReason(state, activeCu, ability);
+    const isDisabled = Boolean(disabledReason);
     const archetypeClass =
       effectiveAbility.archetypeTag === 'FIGHTER'
         ? 'fighter-action'
@@ -59,7 +63,7 @@ export function ActionBar({
       <div key={ability.id} className="ability-btn-wrapper">
         <button
           className={`btn-action ability-btn ${archetypeClass} ${isWildcard ? 'wildcard-ability-btn' : ''} ${isSelected ? 'active' : ''} ${isModified ? 'augmented' : ''}`}
-          disabled={!hasAp}
+          disabled={isDisabled}
           onClick={() => onSelectAction(isSelected ? null : ability)}
         >
           {isWildcard && <span className="wildcard-ribbon">Resonant</span>}
@@ -88,6 +92,7 @@ export function ActionBar({
             ability={effectiveAbility}
             isWildcard={isWildcard}
             currentHp={activeCu.currentHp}
+            disabledReason={disabledReason}
           />
         </div>
       </div>
@@ -113,25 +118,25 @@ export function ActionBar({
       {activeCu.passives && activeCu.passives.length > 0 && (
         <div className="passives-tray">
           {activeCu.passives.map((passive) => {
-            const isMomentum = passive.id === 'momentum';
-            const isMomentumReady = isMomentum && (activeCu.hexesMovedThisTurn ?? 0) >= 2;
+            const { isReady, compactCounter, readyTag } = getPassiveChipState(activeCu, passive);
             const icon = getPassiveIcon(passive.id);
 
             return (
               <div
                 key={passive.id}
-                className={`passive-chip ${isMomentumReady ? 'ready glow' : ''}`}
+                className={`passive-chip ${isReady ? 'ready glow' : ''}`}
+                data-testid={`action-bar-passive-${passive.id}`}
               >
                 <span className="passive-icon">{icon}</span>
                 <span className="passive-name">{passive.name}</span>
-                {isMomentum && (
-                  <span className={`passive-counter ${isMomentumReady ? 'counter-ready' : ''}`}>
-                    {Math.min(activeCu.hexesMovedThisTurn ?? 0, 2)}/2
+                {compactCounter && (
+                  <span className={`passive-counter ${isReady ? 'counter-ready' : ''}`}>
+                    {compactCounter}
                   </span>
                 )}
 
                 {/* Hover Tooltip */}
-                <PassiveTooltipContent passive={passive} isReady={isMomentumReady} />
+                <PassiveTooltipContent passive={passive} isReady={isReady} readyTag={readyTag} />
               </div>
             );
           })}

@@ -100,7 +100,7 @@ The combat status overlay card SHALL display an inline XP progression tracker fo
 - **THEN** the status card SHALL NOT render the XP progression tracker
 
 ### Requirement: Smart Condition Badges and Rich Tooltips
-The system SHALL present active condition badges with clear source attribution and rule mnemonics, and provide instant rich in-engine tooltips on hover.
+The system SHALL present active condition badges with clear source attribution and rule mnemonics, and provide instant rich in-engine tooltips on hover. Battlefield standee status bubbles SHALL display each active condition's canonical icon and debuff border tone matching the status card and combat log (`HENOSIS` as `✨` buff, `MORTAL_EBB` as `🕯️` debuff, `CHARMED` as `💘` debuff, `BLINDED` as `🕶️` debuff) rather than falling back to a generic buff glyph.
 
 #### Scenario: Condition badge displays source attribution and effect reminder
 - **WHEN** an active condition badge is rendered in a status card or target preview card
@@ -114,6 +114,13 @@ The system SHALL present active condition badges with clear source attribution a
 #### Scenario: Hovering standee status bubble on hex arena displays condition tooltip
 - **WHEN** the player hovers their cursor over the status icon bubble above a combatant's standee on the hex battlefield
 - **THEN** the system SHALL display the rich condition tooltip directly in the arena viewport adjacent to the combatant
+
+#### Scenario: Standee status bubbles distinguish Mortal Ebb, Charmed, and Blinded from Henosis
+- **WHEN** combatants on the hex battlefield hold `MORTAL_EBB`, `CHARMED`, `BLINDED`, or `HENOSIS`
+- **THEN** a unit with `MORTAL_EBB` SHALL display the `🕯️` icon with debuff border styling rather than `✨`
+- **AND** a unit with `CHARMED` SHALL display the `💘` icon with debuff border styling
+- **AND** a unit with `BLINDED` SHALL display the `🕶️` icon with debuff border styling
+- **AND** a unit with `HENOSIS` SHALL display the `✨` icon with buff border styling
 
 ### Requirement: Tactical Targeting Cancellation via Right-Click
 The system SHALL allow players to cancel ability targeting and return to neutral idle mode via secondary mouse interaction when not performing a camera pan drag.
@@ -404,3 +411,44 @@ When a combatant has armed `Coiled Apex` Virtual Height (`virtualElevation > 0`)
 - **THEN** floating combat text indicating `Coiled Apex (+1 Height)` SHALL render above the unit
 - **WHEN** that unit subsequently hovers a valid attack target while `virtualElevation > 0`
 - **THEN** the Target Preview header SHALL display an active `Coiled Apex` indicator badge
+
+### Requirement: Action Bar Ability Lockout Disabling and Tooltip Reasons
+The tactical Action Bar SHALL disable any ability button that cannot currently be cast by the active unit due to insufficient AP or a caster-level lockout (including an active per-caster condition cap such as `Henosis` or a once-per-turn ability already used during the current turn). Hovering over any disabled ability button SHALL continue to reveal the ability's full hover tooltip (description, stats, and effects) along with a clear unavailable reason explaining why the ability is disabled.
+
+#### Scenario: Henosis button disables while caster has an active vessel and explains why on hover
+- **WHEN** a Theurge is the active player unit and already has a living unit holding `HENOSIS` cast by that Theurge
+- **THEN** the `Henosis` button in the Action Bar SHALL be disabled even if the Theurge has sufficient AP
+- **AND** hovering the disabled `Henosis` button SHALL display the full ability description alongside an unavailable reason naming the active vessel
+
+#### Scenario: Once-per-turn ability disables after use and explains why on hover
+- **WHEN** the active player unit has already executed a once-per-turn ability during the current turn (such as `Blood Frenzy`, `Spell Sculpt`, or `Siege Barrage`)
+- **THEN** that ability's button in the Action Bar SHALL be disabled for the remainder of the turn
+- **AND** hovering the disabled button SHALL display the full ability description alongside an unavailable reason stating that it can only be used once per turn
+
+#### Scenario: Insufficient AP disables ability button and preserves full tooltip with AP reason
+- **WHEN** the active player unit has fewer remaining AP than an ability's effective AP cost
+- **THEN** that ability's button in the Action Bar SHALL be disabled
+- **AND** hovering the disabled button SHALL display the full ability description alongside an unavailable reason stating the required AP
+
+### Requirement: Zeroed In Calibration Visual Feedback
+When a combatant has accumulated `Zeroed In` stationary calibration stacks (`zeroedInStacks > 0`), the combat arena and HUD SHALL provide consistent visual feedback matching `Coiled Apex` across the Character Card, Action Bar passives tray, battlefield standee status bubble and hover tooltip, Target Preview, and turn-end floating combat text.
+
+#### Scenario: Active Zeroed In stacks display on Character Card passive chip and status badges
+- **WHEN** an active, hovered, or pinned combatant has `zeroedInStacks > 0` (1 to 3 stacks)
+- **THEN** the `Zeroed In` chip in the `PASSIVES` row SHALL display the telescope icon `🔭` in its tooltip, a ready-glow state, and a `(<stacks>/3)` counter
+- **AND** the unit's active status badges row SHALL display a `Zeroed In (<stacks>/3)` buff badge with a rich hover tooltip detailing `+N Range`, `+N Attack Roll`, `-N Evasion`, the 3-stack `+1 AoE Radius` capstone bonus, and that moving, teleporting, or displacement clears all stacks
+
+#### Scenario: Battlefield standee status bubble shows Zeroed In hover tooltip
+- **WHEN** a living combatant on the hex battlefield has `zeroedInStacks > 0`
+- **THEN** the unit's overhead standee status bubble SHALL display the `🔭` icon
+- **AND** hovering the standee status bubble SHALL render the rich `Zeroed In` calibration tooltip detailing the current stack count and active bonuses rather than an empty tooltip
+
+#### Scenario: Action Bar passives tray displays shared stack and readiness counters
+- **WHEN** the active player unit has `Zeroed In`, `Coiled Apex`, or `Momentum` in the Action Bar passives tray
+- **THEN** the Action Bar passives tray SHALL render consistent live counter and ready-glow state matching the Character Card (`<stacks>/3` for `Zeroed In`, `+1 Height` for armed `Coiled Apex`, and `<moved>/2` for `Momentum`)
+
+#### Scenario: Zeroed In displays Target Preview badge and turn-end accumulation floater
+- **WHEN** a player unit with `Zeroed In` ends their turn without having moved, teleported, or been displaced while below 3 stacks
+- **THEN** floating combat text indicating `Zeroed In (<nextStacks>/3)` SHALL render above the unit
+- **WHEN** a unit with `zeroedInStacks > 0` hovers a valid attack target
+- **THEN** the Target Preview header SHALL display an active `🔭 Zeroed In` indicator badge summarizing its current hit, range, and (at 3 stacks) AoE bonuses

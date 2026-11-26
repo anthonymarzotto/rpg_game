@@ -148,3 +148,24 @@
 .tooltip-augment-row.tier-trial .augment-label {
   color: #86efac;
 }
+
+.tooltip-disabled-reason {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin-bottom: 0.45rem;
+  padding: 0.32rem 0.5rem;
+  border-radius: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+}
+
+.tooltip-disabled-icon {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  line-height: 1.3;
+}

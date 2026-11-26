@@ -15,7 +15,7 @@ import { AbilityCompactSummary, AbilityHoverTooltipBody } from '../common/Abilit
 import {
   formatConditionBadge,
   formatModifierBadge,
-  formatVirtualElevationBadge,
+  getUnitStatusBadges,
   FormattedConditionBadge,
   FormattedModifierBadge,
   ConditionTooltipInfo
@@ -53,27 +53,48 @@ export function getPassiveIcon(passiveId: string): string {
       return '💀';
     case 'coiled_apex':
       return '🐉';
+    case 'zeroed_in':
+      return '🔭';
     default:
       return '✦';
   }
 }
 
-function getPassiveChipState(
+export function getPassiveChipState(
   cu: CombatUnit,
   passive: PassiveTrait
-): { isReady: boolean; counterText?: string } {
+): { isReady: boolean; counterText?: string; compactCounter?: string; readyTag?: string } {
   if (passive.id === 'momentum') {
     const moved = cu.hexesMovedThisTurn ?? 0;
+    const clamped = Math.min(moved, 2);
     return {
       isReady: moved >= 2,
-      counterText: `(${Math.min(moved, 2)}/2)`
+      counterText: `(${clamped}/2)`,
+      compactCounter: `${clamped}/2`,
+      readyTag: 'ADVANTAGE READY'
     };
   }
   if (passive.id === 'coiled_apex') {
     const virt = cu.virtualElevation ?? 0;
     return {
       isReady: virt > 0,
-      counterText: virt > 0 ? `(+${virt} Height)` : undefined
+      counterText: virt > 0 ? `(+${virt} Height)` : undefined,
+      compactCounter: virt > 0 ? `+${virt} Hgt` : undefined,
+      readyTag: virt > 0 ? `COILED (+${virt} HEIGHT)` : undefined
+    };
+  }
+  if (passive.id === 'zeroed_in') {
+    const stacks = cu.zeroedInStacks ?? 0;
+    return {
+      isReady: stacks > 0,
+      counterText: `(${stacks}/3)`,
+      compactCounter: `${stacks}/3`,
+      readyTag:
+        stacks >= 3
+          ? 'MAX CALIBRATION (3/3)'
+          : stacks > 0
+            ? `CALIBRATED (${stacks}/3)`
+            : undefined
     };
   }
   return { isReady: false };
@@ -84,30 +105,20 @@ function renderUnitStatusBadges(
   prefix: string,
   getUnitName: (id: string) => string
 ) {
-  const hasConditions = Boolean(cu.activeConditions && cu.activeConditions.length > 0);
-  const hasModifiers = cu.activeModifiers.length > 0;
-  const hasVirtualHeight = (cu.virtualElevation ?? 0) > 0;
-  if (!hasConditions && !hasModifiers && !hasVirtualHeight) {
+  const entries = getUnitStatusBadges(cu, getUnitName);
+  if (entries.length === 0) {
     return null;
   }
 
   return (
     <div className="active-modifiers-row">
-      {hasVirtualHeight && (
+      {entries.map((entry) => (
         <ConditionBadgeItem
-          key={`${prefix}-virtual-elev`}
-          badge={formatVirtualElevationBadge(cu.virtualElevation!)}
-          testId={`${prefix}-virtual-elevation`}
+          key={`${prefix}-${entry.key}`}
+          badge={entry.badge}
+          testId={`${prefix}-${entry.key}`}
         />
-      )}
-      {cu.activeConditions?.map((cond, idx) => {
-        const badge = formatConditionBadge(cond, getUnitName);
-        return <ConditionBadgeItem key={`${prefix}-cond-${idx}`} badge={badge} testId={`${prefix}-cond-${idx}`} />;
-      })}
-      {cu.activeModifiers.map((mod, idx) => {
-        const badge = formatModifierBadge(mod);
-        return <ConditionBadgeItem key={`${prefix}-mod-${idx}`} badge={badge} testId={`${prefix}-mod-${idx}`} />;
-      })}
+      ))}
     </div>
   );
 }
@@ -115,19 +126,22 @@ function renderUnitStatusBadges(
 export function PassiveTooltipContent({
   passive,
   isReady,
+  readyTag,
   testId
 }: {
   readonly passive: PassiveTrait;
   readonly isReady?: boolean;
+  readonly readyTag?: string;
   readonly testId?: string;
 }) {
   const icon = getPassiveIcon(passive.id);
   const tagText =
-    passive.id === 'momentum'
+    readyTag ??
+    (passive.id === 'momentum'
       ? 'ADVANTAGE READY'
       : passive.id === 'coiled_apex'
         ? 'COILED (+1 HEIGHT)'
-        : 'READY';
+        : 'READY');
   return (
     <div className="passive-hover-tooltip" role="tooltip" data-testid={testId}>
       <div className="tooltip-title-row">
@@ -145,11 +159,13 @@ export function PassiveBadgeItem({
   passive,
   isReady,
   counterText,
+  readyTag,
   testId
 }: {
   readonly passive: PassiveTrait;
   readonly isReady?: boolean;
   readonly counterText?: string;
+  readonly readyTag?: string;
   readonly testId?: string;
 }) {
   return (
@@ -161,7 +177,7 @@ export function PassiveBadgeItem({
       {counterText && (
         <span className="passive-chip-count">{counterText}</span>
       )}
-      <PassiveTooltipContent passive={passive} isReady={isReady} />
+      <PassiveTooltipContent passive={passive} isReady={isReady} readyTag={readyTag} />
     </span>
   );
 }
@@ -319,13 +335,14 @@ export function UnitStatusCard({
           <div className="hud-passives-row">
             <span className="passives-row-label">PASSIVES:</span>
             {activeCu.passives.map((p) => {
-              const { isReady, counterText } = getPassiveChipState(activeCu, p);
+              const { isReady, counterText, readyTag } = getPassiveChipState(activeCu, p);
               return (
                 <PassiveBadgeItem
                   key={p.id}
                   passive={p}
                   isReady={isReady}
                   counterText={counterText}
+                  readyTag={readyTag}
                   testId={`passive-chip-${p.id}`}
                 />
               );
@@ -353,6 +370,15 @@ export function UnitStatusCard({
                     data-testid="target-preview-coiled-apex"
                   >
                     🐉 Coiled Apex (+{activeCu.virtualElevation} Height, +2 Dmg)
+                  </span>
+                )}
+                {(activeCu.zeroedInStacks ?? 0) > 0 && (
+                  <span
+                    className="advantage-indicator-badge"
+                    title={`Zeroed In (${activeCu.zeroedInStacks}/3): Grants +${activeCu.zeroedInStacks} Attack Roll, +${activeCu.zeroedInStacks} Range${(activeCu.zeroedInStacks ?? 0) >= 3 ? ', and +1 AoE Radius' : ''}`}
+                    data-testid="target-preview-zeroed-in"
+                  >
+                    🔭 Zeroed In (+{activeCu.zeroedInStacks} Hit, +{activeCu.zeroedInStacks} Rng{(activeCu.zeroedInStacks ?? 0) >= 3 ? ', +1 AoE' : ''})
                   </span>
                 )}
                 {targetPreview.elevationVantageRange !== undefined && targetPreview.elevationVantageRange > 0 && (
@@ -458,13 +484,14 @@ export function UnitStatusCard({
             <div className="hud-passives-row">
               <span className="passives-row-label">PASSIVES:</span>
               {inspectedCu.passives.map((p) => {
-                const { isReady, counterText } = getPassiveChipState(inspectedCu, p);
+                const { isReady, counterText, readyTag } = getPassiveChipState(inspectedCu, p);
                 return (
                   <PassiveBadgeItem
                     key={p.id}
                     passive={p}
                     isReady={isReady}
                     counterText={counterText}
+                    readyTag={readyTag}
                     testId={`inspected-passive-chip-${p.id}`}
                   />
                 );

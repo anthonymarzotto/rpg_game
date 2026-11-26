@@ -10,6 +10,7 @@ import { endActiveTurn, calculateTurnTransitionTicks } from '../../core/combat/t
 import { getEffectiveSpeed, getEffectiveMove } from '../../core/combat/effectiveVitals';
 import { getBastionZocHexKeys } from '../../core/combat/bastionStance';
 import { getRoughTerrainHexKeys } from '../../core/combat/battlefieldZones';
+import { hasZeroedInPassive, MAX_ZEROED_IN_STACKS } from '../../core/combat/zeroedIn';
 import {
   EncounterDefinition,
   PlacedUnit,
@@ -1187,6 +1188,12 @@ export function useCombatSimulation({
       unspent > 0 &&
       (activeCu.virtualElevation ?? 0) < 1 &&
       Boolean(activeCu.passives?.some((p) => p.unspentApVirtualHeight));
+    const currentZeroedIn = activeCu.zeroedInStacks ?? 0;
+    const willGainZeroedIn =
+      hasZeroedInPassive(activeCu) &&
+      !activeCu.movedThisTurn &&
+      (activeCu.hexesMovedThisTurn ?? 0) === 0 &&
+      currentZeroedIn < MAX_ZEROED_IN_STACKS;
     if (unspent > 0) {
       addFloatingText(`+${unspent * 20} Initiative`, 'buff', activeCoord ?? { q: 0, r: 0 });
       if (willArmCoiledApex) {
@@ -1194,6 +1201,13 @@ export function useCombatSimulation({
       }
     } else {
       addFloatingText('Turn End', 'buff', activeCoord ?? { q: 0, r: 0 });
+    }
+    if (willGainZeroedIn) {
+      addFloatingText(
+        `Zeroed In (${currentZeroedIn + 1}/${MAX_ZEROED_IN_STACKS})`,
+        'buff',
+        activeCoord ?? { q: 0, r: 0 }
+      );
     }
 
     setActionMode('IDLE');
