@@ -4,7 +4,7 @@ import { CampaignState, CreateCampaignOptions } from './types';
 import { createRng } from '../prng';
 import { generateStageEncounter } from './encounterGenerator';
 
-import { generateProceduralRecruitName, MALE_FIRST_NAMES } from '../../data/names';
+import { generateProceduralRecruitName, generateCompanyName, MALE_FIRST_NAMES } from '../../data/names';
 
 export const FANTASY_MALE_NAMES: readonly string[] = MALE_FIRST_NAMES;
 
@@ -33,7 +33,7 @@ export function createCampaign(options?: CreateCampaignOptions): CampaignState {
   const seed = options?.seed ?? (options?.rng ? Math.floor(options.rng() * 1_000_000) : Date.now());
   const rng = options?.rng ?? createRng(seed);
   const campaignId = options?.id ?? `campaign-${seed}`;
-  const campaignName = options?.name ?? 'Astral Expedition #1';
+  const campaignName = options?.name ?? generateCompanyName(rng);
   const squadSize = options?.initialSquadSize ?? 3;
 
   const usedNames = new Set<string>();

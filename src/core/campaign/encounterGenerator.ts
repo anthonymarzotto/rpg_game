@@ -18,7 +18,7 @@ import { advanceArchetypeLevel } from '../progression/pyramid';
 import { CLASS_REGISTRY, CLASSES_BY_ID } from '../../data/classes';
 import { getClassPackage } from '../../data/packages';
 import { computeDerivedVitals } from '../units/vitals';
-import { assignEnemyTitles } from '../../data/names';
+import { assignEnemyTitles, generateBoutTitle } from '../../data/names';
 
 export type EnemyTier1Class = 'warrior' | 'thief' | 'wizard';
 export type EnemyTier2Class = 'knight' | 'infiltrator' | 'sorcerer';
@@ -690,16 +690,18 @@ export function generateStageEncounter(
   );
   const placedUnits: PlacedUnit[] = [...placedPlayerUnits, ...placedEnemyUnits];
 
+  const boutTitle = generateBoutTitle(rng);
+
   return {
     id: `stage-${stage}-encounter-${effectiveSeed}`,
-    name: `Sector ${stage} Trial`,
+    name: boutTitle,
     arenaRadius: radius,
     tileOverrides,
     units: placedUnits,
     objectives: [
       {
         id: 'rout_enemies',
-        description: 'Defeat all hostile combatants',
+        description: 'Bring all rival contenders to yield',
         condition: { kind: 'FACTION_DEFEATED', faction: 'ENEMY' }
       }
     ]

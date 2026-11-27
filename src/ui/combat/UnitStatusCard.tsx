@@ -324,7 +324,7 @@ export function UnitStatusCard({
             <span className="stat-label">MOV</span>
             <span className="stat-val">{getEffectiveMove(activeCu)}</span>
           </div>
-          <div className="stat-item" title="CTB Turn Speed">
+          <div className="stat-item" title="Initiative Turn Speed">
             <span className="stat-label">SPD</span>
             <span className="stat-val">{getEffectiveSpeed(activeCu)}</span>
           </div>

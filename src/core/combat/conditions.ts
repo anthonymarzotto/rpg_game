@@ -442,8 +442,8 @@ export function purgeConditionsFromDefeatedSource(
         condition: cond.type,
         reason: 'source_defeated',
         actionId: 'condition_removed',
-        text: `${sourceName} was defeated — ${cond.type} cleared from ${cu.unit.name}!`,
-        message: `${sourceName} was defeated — ${cond.type} cleared from ${cu.unit.name}!`
+        text: `${sourceName} yielded — ${cond.type} cleared from ${cu.unit.name}!`,
+        message: `${sourceName} yielded — ${cond.type} cleared from ${cu.unit.name}!`
       });
     }
   }

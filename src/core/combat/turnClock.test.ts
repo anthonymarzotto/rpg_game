@@ -255,7 +255,7 @@ describe('CTB Turn Clock Advancement & Unspent AP Recovery', () => {
         type: 'DEFEATED',
         actor: 'Cinder Novice',
         condition: 'BURN',
-        cause: 'Defeated by Burn'
+        cause: 'Yielded to Burn'
       });
     });
   });

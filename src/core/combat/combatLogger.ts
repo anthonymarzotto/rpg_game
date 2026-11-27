@@ -107,8 +107,8 @@ export function formatEffectOutcome(outcome: EffectOutcome): string {
     }
     case 'INITIATIVE':
       return outcome.direction === 'BOOST'
-        ? `[Initiative Boost: +${outcome.amount} CTB Gauge]`
-        : `[CTB Delay: -${outcome.amount} Initiative]`;
+        ? `[Initiative Boost: +${outcome.amount} Initiative]`
+        : `[Initiative Delay: -${outcome.amount} Initiative]`;
     case 'COLLATERAL_HIT': {
       if (outcome.hitOutcome === 'MISS') {
         const dcText = outcome.defenseTarget !== undefined ? ` [Miss vs DC ${outcome.defenseTarget}]` : '';
@@ -605,13 +605,13 @@ export const combatLogger = {
     const cause =
       params.cause ??
       (formattedCondition
-        ? `Defeated by ${formattedCondition}`
-        : 'Defeated by status condition damage');
+        ? `Yielded to ${formattedCondition}`
+        : 'Yielded to status condition damage');
     const message =
       params.message ??
       (formattedCondition
-        ? `${cu.unit.name} was defeated by ${formattedCondition}!`
-        : `${cu.unit.name} was defeated by status condition damage!`);
+        ? `${cu.unit.name} yielded to ${formattedCondition}!`
+        : `${cu.unit.name} yielded to status condition damage!`);
 
     const entry: CombatLogEntry = {
       turnNumber: state.turnNumber,

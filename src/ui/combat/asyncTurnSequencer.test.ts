@@ -113,7 +113,7 @@ describe('asyncTurnSequencer', () => {
         score: 5,
         reason: 'bank'
       });
-      expect(desc).toBe('Orc banks 2 AP (+40 CTB)');
+      expect(desc).toBe('Orc banks 2 AP (+40 Initiative)');
     });
   });
 

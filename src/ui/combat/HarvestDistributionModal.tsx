@@ -148,13 +148,13 @@ export function HarvestDistributionModal({
         {/* Header */}
         <div className="harvest-header">
           <span className={`harvest-badge ${isVictory ? 'victory' : 'defeat'}`}>
-            {isVictory ? '✦ Harvest Trial Spoils' : '⚔️ Trial Retreat & Salvage'}
+            {isVictory ? '✦ Bout Triumph — Bells Sound Twice!' : '🏳️ Honorable Yield'}
           </span>
-          <h2>{isVictory ? 'Distribute Vanguard XP' : 'Salvaged Experience'}</h2>
+          <h2>{isVictory ? 'Share Trail Experience' : 'Lessons from a Tough Bout'}</h2>
           <p>
             {isVictory
-              ? 'The Vanguard triumphed! Allocate the collective combat experience among your deployed squad.'
-              : 'The Vanguard was forced to withdraw. 50% of earned combat experience was salvaged for distribution.'}
+              ? 'Your company won the bout! Share the lessons learned among your staged wayfarers.'
+              : "Your company yielded with honor and stepped to the sidelines. Half of the bout's experience carries back to the campfire."}
           </p>
         </div>
 
@@ -211,8 +211,8 @@ export function HarvestDistributionModal({
           {/* Squad Dock (Left) */}
           <div className="harvest-squad-dock" role="tablist" aria-label="Squad Members" data-testid="harvest-squad-dock">
             <div className="dock-header">
-              <span className="dock-title">Vanguard Squad</span>
-              <span className="dock-count">{squadUnits.length} Units</span>
+              <span className="dock-title">The Staging Dais</span>
+              <span className="dock-count">{squadUnits.length} {squadUnits.length === 1 ? 'Wayfarer' : 'Wayfarers'}</span>
             </div>
 
             <div className="dock-list">
@@ -382,7 +382,7 @@ export function HarvestDistributionModal({
               onClick={handleConfirm}
               data-testid="harvest-confirm-btn"
             >
-              {isVictory ? '✦ Proceed to Camp' : '↩ Retreat to Camp'}
+              {isVictory ? '✦ Return to The Nexus' : '⛺ Regroup at The Nexus'}
             </button>
           </div>
         </div>

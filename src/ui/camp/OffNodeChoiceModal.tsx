@@ -110,8 +110,8 @@ export const OffNodeChoiceModal: React.FC<OffNodeChoiceModalProps> = ({
           {currentStep === 1 && (
             <>
               <p className="offnode-section-prompt font-ui">
-                Harmonize your soul with the constellation. Select a permanent Wayfarer Attunement to
-                reinforce your defensive vitals:
+                A quiet breakthrough on the trail. Select a permanent Wayfarer Attunement to hone
+                your poise and resilience:
               </p>
 
               <div className="offnode-cards-grid">

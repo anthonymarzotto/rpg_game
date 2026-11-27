@@ -57,11 +57,11 @@ describe('ExpeditionWarRoom Component', () => {
       />
     );
 
-    expect(html).toContain('Stage 2: Goblin Ambush');
-    expect(html).toContain('Threat: 20 pts');
+    expect(html).toContain('Trial 2: Goblin Ambush');
+    expect(html).toContain('Budget: 20 pts');
     expect(html).toContain('Bandit Scout');
     expect(html).toContain('Bandit Brawler');
-    expect(html).toContain('3 / 3 Wayfarers Ready');
+    expect(html).toContain('3 / 3 Wayfarers Staged');
     expect(html).not.toContain('disabled=""');
   });
 
@@ -75,7 +75,7 @@ describe('ExpeditionWarRoom Component', () => {
     );
 
     expect(html).toContain('disabled=""');
-    expect(html).toContain('Attune at least 1 wayfarer into the active vanguard');
+    expect(html).toContain('Stage at least 1 wayfarer on The Staging Dais');
   });
 
   it('renders activeSquadThreat points vs stage budget, allowing over-budget deployment on localhost and disabling on production hostnames', () => {
@@ -89,9 +89,9 @@ describe('ExpeditionWarRoom Component', () => {
       />
     );
 
-    expect(htmlWithinBudget).toContain('3 Ready (60 / 75 Pts)');
+    expect(htmlWithinBudget).toContain('3 Staged (60 / 75 Pts)');
     expect(htmlWithinBudget).not.toContain('disabled=""');
-    expect(htmlWithinBudget).toContain('title="Enter the astral trial"');
+    expect(htmlWithinBudget).toContain('title="Step onto the Celestial Trial Grounds"');
 
     // Default test runner environment is localhost/dev mode -> over-budget deployment is optional/allowed
     const htmlOverBudgetDev = renderToStaticMarkup(
@@ -104,10 +104,10 @@ describe('ExpeditionWarRoom Component', () => {
       />
     );
 
-    expect(htmlOverBudgetDev).toContain('4 Ready (90 / 75 Pts)');
+    expect(htmlOverBudgetDev).toContain('4 Staged (90 / 75 Pts)');
     expect(htmlOverBudgetDev).not.toContain('disabled=""');
     expect(htmlOverBudgetDev).toContain(
-      'title="Enter the astral trial (Dev Mode: Vanguard threat 90 pts exceeds 75 pts budget)"'
+      'title="Enter the tournament bout (Dev Mode: Staged weight 90 pts exceeds 75 pts Trial Budget)"'
     );
 
     // Production hostname enforces strict threat cap
@@ -125,10 +125,10 @@ describe('ExpeditionWarRoom Component', () => {
         />
       );
 
-      expect(htmlOverBudgetProd).toContain('4 Ready (90 / 75 Pts)');
+      expect(htmlOverBudgetProd).toContain('4 Staged (90 / 75 Pts)');
       expect(htmlOverBudgetProd).toContain('disabled=""');
       expect(htmlOverBudgetProd).toContain(
-        'title="Vanguard threat (90 pts) exceeds stage deployment budget (75 pts)"'
+        'title="Staged weight (90 pts) exceeds Trial Budget (75 pts)"'
       );
       expect(htmlOverBudgetProd).not.toContain('readiness-warning');
     } finally {
@@ -136,7 +136,7 @@ describe('ExpeditionWarRoom Component', () => {
     }
   });
 
-  it('renders reroll trial button when onRerollEncounter is provided', () => {
+  it('renders reroll bout button when onRerollEncounter is provided', () => {
     const htmlWithReroll = renderToStaticMarkup(
       <ExpeditionWarRoom
         stage={2}
@@ -146,7 +146,7 @@ describe('ExpeditionWarRoom Component', () => {
       />
     );
     expect(htmlWithReroll).toContain('data-testid="reroll-trial-btn"');
-    expect(htmlWithReroll).toContain('Re-roll Trial');
+    expect(htmlWithReroll).toContain('Scout Another Bout');
 
     const htmlWithoutReroll = renderToStaticMarkup(
       <ExpeditionWarRoom

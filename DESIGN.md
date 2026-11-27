@@ -2,30 +2,33 @@
 
 ## 1. Vision & Core Philosophy
 
-The game presents a **Dark Fantasy Tactical RPG** aesthetic combining two core visual pillars:
-1. **Crisp Pixel Art Characters**: Retro, directionally-aware pixel art sprites (`64x64` multi-directional PNGs scaled with `image-rendering: pixelated;`) representing heroes and monsters with tactical personality across 6 hex orientations + south facing.
-2. **Modern Glassmorphic Tactical UI**: Sleek, high-contrast, semi-translucent dark slate surfaces (`backdrop-filter: blur(12px)`) with glowing golden and archetype-colored accents that keep tactical calculations, timelines, and vitals immediately readable.
+The game presents a **Hopeful Twilight Celestial Tactics** aesthetic combining two core visual pillars:
+1. **Crisp Pixel Art Characters**: Retro, directionally-aware pixel art sprites (`64x64` multi-directional PNGs scaled with `image-rendering: pixelated;`) representing everyday mortal Wayfarers and Rival Company contenders with tactical personality across 6 hex orientations + south facing.
+2. **Modern Glassmorphic Tactical UI**: Sleek, high-contrast, semi-translucent twilight slate surfaces (`backdrop-filter: blur(12px)`) with warm golden lantern and tradition-colored accents that keep tactical calculations, timelines, and vitals immediately readable.
 
 ### 1.1. Thematic UI Framing Glossary
 
-The user interface uses a cohesive celestial and astral vocabulary to frame core tactical RPG systems (for the full authoritative lexicon and copy guide, see [`docs/architecture/GLOSSARY.md`](file:///c:/Repos/rpg_game/docs/architecture/GLOSSARY.md)):
+The user interface uses a cohesive celestial tournament vocabulary to frame core tactical RPG systems (for the full authoritative lexicon and copy guide, see [`docs/architecture/GLOSSARY.md`](file:///c:/Repos/rpg_game/docs/architecture/GLOSSARY.md)):
 
 | System / Area | Thematic Term | UI Presentation & Context |
 | :--- | :--- | :--- |
-| **Expedition Base** | **The Nexus** | Primary camp hub (`CampHub`) where wayfarers rest, attune, and plan expeditions |
-| **Active Squad** | **The Vanguard** | The deployed combat team occupying active tactical **Conduits** (up to 3) |
-| **Reserve Barracks** | **The Enclave** | Standby roster storage for wayfarers awaiting conduit attunement |
-| **Playable Character** | **Wayfarer** | Player units traversing the astral realm and attuning to combat archetypes |
-| **Class Progression** | **The Constellation** | The 100-class lattice composed of interconnected class **Nodes** |
-| **Level-Up / Advancement** | **✦ Ascension** | Milestone reached when threshold archetype resonance is satisfied (`✦ ASCENSION READY`) |
-| **Tactical Deck** | **Combat Manifest** | A wayfarer's active class package, baseline skills, and **Resonant** wildcard abilities |
-| **Combat Encounter** | **Trial / Astral Trial** | Tactical skirmish on the hex grid (`Sector {stage} Trial`) |
-| **Battle Outcome** | **Triumph / Eclipse** | Victory (incursion banished, starlight harvested) or Defeat (astral severance back to The Nexus) |
-| **Turn Timeline** | **Turn Queue / Initiative** | Continuous timeline ribbon and unit initiative gauge ordering tactical turns |
-| **Off-Node Milestone** | **Starlight Waypoint** | Luminous barycentric waypoints along constellation facet edges representing off-node milestones |
-| **Vital Surge Selection** | **Wayfarer Attunement** | Two-step modal choices conferring permanent defensive vital enhancements (*Bastion*, *Stride*, *Ward*, *Zenith*) |
-| **Ability Augmentation** | **Astral Augment Shard** | Socketable celestial modules bound to ability slots (0..4) enhancing active skills |
-| **Milestone Distinction** | **Wayfarer Rank** | Dynamic hero title suffix reflecting completed off-node milestones (e.g. `Warrior • Wayfarer I`) |
+| **Home Skyport Hub** | **The Nexus** | Primary camp hub (`CampHub`) where the **Company** gathers, rests, and prepares for tournament bouts |
+| **Active Team / Dock** | **The Staging Dais** | The raised river-stone dais where staged wayfarers prepare to take the field within the **Trial Budget** |
+| **Reserves Tray** | **Campfire Commons** | Warm hearth and tent courtyards where resting wayfarers wait to be staged or welcome new Novices |
+| **Playable Character** | **Wayfarer** | Everyday mortal travelers in the Company who grow through practice and camaraderie |
+| **Class Progression** | **The Constellation** | The 100-class celestial star chart guided by the **Triad of Traditions** (Force, Finesse, Focus) |
+| **Constellation Tooltip** | **Starlight Chart** | HUD readout inspecting requirements, passives, and active skills on constellation stars |
+| **Level-Up / Advancement** | **✦ Ascension** | Milestone reached when trail experience clicks into place (`✦ ASCENSION READY`) |
+| **Tactical Deck** | **Combat Manifest** | A wayfarer's attuned class package, baseline skills, and **Resonant** abilities |
+| **Combat Encounter** | **Bout** | Friendly tournament match on the **Trial Grounds** (`Trial {N}`) against **Rival Companies** |
+| **Bout Outcome** | **Triumph / Yield** | Victory (all rivals yield, bells sound twice) or Honorable Yield (company steps to the sidelines and regroups at The Nexus) |
+| **Unit KO (0 HP)** | **Yielded (`🏳️`)** | Contenders yield honorably to the sidelines when stamina runs out—no skull/death imagery |
+| **Difficulty Allowance** | **Trial Budget** | Point budget balancing the staged Company against opposing Rival Companies |
+| **Turn Timeline** | **Turn Queue / Initiative** | Continuous timeline ribbon and unit Initiative gauge ordering tactical turns (never show "CTB") |
+| **Off-Node Milestone** | **Starlight Waypoint** | Luminous barycentric waypoints along constellation facet edges representing off-node breakthroughs |
+| **Vital Surge Selection** | **Wayfarer Attunement** | Two-step modal choices conferring permanent poise and vital enhancements (*Bastion*, *Stride*, *Ward*, *Zenith*) |
+| **Ability Augmentation** | **Astral Augment Shard** | Socketable celestial shards bound to ability slots (0..4) enhancing active skills |
+| **Milestone Distinction** | **Wayfarer Rank** | Dynamic wayfarer title suffix reflecting completed off-node milestones (e.g. `Warrior • Wayfarer I`) |
 
 ---
 
@@ -61,8 +64,8 @@ Key class nodes in the Constellation and arena have thematic CSS color tokens in
 * **Player / Active Faction**:
   * `--color-player-active`: `#f59e0b` (Radiant Amber Gold — active turn halos, selected action outlines, `✦ ASCENSION READY` callouts)
   * `--color-player-ally`: `#06b6d4` (Luminous Cyan — friendly targeting reticles, teammate health bars, buff effects)
-* **Hostile / Enemy Faction**:
-  * `--color-hostile`: `#ef4444` (Vicious Crimson — enemy threat badges, hostile turn banners, attack targeting reticles)
+* **Rival / Opposing Faction**:
+  * `--color-hostile`: `#ef4444` (Rival Crimson — opposing contender badges, rival turn banners, attack targeting reticles)
   * `--color-hostile-glow`: `rgba(239, 68, 68, 0.4)`
 * **Vitals & Combat Resources**:
   * `--color-vital-hp`: `#22c55e` (Vitality Green)
@@ -72,7 +75,7 @@ Key class nodes in the Constellation and arena have thematic CSS color tokens in
 
 ### 2.4. Surfaces, Elevations & Glassmorphism
 
-* `--surface-app-bg`: `#06080e` (Deep Obsidian / Midnight Void)
+* `--surface-app-bg`: `#06080e` (Deep Twilight Canvas — scheduled for warmer indigo/violet pass in Phase 2)
 * `--surface-panel`: `rgba(15, 23, 42, 0.8)` (Translucent Slate Panel)
 * `--surface-panel-elevated`: `rgba(30, 41, 59, 0.85)` (Cards, Active Selectors)
 * `--surface-overlay`: `rgba(2, 6, 23, 0.75)` (Modal backdrops)

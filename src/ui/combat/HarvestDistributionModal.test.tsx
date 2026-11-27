@@ -54,17 +54,17 @@ describe('HarvestDistributionModal Component & autoFillPool', () => {
       );
 
       expect(html).toContain('harvest-modal-backdrop');
-      expect(html).toContain('Distribute Vanguard XP');
-      expect(html).toContain('✦ Harvest Trial Spoils');
+      expect(html).toContain('Share Trail Experience');
+      expect(html).toContain('✦ Bout Triumph — Bells Sound Twice!');
       expect(html).toContain('6 XP remaining to allocate');
       expect(html).toContain('hero-a');
       expect(html).toContain('hero-b');
       expect(html).toContain('hero-c');
       expect(html).toContain('disabled="" data-testid="harvest-confirm-btn"');
-      expect(html).toContain('✦ Proceed to Camp');
+      expect(html).toContain('✦ Return to The Nexus');
     });
 
-    it('renders DEFEAT modal with 50% retained pool and retreat messaging', () => {
+    it('renders DEFEAT modal with 50% retained pool and yield messaging', () => {
       const html = renderToStaticMarkup(
         <HarvestDistributionModal
           isOpen={true}
@@ -75,10 +75,10 @@ describe('HarvestDistributionModal Component & autoFillPool', () => {
         />
       );
 
-      expect(html).toContain('⚔️ Trial Retreat &amp; Salvage');
-      expect(html).toContain('Salvaged Experience');
+      expect(html).toContain('🏳️ Honorable Yield');
+      expect(html).toContain('Lessons from a Tough Bout');
       expect(html).toContain('4 XP remaining to allocate'); // 2 + 2 = 4
-      expect(html).toContain('↩ Retreat to Camp');
+      expect(html).toContain('⛺ Regroup at The Nexus');
     });
 
     it('renders immediately ready when earned pool is 0 XP', () => {

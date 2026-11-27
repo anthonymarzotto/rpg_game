@@ -241,13 +241,13 @@ export function formatAbilityEffectClause(
 
     case 'CTB_DELAY': {
       const mag = effect.magnitude ?? 15;
-      return buildClause(`Delays target CTB initiative by ${mag} ticks`, triggerLabel);
+      return buildClause(`Delays target Initiative by ${mag}`, triggerLabel);
     }
 
     case 'INITIATIVE_BOOST': {
       const mag = effect.magnitude ?? 10;
       const targetText = effect.targetScope === 'SELF' ? 'self' : scopePhrase;
-      return buildClause(`Boosts ${targetText} CTB initiative by +${mag} ticks`, triggerLabel);
+      return buildClause(`Boosts ${targetText} Initiative by +${mag}`, triggerLabel);
     }
 
     case 'FORCE_FACING':
@@ -357,7 +357,7 @@ export function formatAbilityEffectClause(
 
     case 'WILD_SURGE':
       return buildClause(
-        'Triggers spontaneous Wild Surge on crit (1d3: +1 AP, +25 CTB, or 2 magic dmg)',
+        'Triggers spontaneous Wild Surge on crit (1d3: +1 AP, +25 Initiative, or 2 magic dmg)',
         undefined
       );
 
@@ -433,9 +433,9 @@ function formatCompactEffectTag(effect: AbilityEffect): string | null {
     case 'LINE_PIERCE':
       return 'Pierce 1d4+FRC';
     case 'CTB_DELAY':
-      return `-${effect.magnitude ?? 15} CTB`;
+      return `-${effect.magnitude ?? 15} Init`;
     case 'INITIATIVE_BOOST':
-      return `+${effect.magnitude ?? 10} CTB`;
+      return `+${effect.magnitude ?? 10} Init`;
     case 'FORCE_FACING':
       return 'Force Face';
     case 'FORCE_FACING_AWAY':

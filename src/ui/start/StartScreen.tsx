@@ -75,12 +75,15 @@ export function StartScreen({
         <header className="start-screen-header">
           <div className="start-screen-emblem">✦</div>
           <h1 className="start-screen-title font-display">ASTRAL TACTICS</h1>
+          <p className="start-screen-subtitle font-ui">
+            Guide a traveling company through the Astral Tournaments of The Firmament
+          </p>
         </header>
 
         <div className="start-screen-actions">
           {isFull && (
             <div className="start-screen-full-warning font-ui" data-testid="start-screen-full-warning">
-              ⚠️ All 3 Expedition Vessels Bound. Manage archives to clear a slot.
+              ⚠️ All 3 Company Ledgers Full. Manage archives to clear a slot.
             </div>
           )}
 
@@ -92,7 +95,7 @@ export function StartScreen({
             aria-disabled={isFull}
             data-testid="start-new-game-btn"
           >
-            ✦ New Astral Expedition
+            ✦ Start New Company
           </button>
 
           <div className="start-screen-continue-group">
@@ -104,7 +107,7 @@ export function StartScreen({
               aria-disabled={!hasOccupiedSlots}
               data-testid="start-continue-btn"
             >
-              ✦ Resume Expedition
+              ✦ Resume Journey
             </button>
           </div>
 
@@ -115,7 +118,7 @@ export function StartScreen({
               onClick={() => setIsArchivesOpen(true)}
               data-testid="start-manage-archives-btn"
             >
-              ✦ Manage Archives &amp; Slots
+              ✦ Company Chronicles &amp; Slots
             </button>
           )}
         </div>

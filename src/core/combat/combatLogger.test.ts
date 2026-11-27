@@ -190,12 +190,12 @@ describe('combatLogger', () => {
     expect(entry.faction).toBe('ENEMY');
     expect(entry.actionId).toBe('defeat');
     expect(entry.affectedUnitIds).toEqual(['stage-1-enemy-1']);
-    expect(entry.message).toBe('Ash Thief was defeated by Burn!');
+    expect(entry.message).toBe('Ash Thief yielded to Burn!');
     expect(entry.metadata).toEqual({
       type: 'DEFEATED',
       actor: 'Ash Thief',
       condition: 'BURN',
-      cause: 'Defeated by Burn'
+      cause: 'Yielded to Burn'
     });
   });
 

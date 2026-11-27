@@ -45,9 +45,9 @@ export function ExpeditionWarRoom({
       {/* Header */}
       <div className="war-room-header">
         <div className="war-room-header-left">
-          <span className="war-room-badge font-mono">Astral Scrying & Recon</span>
+          <span className="war-room-badge font-mono">Upcoming Tournament Bout</span>
           <h2 className="war-room-stage-title font-display">
-            Stage {stage}: {encounter?.name ?? 'Approaching Trial'}
+            Trial {stage}: {encounter?.name ?? 'Approaching Bout'}
           </h2>
         </div>
         {onRerollEncounter && (
@@ -55,8 +55,8 @@ export function ExpeditionWarRoom({
             type="button"
             className="reroll-trial-btn font-ui"
             onClick={onRerollEncounter}
-            title="Re-roll Trial: Re-scry sector to reveal a different hostile layout"
-            aria-label="Re-roll Trial"
+            title="Find another match: Scout a different Rival Company bout"
+            aria-label="Scout Another Bout"
             data-testid="reroll-trial-btn"
           >
             ⟳
@@ -64,18 +64,18 @@ export function ExpeditionWarRoom({
         )}
       </div>
 
-      {/* Detected Hostiles / Intel */}
+      {/* Contenders / Intel */}
       <div className="war-room-intel-section">
         <div className="intel-section-title font-ui">
-          <span>Detected Hostiles ({enemyUnits.length})</span>
+          <span>Contenders ({enemyUnits.length})</span>
           <span className="threat-budget-pill font-mono">
-            Threat: {estimatedThreat || 30} pts
+            Budget: {estimatedThreat || 30} pts
           </span>
         </div>
 
         <div className="enemy-tokens-list">
           {enemyUnits.length === 0 ? (
-            <div className="text-muted font-ui">Scrying astral sector...</div>
+            <div className="text-muted font-ui">Scouting the Trial Grounds...</div>
           ) : (
             enemyUnits.map(({ unit }) => {
               const tokenSrc = resolveTokenAssetPath(unit);
@@ -101,25 +101,25 @@ export function ExpeditionWarRoom({
         </div>
       </div>
 
-      {/* Squad Readiness Check */}
+      {/* Staging Dais Readiness Check */}
       <div className="readiness-section">
         <div className="readiness-label font-ui">
-          <span>Vanguard Readiness:</span>
+          <span>Readiness:</span>
           <span className={isSquadReady ? 'readiness-status-ready' : 'readiness-status-empty'}>
             {activeSquadThreat != null
-              ? `${activeSquadCount} Ready (${activeSquadThreat} / ${stageBudget} Pts)`
-              : `${activeSquadCount} / 3 Wayfarers Ready`}
+              ? `${activeSquadCount} Staged (${activeSquadThreat} / ${stageBudget} Pts)`
+              : `${activeSquadCount} / 3 Wayfarers Staged`}
           </span>
         </div>
         {activeSquadCount < minSquadRequired && (
           <span className="readiness-warning font-ui">
-            Attune at least 1 wayfarer into the active vanguard before entering the trial.
+            Stage at least 1 wayfarer on The Staging Dais before entering the bout.
           </span>
         )}
       </div>
 
 
-      {/* Deploy Primary CTA */}
+      {/* Enter Bout Primary CTA */}
       <button
         type="button"
         className="deploy-squad-btn font-ui"
@@ -128,15 +128,15 @@ export function ExpeditionWarRoom({
         title={
           !isSquadReady
             ? activeSquadCount < minSquadRequired
-              ? 'Attune at least 1 wayfarer into the active vanguard before entering the trial.'
-              : `Vanguard threat (${activeSquadThreat} pts) exceeds stage deployment budget (${stageBudget} pts)`
+              ? 'Stage at least 1 wayfarer on The Staging Dais before entering the bout.'
+              : `Staged weight (${activeSquadThreat} pts) exceeds Trial Budget (${stageBudget} pts)`
             : isOverBudget && isDevEnvironment
-              ? `Enter the astral trial (Dev Mode: Vanguard threat ${activeSquadThreat} pts exceeds ${stageBudget} pts budget)`
-              : 'Enter the astral trial'
+              ? `Enter the tournament bout (Dev Mode: Staged weight ${activeSquadThreat} pts exceeds ${stageBudget} pts Trial Budget)`
+              : 'Step onto the Celestial Trial Grounds'
         }
         data-testid="deploy-squad-btn"
       >
-        ✦ ENTER TRIAL
+        ✦ ENTER BOUT
       </button>
     </aside>
   );

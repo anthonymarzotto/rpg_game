@@ -43,7 +43,7 @@ export function HeroMiniCard({
             <h4 className="mini-card-name font-ui">{unit.name}</h4>
             <span
               className="mini-threat-pill font-mono"
-              title={`Threat Value: ${unitThreat} Pts`}
+              title={`Trial Budget Weight: ${unitThreat} Pts`}
               data-testid={`reserve-threat-${unit.id}`}
             >
               {unitThreat} Pts
@@ -76,7 +76,7 @@ export function HeroMiniCard({
             onClick={() => onSelectForSwap(unit.id)}
             data-testid="reserve-slot-in-btn"
           >
-            Slot In
+            Stage Here
           </button>
         ) : onDeploy ? (
           <button
@@ -84,10 +84,10 @@ export function HeroMiniCard({
             className="mini-action-btn deploy font-ui"
             onClick={() => onDeploy(unit.id)}
             disabled={!canDeploy}
-            title={canDeploy ? 'Deploy to active vanguard' : 'Cannot deploy wayfarer'}
+            title={canDeploy ? 'Stage on The Staging Dais' : 'Cannot stage wayfarer'}
             data-testid="reserve-deploy-btn"
           >
-            Deploy
+            Stage
           </button>
         ) : null}
       </div>

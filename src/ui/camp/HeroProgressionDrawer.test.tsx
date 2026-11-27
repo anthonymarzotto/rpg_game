@@ -169,7 +169,7 @@ describe('HeroProgressionDrawer Component', () => {
       />
     );
 
-    expect(html).toContain('Ascension Ready: Channel 1 Astral Discipline Point');
+    expect(html).toContain('Ascension Ready: Follow a Guiding Star');
     expect(html).toContain('Ascend: Force');
     expect(html).toContain('Current: 5 XP');
     expect(html).not.toContain('Ascend: Finesse');
@@ -634,7 +634,7 @@ describe('HeroProgressionDrawer Component', () => {
       expect(html).toContain('Alden Starfall');
       expect(html).toContain('data-testid="hero-rename-trigger"');
       expect(html).toContain('✎');
-      expect(html).toContain('title="Rename Hero"');
+      expect(html).toContain('title="Rename Wayfarer"');
     });
 
     it('validates name constraints (2 to 24 characters, trimming whitespace)', () => {

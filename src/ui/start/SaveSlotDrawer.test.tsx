@@ -58,16 +58,16 @@ describe('SaveSlotDrawer Component', () => {
       />
     );
 
-    expect(html).toContain('EXPEDITION ARCHIVES');
+    expect(html).toContain('COMPANY CHRONICLES');
     expect(html).toContain('Expedition Slot 1');
     expect(html).toContain('Astral Guardians');
-    expect(html).toContain('Sector 3');
-    expect(html).toContain('4 Heroes');
-    expect(html).toContain('5 Triumphs / 1 Eclipses');
+    expect(html).toContain('Trial 3');
+    expect(html).toContain('4 Wayfarers');
+    expect(html).toContain('5 Triumphs / 1 Yields');
 
     // Slot 2 empty
     expect(html).toContain('Expedition Slot 2');
-    expect(html).toContain('Empty Astral Void');
+    expect(html).toContain('Open Starlight Path');
     expect(html).toContain('Import JSON');
 
     // Slot 3 corrupted

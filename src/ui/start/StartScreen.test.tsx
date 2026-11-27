@@ -5,12 +5,12 @@ import { SlotSummary } from '../../core/storage/types';
 import packageJson from '../../../package.json';
 
 describe('StartScreen Component', () => {
-  it('renders start screen with title, New Astral Expedition CTA, and version', () => {
+  it('renders start screen with title, Start New Company CTA, and version', () => {
     const onNewGame = vi.fn();
     const html = renderToStaticMarkup(<StartScreen onNewGame={onNewGame} />);
 
     expect(html).toContain('ASTRAL TACTICS');
-    expect(html).toContain('New Astral Expedition');
+    expect(html).toContain('Start New Company');
     expect(html).toContain(`v${packageJson.version}`);
     expect(html).toContain('data-testid="start-version-btn"');
   });
@@ -33,13 +33,13 @@ describe('StartScreen Component', () => {
     expect(html).not.toContain('disabled=""');
   });
 
-  it('disables New Astral Expedition button when isFull is true and shows warning', () => {
+  it('disables Start New Company button when isFull is true and shows warning', () => {
     const onNewGame = vi.fn();
     const html = renderToStaticMarkup(
       <StartScreen onNewGame={onNewGame} isFull={true} />
     );
 
-    expect(html).toContain('All 3 Expedition Vessels Bound');
+    expect(html).toContain('All 3 Company Ledgers Full');
     expect(html).toContain('disabled=""');
   });
 
@@ -69,7 +69,7 @@ describe('StartScreen Component', () => {
       <StartScreen onNewGame={vi.fn()} slotSummaries={mockSlots} />
     );
 
-    expect(html).toContain('Manage Archives &amp; Slots');
+    expect(html).toContain('Company Chronicles &amp; Slots');
     // Continue button should not be disabled because slot 1 is occupied
     const resumeBtnMatch = html.match(/data-testid="start-continue-btn"[^>]*>/);
     expect(resumeBtnMatch?.[0]).not.toContain('disabled=""');

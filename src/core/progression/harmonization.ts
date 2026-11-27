@@ -350,7 +350,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     name: 'Static Shard',
     category: 'INFUSION',
     compatibility: 'HOSTILE_TARGETING',
-    description: 'Infuses temporal static (delays target CTB clock by 15 ticks on hit/crit)',
+    description: 'Infuses temporal static (delays target Initiative by 15 on hit/crit)',
     icon: '⏳',
     modifier: {
       id: 'shard_static_shard',
@@ -672,7 +672,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     name: 'Repelling Shard',
     category: 'INFUSION',
     compatibility: 'HOSTILE_TARGETING',
-    description: 'Infuses repelling force (pushes target 1 hex and delays CTB by 15 ticks on hit/crit)',
+    description: 'Infuses repelling force (pushes target 1 hex and delays Initiative by 15 on hit/crit)',
     icon: '🌀',
     modifier: {
       id: 'shard_repelling_shard',
@@ -770,7 +770,7 @@ export const ASTRAL_AUGMENT_SHARDS: Record<AstralShardId, AstralAugmentShard> = 
     name: 'Hold-Up Shard',
     category: 'INFUSION',
     compatibility: 'HOSTILE_TARGETING',
-    description: 'Hijacks tempo (delays target CTB by 15 ticks and boosts user CTB by 10 ticks on hit/crit)',
+    description: 'Hijacks tempo (delays target Initiative by 15 and boosts user Initiative by 10 on hit/crit)',
     icon: '🎭',
     modifier: {
       id: 'shard_holdup_shard',

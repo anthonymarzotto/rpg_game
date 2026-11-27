@@ -344,8 +344,8 @@ export function CombatArena({
         {/* Top Testbed Bar */}
         <div className="testbed-top-bar">
           <div className="testbed-title-block">
-            <h2>✦ Astral Trial</h2>
-            <span className="testbed-badge">{activeEncounter.name ?? 'Celestial Trial'}</span>
+            <h2>🔔 Tournament Bout</h2>
+            <span className="testbed-badge">{activeEncounter.name ?? 'Celestial Bout'}</span>
           </div>
 
           {/* Dev Controls: Dice, Speed, Zoom */}
@@ -383,9 +383,9 @@ export function CombatArena({
                   type="button"
                   className="btn-arena-exit font-ui"
                   onClick={onExit}
-                  title="Return to Camp Hub"
+                  title="Return to The Nexus"
                 >
-                  ⛺ Camp
+                  ⛺ The Nexus
                 </button>
               )}
             </div>
@@ -455,20 +455,20 @@ export function CombatArena({
                   setIsHarvestModalOpen(true);
                 }}
               >
-                ✦ Harvest Spoils
+                ✦ Post-Bout Summary
               </button>
             )}
             <button
               type="button"
               className="btn-testbed export-btn font-ui"
               onClick={() => setIsExportModalOpen(true)}
-              title="Export trial state and AI decision telemetry for debugging"
+              title="Export bout state and AI decision telemetry for debugging"
               data-testid="btn-open-trial-export"
             >
-              📋 Export Trial
+              📋 Export Bout
             </button>
-            <button className="btn-testbed reset-btn" onClick={handleResetEncounter} title="Restores all units and HP to start">
-              ↺ Reset Trial
+            <button className="btn-testbed reset-btn" onClick={handleResetEncounter} title="Restores all contenders and HP to start">
+              ↺ Reset Bout
             </button>
           </div>
 
@@ -572,15 +572,15 @@ export function CombatArena({
           >
             <div className="deployment-status-block">
               <div className="deployment-badge-row">
-                <span className="deployment-phase-badge">🛡️ Vanguard Deployment</span>
+                <span className="deployment-phase-badge">✦ Opening Formation</span>
               </div>
               <span className="deployment-prompt-text">
                 {selectedDeploymentUnitId && state.units.get(selectedDeploymentUnitId) ? (
                   <>
-                    Deploying <strong>{state.units.get(selectedDeploymentUnitId)!.unit.name}</strong> — Click any highlighted West hex to move, or another ally to swap
+                    Staging <strong>{state.units.get(selectedDeploymentUnitId)!.unit.name}</strong> — Click any highlighted West hex to move, or another companion to swap
                   </>
                 ) : (
-                  'Select an ally and click any highlighted West hex to reposition or swap'
+                  'Select a companion and click any highlighted West hex to position or swap'
                 )}
               </span>
             </div>
@@ -590,7 +590,7 @@ export function CombatArena({
                 type="button"
                 className="btn-action deployment-auto-btn"
                 onClick={handleAutoArrangeDeployment}
-                title="Reset squad positions to role-aware tactical formation"
+                title="Reset company positions to role-aware formation"
                 data-testid="btn-deployment-auto-arrange"
               >
                 <span className="action-icon">🔀</span>
@@ -604,13 +604,13 @@ export function CombatArena({
                 type="button"
                 className="btn-action deployment-begin-btn"
                 onClick={handleConfirmDeployment}
-                title="Lock in positions and roll opening initiative"
+                title="Sound the opening bell and roll initiative"
                 data-testid="btn-begin-trial"
               >
-                <span className="action-icon">⚔️</span>
+                <span className="action-icon">🔔</span>
                 <div className="action-text-block">
-                  <span className="action-name">Begin Trial</span>
-                  <span className="action-cost">Roll Initiative</span>
+                  <span className="action-name">Begin Bout</span>
+                  <span className="action-cost">Opening Bell</span>
                 </div>
               </button>
             </div>

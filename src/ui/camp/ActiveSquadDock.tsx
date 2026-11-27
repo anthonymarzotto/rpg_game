@@ -40,10 +40,10 @@ export function ActiveSquadDock({
     <section className="active-squad-dock" data-testid="active-squad-dock">
       <header className="squad-dock-header">
         <h2 className="squad-dock-title font-display">
-          <span>✦ The Vanguard</span>
+          <span>✦ The Staging Dais</span>
           <span className="squad-count-badge font-mono" data-testid="vanguard-points-badge">
             {effectiveBudget != null
-              ? `${deployedThreat} / ${effectiveBudget} Pts (${activeSquad.length} Deployed)`
+              ? `${deployedThreat} / ${effectiveBudget} Pts (${activeSquad.length} Staged)`
               : `${activeSquad.length} / ${maxSquadSize ?? 3}`}
           </span>
         </h2>
@@ -72,9 +72,9 @@ export function ActiveSquadDock({
               data-testid={`empty-squad-slot-${index}`}
             >
               <div className="empty-slot-plus">+</div>
-              <span className="empty-slot-label font-ui">Vacant Conduit</span>
+              <span className="empty-slot-label font-ui">Open Dais Spot</span>
               <span className="empty-slot-hint font-ui">
-                Attune a reserve wayfarer to this conduit
+                Stage a wayfarer from Campfire Commons to take the field
               </span>
             </div>
           );
@@ -86,9 +86,9 @@ export function ActiveSquadDock({
             data-testid="vacant-budget-slot"
           >
             <div className="empty-slot-plus">+</div>
-            <span className="empty-slot-label font-ui">Deployment Available</span>
+            <span className="empty-slot-label font-ui">Room on the Dais</span>
             <span className="empty-slot-hint font-ui">
-              {effectiveBudget! - deployedThreat} pts remaining for auxiliary wayfarers
+              {effectiveBudget! - deployedThreat} pts remaining in Trial Budget
             </span>
           </div>
         )}

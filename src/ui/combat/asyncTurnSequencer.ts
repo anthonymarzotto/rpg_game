@@ -100,7 +100,7 @@ export function formatActionDescription(
   }
 
   const unspent = actor.currentAp;
-  return `${actorName} banks ${unspent} AP (+${unspent * 20} CTB)`;
+  return `${actorName} banks ${unspent} AP (+${unspent * 20} Initiative)`;
 }
 
 /**

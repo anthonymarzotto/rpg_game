@@ -80,7 +80,7 @@ export const GUST: Ability = {
 export const WILD_SURGE: PassiveTrait = {
   id: 'wild_surge',
   name: 'Wild Surge',
-  description: 'Landing a Critical Hit with a magic spell triggers a spontaneous wild magic surge (1d3: +1 AP, +25 CTB, or 2 collateral magic damage).',
+  description: 'Landing a Critical Hit with a magic spell triggers a spontaneous wild magic surge (1d3: +1 AP, +25 Initiative, or 2 collateral magic damage).',
   hook: 'ON_CRIT',
   triggerFilter: {
     damageType: 'MAGICAL'

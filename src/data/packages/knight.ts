@@ -90,7 +90,7 @@ export const POMMEL_STRIKE: Ability = {
 export const TACTICAL_VANGUARD: PassiveTrait = {
   id: 'tactical_vanguard',
   name: 'Tactical Vanguard',
-  description: 'Superior tactical readiness grants +25 starting CTB initiative gauge at the beginning of battle.',
+  description: 'Superior tactical readiness grants +25 starting Initiative at the beginning of a bout.',
   hook: 'BATTLE_START',
   effect: {
     type: 'INITIATIVE_BOOST',

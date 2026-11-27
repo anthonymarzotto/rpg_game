@@ -150,7 +150,7 @@ export function ActionBar({
           className={`btn-action move-btn ${actionMode === 'MOVE' ? 'active' : ''}`}
           disabled={currentAp < 1}
           onClick={() => onSelectAction(actionMode === 'MOVE' ? null : 'MOVE')}
-          title="Traverse the astral grid (costs 1 AP)"
+          title="Traverse the trial grounds (costs 1 AP)"
         >
           <span className="action-icon">🏃</span>
           <div className="action-text-block">

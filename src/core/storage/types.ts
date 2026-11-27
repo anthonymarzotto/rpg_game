@@ -7,9 +7,9 @@ export const SAVE_SLOT_IDS = ['slot-1', 'slot-2', 'slot-3'] as const;
 export type SaveSlotId = (typeof SAVE_SLOT_IDS)[number];
 
 export const SLOT_LABELS: Record<SaveSlotId, string> = {
-  'slot-1': 'Expedition Slot 1',
-  'slot-2': 'Expedition Slot 2',
-  'slot-3': 'Expedition Slot 3'
+  'slot-1': 'Company Slot 1',
+  'slot-2': 'Company Slot 2',
+  'slot-3': 'Company Slot 3'
 };
 
 export const STORAGE_DB_NAME = 'astral_tactics_db';

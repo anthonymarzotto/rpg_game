@@ -162,7 +162,7 @@ export function formatModifierBadge(mod: ActiveModifier): FormattedModifierBadge
     ruleText = `Modifies flat magical damage soak by ${mod.value > 0 ? `+${mod.value}` : mod.value}.`;
   } else if (mod.stat === 'speed') {
     icon = '⚡ ';
-    ruleText = `Modifies CTB initiative clock accumulation by ${mod.value > 0 ? `+${mod.value}` : mod.value}.`;
+    ruleText = `Modifies Initiative clock accumulation by ${mod.value > 0 ? `+${mod.value}` : mod.value}.`;
   } else if (mod.stat === 'evasion') {
     icon = '💨 ';
     ruleText = `Modifies physical To-Hit DC (EVA) by ${mod.value > 0 ? `+${mod.value}` : mod.value}.`;

@@ -30,15 +30,15 @@ At the western edge of the plateau, wide granite piers jut out into the open sky
 * **The First Step:** Wide-eyed [Novices](../factions/wayfarers.md) step off these luminous ramps carrying little more than canvas rucksacks, wooden bucklers, or simple iron swords.
 * **A Warm Welcome:** Rather than cold military inspections, newcomers are met by seasoned travelers pointing them toward warm fires, spare cloaks, and welcoming camps.
 
-### 2. The Campfire Commons (The Enclave)
+### 2. The Campfire Commons
 Spread across the terraced plazas are the living quarters of the traveling companies.
 * **Hearth & Pavilion:** Canvas tents, colorful guild awnings, and open firepits fill the courtyards. Companies hang their modest banners, cook hearty root stews, and string lutes under the perpetual twilight.
 * **Rest & Camaraderie:** Companions not currently taking the field spend their afternoons in the Commons—sharpening blades, repairing leather boots, studying star charts with their [Cosmic Sprite](../cosmology/cosmic_sprites.md), and cheering on friends.
 
-### 3. The Bout Staging Dais (The Vanguard)
+### 3. The Staging Dais
 At the heart of the central plaza rests a broad, raised circle of white river-stone carved with celestial compass lines.
-* **Taking the Field:** When a company is called to a tournament match, three companions step forward onto the staging dais to represent their company as the day's active vanguard.
-* **The Sprite's Beacon:** Hovering between the three chosen companions, their Cosmic Sprite pulses with encouraging light, harmonizing their senses before they embark toward the [Trial Grounds](trial_grounds.md).
+* **Taking the Field:** When a company is called to a tournament bout, staged companions step forward onto the staging dais to represent their company on the trial grounds.
+* **The Sprite's Beacon:** Hovering between the staged companions, their Cosmic Sprite pulses with encouraging light, harmonizing their senses before they embark toward the [Trial Grounds](trial_grounds.md).
 
 ---
 

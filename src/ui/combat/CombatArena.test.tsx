@@ -15,13 +15,13 @@ describe('CombatArena', () => {
     );
 
     // Header & controls
-    expect(html).toContain('Astral Trial');
-    expect(html).toContain('Novice Astral Trial');
-    expect(html).toContain('Export Trial');
+    expect(html).toContain('Tournament Bout');
+    expect(html).toContain('Novice Sparring Bout');
+    expect(html).toContain('Export Bout');
     expect(html).toContain('data-testid="btn-open-trial-export"');
     expect(html).toContain('data-testid="btn-toggle-dice-tray"');
     expect(html).toContain('🎲 Tray: ALL');
-    expect(html).toContain('Reset Trial');
+    expect(html).toContain('Reset Bout');
 
     // Arena container & canvas
     expect(html).toContain('combat-arena-container');
@@ -118,11 +118,11 @@ describe('CombatArena', () => {
     const html = renderToStaticMarkup(<CombatArena encounter={encounter} onExit={vi.fn()} />);
 
     expect(html).toContain('data-testid="deployment-bar"');
-    expect(html).toContain('Vanguard Deployment');
+    expect(html).toContain('Opening Formation');
     expect(html).toContain('data-testid="btn-deployment-auto-arrange"');
     expect(html).toContain('Auto-Arrange');
     expect(html).toContain('data-testid="btn-begin-trial"');
-    expect(html).toContain('Begin Trial');
+    expect(html).toContain('Begin Bout');
     expect(html).toContain('deployment-zone-tile');
   });
 });

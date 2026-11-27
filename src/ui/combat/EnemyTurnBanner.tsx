@@ -26,14 +26,14 @@ export function EnemyTurnBanner({
             className="enemy-turn-avatar-img pixel-art"
           />
         ) : (
-          <span className="enemy-turn-avatar-fallback" role="img" aria-label="Hostile unit">🎯</span>
+          <span className="enemy-turn-avatar-fallback" role="img" aria-label="Rival contender">🎯</span>
         )}
       </div>
 
       {/* Unit Identification */}
       <div className="enemy-turn-identity">
         <div className="enemy-turn-tag-row">
-          <span className="enemy-badge">Enemy Turn</span>
+          <span className="enemy-badge">Rival Turn</span>
         </div>
         <span className="enemy-turn-name">{activeCu.unit.name}</span>
       </div>
@@ -42,7 +42,7 @@ export function EnemyTurnBanner({
       <div className="enemy-intent-pill">
         <span className="enemy-intent-pulse" />
         <span className="enemy-intent-text">
-          {actionDescription ?? 'Scrutinizing the astral field...'}
+          {actionDescription ?? 'Sizing up the trial grounds...'}
         </span>
       </div>
 

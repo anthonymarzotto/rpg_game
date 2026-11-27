@@ -27,26 +27,26 @@ describe('CampHub Integration Test Suite', () => {
 
     // Header elements
     expect(html).toContain('THE NEXUS');
-    expect(html).toContain('Sector 1');
+    expect(html).toContain('Trial 1');
     expect(html).toContain('Triumphs: 0');
-    expect(html).toContain('Eclipses: 0');
+    expect(html).toContain('Yields: 0');
     expect(html).toContain('Return to Portal');
 
-    // Active squad dock with 3 units
-    expect(html).toContain('The Vanguard');
-    expect(html).toContain('30 / 30 Pts (3 Deployed)');
+    // Staging Dais with 3 units
+    expect(html).toContain('The Staging Dais');
+    expect(html).toContain('30 / 30 Pts (3 Staged)');
     for (const unit of campaign.roster) {
       expect(html).toContain(unit.name);
     }
 
-    // Expedition war room
-    expect(html).toContain('Astral Scrying &amp; Recon');
-    expect(html).toContain('ENTER TRIAL');
+    // Upcoming bout panel
+    expect(html).toContain('Upcoming Tournament Bout');
+    expect(html).toContain('ENTER BOUT');
 
-    // Reserve barracks tray
-    expect(html).toContain('The Enclave');
-    expect(html).toContain('+ Awaken Novice');
-    expect(html).toContain('No wayfarers in The Enclave. Awaken a Novice to expand your roster!');
+    // Campfire Commons tray
+    expect(html).toContain('Campfire Commons');
+    expect(html).toContain('+ Welcome Novice');
+    expect(html).toContain('Campfire Commons is quiet. Welcome a Novice from the Starlight Docks!');
 
     // Progression drawer is closed initially
     expect(html).not.toContain('Hero Progression:');
@@ -76,7 +76,7 @@ describe('CampHub Integration Test Suite', () => {
     // Reserve hero should now be listed in reserve barracks
     expect(html).toContain(reserveHero!.name);
     expect(html).toContain('1 Wayfarer');
-    expect(html).not.toContain('No wayfarers in The Enclave. Awaken a Novice to expand your roster!');
+    expect(html).not.toContain('Campfire Commons is quiet. Welcome a Novice from the Starlight Docks!');
   });
 
   it('reflects benching and deployment state changes (Smart Two-Way Swapping)', () => {
@@ -95,13 +95,13 @@ describe('CampHub Integration Test Suite', () => {
       />
     );
 
-    // Squad has 2 heroes deployed, within stage 1 budget (75 pts)
-    expect(htmlWithEmptySlot).toContain('2 Deployed');
-    expect(htmlWithEmptySlot).toContain('Deployment Available');
+    // Squad has 2 heroes staged, within trial 1 budget
+    expect(htmlWithEmptySlot).toContain('2 Staged');
+    expect(htmlWithEmptySlot).toContain('Room on the Dais');
 
-    // HeroC is in reserve and shows Deploy button because active squad threat < budget
+    // HeroC is in Campfire Commons and shows Stage button
     expect(htmlWithEmptySlot).toContain(heroC.name);
-    expect(htmlWithEmptySlot).toContain('Deploy');
+    expect(htmlWithEmptySlot).toContain('Stage');
 
     // Swap heroB with heroC
     campaign = setCampActiveSquad(campaign, [heroA.id, heroC.id]);
@@ -117,7 +117,7 @@ describe('CampHub Integration Test Suite', () => {
 
     expect(htmlSwapped).toContain(heroA.name);
     expect(htmlSwapped).toContain(heroC.name);
-    expect(htmlSwapped).toContain('Deployment Available');
+    expect(htmlSwapped).toContain('Room on the Dais');
     // HeroB is now in reserve
     expect(htmlSwapped).toContain('1 Wayfarer');
   });
@@ -172,9 +172,9 @@ describe('CampHub Integration Test Suite', () => {
       />
     );
 
-    expect(html).toContain('ENTER TRIAL');
-    expect(html).toContain('Threat:');
-    expect(html).toContain('Detected Hostiles');
+    expect(html).toContain('ENTER BOUT');
+    expect(html).toContain('Budget:');
+    expect(html).toContain('Contenders');
     expect(html).not.toContain('disabled=""');
   });
 
@@ -192,7 +192,7 @@ describe('CampHub Integration Test Suite', () => {
     );
 
     expect(htmlWithSave).toContain('camp-save-btn');
-    expect(htmlWithSave).toContain('✦ Save Expedition');
+    expect(htmlWithSave).toContain('✦ Save Journey');
 
     const htmlWithoutSave = renderToStaticMarkup(
       <CampHub
@@ -225,10 +225,10 @@ describe('CampHub Integration Test Suite', () => {
         onUpdateCampaign={vi.fn()}
       />
     );
-    expect(htmlOverBudgetDev).toContain('75 / 30 Pts (3 Deployed)');
+    expect(htmlOverBudgetDev).toContain('75 / 30 Pts (3 Staged)');
     expect(htmlOverBudgetDev).not.toContain('disabled=""');
     expect(htmlOverBudgetDev).toContain(
-      'title="Enter the astral trial (Dev Mode: Vanguard threat 75 pts exceeds 30 pts budget)"'
+      'title="Enter the tournament bout (Dev Mode: Staged weight 75 pts exceeds 30 pts Trial Budget)"'
     );
 
     // On production hostname, threat cap is strictly enforced
@@ -244,11 +244,11 @@ describe('CampHub Integration Test Suite', () => {
           onUpdateCampaign={vi.fn()}
         />
       );
-      expect(htmlOverBudget).toContain('75 / 30 Pts (3 Deployed)');
+      expect(htmlOverBudget).toContain('75 / 30 Pts (3 Staged)');
       expect(htmlOverBudget).toContain('1 Wayfarer');
-      expect(htmlOverBudget).toContain('Withdraw');
+      expect(htmlOverBudget).toContain('Rest');
       // War room deploy button is disabled with over-budget tooltip and no inline warning
-      expect(htmlOverBudget).toContain('title="Vanguard threat (75 pts) exceeds stage deployment budget (30 pts)"');
+      expect(htmlOverBudget).toContain('title="Staged weight (75 pts) exceeds Trial Budget (30 pts)"');
       expect(htmlOverBudget).not.toContain('readiness-warning');
 
       // Bench hero 0: remaining squad is still over budget (2 * 25 = 50 > 30 pts)
@@ -262,10 +262,10 @@ describe('CampHub Integration Test Suite', () => {
           onUpdateCampaign={vi.fn()}
         />
       );
-      expect(htmlAfterBench).toContain('50 / 30 Pts (2 Deployed)');
-      expect(htmlAfterBench).toContain('2 Wayfarers'); // Hero 0 and Hero 3 are now in The Enclave
+      expect(htmlAfterBench).toContain('50 / 30 Pts (2 Staged)');
+      expect(htmlAfterBench).toContain('2 Wayfarers'); // Hero 0 and Hero 3 are now in Campfire Commons
       // Still over budget -> disabled with updated tooltip
-      expect(htmlAfterBench).toContain('title="Vanguard threat (50 pts) exceeds stage deployment budget (30 pts)"');
+      expect(htmlAfterBench).toContain('title="Staged weight (50 pts) exceeds Trial Budget (30 pts)"');
 
       // Bench hero 1: squad is now 1 * 25 = 25 <= 30 pts (within budget!)
       campaign = setCampActiveSquad(campaign, [promotedRoster[2].id]);
@@ -278,10 +278,10 @@ describe('CampHub Integration Test Suite', () => {
           onUpdateCampaign={vi.fn()}
         />
       );
-      expect(htmlWithinBudget).toContain('25 / 30 Pts (1 Deployed)');
-      expect(htmlWithinBudget).toContain('3 Wayfarers'); // Heroes 0, 1, and 3 are now in The Enclave
+      expect(htmlWithinBudget).toContain('25 / 30 Pts (1 Staged)');
+      expect(htmlWithinBudget).toContain('3 Wayfarers'); // Heroes 0, 1, and 3 are now in Campfire Commons
       // Now within budget -> deploy button is enabled with active title tooltip!
-      expect(htmlWithinBudget).toContain('title="Enter the astral trial"');
+      expect(htmlWithinBudget).toContain('title="Step onto the Celestial Trial Grounds"');
     } finally {
       delete (globalThis as unknown as { window?: unknown }).window;
     }
@@ -291,7 +291,7 @@ describe('CampHub Integration Test Suite', () => {
     const initial = createCampaign({ seed: 750, initialSquadSize: 4 });
     const [heroA, heroB, heroC, heroD] = initial.roster;
     // Squad starts with heroA, heroB, heroC (30 / 30 pts)
-    // heroD is in reserve (The Enclave)
+    // heroD is in reserve (Campfire Commons)
     const campaignWithReserve = {
       ...initial,
       activeSquadIds: [heroA.id, heroB.id, heroC.id]
@@ -303,9 +303,9 @@ describe('CampHub Integration Test Suite', () => {
         onUpdateCampaign={vi.fn()}
       />
     );
-    // HeroD in reserve has an enabled Deploy button even if deploying brings squad over budget (40 / 30 pts)
+    // HeroD in reserve has an enabled Stage button even if staging brings squad over budget (40 / 30 pts)
     expect(htmlAtBudget).toContain(heroD.name);
-    expect(htmlAtBudget).toContain('title="Deploy to active vanguard"');
+    expect(htmlAtBudget).toContain('title="Stage on The Staging Dais"');
 
     // Deploying heroD brings squad to 40 / 30 pts
     const campaignOverBudget = setCampActiveSquad(campaignWithReserve, [...campaignWithReserve.activeSquadIds, heroD.id]);
@@ -318,10 +318,10 @@ describe('CampHub Integration Test Suite', () => {
         onUpdateCampaign={vi.fn()}
       />
     );
-    expect(htmlOverBudget).toContain('40 / 30 Pts (4 Deployed)');
+    expect(htmlOverBudget).toContain('40 / 30 Pts (4 Staged)');
   });
 
-  it('renders reroll trial button in the expedition war room', () => {
+  it('renders reroll bout button in the upcoming tournament bout card', () => {
     const campaign = createCampaign({ seed: 42 });
     const html = renderToStaticMarkup(
       <CampHub
@@ -332,7 +332,7 @@ describe('CampHub Integration Test Suite', () => {
     );
 
     expect(html).toContain('data-testid="reroll-trial-btn"');
-    expect(html).toContain('Re-roll Trial');
+    expect(html).toContain('Scout Another Bout');
   });
 });
 

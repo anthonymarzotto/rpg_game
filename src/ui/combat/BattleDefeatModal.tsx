@@ -22,10 +22,10 @@ export function BattleDefeatModal({
       <div className="defeat-modal-card">
         {/* Header */}
         <div className="defeat-header">
-          <span className="defeat-title-badge">⚔️ Vanguard Defeated</span>
-          <h2>The Trial Was Lost</h2>
+          <span className="defeat-title-badge">🏳️ Bout Concluded</span>
+          <h2>Your Company Yielded</h2>
           <p className="defeat-subtitle">
-            All wayfarers in The Vanguard have fallen. Returning to The Nexus to regroup.
+            All staged wayfarers have yielded to the sidelines. Heading back to The Nexus to rest.
           </p>
         </div>
 
@@ -49,7 +49,7 @@ export function BattleDefeatModal({
                 <span className="defeat-member-name">
                   {unit.name.split(' ')[0]}
                 </span>
-                <span className="defeat-member-status">Fallen</span>
+                <span className="defeat-member-status">Yielded</span>
               </div>
             );
           })}
@@ -63,11 +63,11 @@ export function BattleDefeatModal({
               onClick={onRetreatToCamp}
               data-testid="defeat-retreat-camp-btn"
             >
-              ⛺ Retreat to The Nexus
+              ⛺ Return to The Nexus
             </button>
           ) : (
             <button className="btn-defeat-retry" onClick={onRetry}>
-              ↺ Retry Trial
+              ↺ Rematch Bout
             </button>
           )}
         </div>

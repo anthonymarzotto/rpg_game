@@ -101,7 +101,7 @@ describe('HeroCard Component', () => {
     expect(html).toContain('✦ Ascend');
   });
 
-  it('renders disabled Withdraw button when canBench is false', () => {
+  it('renders disabled Rest button when canBench is false', () => {
     const unit = makeMockUnit();
     const onInspect = vi.fn();
     const onBench = vi.fn();
@@ -110,6 +110,6 @@ describe('HeroCard Component', () => {
     );
 
     expect(html).toContain('disabled=""');
-    expect(html).toContain('Withdraw');
+    expect(html).toContain('Rest');
   });
 });

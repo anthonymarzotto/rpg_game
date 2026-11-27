@@ -48,7 +48,7 @@ export function HeroCard({
             <h3 className="hero-card-name font-display">{unit.name}</h3>
             <span
               className="hero-threat-pill font-mono"
-              title={`Threat Value: ${unitThreat} Pts`}
+              title={`Trial Budget Weight: ${unitThreat} Pts`}
               data-testid={`hero-threat-${unit.id}`}
             >
               {unitThreat} Pts
@@ -148,10 +148,10 @@ export function HeroCard({
             className="hero-action-btn secondary font-ui"
             onClick={() => onBench(unit.id)}
             disabled={!canBench}
-            title={canBench ? 'Return to The Enclave' : 'Cannot withdraw the only wayfarer in The Vanguard'}
+            title={canBench ? 'Rest in Campfire Commons' : 'Cannot rest the only wayfarer on The Staging Dais'}
             data-testid="hero-bench-btn"
           >
-            Withdraw
+            Rest
           </button>
         )}
       </div>

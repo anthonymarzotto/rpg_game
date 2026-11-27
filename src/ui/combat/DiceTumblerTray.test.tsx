@@ -256,7 +256,7 @@ describe('DiceTumblerTray Component', () => {
 
     expect(settledHtml).toContain('0/14');
     expect(settledHtml).toContain('clash-defeated-skull-overlay');
-    expect(settledHtml).toContain('💀');
+    expect(settledHtml).toContain('🏳️');
     expect(settledHtml).toContain('clash-defeated');
   });
 

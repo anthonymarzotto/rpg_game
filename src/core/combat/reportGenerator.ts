@@ -78,7 +78,7 @@ export function generateTrialMarkdownReport(
     const statusBadges: string[] = [];
 
     if (cu.isDefeated) {
-      statusBadges.push('💀 DEFEATED');
+      statusBadges.push('🏳️ YIELDED');
     }
     if (cu.activeConditions && cu.activeConditions.length > 0) {
       statusBadges.push(...cu.activeConditions.map((c) => c.type));

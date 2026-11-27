@@ -56,7 +56,7 @@ export const SHADOW_STEP: Ability = {
 export const QUICKSTEP: PassiveTrait = {
   id: 'quickstep',
   name: 'Quickstep',
-  description: 'Incredible agility grants +2 Speed, drastically reducing the ticks required to generate actions in the CTB turn clock.',
+  description: 'Incredible agility grants +2 Speed, drastically reducing the ticks required to generate actions in the Initiative turn clock.',
   hook: 'ALWAYS',
   statModifiers: {
     speed: 2

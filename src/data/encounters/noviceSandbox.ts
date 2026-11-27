@@ -137,40 +137,40 @@ export function createNoviceSandboxEncounter(
     starterAbilityIds: ['spark', 'arcane_blast', 'minor_ward']
   };
 
-  // 4. Enemy Brute A (adjacent frontline at 1, 0)
+  // 4. Rival Squire A (adjacent frontline at 1, 0)
   const enemyA = createSandboxEnemy(
     'dummy-a',
-    'Bandit Brute A',
+    'Riverbend Squire A',
     'warrior',
     ['quick_thrust'],
     ['strike', 'quick_thrust'],
     { maxHp: 25, speed: 8, armor: 2 }
   );
 
-  // 5. Enemy Skirmisher B (behind fighter at 2, 0)
+  // 5. Rival Scout B (behind fighter at 2, 0)
   const enemyB = createSandboxEnemy(
     'dummy-b',
-    'Bandit Skirmisher B',
+    'Lantern Scout B',
     'thief',
     ['throw_dart', 'strike'],
     ['strike', 'throw_dart'],
     { maxHp: 20, speed: 9, evasion: 12, armor: 1 }
   );
 
-  // 6. Screened Cultist C (at 0, 3 behind rock obstacle at 0, 2)
+  // 6. Academy Apprentice C (at 0, 3 behind rock obstacle at 0, 2)
   const enemyC = createSandboxEnemy(
     'dummy-c',
-    'Screened Cultist C',
+    'Academy Apprentice C',
     'wizard',
     ['spark', 'minor_ward'],
     ['spark', 'minor_ward'],
     { maxHp: 20, speed: 7, ward: 2, resolve: 12, armor: 0 }
   );
 
-  // 7. Enemy Infiltrator D (at 3, -2)
+  // 7. Guild Skirmisher D (at 3, -2)
   const enemyD = createSandboxEnemy(
     'dummy-d',
-    'Shadow Infiltrator D',
+    'Guild Skirmisher D',
     'infiltrator',
     ['smoke_veil', 'toxic_shiv'],
     ['smoke_veil', 'toxic_shiv', 'skirmish'],
@@ -179,7 +179,7 @@ export function createNoviceSandboxEncounter(
 
   return {
     id: 'novice-sandbox',
-    name: 'Novice Astral Trial',
+    name: 'Novice Sparring Bout',
     arenaRadius: 4,
     tileOverrides: [
       // High Crest Ridge (h = 2)
@@ -210,7 +210,7 @@ export function createNoviceSandboxEncounter(
     objectives: [
       {
         id: 'rout_enemies',
-        description: 'Defeat all hostile combatants',
+        description: 'Bring all rival contenders to yield',
         condition: { kind: 'FACTION_DEFEATED', faction: 'ENEMY' }
       }
     ]

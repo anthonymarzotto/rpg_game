@@ -70,7 +70,7 @@ const NOVICE_CLASS_DEF: ClassDefinition = {
   no: '--',
   id: 'novice',
   name: 'Novice',
-  description: 'An uninitiated recruit beginning their journey across the celestial lattice.',
+  description: 'A fresh arrival from the Starlight Docks, ready to discover their craft on the trail.',
   requirements: { fighter: 0, rogue: 0, mage: 0 },
   totalPoints: 0
 };
@@ -724,7 +724,7 @@ export function HeroProgressionDrawer({
                       className="btn-rename-hero"
                       onClick={handleStartRename}
                       data-testid="hero-rename-trigger"
-                      title="Rename Hero"
+                      title="Rename Wayfarer"
                     >
                       ✎
                     </button>
@@ -777,7 +777,7 @@ export function HeroProgressionDrawer({
             {levelStatus.isReady && (
               <div className="drawer-level-up-box" data-testid="drawer-level-up-box">
                 <h4 className="level-up-box-title font-ui">
-                  ✦ Ascension Ready: Channel 1 Astral Discipline Point ({levelStatus.threshold} XP)
+                  ✦ Ascension Ready: Follow a Guiding Star (+1 Tradition Point • {levelStatus.threshold} XP)
                 </h4>
                 <div className="level-up-archetype-options">
                   {levelStatus.qualifyingArchetypes.includes('FIGHTER') && (() => {
@@ -930,13 +930,13 @@ export function HeroProgressionDrawer({
                   ) : (
                     <div className="scanner-body idle">
                       <div className="scanner-header">
-                        <span className="scanner-idle-title font-ui">✦ Node Scanner</span>
-                        <span className="scanner-idle-badge font-mono">STANDBY</span>
+                        <span className="scanner-idle-title font-ui">✦ Starlight Chart</span>
+                        <span className="scanner-idle-badge font-mono">OBSERVING</span>
                       </div>
                       <p className="scanner-idle-desc font-ui">
-                        Hover over any node to analyze requirements &amp; status.
+                        Hover over any star to inspect its tradition &amp; path.
                       </p>
-                      <span className="scanner-idle-hint font-mono">Click node to pin</span>
+                      <span className="scanner-idle-hint font-mono">Click star to pin</span>
                     </div>
                   )}
                 </div>

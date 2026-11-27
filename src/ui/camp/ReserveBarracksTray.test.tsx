@@ -46,9 +46,9 @@ describe('ReserveBarracksTray Component', () => {
       />
     );
 
-    expect(html).toContain('The Enclave');
+    expect(html).toContain('Campfire Commons');
     expect(html).toContain('2 Wayfarers');
-    expect(html).toContain('+ Awaken Novice');
+    expect(html).toContain('+ Welcome Novice');
     expect(html).toContain('Garrick');
     expect(html).toContain('Kaelen');
     expect(html).toContain('10 Pts');
@@ -57,7 +57,7 @@ describe('ReserveBarracksTray Component', () => {
     expect(html).toContain('Ascension Ready (1)');
   });
 
-  it('renders swap guidance banner and Slot In buttons when in swap mode', () => {
+  it('renders swap guidance banner and Stage Here buttons when in swap mode', () => {
     const heroes = [makeMockHero('h1', 'Garrick')];
 
     const html = renderToStaticMarkup(
@@ -72,9 +72,9 @@ describe('ReserveBarracksTray Component', () => {
       />
     );
 
-    expect(html).toContain('Select a wayfarer from The Enclave to attune in place of');
+    expect(html).toContain('Select a wayfarer from Campfire Commons to stage in place of');
     expect(html).toContain('Roland');
-    expect(html).toContain('Slot In');
+    expect(html).toContain('Stage Here');
     expect(html).toContain('Cancel Swap');
   });
 
@@ -89,6 +89,6 @@ describe('ReserveBarracksTray Component', () => {
       />
     );
 
-    expect(html).toContain('No wayfarers in The Enclave. Awaken a Novice');
+    expect(html).toContain('Campfire Commons is quiet. Welcome a Novice');
   });
 });

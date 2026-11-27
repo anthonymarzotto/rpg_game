@@ -189,7 +189,7 @@ export function App() {
       }
       const battleResult: CampaignBattleResult = {
         encounterId: campaignState.currentEncounter?.id ?? `stage-${campaignState.stage}`,
-        encounterName: campaignState.currentEncounter?.name ?? `Stage ${campaignState.stage}`,
+        encounterName: campaignState.currentEncounter?.name ?? `Trial ${campaignState.stage}`,
         outcome: 'VICTORY',
         unitXpGains
       };
@@ -208,7 +208,7 @@ export function App() {
       }
       const battleResult: CampaignBattleResult = {
         encounterId: campaignState.currentEncounter?.id ?? `stage-${campaignState.stage}`,
-        encounterName: campaignState.currentEncounter?.name ?? `Stage ${campaignState.stage}`,
+        encounterName: campaignState.currentEncounter?.name ?? `Trial ${campaignState.stage}`,
         outcome: 'DEFEAT',
         unitXpGains: result.unitXpGains ?? {}
       };
@@ -260,7 +260,7 @@ export function App() {
                   setIsDevMenuOpen(false);
                 }}
               >
-                ⛺ Astral Hub
+                ⛺ The Nexus
               </button>
               <button
                 type="button"
@@ -270,7 +270,7 @@ export function App() {
                   setIsDevMenuOpen(false);
                 }}
               >
-                ⚔️ Astral Trial
+                🔔 Standalone Bout
               </button>
             </div>
           )}
@@ -280,7 +280,7 @@ export function App() {
       {/* Dev Mode Banner when in isolated sandbox views (Localhost only) */}
       {isDevEnvironment && currentView === 'DEV_SANDBOX' && (
         <div className="app-dev-banner font-ui">
-          <span>🛠️ Developer Mode: Standalone Astral Trial</span>
+          <span>🛠️ Developer Mode: Standalone Bout</span>
           <button
             type="button"
             className="app-dev-back-btn"

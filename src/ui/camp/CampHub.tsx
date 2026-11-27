@@ -127,11 +127,11 @@ export function CampHub({
       <header className="camp-hub-header">
         <div className="camp-header-left">
           <span className="camp-brand font-display">✦ THE NEXUS</span>
-          <span className="camp-stage-badge font-mono">Sector {campaign.stage}</span>
+          <span className="camp-stage-badge font-mono">Trial {campaign.stage}</span>
         </div>
         <div className="camp-header-stats font-mono">
           <span className="camp-stat-win">Triumphs: {campaign.history.victories}</span>
-          <span className="camp-stat-loss">Eclipses: {campaign.history.defeats}</span>
+          <span className="camp-stat-loss">Yields: {campaign.history.defeats}</span>
         </div>
         <div className="camp-header-actions">
           {onSaveCampaign && (
@@ -140,14 +140,14 @@ export function CampHub({
               className={`camp-save-btn font-ui ${saveStatus === 'saved' ? 'saved' : ''}`}
               onClick={handleSave}
               disabled={saveStatus === 'saving'}
-              title="Save expedition progress"
+              title="Save company progress"
               data-testid="camp-save-btn"
             >
               {saveStatus === 'saving'
                 ? '✦ Saving...'
                 : saveStatus === 'saved'
                 ? '✦ Saved!'
-                : '✦ Save Expedition'}
+                : '✦ Save Journey'}
             </button>
           )}
           {onExitToTitle && (

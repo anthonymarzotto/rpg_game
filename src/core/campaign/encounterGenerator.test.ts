@@ -28,7 +28,7 @@ describe('Procedural Encounter Generator', () => {
     expect(encounter.objectives).toEqual([
       {
         id: 'rout_enemies',
-        description: 'Defeat all hostile combatants',
+        description: 'Bring all rival contenders to yield',
         condition: { kind: 'FACTION_DEFEATED', faction: 'ENEMY' }
       }
     ]);

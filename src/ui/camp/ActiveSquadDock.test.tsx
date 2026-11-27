@@ -42,11 +42,11 @@ describe('ActiveSquadDock Component', () => {
       />
     );
 
-    expect(html).toContain('The Vanguard');
-    expect(html).toContain('20 / 30 Pts (2 Deployed)');
+    expect(html).toContain('The Staging Dais');
+    expect(html).toContain('20 / 30 Pts (2 Staged)');
     expect(html).toContain('Roland');
     expect(html).toContain('Lyra');
-    expect(html).toContain('Deployment Available');
+    expect(html).toContain('Room on the Dais');
     expect(html).toContain('10 pts remaining');
   });
 
@@ -65,7 +65,7 @@ describe('ActiveSquadDock Component', () => {
     expect(html).toContain('2 / 3');
     expect(html).toContain('Roland');
     expect(html).toContain('Lyra');
-    expect(html).toContain('Vacant Conduit');
+    expect(html).toContain('Open Dais Spot');
   });
 
   it('renders all 3 hero cards without vacant hint when squad uses full budget', () => {
@@ -84,10 +84,10 @@ describe('ActiveSquadDock Component', () => {
       />
     );
 
-    expect(html).toContain('30 / 30 Pts (3 Deployed)');
+    expect(html).toContain('30 / 30 Pts (3 Staged)');
     expect(html).toContain('Roland');
     expect(html).toContain('Lyra');
     expect(html).toContain('Vael');
-    expect(html).not.toContain('Deployment Available');
+    expect(html).not.toContain('Room on the Dais');
   });
 });

@@ -530,7 +530,7 @@ describe('parseCombatLogMessage', () => {
         amount: 15
       });
       expect(ctb.icon).toBe('⏩');
-      expect(ctb.pillText).toBe('+15 CTB');
+      expect(ctb.pillText).toBe('+15 Init');
       expect(ctb.tone).toBe('buff');
 
       const armor = presentEffectOutcome({
@@ -1708,7 +1708,7 @@ describe('parseCombatLogMessage', () => {
 
       expect(html).toContain('log-defeated-card');
       expect(html).toContain('faction-player');
-      expect(html).toContain('💀 DEFEATED');
+      expect(html).toContain('🏳️ YIELDED');
       expect(html).toContain('Cinder Novice');
       expect(html).toContain('Defeated by Burn');
     });

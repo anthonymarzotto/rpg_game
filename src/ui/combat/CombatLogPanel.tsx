@@ -505,12 +505,12 @@ export function presentEffectOutcome(outcome: EffectOutcome): EffectOutcomePrese
       const signed = isBoost ? `+${outcome.amount}` : `-${outcome.amount}`;
       return {
         icon: isBoost ? '⏩' : '⏳',
-        pillText: `${signed} CTB`,
+        pillText: `${signed} Init`,
         tone: isBoost ? 'buff' : 'debuff',
-        tooltipTitle: isBoost ? 'Initiative Boost' : 'CTB Delay',
+        tooltipTitle: isBoost ? 'Initiative Boost' : 'Initiative Delay',
         tooltipRows: [
           {
-            label: 'CTB Gauge',
+            label: 'Initiative Gauge',
             value: signed,
             tone: isBoost ? 'positive' : 'negative'
           }
@@ -1261,7 +1261,7 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
               ? `No actions logged for ${unitOptions.find((u) => u.id === selectedUnitId)?.name ?? 'this unit'
               } yet.`
               : filter === 'ALL'
-                ? '⚔️ Trial started. Nothing logged yet.'
+                ? '🔔 Opening bell rung. Awaiting first maneuver.'
                 : filter === 'COMBAT'
                   ? 'No combat logged yet.'
                   : 'No moves logged yet.'}
@@ -1647,7 +1647,7 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                       ? '⚔️ CHALLENGE DEFIED'
                       : `⚡ ${entry.condition} BROKEN`;
                 const contextNote = isSourceDefeated
-                  ? entry.rawMessage || `${condUpper} cleared because its source unit was defeated.`
+                  ? entry.rawMessage || `${condUpper} cleared because its source yielded.`
                   : isStealth
                     ? 'Concealment lost due to taking damage!'
                     : isChallenged
@@ -1720,14 +1720,14 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                   >
                     <div className="log-card-header">
                       <span className="log-turn-pill">T{entry.turn}</span>
-                      <span className="log-defeated-badge">💀 DEFEATED</span>
+                      <span className="log-defeated-badge">🏳️ YIELDED</span>
                       <span className={`log-actor-name ${factionActorClass}`}>
                         {entry.actor}
                       </span>
                     </div>
 
                     <div className="log-card-secondary log-defeated-footer">
-                      <span className="secondary-icon">☠️</span>
+                      <span className="secondary-icon">🏳️</span>
                       <span className="secondary-text">{entry.cause}</span>
                     </div>
                   </div>
@@ -1808,7 +1808,7 @@ export function CombatLogPanel({ logEntries, turnNumber, combatants, initialUnit
                         <>
                           <span className="log-turn-divider-badge">Turn {entry.turn}</span>
                           <span className="log-turn-divider-actor">
-                            {entryActor ? entryActor : entry.faction === 'PLAYER' ? 'Player Turn' : 'Enemy Turn'}
+                            {entryActor ? entryActor : entry.faction === 'PLAYER' ? 'Company Turn' : 'Rival Turn'}
                           </span>
                         </>
                       )}

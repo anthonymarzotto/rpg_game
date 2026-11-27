@@ -18,8 +18,35 @@
 
 ## 🎯 Next Up
 
-### 4. No penalty for unit retreat/death
-When a unit is defeated in the arena, there's no penalty. Permadeath is too punishing for right now and is a point on the Roadmap to flesh out, but some sort of punishment seems warranted.
+### Lore Alignment Pass (Phase 1 — Docs, UI Copy & Naming)
+Align `GLOSSARY.md`, `DESIGN.md`, UI copy, and procedural naming/encounters with the hopeful twilight tournament lore in `docs/lore/`.
+
+**Locked-In Canonical Swaps & Scope:**
+- **Setting & Persona**: `The Firmament`, `Grand Conjunction`, `Astral Tournaments`, `Falling Star's Favor`, `Cosmic Sprite` (player persona)
+- **Player Group**: `Company`
+- **Active Team / Dock**: `The Staging Dais` (retire *The Vanguard* and *Conduit*)
+- **Reserves**: `Campfire Commons` (retire *The Enclave*)
+- **Roster Swap**: `Stage / Rest` (reserve *Attune* for Constellations/Classes)
+- **Recruiting**: `Welcome Novice` from *The Starlight Docks* (retire *Awaken Novice*)
+- **Progression Depth**: `Trial {N}` (retire *Sector {N}*)
+- **Combat / Arena**: `Bout` on the `Trial Grounds`
+- **Opponents**: Frame all current generated bouts as `Rival Companies`; document `Trial Guardians` in the Glossary for future construct/boss bouts
+- **Difficulty Points**: `Trial Budget` (retire *Threat Budget* / *Threat*)
+- **Bout Outcomes**: `Triumphs / Yields` (retire *Eclipses*)
+- **Unit KO (0 HP)**: `Yielded` with `🏳️` (retire *Fallen* / *Defeated* and `💀` / `☠️`)
+- **Constellation Tooltip**: `Starlight Chart` (retire *Node Scanner*)
+- **Naming (`src/data/names.ts`)**: Remove grim recruit epithets & occult enemy adjectives; use grounded hometown/craft/starlight surnames and Rival Company/guild prefixes; keep recruit first names male/neutral (matching current male sprites)
+- **Out of Scope**: Keep existing class, ability, and shard names as-is (only fix leaked `CTB` → `Initiative` wording in tooltips/logs/shard descriptions)
+
+**Execution Checklist:**
+- [X] Update `docs/architecture/GLOSSARY.md` and `DESIGN.md` with the canonical terminology above (and tidy parenthetical aliases in `docs/lore/world/the_nexus.md` if needed)
+- [X] Apply UI copy pass across Start/Archives (`StartScreen`, `SaveSlotDrawer`, `storage/types`), Nexus (`CampHub`, `ActiveSquadDock`, `ReserveBarracksTray`, `HeroCard`, `HeroMiniCard`, `ExpeditionWarRoom`), Progression (`HeroProgressionDrawer`, `OffNodeChoiceModal`), and Bout UI (`CombatArena`, `EnemyTurnBanner`, `HarvestDistributionModal`, `BattleDefeatModal`, `DiceTumblerTray`, `CombatLogPanel`, `combatLogger`, `UnitStatusCard`, `harmonization`)
+- [X] Update procedural naming & encounter framing (`src/data/names.ts`, `src/core/campaign/campaignFactory.ts`, `src/core/campaign/encounterGenerator.ts`, `src/data/encounters/noviceSandbox.ts`) + update affected tests
+
+### Lore Alignment Pass (Phase 2 — Visuals & Codex, Later)
+- [ ] Twilight indigo/violet + warm lantern palette pass (`src/styles/tokens.css`, `StartScreen.css`, `CampHub.css`)
+- [ ] Cosmic Sprite UI presence & Campfire Commons staging visuals (pairs with **UX.16** below)
+- [ ] In-game **Astral Codex** modal backed by `docs/lore/` frontmatter
 
 ---
 
@@ -49,6 +76,8 @@ When a unit is defeated in the arena, there's no penalty. Permadeath is too puni
    - Something about using "50 for a new character, but I'm not sure how to get a new character". This might refer to Threat. On the next Trial he could use units up to 50 more threat?
    - "Distribute evenly" is really not an optimal way to spread XP in this game. Ideally its dump as much in to one stat per unit to get them to their next level.
    - He didn't know to click "Move" to take a Move action. "Its typically a default."
+- [ ] **I.5**: No penalty for unit retreat/death
+   - When a unit is defeated in the arena, there's no penalty. Permadeath is too punishing for right now and is a point on the Roadmap to flesh out, but some sort of punishment seems warranted.
 
 ---
 

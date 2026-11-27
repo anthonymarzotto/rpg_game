@@ -443,9 +443,9 @@ export const DiceTumblerTray: React.FC<DiceTumblerTrayProps> = ({
                 <span
                   className="clash-defeated-skull-overlay"
                   data-testid="clash-defeated-badge"
-                  aria-label="Defeated"
+                  aria-label="Yielded"
                 >
-                  💀
+                  🏳️
                 </span>
               )}
             </div>

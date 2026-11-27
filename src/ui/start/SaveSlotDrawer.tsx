@@ -67,7 +67,7 @@ export function SaveSlotDrawer({
         <header className="save-drawer-header">
           <div className="save-drawer-title-group">
             <span className="save-drawer-emblem">✦</span>
-            <h2 className="save-drawer-title font-display">EXPEDITION ARCHIVES</h2>
+            <h2 className="save-drawer-title font-display">COMPANY CHRONICLES</h2>
           </div>
           <button
             type="button"
@@ -81,7 +81,7 @@ export function SaveSlotDrawer({
         </header>
 
         <p className="save-drawer-subtitle font-ui">
-          Manage your journeys across the cosmos. Select an expedition to resume, or export/import backup archives.
+          Manage your traveling companies across The Firmament. Select a journey to resume, or export/import backup archives.
         </p>
 
         {errorMessage && (
@@ -114,28 +114,28 @@ export function SaveSlotDrawer({
                   <div className="save-slot-header-line">
                     <span className="save-slot-badge font-mono">{slot.label}</span>
                     {!slot.isEmpty && !slot.isCorrupted && slot.stage && (
-                      <span className="save-slot-stage font-ui">Sector {slot.stage}</span>
+                      <span className="save-slot-stage font-ui">Trial {slot.stage}</span>
                     )}
                   </div>
 
                   {slot.isEmpty ? (
                     <div className="save-slot-empty-label font-ui">
-                      ✦ Empty Astral Void
+                      ✦ Open Starlight Path
                     </div>
                   ) : slot.isCorrupted ? (
                     <div className="save-slot-corrupted-label font-ui">
                       ⚠️ Incompatible Save Version
                       <span className="save-slot-subtext font-mono">
-                        Clear slot to reclaim this vessel.
+                        Clear slot to start a new company.
                       </span>
                     </div>
                   ) : (
                     <div className="save-slot-details">
                       <div className="save-slot-name font-display">{slot.campaignName}</div>
                       <div className="save-slot-meta font-mono">
-                        <span>{slot.rosterCount} Heroes</span>
+                        <span>{slot.rosterCount} Wayfarers</span>
                         <span>•</span>
-                        <span>{slot.victories} Triumphs / {slot.defeats} Eclipses</span>
+                        <span>{slot.victories} Triumphs / {slot.defeats} Yields</span>
                       </div>
                       {slot.savedAt && (
                         <div className="save-slot-timestamp font-mono">
@@ -226,7 +226,7 @@ export function SaveSlotDrawer({
                           className="save-slot-btn icon-danger font-ui"
                           onClick={() => setConfirmDeleteSlotId(slot.slotId)}
                           data-testid={`slot-delete-btn-${slot.slotId}`}
-                          title="Delete this expedition"
+                          title="Delete this company"
                         >
                           ✖
                         </button>
