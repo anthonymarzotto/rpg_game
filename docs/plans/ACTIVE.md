@@ -9,11 +9,24 @@ Nothing to see here.
 
 ---
 
-## 🎯 Next Up
+## 🎯 Next Up/Chores
+- [ ] Shards:
+   - [ ] Add Shards for new class abilities.
+   - [ ] Should some shards make skills cost extra AP?
+- [ ] Tier 5 Classes
+   - [ ] **C5.1**: Pugilist
+   - [ ] **C5.2**: Weapon Master
+   - [ ] **C5.3**: Sentinel
+   - [ ] **C5.4**: Cutpurse
+   - [ ] **C5.5**: Acolyte
+   - [ ] **C5.6**: Spy
+   - [ ] **C5.7**: Sage
+   - [ ] **C5.8**: Stalker
+   - [ ] **C5.9**: Seer
 
 ---
 
-## 🎨 UX Updates (Next: 28)
+## 🎨 UX Updates
 - [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close (re-assess after pacing & clash stage update).
 - [ ] **UX.15**: Make Vanguard Squad area in Post Trial XP distribution dialog scrollable.
 - [ ] **UX.16**: More interesting Vanguard area. Maybe some sort of campfire with the unit sprites randomly gathered around. Maybe animated milling about?
@@ -24,10 +37,8 @@ Nothing to see here.
    - In a Trial, the Target Preview card does not show the target's HP even though many other cards here do. It also says "Soak" which could probably be more accurately Armor/Ward depending the type of attack.
    - None of the Unit detail cards inside a Trial seem to show Force/Focus/Finesse.
    - Need a general pass over all the places that we show unit stats and assess what really is important to see there.
-
----
-
-## 🐛 Bugs (Next: 23)
+- [ ] **UX.28**: Make the Shard selection interface better. Ideas would be things like tabs for the different types of shards, sorting alphabetically, etc.
+- [ ] **UX.29**:
 
 ---
 
@@ -38,6 +49,7 @@ Nothing to see here.
 - [ ] **B.20**: The Dragoon's Dragon Dive and Wyrmflame Breath currently exclude friendly units. They should follow standard AoE rules and hit friendly units if they are present.
 - [ ] **B.21**: Combat Log: Description text in Buff Status pill overflows (e.g. Stealth pill, "Conceals the unit...")
 - [ ] **B.22**: Combat Log: Some of the pills show "SOLID_HIT" rather than nicely formatted text.
+- [ ] **B.23**:
 
 ---
 
