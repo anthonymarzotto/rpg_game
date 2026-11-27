@@ -11,6 +11,9 @@ describe('StartScreen Component', () => {
 
     expect(html).toContain('ASTRAL TACTICS');
     expect(html).toContain('Start New Company');
+    expect(html).toContain('📖 Astral Codex');
+    expect(html).toContain('data-testid="start-codex-btn"');
+    expect(html).not.toContain('data-testid="astral-codex-overlay"');
     expect(html).toContain(`v${packageJson.version}`);
     expect(html).toContain('data-testid="start-version-btn"');
   });

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { SaveSlotId, SlotSummary } from '../../core/storage/types';
 import { SaveSlotDrawer } from './SaveSlotDrawer';
 import { ChangelogModal } from './ChangelogModal';
+import { AstralCodexModal } from '../common/AstralCodexModal';
 import packageJson from '../../../package.json';
 import './StartScreen.css';
 
@@ -32,6 +33,7 @@ export function StartScreen({
 }: StartScreenProps) {
   const [isArchivesOpen, setIsArchivesOpen] = useState(false);
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
+  const [isCodexOpen, setIsCodexOpen] = useState(false);
 
   const hasOccupiedSlots = slotSummaries
     ? slotSummaries.some((s) => !s.isEmpty && !s.isCorrupted)
@@ -121,6 +123,15 @@ export function StartScreen({
               ✦ Company Chronicles &amp; Slots
             </button>
           )}
+
+          <button
+            type="button"
+            className="start-screen-codex-btn font-ui"
+            onClick={() => setIsCodexOpen(true)}
+            data-testid="start-codex-btn"
+          >
+            📖 Astral Codex
+          </button>
         </div>
 
         <footer className="start-screen-footer">
@@ -139,6 +150,11 @@ export function StartScreen({
       <ChangelogModal
         isOpen={isChangelogOpen}
         onClose={() => setIsChangelogOpen(false)}
+      />
+
+      <AstralCodexModal
+        isOpen={isCodexOpen}
+        onClose={() => setIsCodexOpen(false)}
       />
 
       {slotSummaries && (

@@ -144,6 +144,28 @@
   background: rgba(14, 165, 233, 0.1);
 }
 
+.start-screen-codex-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--color-text-muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.start-screen-codex-btn:hover {
+  border-color: var(--border-highlight);
+  color: var(--color-lantern-warm);
+  background: rgba(246, 196, 120, 0.1);
+}
+
 .start-screen-full-warning {
   font-size: 0.8rem;
   color: #fca5a5;

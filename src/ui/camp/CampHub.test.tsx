@@ -30,6 +30,9 @@ describe('CampHub Integration Test Suite', () => {
     expect(html).toContain('Trial 1');
     expect(html).toContain('Triumphs: 0');
     expect(html).toContain('Yields: 0');
+    expect(html).toContain('📖 Astral Codex');
+    expect(html).toContain('data-testid="camp-codex-btn"');
+    expect(html).not.toContain('data-testid="astral-codex-overlay"');
     expect(html).toContain('Return to Portal');
 
     // Staging Dais with 3 units

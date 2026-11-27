@@ -73,6 +73,28 @@
   gap: 0.75rem;
 }
 
+.camp-codex-btn {
+  background: rgba(246, 196, 120, 0.1);
+  border: 1px solid rgba(246, 196, 120, 0.32);
+  color: var(--color-lantern-warm);
+  padding: 0.35rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.camp-codex-btn:hover {
+  background: rgba(246, 196, 120, 0.2);
+  border-color: var(--color-lantern-warm);
+  box-shadow: 0 0 12px rgba(246, 196, 120, 0.22);
+  color: #fff;
+}
+
 .camp-save-btn {
   background: rgba(14, 165, 233, 0.15);
   border: 1px solid rgba(14, 165, 233, 0.4);

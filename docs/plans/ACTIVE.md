@@ -5,6 +5,7 @@
 ---
 
 ## 🔨 In Progress
+- [X] **Astral Codex (`astral-codex`)**: In-game lore compendium modal backed by `docs/lore/` frontmatter, accessible from Start Screen & The Nexus.
 - [X] **3.6**: **Arcanist** (`#96`, Tier 4: `0F, 1R, 3M`), `96_human_male`.
 - [X] **3.5**: **Theurge** (`#79`, Tier 4: `1F, 0R, 3M`), `79_human_male`.
 - [X] **B.15**: If a unit is Challenged and the challenging unit dies, the Challenged status should clear (also covering `CHARMED` and `HENOSIS` with Combat Log cards).
@@ -46,7 +47,6 @@ Align `GLOSSARY.md`, `DESIGN.md`, UI copy, and procedural naming/encounters with
 ### Lore Alignment Pass (Phase 2 — Visuals & Codex, Later)
 - [X] Twilight indigo/violet + warm lantern palette pass (`src/styles/tokens.css`, `StartScreen.css`, `CampHub.css`)
 - [ ] Cosmic Sprite UI presence & Campfire Commons staging visuals (pairs with **UX.16** below)
-- [ ] In-game **Astral Codex** modal backed by `docs/lore/` frontmatter
 
 ---
 

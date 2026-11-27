@@ -7,6 +7,7 @@ import { ActiveSquadDock } from './ActiveSquadDock';
 import { ExpeditionWarRoom } from './ExpeditionWarRoom';
 import { ReserveBarracksTray } from './ReserveBarracksTray';
 import { HeroProgressionDrawer } from './HeroProgressionDrawer';
+import { AstralCodexModal } from '../common/AstralCodexModal';
 import './CampHub.css';
 
 export interface CampHubProps {
@@ -27,6 +28,7 @@ export function CampHub({
   const [swappingHeroId, setSwappingHeroId] = useState<string | null>(null);
   const [inspectingHeroId, setInspectingHeroId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [isCodexOpen, setIsCodexOpen] = useState(false);
 
   const handleSave = useCallback(async () => {
     if (!onSaveCampaign || saveStatus === 'saving') return;
@@ -134,6 +136,15 @@ export function CampHub({
           <span className="camp-stat-loss">Yields: {campaign.history.defeats}</span>
         </div>
         <div className="camp-header-actions">
+          <button
+            type="button"
+            className="camp-codex-btn font-ui"
+            onClick={() => setIsCodexOpen(true)}
+            title="Open Astral Codex"
+            data-testid="camp-codex-btn"
+          >
+            📖 Astral Codex
+          </button>
           {onSaveCampaign && (
             <button
               type="button"
@@ -214,6 +225,11 @@ export function CampHub({
           onUpdateCampaign={onUpdateCampaign}
         />
       )}
+
+      <AstralCodexModal
+        isOpen={isCodexOpen}
+        onClose={() => setIsCodexOpen(false)}
+      />
     </div>
   );
 }

@@ -2,6 +2,13 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.26.0] - 2026-11-26
+
+### Astral Codex & Firmament Worldbuilding
+- **In-Game Astral Codex**: Added the **Astral Codex**—a new lore compendium accessible directly from the Start Screen and **The Nexus** header. Browse entries across **World**, **Cosmology**, **Factions**, and **Bestiary**, explore the Triad of Guiding Stars, and jump seamlessly between topics using clickable inline cross-links and **Related Entries** tags.
+- **Firmament Tournament Framing & Naming**: Refreshed menus, camp hubs, bout screens, tooltips, and procedural Wayfarer and Rival Company names to reflect the hopeful twilight tournament world of **The Firmament**—introducing **The Staging Dais**, **Campfire Commons**, **Starlight Chart**, unified **Initiative** wording, and honorable **Yielded** (`🏳️`) outcomes.
+- **Twilight Indigo & Warm Lantern Palette**: Restyled screens, panels, cards, and modals in deeper twilight indigo and violet tones accented with warm lantern gold and rose-nebula highlights while keeping battlefield readability crisp.
+
 ## [0.25.2] - 2026-11-25
 
 ### Zeroed In Visibility & Passive HUD Polish
