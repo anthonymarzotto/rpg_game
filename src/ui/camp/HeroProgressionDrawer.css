@@ -58,7 +58,7 @@
   justify-content: space-between;
   padding: 0.85rem 1.5rem;
   border-bottom: 1px solid var(--border-subtle);
-  background: rgba(15, 23, 42, 0.95);
+  background: rgba(19, 17, 38, 0.95);
   flex-shrink: 0;
   gap: 1.25rem;
 }

@@ -27,7 +27,7 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.25rem 0.6rem;
-  background: rgba(15, 23, 42, 0.7);
+  background: var(--surface-panel);
   backdrop-filter: var(--blur-panel);
   -webkit-backdrop-filter: var(--blur-panel);
   border: 1px solid var(--border-subtle);
@@ -42,7 +42,7 @@
 .app-dev-toggle-btn:hover {
   color: var(--color-text-main);
   border-color: var(--border-highlight);
-  background: rgba(30, 41, 59, 0.85);
+  background: var(--surface-panel-elevated);
 }
 
 .app-dev-menu {

@@ -44,7 +44,7 @@ Align `GLOSSARY.md`, `DESIGN.md`, UI copy, and procedural naming/encounters with
 - [X] Update procedural naming & encounter framing (`src/data/names.ts`, `src/core/campaign/campaignFactory.ts`, `src/core/campaign/encounterGenerator.ts`, `src/data/encounters/noviceSandbox.ts`) + update affected tests
 
 ### Lore Alignment Pass (Phase 2 — Visuals & Codex, Later)
-- [ ] Twilight indigo/violet + warm lantern palette pass (`src/styles/tokens.css`, `StartScreen.css`, `CampHub.css`)
+- [X] Twilight indigo/violet + warm lantern palette pass (`src/styles/tokens.css`, `StartScreen.css`, `CampHub.css`)
 - [ ] Cosmic Sprite UI presence & Campfire Commons staging visuals (pairs with **UX.16** below)
 - [ ] In-game **Astral Codex** modal backed by `docs/lore/` frontmatter
 

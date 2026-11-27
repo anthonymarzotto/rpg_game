@@ -4,7 +4,11 @@
   width: 100%;
   height: 100%;
   min-height: 100vh;
-  background: radial-gradient(circle at 50% 15%, #131b2e 0%, var(--surface-app-bg) 80%);
+  background:
+    radial-gradient(ellipse at 50% 8%, rgba(124, 92, 214, 0.20) 0%, transparent 52%),
+    radial-gradient(ellipse at 50% 96%, rgba(245, 158, 11, 0.11) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 25%, rgba(216, 150, 180, 0.10) 0%, transparent 45%),
+    linear-gradient(180deg, #171535 0%, #11122a 55%, var(--surface-app-bg) 100%);
   color: var(--color-text-main);
   box-sizing: border-box;
   overflow-x: hidden;
@@ -40,7 +44,7 @@
 
 .camp-stage-badge {
   padding: 0.25rem 0.75rem;
-  background: rgba(30, 41, 59, 0.9);
+  background: var(--surface-panel-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
   font-size: 0.82rem;
@@ -104,7 +108,7 @@
 }
 
 .camp-exit-btn {
-  background: rgba(30, 41, 59, 0.7);
+  background: var(--surface-panel-soft);
   border: 1px solid var(--border-subtle);
   color: var(--color-text-muted);
   padding: 0.35rem 0.85rem;
@@ -116,7 +120,7 @@
 }
 
 .camp-exit-btn:hover {
-  background: rgba(51, 65, 85, 0.9);
+  background: var(--surface-panel-elevated);
   color: var(--color-text-main);
   border-color: var(--border-highlight);
 }

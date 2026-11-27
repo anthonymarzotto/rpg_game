@@ -1,7 +1,7 @@
 .harvest-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(4, 7, 13, 0.88);
+  background: var(--surface-overlay);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
@@ -26,12 +26,12 @@
   max-width: 820px;
   max-height: 92vh;
   overflow-y: auto;
-  background: linear-gradient(180deg, #111827 0%, #0a0d14 100%);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(245, 158, 11, 0.15);
+  background: linear-gradient(180deg, #1b1836 0%, #110f24 100%);
+  border: 1px solid rgba(246, 196, 120, 0.35);
+  box-shadow: 0 0 40px rgba(7, 5, 20, 0.8), 0 0 24px rgba(246, 196, 120, 0.14);
   border-radius: 14px;
   padding: 1.5rem;
-  color: #f3f4f6;
+  color: var(--color-text-main);
   font-family: inherit;
   display: flex;
   flex-direction: column;

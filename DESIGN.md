@@ -75,14 +75,17 @@ Key class nodes in the Constellation and arena have thematic CSS color tokens in
 
 ### 2.4. Surfaces, Elevations & Glassmorphism
 
-* `--surface-app-bg`: `#06080e` (Deep Twilight Canvas — scheduled for warmer indigo/violet pass in Phase 2)
-* `--surface-panel`: `rgba(15, 23, 42, 0.8)` (Translucent Slate Panel)
-* `--surface-panel-elevated`: `rgba(30, 41, 59, 0.85)` (Cards, Active Selectors)
-* `--surface-overlay`: `rgba(2, 6, 23, 0.75)` (Modal backdrops)
-* `--border-subtle`: `rgba(255, 255, 255, 0.08)` (Default 1px divider)
-* `--border-highlight`: `rgba(255, 255, 255, 0.2)` (Hover state)
+* `--surface-app-bg`: `#0d0f1f` (Deep Twilight Indigo Canvas)
+* `--surface-panel`: `rgba(24, 22, 46, 0.82)` (Dusty Twilight Slate Panel)
+* `--surface-panel-elevated`: `rgba(38, 33, 66, 0.86)` (Lifted Dusk Violet — Cards, Active Selectors)
+* `--surface-panel-soft`: `rgba(20, 18, 40, 0.65)` (Nested sub-cards, avatar frames, open dais spots)
+* `--surface-overlay`: `rgba(9, 8, 22, 0.80)` (Twilight Veil Modal Backdrop)
+* `--color-lantern-warm`: `#f6c478` (Warm Lantern Highlight & Glow)
+* `--color-rose-nebula`: `#d896b4` (Rose-Gold Horizon & Yield Accent)
+* `--border-subtle`: `rgba(226, 208, 255, 0.12)` (Default 1px twilight hairline divider)
+* `--border-highlight`: `rgba(246, 211, 168, 0.28)` (Warm lantern hover state)
 * `--border-focus-gold`: `#f59e0b` (Active selection ring)
-* `--shadow-glass`: `0 8px 32px 0 rgba(0, 0, 0, 0.37)`
+* `--shadow-glass`: `0 8px 32px 0 rgba(7, 5, 20, 0.45)`
 * `--blur-panel`: `blur(12px)`
 
 ### 2.5. Tactical Elevation Visuals & Badges

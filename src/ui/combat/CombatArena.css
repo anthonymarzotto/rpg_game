@@ -9,8 +9,8 @@
   flex: 1;
   min-height: 0;
   box-sizing: border-box;
-  background-color: #030712;
-  color: #f8fafc;
+  background-color: var(--surface-app-bg);
+  color: var(--color-text-main);
   overflow: hidden;
   font-family: var(--font-ui);
   user-select: none;
@@ -41,9 +41,9 @@
   inset: 0;
   background: radial-gradient(
     circle at 50% 45%,
-    rgba(15, 23, 42, 0.38) 0%,
-    rgba(7, 11, 22, 0.70) 55%,
-    rgba(3, 7, 18, 0.92) 100%
+    rgba(22, 18, 46, 0.30) 0%,
+    rgba(15, 13, 34, 0.62) 55%,
+    rgba(11, 10, 26, 0.86) 100%
   );
   pointer-events: none;
   z-index: 1;

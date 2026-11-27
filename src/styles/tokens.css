@@ -54,30 +54,35 @@
   --color-vital-ctb:     #38bdf8;
 
   /* ------------------------------------------------------------------------
-     Typography Colors
+     Typography Colors (Starlight & Soft Twilight Neutrals)
      ------------------------------------------------------------------------ */
-  --color-text-main:        #f3f4f6;
-  --color-text-muted:       #9ca3af;
-  --color-text-dim:         #6b7280;
+  --color-text-main:        #f5f3fa;
+  --color-text-muted:       #b8b2cc;
+  --color-text-dim:         #857ea0;
 
   /* ------------------------------------------------------------------------
-     Surfaces & Glassmorphism
+     Twilight Firmament Surfaces & Warm Lantern Glassmorphism
      ------------------------------------------------------------------------ */
-  --surface-app-bg:         #06080e;
-  --surface-panel:          rgba(15, 23, 42, 0.8);
-  --surface-panel-elevated: rgba(30, 41, 59, 0.85);
-  --surface-overlay:        rgba(2, 6, 23, 0.75);
+  --surface-app-bg:         #0d0f1f;
+  --surface-panel:          rgba(24, 22, 46, 0.82);
+  --surface-panel-elevated: rgba(38, 33, 66, 0.86);
+  --surface-panel-soft:     rgba(20, 18, 40, 0.65);
+  --surface-overlay:        rgba(9, 8, 22, 0.80);
 
   /* Card aliases for constellation and modal stylesheets */
-  --bg-deep:                #080a10;
-  --bg-card:                rgba(18, 22, 34, 0.85);
-  --border-card:            rgba(255, 255, 255, 0.1);
+  --bg-deep:                #111024;
+  --bg-card:                rgba(28, 25, 52, 0.86);
+  --border-card:            rgba(226, 208, 255, 0.14);
 
-  --border-subtle:          rgba(255, 255, 255, 0.08);
-  --border-highlight:       rgba(255, 255, 255, 0.2);
+  /* Lantern & Horizon Accents */
+  --color-lantern-warm:     #f6c478;
+  --color-rose-nebula:      #d896b4;
+
+  --border-subtle:          rgba(226, 208, 255, 0.12);
+  --border-highlight:       rgba(246, 211, 168, 0.28);
   --border-focus-gold:      #f59e0b;
 
-  --shadow-glass:           0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --shadow-glass:           0 8px 32px 0 rgba(7, 5, 20, 0.45);
   --blur-panel:             blur(12px);
 
   /* ------------------------------------------------------------------------
