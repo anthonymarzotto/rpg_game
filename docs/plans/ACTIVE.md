@@ -17,7 +17,7 @@ Nothing to see here.
 - [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close (re-assess after pacing & clash stage update).
 - [ ] **UX.15**: Make Vanguard Squad area in Post Trial XP distribution dialog scrollable.
 - [ ] **UX.16**: More interesting Vanguard area. Maybe some sort of campfire with the unit sprites randomly gathered around. Maybe animated milling about?
-- [ ] **UX.26**: "The Enclave" should scroll vertically, not horizontally.
+- [ ] **UX.26**: "Campfire Commons" should scroll vertically, not horizontally.
 - [ ] **UX.27**: Most Character Cards don't show the most relevant information.
    - In the Vanguard I want to see important stats like Force/Finesse/Focus, Armor, Ward, Evasion, etc. The HP bar is much too prominent given that all units are full HP here. XP is not too important.
    - In the Character Details dialog, here I do want to see more info about XP. It would also be nice to see all their stats in here as well.
