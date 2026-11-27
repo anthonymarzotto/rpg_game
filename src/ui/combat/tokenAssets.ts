@@ -140,6 +140,8 @@ export const PIXEL_ROTATIONS = [
   'south'
 ] as const;
 
+export type PixelRotation = (typeof PIXEL_ROTATIONS)[number];
+
 const rawBase = typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL ? import.meta.env.BASE_URL : './';
 const BASE_URL = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
 
@@ -151,6 +153,21 @@ export function isPixelAsset(src: string | null): boolean {
 }
 
 /**
+ * Maps a Unit and explicit 8-way pixel rotation name to its corresponding pixel sprite PNG URL.
+ * Returns null if the unit has no pixel assets available yet.
+ */
+export function resolvePixelRotationPath(
+  unit: Unit,
+  rotation: PixelRotation = 'south'
+): string | null {
+  const pixelBase = resolvePixelTokenBase(unit);
+  if (!pixelBase) {
+    return null;
+  }
+  return `${BASE_URL}assets/tokens/pixel/${pixelBase}/Idle/rotations/${rotation}.png`;
+}
+
+/**
  * Maps a Unit and optional facing direction to its corresponding pixel sprite PNG URL.
  * Returns null if the unit has no pixel assets available yet (triggering vector circle fallback).
  */
@@ -158,14 +175,12 @@ export function resolveTokenAssetPath(
   unit: Unit,
   facing?: HexDirection
 ): string | null {
-  const pixelBase = resolvePixelTokenBase(unit);
-  if (!pixelBase) {
-    return null;
-  }
   // When facing is specified on the hex grid, resolve 6-direction rotation;
   // For general UI portraits (ribbons, banners, modals), default to 'south' (front-facing)
-  const rotation = facing !== undefined ? HEX_TO_PIXEL_ROTATION[facing] : 'south';
-  return `${BASE_URL}assets/tokens/pixel/${pixelBase}/Idle/rotations/${rotation}.png`;
+  const rotation: PixelRotation = facing !== undefined
+    ? (HEX_TO_PIXEL_ROTATION[facing] as PixelRotation)
+    : 'south';
+  return resolvePixelRotationPath(unit, rotation);
 }
 
 /**

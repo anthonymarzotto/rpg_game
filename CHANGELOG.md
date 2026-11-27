@@ -2,6 +2,13 @@
 
 All notable changes to Astral Tactics are documented in this file.
 
+## [0.27.0] - 2026-11-26
+
+### The Nexus Hearth & Cosmic Sprite
+- **Living Campfire Hearth in The Nexus**: Added a twilight stone-plaza hearth above **The Staging Dais** featuring a crackling animated campfire and your traveling company gathered around the flames. Staged Wayfarers stand closest to the fire in a warm golden glow, Ascension-ready companions sparkle with starlight, and Wayfarers leisurely stroll around the hearth—with resting companions occasionally wandering off toward the plaza edges and strolling back in. Clicking any Wayfarer by the fire opens their progression drawer directly.
+- **Luminous Cosmic Sprite Companion**: Your guiding **Cosmic Sprite** now glows softly above the title on the Start Screen and floats warmly around **The Nexus Hearth**, gently drifting toward whichever Wayfarer you hover and sharing a quiet starlight whisper when clicked.
+- **Vertical Campfire Commons Grid**: **Campfire Commons** now arranges resting Wayfarers in a clean multi-row grid that scrolls vertically instead of horizontally, making larger companies much easier to browse.
+
 ## [0.26.0] - 2026-11-26
 
 ### Astral Codex & Firmament Worldbuilding

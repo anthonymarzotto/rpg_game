@@ -7,6 +7,7 @@ import { ActiveSquadDock } from './ActiveSquadDock';
 import { ExpeditionWarRoom } from './ExpeditionWarRoom';
 import { ReserveBarracksTray } from './ReserveBarracksTray';
 import { HeroProgressionDrawer } from './HeroProgressionDrawer';
+import { NexusHearth } from './NexusHearth';
 import { AstralCodexModal } from '../common/AstralCodexModal';
 import './CampHub.css';
 
@@ -27,6 +28,7 @@ export function CampHub({
 }: CampHubProps) {
   const [swappingHeroId, setSwappingHeroId] = useState<string | null>(null);
   const [inspectingHeroId, setInspectingHeroId] = useState<string | null>(null);
+  const [hoveredHeroId, setHoveredHeroId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [isCodexOpen, setIsCodexOpen] = useState(false);
 
@@ -178,16 +180,28 @@ export function CampHub({
       {/* Main Camp Hub Content */}
       <main className="camp-hub-content">
         <div className="camp-upper-section">
-          {/* Active Vanguard Dock */}
-          <ActiveSquadDock
-            activeSquad={activeSquad}
-            stage={campaign.stage}
-            deploymentBudget={deploymentBudget}
-            onInspectHero={(unit) => setInspectingHeroId(unit.id)}
-            onBenchHero={handleBenchHero}
-            onSwapHero={handleToggleSwapHero}
-            swappingHeroId={swappingHeroId}
-          />
+          <div className="camp-left-column">
+            {/* Living Campfire Hearth & Cosmic Sprite */}
+            <NexusHearth
+              roster={campaign.roster}
+              activeSquadIds={campaign.activeSquadIds}
+              hoveredHeroId={hoveredHeroId}
+              onInspectHero={(unit) => setInspectingHeroId(unit.id)}
+              onHoverHero={setHoveredHeroId}
+            />
+
+            {/* Active Staging Dais */}
+            <ActiveSquadDock
+              activeSquad={activeSquad}
+              stage={campaign.stage}
+              deploymentBudget={deploymentBudget}
+              onInspectHero={(unit) => setInspectingHeroId(unit.id)}
+              onBenchHero={handleBenchHero}
+              onSwapHero={handleToggleSwapHero}
+              onHoverHero={setHoveredHeroId}
+              swappingHeroId={swappingHeroId}
+            />
+          </div>
 
           {/* Expedition War Room */}
           <ExpeditionWarRoom

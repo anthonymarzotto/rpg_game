@@ -5,6 +5,7 @@
 ---
 
 ## 🔨 In Progress
+- [X] **Nexus Hearth & Cosmic Sprite (`nexus-hearth-and-cosmic-sprite`)**: Animated campfire diorama in The Nexus with gathered/wandering company sprites, luminous Cosmic Sprite presence (Nexus + Start Screen), and vertical Campfire Commons grid (covers Phase 2 Nexus visuals, **UX.16**, and **UX.26**).
 - [X] **Astral Codex (`astral-codex`)**: In-game lore compendium modal backed by `docs/lore/` frontmatter, accessible from Start Screen & The Nexus.
 - [X] **3.6**: **Arcanist** (`#96`, Tier 4: `0F, 1R, 3M`), `96_human_male`.
 - [X] **3.5**: **Theurge** (`#79`, Tier 4: `1F, 0R, 3M`), `79_human_male`.
@@ -46,15 +47,15 @@ Align `GLOSSARY.md`, `DESIGN.md`, UI copy, and procedural naming/encounters with
 
 ### Lore Alignment Pass (Phase 2 — Visuals & Codex, Later)
 - [X] Twilight indigo/violet + warm lantern palette pass (`src/styles/tokens.css`, `StartScreen.css`, `CampHub.css`)
-- [ ] Cosmic Sprite UI presence & Campfire Commons staging visuals (pairs with **UX.16** below)
+- [X] Cosmic Sprite UI presence & Campfire Commons staging visuals (pairs with **UX.16** below)
 
 ---
 
 ## 🎨 UX Updates
 - [ ] **UX.7**: Dice Tray: Maybe we change it to click to close instead of auto close (re-assess after pacing & clash stage update).
 - [ ] **UX.15**: Make Vanguard Squad area in Post Trial XP distribution dialog scrollable.
-- [ ] **UX.16**: More interesting Vanguard area. Maybe some sort of campfire with the unit sprites randomly gathered around. Maybe animated milling about?
-- [ ] **UX.26**: "The Enclave" should scroll vertically, not horizontally.
+- [X] **UX.16**: More interesting Vanguard area. Maybe some sort of campfire with the unit sprites randomly gathered around. Maybe animated milling about?
+- [X] **UX.26**: "The Enclave" should scroll vertically, not horizontally.
 
 ---
 

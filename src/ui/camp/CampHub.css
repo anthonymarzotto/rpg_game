@@ -167,6 +167,13 @@
   align-items: start;
 }
 
+.camp-left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
 @media (max-width: 1100px) {
   .camp-upper-section {
     grid-template-columns: 1fr;

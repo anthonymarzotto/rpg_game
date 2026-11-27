@@ -6,6 +6,7 @@ import { HEX_DIRECTIONS } from '../../core/grid/hex';
 import {
   AVAILABLE_PIXEL_TOKENS,
   PIXEL_ROTATIONS,
+  resolvePixelRotationPath,
   resolveTokenAssetPath,
   resolvePixelTokenBase,
   isPixelAsset,
@@ -318,6 +319,24 @@ describe('Token Asset Resolution & Pixel Multi-Directional Support', () => {
       expect(resolveTokenAssetPath(novice)).toBe(
         '/assets/tokens/pixel/000_human_male/Idle/rotations/south.png'
       );
+    });
+
+    it('resolves all 8 directional rotation URLs via resolvePixelRotationPath', () => {
+      const novice = createMockUnit();
+      for (const rotation of PIXEL_ROTATIONS) {
+        expect(resolvePixelRotationPath(novice, rotation)).toBe(
+          `/assets/tokens/pixel/000_human_male/Idle/rotations/${rotation}.png`
+        );
+      }
+
+      const ungenerated = createMockUnit({
+        loadout: {
+          activeClassId: 'elementalist',
+          wildcardAbilityIds: [],
+          wildcardPassiveIds: []
+        }
+      });
+      expect(resolvePixelRotationPath(ungenerated, 'north')).toBeNull();
     });
 
     it('gracefully falls back to available male sprite if female pixel sprite is not yet generated', () => {

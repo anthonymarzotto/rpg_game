@@ -3,6 +3,7 @@ import { SaveSlotId, SlotSummary } from '../../core/storage/types';
 import { SaveSlotDrawer } from './SaveSlotDrawer';
 import { ChangelogModal } from './ChangelogModal';
 import { AstralCodexModal } from '../common/AstralCodexModal';
+import { CosmicSprite } from '../common/CosmicSprite';
 import packageJson from '../../../package.json';
 import './StartScreen.css';
 
@@ -75,7 +76,9 @@ export function StartScreen({
     <div className="start-screen-container" data-testid="start-screen">
       <div className="start-screen-card glass-panel">
         <header className="start-screen-header">
-          <div className="start-screen-emblem">✦</div>
+          <div className="start-screen-emblem">
+            <CosmicSprite size="lg" testId="start-cosmic-sprite" />
+          </div>
           <h1 className="start-screen-title font-display">ASTRAL TACTICS</h1>
           <p className="start-screen-subtitle font-ui">
             Guide a traveling company through the Astral Tournaments of The Firmament

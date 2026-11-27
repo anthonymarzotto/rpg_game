@@ -9,6 +9,7 @@ export interface HeroCardProps {
   readonly onInspect: (unit: Unit) => void;
   readonly onBench?: (unitId: string) => void;
   readonly onSwap?: (unitId: string) => void;
+  readonly onHover?: (unitId: string | null) => void;
   readonly canBench?: boolean;
   readonly isSwapping?: boolean;
 }
@@ -18,6 +19,7 @@ export function HeroCard({
   onInspect,
   onBench,
   onSwap,
+  onHover,
   canBench = true,
   isSwapping = false
 }: HeroCardProps) {
@@ -33,6 +35,8 @@ export function HeroCard({
     <div
       className={`hero-card ${levelStatus.isReady ? 'level-ready' : ''} ${isSwapping ? 'swapping-active' : ''}`}
       data-testid={`hero-card-${unit.id}`}
+      onMouseEnter={() => onHover?.(unit.id)}
+      onMouseLeave={() => onHover?.(null)}
     >
       {/* Header with Avatar and Names */}
       <div className="hero-card-header">

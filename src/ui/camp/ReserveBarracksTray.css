@@ -120,15 +120,34 @@
 }
 
 .reserve-cards-scroll-container {
-  display: flex;
-  gap: 1rem;
-  overflow-x: auto;
-  padding-bottom: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+  gap: 0.9rem;
+  max-height: 360px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.25rem;
+  padding-bottom: 0.25rem;
   min-height: 120px;
   align-items: stretch;
 }
 
+.reserve-cards-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.reserve-cards-scroll-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+
+.reserve-cards-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--border-highlight);
+  border-radius: 4px;
+}
+
 .reserve-empty-state {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: center;

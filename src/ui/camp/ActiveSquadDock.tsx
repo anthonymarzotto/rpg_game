@@ -11,6 +11,7 @@ export interface ActiveSquadDockProps {
   readonly onInspectHero: (unit: Unit) => void;
   readonly onBenchHero: (unitId: string) => void;
   readonly onSwapHero: (unitId: string) => void;
+  readonly onHoverHero?: (unitId: string | null) => void;
   readonly swappingHeroId?: string | null;
 }
 
@@ -22,6 +23,7 @@ export function ActiveSquadDock({
   onInspectHero,
   onBenchHero,
   onSwapHero,
+  onHoverHero,
   swappingHeroId = null
 }: ActiveSquadDockProps) {
   const canBench = activeSquad.length > 1;
@@ -59,6 +61,7 @@ export function ActiveSquadDock({
                 onInspect={onInspectHero}
                 onBench={onBenchHero}
                 onSwap={onSwapHero}
+                onHover={onHoverHero}
                 canBench={canBench}
                 isSwapping={swappingHeroId === unit.id}
               />

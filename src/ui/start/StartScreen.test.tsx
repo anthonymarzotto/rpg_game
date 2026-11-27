@@ -10,6 +10,7 @@ describe('StartScreen Component', () => {
     const html = renderToStaticMarkup(<StartScreen onNewGame={onNewGame} />);
 
     expect(html).toContain('ASTRAL TACTICS');
+    expect(html).toContain('data-testid="start-cosmic-sprite"');
     expect(html).toContain('Start New Company');
     expect(html).toContain('📖 Astral Codex');
     expect(html).toContain('data-testid="start-codex-btn"');

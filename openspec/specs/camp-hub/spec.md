@@ -17,7 +17,7 @@ The system SHALL display the currently deployed combat squad (1 to 3 units) in t
 - **THEN** that hero's card displays a prominent `✦ LEVEL READY` callout badge
 
 ### Requirement: Reserve Barracks Tray and Filtering
-The system SHALL display all roster units not currently in the active vanguard within a reserve barracks tray, supporting uncapped roster scaling and filter toggles for category viewing.
+The system SHALL display all roster units not currently in the active vanguard within a reserve barracks tray (Campfire Commons) arranged as a responsive vertically-wrapping grid with vertical scrolling, supporting uncapped roster scaling and filter toggles for category viewing.
 
 #### Scenario: Viewing reserve units
 - **WHEN** the player has units in the campaign roster who are not in `activeSquadIds`
@@ -26,6 +26,10 @@ The system SHALL display all roster units not currently in the active vanguard w
 #### Scenario: Filtering reserve roster
 - **WHEN** the player selects a filter such as `Level Ready` or a specific class tag
 - **THEN** the reserve barracks tray displays only the units matching the selected filter criteria
+
+#### Scenario: Wrapping and vertically scrolling large reserve rosters
+- **WHEN** the reserve roster contains more Wayfarers than fit across a single row
+- **THEN** the mini cards wrap across multiple rows in a vertical grid and scroll vertically rather than horizontally
 
 ### Requirement: Smart Two-Way Unit Swapping
 The system SHALL support moving units between the reserve tray and active squad: allowing 1-click deployment into open slots when fewer than 3 units are active, allowing units to be benched if at least 1 hero remains active, and supporting direct 1-click slot replacement when the active squad is full.

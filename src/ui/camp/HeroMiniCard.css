@@ -5,15 +5,15 @@
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
   padding: 0.85rem;
-  min-width: 170px;
-  max-width: 200px;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   backdrop-filter: var(--blur-panel);
   -webkit-backdrop-filter: var(--blur-panel);
   transition: all 0.2s ease;
   position: relative;
   box-sizing: border-box;
-  flex-shrink: 0;
 }
 
 .hero-mini-card:hover {

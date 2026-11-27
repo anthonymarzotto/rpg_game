@@ -35,6 +35,11 @@ describe('CampHub Integration Test Suite', () => {
     expect(html).not.toContain('data-testid="astral-codex-overlay"');
     expect(html).toContain('Return to Portal');
 
+    // Living Nexus Hearth & Cosmic Sprite
+    expect(html).toContain('data-testid="nexus-hearth"');
+    expect(html).toContain('data-testid="nexus-hearth-campfire"');
+    expect(html).toContain('data-testid="hearth-cosmic-sprite"');
+
     // Staging Dais with 3 units
     expect(html).toContain('The Staging Dais');
     expect(html).toContain('30 / 30 Pts (3 Staged)');

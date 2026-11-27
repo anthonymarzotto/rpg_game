@@ -31,10 +31,10 @@
 }
 
 .start-screen-emblem {
-  font-size: 2.75rem;
-  color: var(--color-player-active);
-  text-shadow: 0 0 24px rgba(245, 158, 11, 0.6);
-  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.65rem;
   user-select: none;
 }
 
